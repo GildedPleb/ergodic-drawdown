@@ -34,25 +34,18 @@ export interface HalvingWorker {
 }
 
 export interface NormalizePrice {
-  currentBlock: number;
-  currentPrice: number;
-  minMaxMultiple: number;
-  model: PriceModel;
-  now: number;
+  maxArray: Float64Array;
+  minArray: Float64Array;
   priceToNormalize: number;
-  variable: number;
-  week?: number;
+  week: number;
 }
 
 export interface ApplyModel {
-  currentBlock: number;
-  currentPrice: number;
-  minMaxMultiple: number;
-  model: PriceModel;
-  normalizedPrices: number[];
-  now: number;
-  startIndex?: number;
-  variable: number;
+  maxArray: Float64Array;
+  minArray: Float64Array;
+  normalizedPrices: Float64Array;
+  offset: number;
+  week: number;
 }
 
 export interface Point {
@@ -84,35 +77,18 @@ export interface Full {
   clampTop: boolean;
   minMaxMultiple: number;
   model: string;
-  now: number;
   variable: number;
   volatility: number;
   walk: string;
 }
 
 export interface Part {
-  currentBlock: number;
   currentPrice: number;
   epochCount: number;
   halvings: HalvingData;
+  maxArray: Float64Array;
+  minArray: Float64Array;
   samples: number;
-}
-export interface SimulationWorker {
-  clampBottom: boolean;
-  clampTop: boolean;
-  currentBlock: number;
-  currentPrice: number;
-  epochCount: number;
-  full: Full;
-  halvings: Record<number, number>;
-  minMaxMultiple: number;
-  model: string;
-  now: number;
-  part: Part;
-  samples: number;
-  variable: number;
-  volatility: number;
-  walk: string;
 }
 
 export interface VolumeWorker {

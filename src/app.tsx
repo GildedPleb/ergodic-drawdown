@@ -5,7 +5,6 @@ import "./App.css";
 import "chartjs-adapter-date-fns";
 
 import { useQuery } from "@tanstack/react-query";
-import hashSum from "hash-sum";
 import React, {
   Suspense,
   useCallback,
@@ -18,6 +17,8 @@ import { getCurrentPrice, getInterimWeeklyData } from "./api";
 import Lightning1 from "./assets/lightning1.svg?react";
 import marketData from "./bitcoin_weekly_prices_transformed_2.json";
 import {
+  DEFAULT_EPOCH_COUNT,
+  DEFAULT_SIMULATION_COUNT,
   isMobile,
   MS_PER_DAY,
   MS_PER_WEEK,
@@ -32,6 +33,7 @@ import {
   getDataSetSize,
   getDataSize,
   loadHalvings,
+  weeksSinceLastHalving,
 } from "./helpers";
 import Tutorial from "./how-to";
 import BitcoinInput from "./input/bitcoin";
@@ -125,9 +127,9 @@ const StochasticGraph = (): React.ReactNode => {
   const debouncedClampBottom = useDebounce<boolean>(clampBottom, DEBOUNCE);
   const [volatility, setVolatility] = useState<number>(0.1);
   const debouncedVolatility = useDebounce<number>(volatility, DEBOUNCE);
-  const [samples, setSamples] = useState<number>(1000);
+  const [samples, setSamples] = useState<number>(DEFAULT_SIMULATION_COUNT);
   const debouncedSamples = useDebounce<number>(samples, DEBOUNCE);
-  const [epochCount, setEpochCount] = useState<number>(10);
+  const [epochCount, setEpochCount] = useState<number>(DEFAULT_EPOCH_COUNT);
   const debouncedEpoch = useDebounce<number>(epochCount, DEBOUNCE);
 
   // Panel 2
@@ -238,6 +240,60 @@ const StochasticGraph = (): React.ReactNode => {
   // BTC PRICE
   // *******
 
+  const minArray = useMemo(() => {
+    const lastHalving = weeksSinceLastHalving(halvings);
+    const datasetLength = epochCount * 208 - lastHalving;
+    const minPoints = new Float64Array(datasetLength);
+
+    for (let index = 0; index < datasetLength; index++) {
+      minPoints[index] = modelMap[debouncedModel].minPrice({
+        currentBlock,
+        currentPrice,
+        minMaxMultiple: debouncedMinMaxMultiple,
+        now,
+        variable: debouncedVariable,
+        week: index,
+      });
+    }
+    return minPoints;
+  }, [
+    currentBlock,
+    currentPrice,
+    debouncedMinMaxMultiple,
+    debouncedModel,
+    debouncedVariable,
+    epochCount,
+    halvings,
+    now,
+  ]);
+
+  const maxArray = useMemo(() => {
+    const lastHalving = weeksSinceLastHalving(halvings);
+    const datasetLength = epochCount * 208 - lastHalving;
+    const minPoints = new Float64Array(datasetLength);
+
+    for (let index = 0; index < datasetLength; index++) {
+      minPoints[index] = modelMap[debouncedModel].maxPrice({
+        currentBlock,
+        currentPrice,
+        minMaxMultiple: debouncedMinMaxMultiple,
+        now,
+        variable: debouncedVariable,
+        week: index,
+      });
+    }
+    return minPoints;
+  }, [
+    currentBlock,
+    currentPrice,
+    debouncedMinMaxMultiple,
+    debouncedModel,
+    debouncedVariable,
+    epochCount,
+    halvings,
+    now,
+  ]);
+
   useEffect(() => {
     if (currentPrice === 0 || currentBlock === 0) return;
     const abortController = new AbortController();
@@ -247,19 +303,19 @@ const StochasticGraph = (): React.ReactNode => {
       clampTop: debouncedClampTop,
       minMaxMultiple: debouncedMinMaxMultiple,
       model: debouncedModel,
-      now,
       variable: debouncedVariable,
       volatility: debouncedVolatility,
       walk: debouncedWalk,
     };
     const part: Part = {
-      currentBlock,
       currentPrice,
       epochCount: debouncedEpoch,
       halvings,
+      maxArray,
+      minArray,
       samples: debouncedSamples,
     };
-    simulationWorker(hashSum(full), hashSum(part), full, part, signal)
+    simulationWorker(full, part, signal)
       .then(([id, newData]) => {
         if (signal.aborted || newData.length === 0) {
           console.log("Aborted not setting price state....", id);
@@ -280,7 +336,6 @@ const StochasticGraph = (): React.ReactNode => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    currentBlock,
     currentPrice,
     debouncedClampBottom,
     debouncedClampTop,
@@ -356,22 +411,14 @@ const StochasticGraph = (): React.ReactNode => {
 
   const minModelDataset = useMemo(() => {
     if (!debouncedRenderModelMin) return [];
-
-    const datasetLength = (priceData[0] ?? []).length;
     const minPoints = [];
-
-    for (let index = 0; index < datasetLength; index++) {
+    let index = 0;
+    for (const price of minArray) {
       minPoints.push({
         x: now + index * MS_PER_WEEK,
-        y: modelMap[debouncedModel].minPrice({
-          currentBlock,
-          currentPrice,
-          minMaxMultiple: debouncedMinMaxMultiple,
-          now,
-          variable: debouncedVariable,
-          week: index,
-        }),
+        y: price,
       });
+      index++;
     }
     return [
       {
@@ -383,35 +430,18 @@ const StochasticGraph = (): React.ReactNode => {
         tension: 0,
       },
     ] satisfies DatasetList;
-  }, [
-    currentBlock,
-    currentPrice,
-    debouncedMinMaxMultiple,
-    debouncedModel,
-    debouncedRenderModelMin,
-    debouncedVariable,
-    now,
-    priceData,
-  ]);
+  }, [debouncedRenderModelMin, minArray, now]);
 
   const maxModelDataset = useMemo(() => {
     if (!debouncedRenderModelMax) return [];
-
-    const datasetLength = (priceData[0] ?? []).length;
     const maxPoints = [];
-
-    for (let index = 0; index < datasetLength; index++) {
+    let index = 0;
+    for (const price of maxArray) {
       maxPoints.push({
         x: now + index * MS_PER_WEEK,
-        y: modelMap[debouncedModel].maxPrice({
-          currentBlock,
-          currentPrice,
-          minMaxMultiple: debouncedMinMaxMultiple,
-          now,
-          variable: debouncedVariable,
-          week: index,
-        }),
+        y: price,
       });
+      index++;
     }
     return [
       {
@@ -423,16 +453,7 @@ const StochasticGraph = (): React.ReactNode => {
         tension: 0,
       },
     ] satisfies DatasetList;
-  }, [
-    currentBlock,
-    currentPrice,
-    debouncedMinMaxMultiple,
-    debouncedModel,
-    debouncedRenderModelMax,
-    debouncedVariable,
-    now,
-    priceData,
-  ]);
+  }, [debouncedRenderModelMax, maxArray, now]);
 
   // *******
   // BTC VOLUME

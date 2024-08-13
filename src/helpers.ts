@@ -54,31 +54,13 @@ export const saveHalvings = (halvings: HalvingData): void => {
 const base = 10;
 
 export const normalizePrice = ({
-  currentBlock,
-  currentPrice,
-  minMaxMultiple,
-  model,
-  now,
+  maxArray,
+  minArray,
   priceToNormalize,
-  variable,
-  week = 0,
+  week,
 }: NormalizePrice): number => {
-  const min = model.minPrice({
-    currentBlock,
-    currentPrice,
-    minMaxMultiple,
-    now,
-    variable,
-    week,
-  });
-  const max = model.maxPrice({
-    currentBlock,
-    currentPrice,
-    minMaxMultiple,
-    now,
-    variable,
-    week,
-  });
+  const min = minArray[week];
+  const max = maxArray[week];
 
   if (priceToNormalize <= min) {
     return Math.log10(priceToNormalize / min);
@@ -91,45 +73,29 @@ export const normalizePrice = ({
 };
 
 export const applyModel = ({
-  currentBlock,
-  currentPrice,
-  minMaxMultiple,
-  model,
+  maxArray,
+  minArray,
   normalizedPrices,
-  now,
-  startIndex = 0,
-  variable,
+  offset,
+  week,
 }: ApplyModel): Float64Array => {
-  const bigints: number[] = normalizedPrices.map((price, index) => {
-    const week = index + startIndex;
-    const min = model.minPrice({
-      currentBlock,
-      currentPrice,
-      minMaxMultiple,
-      now,
-      variable,
-      week,
-    });
-    const max = model.maxPrice({
-      currentBlock,
-      currentPrice,
-      minMaxMultiple,
-      now,
-      variable,
-      week,
-    });
+  const final = new Float64Array(normalizedPrices.length);
+  let index = 0;
+  for (const price of normalizedPrices) {
+    const min = minArray[index + week - offset];
+    const max = maxArray[index + week - offset];
+    // if (min === undefined || max === undefined) throw new Error("gott it");
     if (price <= 0) {
-      return Number.parseFloat((min * base ** price).toFixed(2));
-    }
-    if (price < 1) {
+      final[index] = min * base ** price;
+    } else if (price < 1) {
       const logMin = Math.log10(min);
-      return Number.parseFloat(
-        (base ** (price * (Math.log10(max) - logMin) + logMin)).toFixed(2),
-      );
+      final[index] = base ** (price * (Math.log10(max) - logMin) + logMin);
+    } else {
+      final[index] = max * base ** (price - 1);
     }
-    return Number.parseFloat((max * base ** (price - 1)).toFixed(2));
-  });
-  return new Float64Array(bigints);
+    index++;
+  }
+  return final;
 };
 
 export const seededRandom = (seed: number): number => {

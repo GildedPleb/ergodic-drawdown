@@ -12,6 +12,9 @@ export const WEEKS_PER_EPOCH = 4 * WEEKS_PER_YEAR;
 
 export const LAST_SAVED_TIMESTAMP = 1_719_014_400;
 
+export const DEFAULT_SIMULATION_COUNT = 1000;
+export const DEFAULT_EPOCH_COUNT = 10;
+
 // eslint-disable-next-line functional/functional-parameters
 export const isMobile = (): boolean => {
   if (typeof window !== "undefined" && typeof navigator !== "undefined") {
