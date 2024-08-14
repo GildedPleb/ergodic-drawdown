@@ -117,7 +117,10 @@ export const generateColor = (index: number): string => {
   return `rgb(${red}, ${green}, ${blue})`;
 };
 
-export const quantile = (array: number[], percent: number): number => {
+export const quantile = (
+  array: Float64Array | number[],
+  percent: number,
+): number => {
   if (array.length === 0) return 0;
   if (percent === 0) return array[0];
   if (percent === 1) return array.at(-1) ?? 0;
@@ -164,4 +167,28 @@ export const getDataSetSize = (data: DatasetList): number => {
     }
   }
   return totalSize / (1024 * 1024);
+};
+
+export const getOrdinalSuffix = (amount: number): string => {
+  const lastDigit = amount % 10;
+  const lastTwoDigits = amount % 100;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
+    return "th";
+  }
+
+  switch (lastDigit) {
+    case 1: {
+      return "st";
+    }
+    case 2: {
+      return "nd";
+    }
+    case 3: {
+      return "rd";
+    }
+    default: {
+      return "th";
+    }
+  }
 };

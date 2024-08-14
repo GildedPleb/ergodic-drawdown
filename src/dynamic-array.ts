@@ -19,30 +19,34 @@ export default class Dynamic2DArray {
 
   private readonly minWidth: number;
 
+  private readonly space: number;
+
   constructor(
     initialActiveWidth: number,
     initialActiveHeight: number,
     multiplier = WEEKS_PER_EPOCH,
     minWidth = 10,
     minHeight = 1000,
+    space = 2,
   ) {
-    if (2 * initialActiveWidth < minWidth) {
+    if (space * initialActiveWidth < minWidth) {
       throw new Error(
         `Initial Width Less Than default minimum box width: ${minWidth} ${minHeight}`,
       );
     }
-    if (2 * initialActiveHeight < minHeight) {
+    if (space * initialActiveHeight < minHeight) {
       throw new Error("Initial height Less Than default minimum box height");
     }
 
     this.activeWidth = initialActiveWidth;
     this.activeHeight = initialActiveHeight;
-    this.boxWidth = 2 * initialActiveWidth;
-    this.boxHeight = 2 * initialActiveHeight;
+    this.boxWidth = Math.floor(space * initialActiveWidth);
+    this.boxHeight = Math.floor(space * initialActiveHeight);
     this.data = Array.from({ length: this.boxHeight });
     this.multiplier = multiplier;
     this.minHeight = minHeight;
     this.minWidth = minWidth;
+    this.space = space;
 
     for (let index = 0; index < this.boxHeight; index++) {
       this.data[index] = new Float64Array(this.boxWidth * this.multiplier);
@@ -61,7 +65,6 @@ export default class Dynamic2DArray {
   }
 
   get(x: number, y: number): Float64Array | undefined {
-    // Fast fail for invalid indices
     if (x < 0 || x >= this.activeWidth || y < 0 || y >= this.activeHeight) {
       return undefined;
     }
@@ -70,10 +73,8 @@ export default class Dynamic2DArray {
     const end = (x + 1) * this.multiplier;
     const rowData = this.data[y];
 
-    // Iterate to find the first non-zero value
     for (let index = start; index < end; index++) {
       if (rowData[index] !== 0) {
-        // Direct access without creating a new array
         return rowData.subarray(start, end);
       }
     }
@@ -81,17 +82,10 @@ export default class Dynamic2DArray {
   }
 
   getRow(y: number): Float64Array | undefined {
-    // Quickly validate 'y' bounds to return early if out of range.
     if (y < 0 || y >= this.activeHeight) return undefined;
-
-    // Access 'this.data[y]' once, avoiding multiple accesses.
     const row = this.data[y];
-
-    // Avoid slicing and iterating the array if unnecessary.
     const start = (this.activeWidth - 1) * this.multiplier;
     const end = this.activeWidth * this.multiplier;
-
-    // Use a direct loop for better performance on checks.
     for (let index = start; index < end; index++) {
       if (row[index] !== 0) {
         break;
@@ -108,9 +102,11 @@ export default class Dynamic2DArray {
     this.activeHeight = newActiveHeight;
 
     if (newActiveWidth >= this.boxWidth) {
-      const newWidth = newActiveWidth * 2;
+      const newWidth = Math.floor(newActiveWidth * this.space);
       for (let index = 0; index < this.boxHeight; index++) {
-        const extendedRow = new Float64Array(newWidth * this.multiplier);
+        const extendedRow = new Float64Array(
+          Math.floor(newWidth * this.multiplier),
+        );
         extendedRow.set(this.data[index]);
         this.data[index] = extendedRow;
       }
@@ -118,33 +114,35 @@ export default class Dynamic2DArray {
     }
 
     if (newActiveHeight >= this.boxHeight) {
-      const newHeight = newActiveHeight * 2;
+      const newHeight = Math.floor(newActiveHeight * this.space);
       for (let index = this.boxHeight; index < newHeight; index++) {
-        this.data[index] = new Float64Array(this.boxWidth * this.multiplier);
+        this.data[index] = new Float64Array(
+          Math.floor(this.boxWidth * this.multiplier),
+        );
       }
       this.boxHeight = newHeight;
     }
 
-    if (newActiveWidth < this.boxWidth / 2) {
+    if (newActiveWidth < this.boxWidth / this.space) {
       const newWidth =
-        this.activeWidth * 2 < this.minWidth
+        this.activeWidth * this.space < this.minWidth
           ? this.minWidth
-          : this.activeWidth * 2;
+          : Math.floor(this.activeWidth * this.space);
 
       for (let index = 0; index < this.boxHeight; index++) {
         this.data[index] = this.data[index].subarray(
           0,
-          newWidth * this.multiplier,
+          Math.floor(newWidth * this.multiplier),
         );
       }
       this.boxWidth = newWidth;
     }
 
-    if (newActiveHeight < this.boxHeight / 2) {
+    if (newActiveHeight < this.boxHeight / this.space) {
       const newHeight =
-        this.activeHeight * 2 < this.minHeight
+        this.activeHeight * this.space < this.minHeight
           ? this.minHeight
-          : this.activeHeight * 2;
+          : Math.floor(this.activeHeight * this.space);
 
       this.data = this.data.slice(0, newHeight);
       this.boxHeight = newHeight;
@@ -162,6 +160,6 @@ export default class Dynamic2DArray {
         `Set Position out of bounds: got, x "${x}", y "${y}". Needed: x < ${this.activeWidth}, y < ${this.activeHeight}`,
       );
     }
-    this.data[y].set(value, x * this.multiplier);
+    this.data[y].set(value, Math.floor(x * this.multiplier));
   }
 }

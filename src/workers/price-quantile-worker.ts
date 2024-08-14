@@ -1,23 +1,76 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
+/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
+/* eslint-disable unicorn/no-new-array */
+/* eslint-disable unicorn/no-for-loop */
 /* eslint-disable security/detect-object-injection */
 import hashSum from "hash-sum";
+import { LRUCache } from "lru-cache";
+import quickselect from "quickselect";
 
 import { MS_PER_WEEK } from "../constants";
 import { bitcoinColor, priceQuantileColor } from "../content";
-import { quantile, timeout } from "../helpers";
-import { type DatasetList, type PriceData } from "../types";
+import { getOrdinalSuffix, timeout } from "../helpers";
+import { type DatasetList, type Point, type PriceData } from "../types";
 
 const signalState = { aborted: false };
 
 const NAME = "price quantile";
 
+const lruCache = new LRUCache<string, DatasetList>({ max: 5 });
+const getQuantileLabel = (
+  cutoff: number,
+  total: number,
+  index: number,
+): string => {
+  if (index === 0) return "Lowest Sampled";
+  if (index === Math.floor(total / 2)) return "Median";
+  if (index === total - 1) return "Highest Sampled";
+  const amount = Math.round(cutoff * 100);
+  const suffix = getOrdinalSuffix(amount);
+  return `${amount}${suffix} Percentile`;
+};
+
+const createDataSet = (
+  cutoffs: number[],
+  quantiles: Point[][],
+): DatasetList => {
+  const length = cutoffs.length;
+  const midIndex = Math.floor(length / 2);
+
+  return cutoffs.map((cutoff, index) => {
+    const isMedian = index === midIndex;
+    return {
+      backgroundColor: isMedian ? undefined : priceQuantileColor,
+      borderColor: isMedian ? bitcoinColor : undefined,
+      borderDash: isMedian ? [15, 5] : undefined,
+      borderWidth: isMedian ? 1 : 0,
+      data: quantiles[index],
+      fill: isMedian
+        ? false
+        : index < midIndex
+          ? `+${midIndex - index}`
+          : `-${index - midIndex}`,
+      label: `${getQuantileLabel(cutoff, length, index)} Bitcoin Price`,
+      pointRadius: 0,
+      tension: 0,
+      yAxisID: "y",
+    };
+  });
+};
+
 const priceQuantileWorker = async (
   priceDataset: PriceData,
   now: number,
   signal: AbortSignal,
+  priceCacheHash: string,
 ): Promise<[string, DatasetList | undefined]> => {
   const id = hashSum(Math.random());
   console.time(NAME + id);
+  if (lruCache.has(priceCacheHash)) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const finalData = lruCache.get(priceCacheHash)!;
+    console.timeEnd(NAME + id);
+    return [id, finalData];
+  }
   signalState.aborted = false;
 
   // eslint-disable-next-line functional/functional-parameters
@@ -29,10 +82,12 @@ const priceQuantileWorker = async (
 
   signal.addEventListener("abort", AbortAction);
 
-  const groupedData: Record<number, number[]> = {};
-  let index = 0;
-  for (const innerArray of priceDataset) {
-    index++;
+  const numberWeeks = priceDataset[0].length;
+  const groupedData = new Array(numberWeeks) as Float64Array[];
+  for (let index = 0; index < groupedData.length; index++) {
+    groupedData[index] = new Float64Array(priceDataset.length);
+  }
+  for (let index = 0; index < priceDataset.length; index++) {
     if (index % 50 === 0) await timeout();
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (signalState.aborted) {
@@ -41,28 +96,25 @@ const priceQuantileWorker = async (
     } else {
       // console.log("loop price quantile 1");
     }
-    let innerIndex = 0;
-    for (const y of innerArray) {
-      const x = now + innerIndex * MS_PER_WEEK;
-      if (!(x in groupedData)) groupedData[x] = [];
-      groupedData[x].push(y <= 0 ? 0.01 : y);
-      innerIndex++;
+    for (let week = 0; week < priceDataset[index].length; week++) {
+      const value = priceDataset[index][week];
+      groupedData[week][index] = value <= 0.01 ? 0.01 : value;
     }
   }
 
-  const medianData = [];
-  const q000 = [];
-  const q001 = [];
-  const q005 = [];
-  const q025 = [];
-  const q075 = [];
-  const q095 = [];
-  const q099 = [];
-  const q100 = [];
+  const dates = new Array(groupedData.length) as number[];
+  for (let index = 0; index < groupedData.length; index++) {
+    dates[index] = now + index * MS_PER_WEEK;
+  }
 
-  for (const [x, values] of Object.entries(groupedData)) {
-    index++;
-    if (index % 50 === 0) await timeout();
+  const cutOffs = [0, 0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99, 1].sort(
+    (first, second) => first - second,
+  );
+  if (cutOffs.length % 2 !== 1) throw new Error("Cutoffs must be odd");
+  const quantiles = cutOffs.map(() => new Array(cutOffs.length) as Point[]);
+
+  for (let week = 0; week < groupedData.length; week++) {
+    if (week % 50 === 0) await timeout();
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (signalState.aborted) {
       console.timeEnd(NAME + id);
@@ -70,104 +122,24 @@ const priceQuantileWorker = async (
     } else {
       // console.log("loop price quantile 2");
     }
-    const sortedValues = values.sort((first, second) => first - second);
-    const date = Number.parseInt(x, 10);
-    medianData.push({ x: date, y: quantile(sortedValues, 0.5) });
-    q000.push({ x: date, y: quantile(sortedValues, 0) });
-    q001.push({ x: date, y: quantile(sortedValues, 0.01) });
-    q005.push({ x: date, y: quantile(sortedValues, 0.05) });
-    q025.push({ x: date, y: quantile(sortedValues, 0.25) });
-    q075.push({ x: date, y: quantile(sortedValues, 0.75) });
-    q095.push({ x: date, y: quantile(sortedValues, 0.95) });
-    q099.push({ x: date, y: quantile(sortedValues, 0.99) });
-    q100.push({ x: date, y: quantile(sortedValues, 1) });
+    let left = 0;
+    const right = groupedData[week].length - 1;
+    const date = dates[week];
+    for (let index = 0; index < quantiles.length; index++) {
+      const innerIndex = Math.floor(right * cutOffs[index]);
+      // @ts-expect-error dumb
+      quickselect(groupedData[week], innerIndex, left);
+      quantiles[index][week] = {
+        x: date,
+        y: groupedData[week][innerIndex],
+      };
+      left = innerIndex + 1;
+    }
   }
 
-  const finalData = [
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q000,
-      fill: "+4",
-      label: "Lowest Sampled Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q001,
-      fill: "+3",
-      label: "1st Percentile Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q005,
-      fill: "+2",
-      label: "5th Percentile Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q025,
-      fill: "+1",
-      label: "25th Percentile Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      borderColor: bitcoinColor,
-      borderDash: [15, 5],
-      borderWidth: 1,
-      data: medianData,
-      fill: false,
-      label: "Median Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q075,
-      fill: "-1",
-      label: "75th Percentile Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q095,
-      fill: "-2",
-      label: "95th Percentile Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q099,
-      fill: "-3",
-      label: "99th Percentile Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-    {
-      backgroundColor: priceQuantileColor,
-      borderWidth: 0,
-      data: q100,
-      fill: "-4",
-      label: "Highest Sampled Bitcoin Price",
-      pointRadius: 0,
-      tension: 0,
-    },
-  ] satisfies DatasetList;
+  const finalData = createDataSet(cutOffs, quantiles);
   signal.removeEventListener("abort", AbortAction);
+  lruCache.set(priceCacheHash, finalData);
   console.timeEnd(NAME + id);
   return [id, finalData];
 };

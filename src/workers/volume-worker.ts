@@ -1,4 +1,5 @@
 import hashSum from "hash-sum";
+import { LRUCache } from "lru-cache";
 
 import { MS_PER_DAY, MS_PER_WEEK, WEEKS_PER_YEAR } from "../constants";
 import { quantile, timeout } from "../helpers";
@@ -10,9 +11,12 @@ import {
 
 const signalState = { aborted: false };
 
+const lruCache = new LRUCache<string, VolumeReturn>({ max: 2 });
+
 const volumeWorker = async (
   { bitcoin, costOfLiving, data, drawdownDate, inflation, now }: VolumeWorker,
   signal: AbortSignal,
+  cacheId: string,
 ): Promise<[string, VolumeReturn | undefined]> => {
   const id = hashSum(Math.random());
   console.time("volume" + id);
@@ -32,9 +36,18 @@ const volumeWorker = async (
   const adjustedDif = Math.floor(
     (drawdownDate + MS_PER_DAY - now) / MS_PER_WEEK,
   );
-  const iterations =
-    (data[0] ?? []).length - (drawdownDate - now) / MS_PER_WEEK;
+  const iterations = Math.ceil(
+    (data[0] ?? []).length - (drawdownDate - now) / MS_PER_WEEK,
+  );
   const weeklyInflationRate = (1 + inflation / 100) ** (1 / WEEKS_PER_YEAR) - 1;
+
+  if (lruCache.has(cacheId)) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const volumeReturn = lruCache.get(cacheId)!;
+    signal.removeEventListener("abort", AbortAction);
+    console.timeEnd("volume" + id);
+    return [id, volumeReturn];
+  }
 
   const volumeDataset: VolumeData = [];
   let index = 0;
@@ -49,11 +62,11 @@ const volumeWorker = async (
     }
     let weeklyCostOfLiving = costOfLiving / WEEKS_PER_YEAR;
     let previous = bitcoin;
-    const dataArray = [];
+    const dataArray = new Float64Array(iterations);
 
     for (let innerIndex = 0; innerIndex < iterations; innerIndex++) {
       if (previous <= 0) {
-        dataArray.push(0);
+        dataArray[innerIndex] = 0;
         continue;
       }
       const adjustedInnerIndex = innerIndex + adjustedDif;
@@ -61,13 +74,13 @@ const volumeWorker = async (
       // eslint-disable-next-line security/detect-object-injection
       const y = previous - weeklyCostOfLiving / graph[adjustedInnerIndex];
       previous = y;
-      dataArray.push(y);
+      dataArray[innerIndex] = y;
     }
 
     const y = dataArray.at(-1);
     if (y !== undefined && y <= 0) zero += 1;
     if (y !== undefined) finalBalance.push(y);
-    volumeDataset.push(new Float64Array(dataArray));
+    volumeDataset.push(dataArray);
     index++;
   }
 
@@ -82,6 +95,7 @@ const volumeWorker = async (
       ? Number.NaN
       : middleQuant;
   const volumeReturn = { average, median, volumeDataset, zero };
+  lruCache.set(cacheId, volumeReturn);
   signal.removeEventListener("abort", AbortAction);
   console.timeEnd("volume" + id);
   return [id, volumeReturn];

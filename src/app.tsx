@@ -5,6 +5,7 @@ import "./App.css";
 import "chartjs-adapter-date-fns";
 
 import { useQuery } from "@tanstack/react-query";
+import hashSum from "hash-sum";
 import React, {
   Suspense,
   useCallback,
@@ -111,6 +112,8 @@ const StochasticGraph = (): React.ReactNode => {
   const [median, setMedian] = useState<number | undefined>();
   const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
   const [loadingVolumeData, setLoadingVolumeData] = useState<boolean>(true);
+  const [priceCacheHash, setPriceCacheHash] = useState<string>("");
+  const [volumeCacheHash, setVolumeCacheHash] = useState<string>("");
 
   // Panel 1
   const [model, setModel] = useState<string>(models[2].modelType);
@@ -241,6 +244,7 @@ const StochasticGraph = (): React.ReactNode => {
   // *******
 
   const minArray = useMemo(() => {
+    console.time("min");
     const lastHalving = weeksSinceLastHalving(halvings);
     const datasetLength = epochCount * 208 - lastHalving;
     const minPoints = new Float64Array(datasetLength);
@@ -255,6 +259,7 @@ const StochasticGraph = (): React.ReactNode => {
         week: index,
       });
     }
+    console.timeEnd("min");
     return minPoints;
   }, [
     currentBlock,
@@ -268,6 +273,7 @@ const StochasticGraph = (): React.ReactNode => {
   ]);
 
   const maxArray = useMemo(() => {
+    console.time("max");
     const lastHalving = weeksSinceLastHalving(halvings);
     const datasetLength = epochCount * 208 - lastHalving;
     const minPoints = new Float64Array(datasetLength);
@@ -282,6 +288,7 @@ const StochasticGraph = (): React.ReactNode => {
         week: index,
       });
     }
+    console.timeEnd("max");
     return minPoints;
   }, [
     currentBlock,
@@ -307,6 +314,7 @@ const StochasticGraph = (): React.ReactNode => {
       volatility: debouncedVolatility,
       walk: debouncedWalk,
     };
+    const cacheHashFull = hashSum(full);
     const part: Part = {
       currentPrice,
       epochCount: debouncedEpoch,
@@ -315,13 +323,15 @@ const StochasticGraph = (): React.ReactNode => {
       minArray,
       samples: debouncedSamples,
     };
-    simulationWorker(full, part, signal)
+    const cacheHashPart = hashSum(part);
+    simulationWorker(full, part, signal, cacheHashFull)
       .then(([id, newData]) => {
         if (signal.aborted || newData.length === 0) {
           console.log("Aborted not setting price state....", id);
         } else {
           console.log("Setting price state....", id);
           setPriceData(newData);
+          setPriceCacheHash(cacheHashFull + cacheHashPart);
           if (!debouncedRenderPriceNormal) setPriceNormal([]);
           if (!debouncedRenderPriceQuantile) setPriceQuantile([]);
           if (!debouncedRenderQuantile) setVolumeQuantile([]);
@@ -372,7 +382,7 @@ const StochasticGraph = (): React.ReactNode => {
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    priceQuantileWorker(priceData, now, signal)
+    priceQuantileWorker(priceData, now, signal, priceCacheHash)
       .then(([id, newData]) => {
         if (signal.aborted || newData === undefined) {
           console.log("Aborted price quantile not setting state....", id);
@@ -386,14 +396,15 @@ const StochasticGraph = (): React.ReactNode => {
     return () => {
       abortController.abort();
     };
-  }, [priceData, debouncedRenderPriceQuantile, now]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedRenderPriceQuantile, now, priceCacheHash]);
 
   useEffect(() => {
     if (priceData.length === 0 || !debouncedRenderPriceNormal) return;
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    priceNormalDistributionWorker(priceData, now, signal)
+    priceNormalDistributionWorker(priceData, now, signal, priceCacheHash)
       .then(([id, newData]) => {
         if (signal.aborted || newData === undefined) {
           console.log("Aborted price normal not setting state....", id);
@@ -407,7 +418,8 @@ const StochasticGraph = (): React.ReactNode => {
     return () => {
       abortController.abort();
     };
-  }, [priceData, debouncedRenderPriceNormal, now]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedRenderPriceNormal, now, priceCacheHash]);
 
   const minModelDataset = useMemo(() => {
     if (!debouncedRenderModelMin) return [];
@@ -463,7 +475,13 @@ const StochasticGraph = (): React.ReactNode => {
     if (priceData.length === 0) return;
     const abortController = new AbortController();
     const { signal } = abortController;
-
+    const volumeHash = hashSum({
+      bitcoin,
+      costOfLiving,
+      drawdownDate,
+      inflation,
+      priceCacheHash,
+    });
     volumeWorker(
       {
         bitcoin: debouncedBitcoin,
@@ -474,6 +492,7 @@ const StochasticGraph = (): React.ReactNode => {
         now,
       },
       signal,
+      volumeHash,
     )
       .then(([id, newData]) => {
         if (signal.aborted || newData === undefined) {
@@ -481,6 +500,7 @@ const StochasticGraph = (): React.ReactNode => {
         } else {
           console.log("Setting volume state....", id);
           setVolumeData(newData.volumeDataset);
+          setVolumeCacheHash(volumeHash);
           setZero(newData.zero);
           setAverage(newData.average);
           setMedian(newData.median);
@@ -500,7 +520,7 @@ const StochasticGraph = (): React.ReactNode => {
     debouncedCostOfLiving,
     debouncedDrawdownDate,
     debouncedInflation,
-    priceData,
+    priceCacheHash,
   ]);
 
   const drawdownWalkDatasets: DatasetList = useMemo(
@@ -527,7 +547,12 @@ const StochasticGraph = (): React.ReactNode => {
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    drawdownNormalDistributionWorker(volumeData, drawdownDate, signal)
+    drawdownNormalDistributionWorker(
+      volumeData,
+      drawdownDate,
+      signal,
+      volumeCacheHash,
+    )
       .then(([id, newData]) => {
         if (signal.aborted || newData === undefined) {
           console.log("Aborted volume normal not setting state....", id);
@@ -541,14 +566,15 @@ const StochasticGraph = (): React.ReactNode => {
     return () => {
       abortController.abort();
     };
-  }, [volumeData, debouncedRenderNormal, drawdownDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedRenderNormal, drawdownDate, volumeCacheHash]);
 
   useEffect(() => {
     if (volumeData.length === 0 || !debouncedRenderQuantile) return;
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    drawdownQuantileWorker(volumeData, drawdownDate, signal)
+    drawdownQuantileWorker(volumeData, drawdownDate, signal, volumeCacheHash)
       .then(([id, newData]) => {
         if (signal.aborted || newData === undefined) {
           console.log("Aborted quantile not setting state....", id);
@@ -562,7 +588,8 @@ const StochasticGraph = (): React.ReactNode => {
     return () => {
       abortController.abort();
     };
-  }, [volumeData, debouncedRenderQuantile, drawdownDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedRenderQuantile, drawdownDate, volumeCacheHash]);
 
   const costOfLivingDataset = useMemo(() => {
     if (priceData.length === 0) return [];
@@ -674,8 +701,8 @@ const StochasticGraph = (): React.ReactNode => {
     memoryUsageClass = "memory-medium";
   }
 
-  const beginning = `(Roughly ${using.toLocaleString()} data points @`;
-  const mid = `${memoryUsageMB.toFixed(0)} MB`;
+  const beginning = `(${using.toLocaleString()} data points @`;
+  const mid = `~${memoryUsageMB.toFixed(0)} MB`;
   const end = `)`;
 
   const dataPointCount =

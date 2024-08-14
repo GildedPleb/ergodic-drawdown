@@ -25,20 +25,12 @@ const lruCache = new LRUCache<string, Dynamic2DArray>({ max: 2 });
 // 2. Test to compare this with the 2dArray class for speed. 2D Array gaurantees (actually, does it? It only does with unlimited LRU cache... maybe its a wash) no one can model fit, LRU cache protects but does not gaurantee.
 // 3. Preform tests on all the above to ensure the best way forward. Be sure to note SPACE for all tests.
 // 4. Put the Walks in a 2D Array cache... test if better faster in control environment first.
-// 5. Adding VollumnData to 2d array
 
 const simulationWorker = async (
-  {
-    clampBottom,
-    clampTop,
-    minMaxMultiple,
-    model,
-    variable,
-    volatility,
-    walk,
-  }: Full,
+  { clampBottom, clampTop, volatility, walk }: Full,
   { currentPrice, epochCount, halvings, maxArray, minArray, samples }: Part,
   signal: AbortSignal,
+  cacheId: string,
 ): Promise<[string, PriceData]> => {
   const id = hashSum(Math.random());
   signalState.aborted = false;
@@ -54,31 +46,28 @@ const simulationWorker = async (
 
   const walking = walks[walk];
   const lastHalving = weeksSinceLastHalving(halvings);
-  const cacheId = hashSum({
-    clampBottom,
-    clampTop,
-    minMaxMultiple,
-    model,
-    variable,
-    volatility,
-    walk,
-  });
-  console.log({ cacheId });
   const data: Dynamic2DArray = lruCache.has(cacheId)
     ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       lruCache.get(cacheId)!
-    : new Dynamic2DArray(epochCount, samples);
+    : new Dynamic2DArray(
+        epochCount,
+        samples,
+        undefined,
+        undefined,
+        undefined,
+        1.1,
+      );
 
   console.time("simulation" + id);
   const graphs: PriceData = [];
   data.resizeActive(epochCount, samples);
   const fullSetTest = data.getRow(samples - 1);
   if (fullSetTest !== undefined) {
-    // console.log(`--> got a full simulation: cacheID: ${cacheId}`);
     for (let index = 0; index < samples; index++) {
       // @ts-expect-error because we checked the last row, all other rows are full
       graphs.push(data.getRow(index).subarray(lastHalving));
     }
+    signal.removeEventListener("abort", AbortAction);
     console.timeEnd("simulation" + id);
     return [id, graphs];
   }
@@ -135,9 +124,9 @@ const simulationWorker = async (
     }
     graphs.push(innerGraph.subarray(lastHalving));
   }
+  lruCache.set(cacheId, data);
   console.timeEnd("simulation" + id);
   signal.removeEventListener("abort", AbortAction);
-  lruCache.set(cacheId, data);
   return [id, graphs];
 };
 
