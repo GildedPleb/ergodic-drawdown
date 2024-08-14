@@ -130,11 +130,11 @@ const priceNormalDistributionWorker = async (
     const mean = sum / count;
     const variance = sumOfSquares / count - mean * mean;
     const standardDeviation = Math.sqrt(variance);
-    const date = dates[week];
+    const x = dates[week];
 
     for (let index = 0; index < quantiles.length; index++) {
       quantiles[index][week] = {
-        x: date,
+        x,
         y: Math.max(mean + cutOffs[index] * standardDeviation, 0.01),
       };
     }

@@ -124,15 +124,12 @@ const priceQuantileWorker = async (
     }
     let left = 0;
     const right = groupedData[week].length - 1;
-    const date = dates[week];
+    const x = dates[week];
     for (let index = 0; index < quantiles.length; index++) {
       const innerIndex = Math.floor(right * cutOffs[index]);
       // @ts-expect-error dumb
       quickselect(groupedData[week], innerIndex, left);
-      quantiles[index][week] = {
-        x: date,
-        y: groupedData[week][innerIndex],
-      };
+      quantiles[index][week] = { x, y: groupedData[week][innerIndex] };
       left = innerIndex + 1;
     }
   }
