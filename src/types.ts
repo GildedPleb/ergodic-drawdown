@@ -3,6 +3,10 @@
 
 // eslint-disable-next-line functional/no-mixed-types
 
+export interface ProviderProperties {
+  children: React.ReactNode;
+}
+
 interface MinMaxOptions {
   currentBlock: number;
   currentPrice: number;

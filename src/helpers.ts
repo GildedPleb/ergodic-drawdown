@@ -1,6 +1,5 @@
 import {
   type ApplyModel,
-  type DatasetList,
   type HalvingData,
   type NormalizePrice,
 } from "./types";
@@ -93,6 +92,7 @@ export const applyModel = ({
     } else {
       final[index] = max * base ** (price - 1);
     }
+    if (final[index] < 0.01) final[index] = 0.01;
     index++;
   }
   return final;
@@ -133,41 +133,6 @@ export const quantile = (
 // eslint-disable-next-line functional/functional-parameters
 export const timeout = async (): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, 0));
-
-export const getDataSize = (data: Float64Array[]): number => {
-  if (data.length === 0) return 0;
-  const elementSize = 8;
-  const singleArraySize = data[0].length * elementSize;
-  const totalSize = singleArraySize * data.length;
-  return totalSize / (1024 * 1024);
-};
-
-export const getDataSetSize = (data: DatasetList): number => {
-  let totalSize = 0;
-  const numberSize = 8;
-
-  for (const dataset of data) {
-    totalSize += dataset.label.length * 2;
-    if (dataset.backgroundColor !== undefined)
-      totalSize += dataset.backgroundColor.length * 2;
-    if (dataset.borderColor !== undefined)
-      totalSize += dataset.borderColor.length * 2;
-    if (dataset.yAxisID !== undefined) totalSize += dataset.yAxisID.length * 2;
-    totalSize += numberSize;
-    totalSize += numberSize;
-    if (dataset.borderWidth !== undefined) totalSize += numberSize;
-    if (dataset.borderDash !== undefined) {
-      totalSize += dataset.borderDash.length * numberSize;
-    }
-    totalSize += dataset.data.length * (numberSize * 2);
-    if (typeof dataset.fill === "string") {
-      totalSize += dataset.fill.length * 2;
-    } else if (typeof dataset.fill === "boolean") {
-      totalSize += 4;
-    }
-  }
-  return totalSize / (1024 * 1024);
-};
 
 export const getOrdinalSuffix = (amount: number): string => {
   const lastDigit = amount % 10;

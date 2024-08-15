@@ -35,8 +35,8 @@ Severability: If any part of these terms is held invalid or unenforceable, that 
 export const inputLabels = {
   clampBottom: "Min:",
   clampTop: "Clamp Price to Max:",
-  costOfLiving: "Yearly Expenses (USD):",
-  drawdownDate: "BTC drawdown starts:",
+  costOfLiving: "Yearly Cost (USD):",
+  drawdownDate: "Starts:",
   epoch: "Epoch Count (1-100):",
   inflation: "Expected Annual Inflation (%):",
   model: "Model:",
@@ -50,7 +50,7 @@ export const inputLabels = {
   renderWalkQuantile: "Quantile:",
   samples: "Statistical Sample Count (1k-10k):",
   samplesToRender: "Walk count:",
-  totalBitcoin: "Bitcoin Holdings:",
+  totalBitcoin: "Bitcoin Holdings (Today):",
   vol: "Volatility (0-1):",
   walk: "Walk Strategy:",
 };
@@ -65,7 +65,7 @@ export const fieldLabels = {
 export const title = "Ergodic Bitcoin Drawdown via Monte Carlo Simulation";
 export const pay = "gildedpleb@getalby.com";
 export const distroColor = "rgba(0, 0, 255, 0.4)";
-export const priceDistroColor = "rgba(255, 255, 0, 0.4)";
+export const priceDistroColor = "rgba(255, 255, 0, 0.1)";
 export const quantileColor = "rgba(0, 255, 0, 0.1)";
 export const priceQuantileColor = "rgba(246, 145, 50, 0.1)";
 export const bitcoinColor = "rgb(246, 145, 50)";

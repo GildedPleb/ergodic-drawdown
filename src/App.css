@@ -33,6 +33,43 @@
   gap: 10px;
 }
 
+.drawdown.group {
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.drawdown-header {
+  width: 85vw;
+}
+
+.universals {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.universals > div > input {
+  margin-left: 10px;
+}
+
+.drawdown-item {
+  width: 85vw;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-width: 1px;
+  border-color: grey;
+}
+
+.drawdown-item  > div > input {
+  margin-left: 10px;
+}
+
 .input-row {
   display: flex;
   justify-content: space-between;
@@ -115,6 +152,7 @@
 .chart {
   max-width: min(95vw, 1800px);
   max-height: 1100px;
+  margin-top: 15px;
 }
 
 .angled-ribbon {
@@ -192,11 +230,11 @@
 }
 
 .memory-medium {
-  color: yellow; /* Color it yellow if memory usage is above 250MB */
+  color: yellow;
 }
 
 .memory-high {
-  color: red; /* Color it red if memory usage is above 1GB */
+  color: red;
 }
 
 .how-to {
@@ -273,4 +311,12 @@
   align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
+}
+
+.move.group {
+  transform: translate(0, 75px);
+  background: rgba(100, 100, 100, .5);
+  width: 50vw;
+  padding-top: 0;
+  flex-direction: row;
 }
