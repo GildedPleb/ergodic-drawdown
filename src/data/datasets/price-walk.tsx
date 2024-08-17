@@ -7,7 +7,7 @@ import { useTime } from "../../contexts/time";
 import { generateColor } from "../../helpers";
 import { type DatasetList } from "../../types";
 
-const usePriceWalkDataset = (): DatasetList => {
+export const usePriceWalkDataset = (): DatasetList => {
   const { renderPriceWalks, samplesToRender } = useRender();
   const { priceData } = usePriceData();
   const now = useTime();
@@ -32,5 +32,3 @@ const usePriceWalkDataset = (): DatasetList => {
 
   return priceWalkDatasets;
 };
-
-export default usePriceWalkDataset;

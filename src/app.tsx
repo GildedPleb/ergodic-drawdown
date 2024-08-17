@@ -4,14 +4,14 @@ import "chartjs-adapter-date-fns";
 import React from "react";
 
 import ForkUs from "./components/fork-us";
-import useProcessing from "./data/effects";
+import { useProcessing } from "./data/effects";
 
 const Header = React.lazy(async () => import("./panels/header"));
 const Tutorial = React.lazy(async () => import("./panels/tutorial"));
 const PriceModel = React.lazy(async () => import("./panels/price-model"));
 const RenderOptions = React.lazy(async () => import("./panels/render-options"));
 const Chart = React.lazy(async () => import("./panels/chart"));
-const Drawdown = React.lazy(async () => import("./panels/drawdown"));
+// const Drawdown = React.lazy(async () => import("./panels/drawdown"));
 const More = React.lazy(async () => import("./panels/More"));
 const PayMe = React.lazy(async () => import("./panels/pay-me"));
 const Summary = React.lazy(async () => import("./panels/summary"));
@@ -30,7 +30,7 @@ const StochasticGraph = (): React.ReactNode => {
       <PriceModel />
       <RenderOptions />
       <Chart />
-      <Drawdown />
+      {/* <Drawdown /> */}
       <Summary />
       <More />
       <PayMe />

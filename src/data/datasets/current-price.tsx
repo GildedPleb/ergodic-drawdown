@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getCurrentPrice } from "../../api";
 import { useTime } from "../../contexts/time";
 
-const useCurrentPrice = (): number => {
+export const useCurrentPrice = (): number => {
   const now = useTime();
 
   const { data: currentPrice = 0 } = useQuery({
@@ -18,5 +18,3 @@ const useCurrentPrice = (): number => {
 
   return currentPrice;
 };
-
-export default useCurrentPrice;

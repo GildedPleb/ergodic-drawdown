@@ -7,7 +7,7 @@ import { useVolumeData } from "../../contexts/volume";
 import { generateColor } from "../../helpers";
 import { type DatasetList } from "../../types";
 
-const useDrawdownWalks = (): DatasetList => {
+export const useDrawdownWalks = (): DatasetList => {
   const { samplesToRender } = useRender();
   const { volumeData } = useVolumeData();
   const { drawdownDate } = useDrawdown();
@@ -31,5 +31,3 @@ const useDrawdownWalks = (): DatasetList => {
   );
   return drawdownWalkDatasets;
 };
-
-export default useDrawdownWalks;

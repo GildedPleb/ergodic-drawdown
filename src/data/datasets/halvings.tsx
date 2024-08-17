@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useTime } from "../../contexts/time";
 import { loadHalvings } from "../../helpers";
 import { type HalvingWorker } from "../../types";
-import halvingWorker from "../workers/halving-worker";
+import { halvingWorker } from "../workers/halving-worker";
 
 const defaultHalving: HalvingWorker = {
   currentBlock: 0,
   halvings: loadHalvings(),
 };
 
-const useHalvings = (): HalvingWorker => {
+export const useHalvings = (): HalvingWorker => {
   const now = useTime();
 
   const { data = defaultHalving } = useQuery({
@@ -22,5 +22,3 @@ const useHalvings = (): HalvingWorker => {
 
   return data;
 };
-
-export default useHalvings;

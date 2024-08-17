@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useRender } from "../../contexts/render";
 import { useVolumeData } from "../../contexts/volume";
-import drawdownQuantileWorker from "../workers/drawdown-quantile-worker";
+import { drawdownQuantileWorker } from "../workers/drawdown-quantile-worker";
 
-const useDrawdownQuantile = (): void => {
+export const useDrawdownQuantile = (): void => {
   const { renderDrawdownQuantile } = useRender();
   const { setVolumeQuantile, volumeCacheHash, volumeData } = useVolumeData();
   const { drawdownDate } = useDrawdown();
@@ -32,5 +32,3 @@ const useDrawdownQuantile = (): void => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderDrawdownQuantile, drawdownDate, volumeCacheHash]);
 };
-
-export default useDrawdownQuantile;

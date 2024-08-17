@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { usePriceData } from "../../contexts/price";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
-import priceQuantileWorker from "../workers/price-quantile-worker";
+import { priceQuantileWorker } from "../workers/price-quantile-worker";
 
-const usePriceQuantile = (): void => {
+export const usePriceQuantile = (): void => {
   const { priceCacheHash, priceData, setPriceQuantile } = usePriceData();
   const { renderPriceQuantile } = useRender();
   const now = useTime();
@@ -32,5 +32,3 @@ const usePriceQuantile = (): void => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderPriceQuantile, now, priceCacheHash]);
 };
-
-export default usePriceQuantile;

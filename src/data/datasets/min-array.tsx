@@ -1,20 +1,40 @@
+import hashSum from "hash-sum";
+import { LRUCache } from "lru-cache";
 import { useMemo } from "react";
 
 import { useModel } from "../../contexts/model";
 import { useTime } from "../../contexts/time";
 import { weeksSinceLastHalving } from "../../helpers";
 import { modelMap } from "../models";
-import useCurrentPrice from "./current-price";
-import useHalvings from "./halvings";
+import { useCurrentPrice } from "./current-price";
+import { useHalvings } from "./halvings";
 
-const useMinArray = (): Float64Array => {
+const lruCache = new LRUCache<string, Float64Array>({ max: 5 });
+
+export const useMinArray = (): Float64Array => {
   const { currentBlock, halvings } = useHalvings();
   const { epochCount, minMaxMultiple, model, variable } = useModel();
   const currentPrice = useCurrentPrice();
   const now = useTime();
 
   return useMemo(() => {
+    if (currentBlock === 0 || currentPrice === 0) return new Float64Array();
     console.time("min");
+    const hash = hashSum({
+      currentBlock,
+      currentPrice,
+      epochCount,
+      halvings,
+      minMaxMultiple,
+      model,
+      now,
+      variable,
+    });
+    const previous = lruCache.get(hash);
+    if (previous !== undefined) {
+      console.timeEnd("min");
+      return previous;
+    }
     const lastHalving = weeksSinceLastHalving(halvings);
     const datasetLength = epochCount * 208 - lastHalving;
     const minPoints = new Float64Array(datasetLength);
@@ -30,6 +50,7 @@ const useMinArray = (): Float64Array => {
       });
     }
     console.timeEnd("min");
+    lruCache.set(hash, minPoints);
     return minPoints;
   }, [
     currentBlock,
@@ -42,5 +63,3 @@ const useMinArray = (): Float64Array => {
     variable,
   ]);
 };
-
-export default useMinArray;

@@ -1,7 +1,11 @@
+import { LRUCache } from "lru-cache";
+
 import { LAST_SAVED_TIMESTAMP } from "./constants";
 import { type BitcoinDataPoint, type BlockData } from "./types";
 
 const CURRENT_PRICE = "current price";
+
+const lruCache = new LRUCache<string, BitcoinDataPoint[]>({ max: 1 });
 
 // eslint-disable-next-line functional/functional-parameters
 export const getCurrentBlockHeight = async (now: number): Promise<number> => {
@@ -13,7 +17,7 @@ export const getCurrentBlockHeight = async (now: number): Promise<number> => {
       blockHeight: number;
       timestamp: number;
     };
-    if (timestamp > now - 10 * 60 * 1000) return blockHeight;
+    if (timestamp > now - 120 * 60 * 1000) return blockHeight;
   }
   console.log("...fetching lastest block height");
   const response = await fetch("https://blockchain.info/q/getblockcount");
@@ -96,14 +100,12 @@ export const getInterimWeeklyData = async (
   now: number,
 ): Promise<BitcoinDataPoint[]> => {
   console.time("interim");
+  const cache = lruCache.get("interim");
+  if (cache !== undefined) {
+    console.timeEnd("interim");
+    return cache;
+  }
   const nowDate = new Date(now);
-  const startOfWeek = new Date(
-    nowDate.getFullYear(),
-    nowDate.getMonth(),
-    nowDate.getDate() - nowDate.getDay(),
-  );
-  startOfWeek.setHours(0, 0, 0, 0);
-  const startOfWeekTimestamp = Math.floor(startOfWeek.getTime() / 1000);
   let cachedData = JSON.parse(
     localStorage.getItem("weeklyBTCData") ?? "[]",
   ) as BitcoinDataPoint[];
@@ -129,11 +131,15 @@ export const getInterimWeeklyData = async (
     secondsSinceLastCache / (7 * 24 * 60 * 60),
   );
   const currentTime = Math.floor(nowDate.getTime() / 1000);
+
   if (lastCachedTimestamp >= currentTime - 604_800) {
+    // eslint-disable-next-line unicorn/prefer-spread
+    const interim = cachedData.concat(currentPriceData);
+    lruCache.set("interim", interim);
     console.timeEnd("interim");
-    return [...cachedData, currentPriceData];
+    return interim;
   }
-  const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=${weeksSinceLastCache}&toTs=${startOfWeekTimestamp}&aggregate=7`;
+  const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=${weeksSinceLastCache}&toTs=${now / 1000}&aggregate=7`;
   try {
     console.log("...fetching weekly interim price action");
     const response = await fetch(url);
@@ -146,6 +152,7 @@ export const getInterimWeeklyData = async (
       const newData = data.Data.Data.filter(
         ({ time }) => time > lastCachedTimestamp,
       );
+      console.log({ newData });
       cachedData = [...cachedData, ...newData].sort(
         (first, second) => first.time - second.time,
       );
@@ -154,7 +161,9 @@ export const getInterimWeeklyData = async (
   } catch (error) {
     console.error("Error fetching data:", error);
   }
-
+  // eslint-disable-next-line unicorn/prefer-spread
+  const interim = cachedData.concat(currentPriceData);
+  lruCache.set("interim", interim);
   console.timeEnd("interim");
-  return [...cachedData, currentPriceData];
+  return interim;
 };

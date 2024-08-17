@@ -1,11 +1,11 @@
-import useDrawdownNormal from "./drawdown-normal";
-import useDrawdownQuantile from "./drawdown-quantile";
-import usePriceNormal from "./price-normal";
-import usePriceQuantile from "./price-quantile";
-import useSimulation from "./simulation";
-import useVolume from "./volume";
+import { useDrawdownNormal } from "./drawdown-normal";
+import { useDrawdownQuantile } from "./drawdown-quantile";
+import { usePriceNormal } from "./price-normal";
+import { usePriceQuantile } from "./price-quantile";
+import { useSimulation } from "./simulation";
+import { useVolume } from "./volume";
 
-const useProcessing = (): void => {
+export const useProcessing = (): void => {
   useSimulation();
   usePriceQuantile();
   usePriceNormal();
@@ -13,5 +13,3 @@ const useProcessing = (): void => {
   useDrawdownNormal();
   useDrawdownQuantile();
 };
-
-export default useProcessing;

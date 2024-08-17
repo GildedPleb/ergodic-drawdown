@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { usePriceData } from "../../contexts/price";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
-import priceNormalDistributionWorker from "../workers/price-normal-worker";
+import { priceNormalDistributionWorker } from "../workers/price-normal-worker";
 
-const usePriceNormal = (): void => {
+export const usePriceNormal = (): void => {
   const { priceCacheHash, priceData, setPriceNormal } = usePriceData();
   const { renderPriceNormal } = useRender();
   const now = useTime();
@@ -32,5 +32,3 @@ const usePriceNormal = (): void => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderPriceNormal, now, priceCacheHash]);
 };
-
-export default usePriceNormal;

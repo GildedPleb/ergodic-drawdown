@@ -6,7 +6,7 @@ import { bitcoinColor } from "../../content";
 import { useTime } from "../../contexts/time";
 import { type Dataset } from "../../types";
 
-const useInterimDataset = (): Dataset => {
+export const useInterimDataset = (): Dataset => {
   const now = useTime();
 
   const { data: interim = [] } = useQuery({
@@ -29,5 +29,3 @@ const useInterimDataset = (): Dataset => {
     [interim],
   );
 };
-
-export default useInterimDataset;

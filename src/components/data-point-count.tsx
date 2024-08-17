@@ -1,7 +1,7 @@
 import { useModel } from "../contexts/model";
 import { usePriceData } from "../contexts/price";
 import { useVolumeData } from "../contexts/volume";
-import useMemory from "../data/data-size";
+import { useMemory } from "../data/data-size";
 
 const DataPointCount = (): JSX.Element => {
   const { loadingPriceData, priceData } = usePriceData();

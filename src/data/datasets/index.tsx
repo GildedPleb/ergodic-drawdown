@@ -3,33 +3,16 @@ import { useMemo } from "react";
 import { usePriceData } from "../../contexts/price";
 import { useRender } from "../../contexts/render";
 import { useVolumeData } from "../../contexts/volume";
-import { type Dataset, type DatasetList } from "../../types";
-import useCostOfLiving from "./cost-of-living";
-import useDrawdownWalks from "./drawdown-walks";
-import marketDataset from "./historic";
-import useInterimDataset from "./interim";
-import useMaxModel from "./max-model-dataset";
-import useMinModel from "./min-model-dataset";
-import usePriceWalkDataset from "./price-walk";
+import { type DataProperties, type DatasetList } from "../../types";
+import { useCostOfLiving } from "./cost-of-living";
+import { useDrawdownWalks } from "./drawdown-walks";
+import { marketDataset } from "./historic";
+import { useInterimDataset } from "./interim";
+import { useMaxModel } from "./max-model-dataset";
+import { useMinModel } from "./min-model-dataset";
+import { usePriceWalkDataset } from "./price-walk";
 
-type DataProperties = () => {
-  datasets: Array<
-    | {
-        borderColor: string;
-        borderWidth: number;
-        data: Array<{
-          x: number;
-          y: number;
-        }>;
-        label: string;
-        pointRadius: number;
-        tension: number;
-      }
-    | Dataset
-  >;
-};
-
-const useDataProperties: DataProperties = () => {
+export const useDataProperties: DataProperties = () => {
   const {
     renderDrawdownNormal,
     renderDrawdownQuantile,
@@ -90,5 +73,3 @@ const useDataProperties: DataProperties = () => {
     ],
   );
 };
-
-export default useDataProperties;

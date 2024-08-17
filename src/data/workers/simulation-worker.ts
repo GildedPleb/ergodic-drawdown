@@ -21,13 +21,13 @@ const SUSPEND_CONTROL = 50;
 const lruCache = new LRUCache<string, Dynamic2DArray>({ max: 2 });
 
 // TO CONSIDER:
-// 1. Throw everything into a new LRU cache: sims, rows, walks, and segments. Basically, user action determines the bunk of the cache.
-// 2. Test to compare this with the 2dArray class for speed. 2D Array gaurantees (actually, does it? It only does with unlimited LRU cache... maybe its a wash) no one can model fit, LRU cache protects but does not gaurantee.
+// 1. Throw everything into a new LRU cache: sims, rows, walks, and segments. Basically, user action determines the bulk of the cache.
+// 2. Test to compare the above with the 2dArray class for speed. 2D Array helps establish that no one can model fit, LRU cache protects but does not gaurantee.
 // 3. Preform tests on all the above to ensure the best way forward. Be sure to note SPACE for all tests.
-// 4. Put the Walks in a 2D Array cache... test if better faster in control environment first.
-// 5. When rendering in rapid successtion, check to see if the work done is saved up to that point in the cache. It might be worth investigating saves tothe cache upon abort signal
+// 4. Put the Walks in a 2D Array cache... test if better/faster in control environment first.
+// 5. When rendering in rapid succession, check to see if the work done is saved up to that point in the cache. It might be worth investigating saves to the cache upon abort signal
 
-const simulationWorker = async (
+export const simulationWorker = async (
   { clampBottom, clampTop, volatility, walk }: Full,
   { currentPrice, epochCount, halvings, maxArray, minArray, samples }: Part,
   signal: AbortSignal,
@@ -130,5 +130,3 @@ const simulationWorker = async (
   signal.removeEventListener("abort", AbortAction);
   return [id, graphs];
 };
-
-export default simulationWorker;

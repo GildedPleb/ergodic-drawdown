@@ -122,3 +122,44 @@ export interface BitcoinDataPoint {
   volumefrom: number;
   volumeto: number;
 }
+
+export type DataProperties = () => {
+  datasets: Array<
+    | {
+        borderColor: string;
+        borderWidth: number;
+        data: Array<{
+          x: number;
+          y: number;
+        }>;
+        label: string;
+        pointRadius: number;
+        tension: number;
+      }
+    | Dataset
+  >;
+};
+
+export interface RGBA {
+  alpha?: number;
+  blue: number;
+  green: number;
+  red: number;
+}
+export interface Pallet {
+  solid: string;
+  transparent: string;
+}
+export interface BaseColor {
+  blue: number;
+  green: number;
+  red: number;
+}
+export interface DataSetParameters {
+  color: BaseColor;
+  cutoffs: number[];
+  midLabel: string;
+  quantiles: Point[][];
+  type: "quantile" | "sd";
+  yAxisID: "y" | "y1";
+}

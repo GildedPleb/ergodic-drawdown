@@ -6,7 +6,7 @@ import { usePriceData } from "../../contexts/price";
 import { useTime } from "../../contexts/time";
 import { type DatasetList } from "../../types";
 
-const useCostOfLiving = (): DatasetList => {
+export const useCostOfLiving = (): DatasetList => {
   const { priceData } = usePriceData();
   const { costOfLiving, inflation } = useDrawdown();
   const now = useTime();
@@ -40,5 +40,3 @@ const useCostOfLiving = (): DatasetList => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [costOfLiving, inflation, (priceData[0] ?? []).length]);
 };
-
-export default useCostOfLiving;

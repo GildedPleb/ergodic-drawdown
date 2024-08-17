@@ -6,9 +6,9 @@ import { usePriceData } from "../../contexts/price";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
 import { useVolumeData } from "../../contexts/volume";
-import volumeWorker from "../workers/volume-worker";
+import { volumeWorker } from "../workers/volume-worker";
 
-const useVolume = (): void => {
+export const useVolume = (): void => {
   const { renderDrawdownNormal, renderDrawdownQuantile } = useRender();
   const {
     setAverage,
@@ -63,5 +63,3 @@ const useVolume = (): void => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bitcoin, costOfLiving, drawdownDate, inflation, priceCacheHash]);
 };
-
-export default useVolume;

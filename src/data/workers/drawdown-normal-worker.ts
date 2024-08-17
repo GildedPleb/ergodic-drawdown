@@ -6,52 +6,16 @@ import hashSum from "hash-sum";
 import { LRUCache } from "lru-cache";
 
 import { MS_PER_WEEK } from "../../constants";
-import { distroColor } from "../../content";
-import { getOrdinalSuffix, timeout } from "../../helpers";
+import { createDataSet, timeout } from "../../helpers";
 import { type DatasetList, type Point, type VolumeData } from "../../types";
 
 const signalState = { aborted: false };
 
 const NAME = "volume normal";
 
-const getLabel = (cutoff: number, total: number, index: number): string => {
-  if (index === Math.floor(total / 2)) return "Mean";
-  const amount = Math.abs(cutoff);
-  const suffix = getOrdinalSuffix(amount);
-  return `${amount}${suffix} Standard Deviation`;
-};
-
-const createDataSet = (
-  cutoffs: number[],
-  quantiles: Point[][],
-): DatasetList => {
-  const length = cutoffs.length;
-  const midIndex = Math.floor(length / 2);
-
-  return cutoffs.map((cutoff, index) => {
-    const isMean = index === midIndex;
-    return {
-      backgroundColor: isMean ? undefined : distroColor,
-      borderColor: isMean ? "blue" : undefined,
-      borderDash: isMean ? [15, 5] : undefined,
-      borderWidth: isMean ? 2 : 0,
-      data: quantiles[index],
-      fill: isMean
-        ? false
-        : index < midIndex
-          ? `+${midIndex - index}`
-          : `-${index - midIndex}`,
-      label: `${getLabel(cutoff, length, index)} Drawdown`,
-      pointRadius: 0,
-      tension: 0,
-      yAxisID: "y1",
-    };
-  });
-};
-
 const lruCache = new LRUCache<string, DatasetList>({ max: 2 });
 
-const drawdownNormalDistributionWorker = async (
+export const drawdownNormalDistributionWorker = async (
   volumeDataset: VolumeData,
   drawdownDate: number,
   signal: AbortSignal,
@@ -97,9 +61,9 @@ const drawdownNormalDistributionWorker = async (
     }
   }
 
-  const cutOffs = [-1, 0, 1].sort((first, second) => first - second);
-  if (cutOffs.length % 2 !== 1) throw new Error("Cutoffs must be odd");
-  const quantiles = cutOffs.map(() => new Array(cutOffs.length) as Point[]);
+  const cutoffs = [-1, 0, 1].sort((first, second) => first - second);
+  if (cutoffs.length % 2 !== 1) throw new Error("cutoffs must be odd");
+  const quantiles = cutoffs.map(() => new Array(cutoffs.length) as Point[]);
 
   const dates = new Array(groupedData.length) as number[];
   for (let index = 0; index < groupedData.length; index++) {
@@ -134,16 +98,21 @@ const drawdownNormalDistributionWorker = async (
     for (let index = 0; index < quantiles.length; index++) {
       quantiles[index][week] = {
         x,
-        y: mean + cutOffs[index] * standardDeviation,
+        y: mean + cutoffs[index] * standardDeviation,
       };
     }
   }
 
-  const finalData = createDataSet(cutOffs, quantiles);
+  const finalData = createDataSet({
+    color: { blue: 255, green: 0, red: 0 },
+    cutoffs,
+    midLabel: "Drawdown",
+    quantiles,
+    type: "sd",
+    yAxisID: "y1",
+  });
   lruCache.set(cacheId, finalData);
   signal.removeEventListener("abort", AbortAction);
   console.timeEnd(NAME + id);
   return [id, finalData];
 };
-
-export default drawdownNormalDistributionWorker;

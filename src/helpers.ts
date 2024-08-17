@@ -1,7 +1,12 @@
 import {
   type ApplyModel,
+  type BaseColor,
+  type DatasetList,
+  type DataSetParameters,
   type HalvingData,
   type NormalizePrice,
+  type Pallet,
+  type RGBA,
 } from "./types";
 
 // eslint-disable-next-line functional/functional-parameters
@@ -156,4 +161,63 @@ export const getOrdinalSuffix = (amount: number): string => {
       return "th";
     }
   }
+};
+
+// Function to convert a color code or rgb components to rgba string
+const colorToRGBA = ({ alpha = 1, blue, green, red }: RGBA): string =>
+  `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+
+const getColorVariants = ({ blue, green, red }: BaseColor): Pallet => {
+  return {
+    solid: colorToRGBA({ blue, green, red }),
+    transparent: colorToRGBA({ alpha: 0.1, blue, green, red }),
+  };
+};
+
+const getLabel = (
+  cutoff: number,
+  total: number,
+  index: number,
+  type: "quantile" | "sd",
+): string => {
+  if (index === Math.floor(total / 2)) return type === "sd" ? "Mean" : "Median";
+  if (type === "quantile" && (index === 0 || index === total - 1)) {
+    return index === 0 ? "Lowest Sampled" : "Highest Sampled";
+  }
+  const amount = type === "sd" ? Math.abs(cutoff) : Math.round(cutoff * 100);
+  const suffix = getOrdinalSuffix(amount);
+  return `${amount}${suffix} ${type === "sd" ? "Standard Deviation" : "Percentile"}`;
+};
+
+export const createDataSet = ({
+  color,
+  cutoffs,
+  midLabel,
+  quantiles,
+  type,
+  yAxisID,
+}: DataSetParameters): DatasetList => {
+  const length = cutoffs.length;
+  const midIndex = Math.floor(length / 2);
+  const colorPallet = getColorVariants(color);
+
+  return cutoffs.map((cutoff, index) => {
+    const isSpecial = index === midIndex;
+    return {
+      backgroundColor: isSpecial ? undefined : colorPallet.transparent,
+      borderColor: isSpecial ? colorPallet.solid : undefined,
+      borderDash: isSpecial ? [15, 5] : undefined,
+      borderWidth: isSpecial ? 1 : 0,
+      data: quantiles[index],
+      fill: isSpecial
+        ? false
+        : index < midIndex
+          ? `+${midIndex - index}`
+          : `-${index - midIndex}`,
+      label: `${getLabel(cutoff, length, index, type)} ${midLabel}`,
+      pointRadius: 0,
+      tension: 0,
+      yAxisID,
+    };
+  });
 };

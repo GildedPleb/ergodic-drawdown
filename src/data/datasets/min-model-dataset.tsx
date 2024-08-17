@@ -4,9 +4,9 @@ import { MS_PER_WEEK } from "../../constants";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
 import { type DatasetList } from "../../types";
-import useMinArray from "./min-array";
+import { useMinArray } from "./min-array";
 
-const useMinModel = (): DatasetList => {
+export const useMinModel = (): DatasetList => {
   const { renderModelMin } = useRender();
   const minArray = useMinArray();
   const now = useTime();
@@ -34,5 +34,3 @@ const useMinModel = (): DatasetList => {
     ];
   }, [renderModelMin, minArray, now]);
 };
-
-export default useMinModel;

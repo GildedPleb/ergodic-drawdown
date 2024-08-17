@@ -6,8 +6,8 @@ import { useModel } from "../contexts/model";
 import { usePriceData } from "../contexts/price";
 import { useTime } from "../contexts/time";
 import { useVolumeData } from "../contexts/volume";
-import useCostOfLiving from "../data/datasets/cost-of-living";
-import useMinArray from "../data/datasets/min-array";
+import { useCostOfLiving } from "../data/datasets/cost-of-living";
+import { useMinArray } from "../data/datasets/min-array";
 
 const Summary = (): JSX.Element => {
   const { average, loadingVolumeData, median, zero } = useVolumeData();

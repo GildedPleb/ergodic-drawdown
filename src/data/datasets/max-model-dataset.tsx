@@ -4,9 +4,9 @@ import { MS_PER_WEEK } from "../../constants";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
 import { type DatasetList } from "../../types";
-import useMaxArray from "./max-array";
+import { useMaxArray } from "./max-array";
 
-const useMaxModel = (): DatasetList => {
+export const useMaxModel = (): DatasetList => {
   const { renderModelMax } = useRender();
   const maxArray = useMaxArray();
   const now = useTime();
@@ -34,5 +34,3 @@ const useMaxModel = (): DatasetList => {
     ] satisfies DatasetList;
   }, [renderModelMax, maxArray, now]);
 };
-
-export default useMaxModel;

@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useRender } from "../../contexts/render";
 import { useVolumeData } from "../../contexts/volume";
-import drawdownNormalDistributionWorker from "../workers/drawdown-normal-worker";
+import { drawdownNormalDistributionWorker } from "../workers/drawdown-normal-worker";
 
-const useDrawdownNormal = (): void => {
+export const useDrawdownNormal = (): void => {
   const { renderDrawdownNormal } = useRender();
   const { setVolumeNormal, volumeCacheHash, volumeData } = useVolumeData();
   const { drawdownDate } = useDrawdown();
@@ -36,5 +36,3 @@ const useDrawdownNormal = (): void => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderDrawdownNormal, drawdownDate, volumeCacheHash]);
 };
-
-export default useDrawdownNormal;

@@ -7,52 +7,16 @@ import hashSum from "hash-sum";
 import { LRUCache } from "lru-cache";
 
 import { MS_PER_WEEK } from "../../constants";
-import { priceDistroColor } from "../../content";
-import { getOrdinalSuffix, timeout } from "../../helpers";
+import { createDataSet, timeout } from "../../helpers";
 import { type DatasetList, type PriceData } from "../../types";
 
 const signalState = { aborted: false };
 
 const NAME = "price normal";
 
-const getLabel = (cutoff: number, total: number, index: number): string => {
-  if (index === Math.floor(total / 2)) return "Mean";
-  const amount = Math.abs(cutoff);
-  const suffix = getOrdinalSuffix(amount);
-  return `${amount}${suffix} Logarithmic Standard Deviation`;
-};
-
-const createDataSet = (
-  cutoffs: number[],
-  quantiles: Point[][],
-): DatasetList => {
-  const length = cutoffs.length;
-  const midIndex = Math.floor(length / 2);
-
-  return cutoffs.map((cutoff, index) => {
-    const isMean = index === midIndex;
-    return {
-      backgroundColor: isMean ? undefined : priceDistroColor,
-      borderColor: isMean ? "yellow" : undefined,
-      borderDash: isMean ? [15, 5] : undefined,
-      borderWidth: isMean ? 1 : 0,
-      data: quantiles[index],
-      fill: isMean
-        ? false
-        : index < midIndex
-          ? `+${midIndex - index}`
-          : `-${index - midIndex}`,
-      label: `${getLabel(cutoff, length, index)} Price`,
-      pointRadius: 0,
-      tension: 0,
-      yAxisID: "y",
-    };
-  });
-};
-
 const lruCache = new LRUCache<string, DatasetList>({ max: 2 });
 
-const priceNormalDistributionWorker = async (
+export const priceNormalDistributionWorker = async (
   priceDataset: PriceData,
   now: number,
   signal: AbortSignal,
@@ -98,11 +62,11 @@ const priceNormalDistributionWorker = async (
     }
   }
 
-  const cutOffs = [-3, -2, -1, 0, 1, 2, 3].sort(
+  const cutoffs = [-3, -2, -1, 0, 1, 2, 3].sort(
     (first, second) => first - second,
   );
-  if (cutOffs.length % 2 !== 1) throw new Error("Cutoffs must be odd");
-  const quantiles = cutOffs.map(() => new Array(cutOffs.length) as Point[]);
+  if (cutoffs.length % 2 !== 1) throw new Error("cutoffs must be odd");
+  const quantiles = cutoffs.map(() => new Array(cutoffs.length) as Point[]);
 
   const dates = new Array(groupedData.length) as number[];
   for (let index = 0; index < groupedData.length; index++) {
@@ -138,16 +102,22 @@ const priceNormalDistributionWorker = async (
     for (let index = 0; index < quantiles.length; index++) {
       quantiles[index][week] = {
         x,
-        y: Math.max(Math.exp(mean + cutOffs[index] * standardDeviation), 0.01),
+        y: Math.max(Math.exp(mean + cutoffs[index] * standardDeviation), 0.01),
       };
     }
   }
 
-  const finalData = createDataSet(cutOffs, quantiles);
+  const finalData = createDataSet({
+    color: { blue: 0, green: 255, red: 255 },
+    cutoffs,
+    midLabel: "Bitcoin Price",
+    quantiles,
+    type: "sd",
+    yAxisID: "y",
+  });
+
   lruCache.set(cacheId, finalData);
   signal.removeEventListener("abort", AbortAction);
   console.timeEnd(NAME + id);
   return [id, finalData];
 };
-
-export default priceNormalDistributionWorker;

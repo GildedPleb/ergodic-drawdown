@@ -6,13 +6,13 @@ import { usePriceData } from "../../contexts/price";
 import { useRender } from "../../contexts/render";
 import { useVolumeData } from "../../contexts/volume";
 import { type Full, type Part } from "../../types";
-import useCurrentPrice from "../datasets/current-price";
-import useHalvings from "../datasets/halvings";
-import useMaxArray from "../datasets/max-array";
-import useMinArray from "../datasets/min-array";
-import simulationWorker from "../workers/simulation-worker";
+import { useCurrentPrice } from "../datasets/current-price";
+import { useHalvings } from "../datasets/halvings";
+import { useMaxArray } from "../datasets/max-array";
+import { useMinArray } from "../datasets/min-array";
+import { simulationWorker } from "../workers/simulation-worker";
 
-const useSimulation = (): void => {
+export const useSimulation = (): void => {
   const currentPrice = useCurrentPrice();
   const { currentBlock, halvings } = useHalvings();
   const {
@@ -103,5 +103,3 @@ const useSimulation = (): void => {
     minMaxMultiple,
   ]);
 };
-
-export default useSimulation;

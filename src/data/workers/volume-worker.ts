@@ -13,7 +13,7 @@ const signalState = { aborted: false };
 
 const lruCache = new LRUCache<string, VolumeReturn>({ max: 2 });
 
-const volumeWorker = async (
+export const volumeWorker = async (
   { bitcoin, costOfLiving, data, drawdownDate, inflation, now }: VolumeWorker,
   signal: AbortSignal,
   cacheId: string,
@@ -100,5 +100,3 @@ const volumeWorker = async (
   console.timeEnd("volume" + id);
   return [id, volumeReturn];
 };
-
-export default volumeWorker;

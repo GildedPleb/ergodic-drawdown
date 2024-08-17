@@ -2,17 +2,17 @@ import { useMemo } from "react";
 
 import { usePriceData } from "../../contexts/price";
 import { useVolumeData } from "../../contexts/volume";
-import useCostOfLiving from "../datasets/cost-of-living";
-import useDrawdownWalks from "../datasets/drawdown-walks";
-import marketDataset from "../datasets/historic";
-import useInterimDataset from "../datasets/interim";
-import useMaxModel from "../datasets/max-model-dataset";
-import useMinModel from "../datasets/min-model-dataset";
-import usePriceWalkDataset from "../datasets/price-walk";
+import { useCostOfLiving } from "../datasets/cost-of-living";
+import { useDrawdownWalks } from "../datasets/drawdown-walks";
+import { marketDataset } from "../datasets/historic";
+import { useInterimDataset } from "../datasets/interim";
+import { useMaxModel } from "../datasets/max-model-dataset";
+import { useMinModel } from "../datasets/min-model-dataset";
+import { usePriceWalkDataset } from "../datasets/price-walk";
 import { getDataSize } from "./get-data-size";
 import { getDataSetSize } from "./get-dataset-size";
 
-const useMemory = (): number => {
+export const useMemory = (): number => {
   const { priceData } = usePriceData();
   const { volumeData } = useVolumeData();
   const interimDataset = useInterimDataset();
@@ -55,5 +55,3 @@ const useMemory = (): number => {
     ],
   );
 };
-
-export default useMemory;

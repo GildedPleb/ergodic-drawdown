@@ -16,8 +16,8 @@ import { Suspense, useCallback, useMemo } from "react";
 import { Line } from "react-chartjs-2";
 
 import { isMobile } from "../constants";
-import useDataProperties from "../data/datasets";
-import useHalvings from "../data/datasets/halvings";
+import { useDataProperties } from "../data/datasets";
+import { useHalvings } from "../data/datasets/halvings";
 
 const watermarkPlugin = {
   afterDraw: (chart: ChartJS) => {
