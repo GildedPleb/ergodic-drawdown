@@ -202,11 +202,6 @@ export interface OneOffFiatVariable extends BaseDrawdownItem {
 }
 
 export type DrawdownItem = OneOffFiatVariable | OneOffItem | ReoccurringItem;
-export interface Task {
-  arrayIndex: number;
-  endIndex: number;
-  startIndex: number;
-}
 
 export type DistributionType = (typeof distributions)[number];
 

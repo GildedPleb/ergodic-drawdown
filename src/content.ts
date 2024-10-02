@@ -52,7 +52,7 @@ export const inputLabels = {
   clampTop: "Max",
   distributions: "Distribution:",
   drawdownDate: "Starts:",
-  epoch: "Epoch Count (1-100):",
+  epoch: "Epoch Count (1-30):",
   inflation: "Inflation:",
   model: "Model:",
   renderDrawdown: "Walks",

@@ -4,8 +4,8 @@
 import { handleDrawdownVariable } from "./drawdown-variable";
 import { handleGroup } from "./group";
 import { handleNormal } from "./normal";
-import { handleSimulation } from "./price-simulation";
 import { handleQuantile } from "./quantile";
+import { handleSimulation } from "./simulation";
 import { type TaskResult, type WorkerEvent } from "./types";
 import { handleVolumeCalculation } from "./volume";
 

@@ -18,7 +18,7 @@ export const handleSimulation = (
     maxArray,
     minArray,
     sharedBuffer,
-    task: { endIndex, startIndex },
+    task: { endIndex, startEpoch, startIndex },
     weeksSince,
   }: RunSimulationEvent["payload"],
   signalState: SignalState,
@@ -30,10 +30,11 @@ export const handleSimulation = (
   const data = new SharedStackCache(sharedBuffer, epochCount, WEEKS_PER_EPOCH);
   // console.log("called with random id:", { epochCount, id, task });
   for (let sample = startIndex; sample < endIndex; sample++) {
-    let sampleLength = 0;
+    const adjustedEpoch = (startEpoch ?? 1) - 1;
+    let sampleLength = adjustedEpoch * WEEKS_PER_EPOCH;
     let lastPrice = currentPrice;
 
-    for (let epoch = 0; epoch < epochCount; epoch++) {
+    for (let epoch = adjustedEpoch; epoch < epochCount; epoch++) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (signalState.aborted) {
         return;

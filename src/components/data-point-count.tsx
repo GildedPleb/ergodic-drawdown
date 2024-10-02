@@ -17,10 +17,9 @@ const MemoryUsageSpan = styled.span<{ $memoryUsageMB: number }>`
 
 const DataPointCount = (): JSX.Element => {
   const { loadingPriceData } = usePriceData();
-  const { dataLength, volume } = useComputedValues();
+  const { dataLength } = useComputedValues();
   const { samples } = useModel();
-  const using =
-    samples * dataLength + (volume ?? []).length * (volume ?? [])[0]?.length;
+  const using = samples * dataLength * 2;
 
   const memoryUsageMB = useMemory();
 

@@ -7,7 +7,6 @@ import styled from "styled-components";
 // import ForkUs from "./components/fork-us";
 import { useProcessing } from "./data/effects";
 
-// const Header = React.lazy(async () => import("./panels/header"));
 const Tutorial = React.lazy(async () => import("./tutorial"));
 const Model = React.lazy(async () => import("./panels/model"));
 const RenderOptions = React.lazy(async () => import("./panels/render"));
@@ -15,7 +14,7 @@ const Chart = React.lazy(async () => import("./panels/chart"));
 const Drawdown = React.lazy(async () => import("./panels/drawdown"));
 // const More = React.lazy(async () => import("./panels/More"));
 // const PayMe = React.lazy(async () => import("./panels/pay-me"));
-const Summary = React.lazy(async () => import("./panels/summary"));
+const Results = React.lazy(async () => import("./panels/results"));
 // const Legal = React.lazy(async () => import("./panels/legal"));
 
 const App = styled.div`
@@ -65,7 +64,7 @@ const StochasticGraph = (): React.ReactNode => {
       </Top>
       <Chart />
       <Drawdown />
-      <Summary />
+      <Results />
       {/* <More /> */}
       {/* <PayMe /> */}
       {/* <ForkUs /> */}

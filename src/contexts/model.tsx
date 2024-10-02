@@ -32,7 +32,7 @@ interface ModelContextType {
 const ModelContext = createContext<ModelContextType | null>(null);
 
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
-  const [showModel, setShowModel] = useState<boolean>(false);
+  const [showModel, setShowModel] = useState<boolean>(true);
   const [model, setModel] = useState<string>(models[2].modelType);
   const [variable, setVariable] = useState<number>(0);
   const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);

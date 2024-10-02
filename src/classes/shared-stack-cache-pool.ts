@@ -24,7 +24,7 @@ export default class SharedArrayPool {
     this.itemLength = itemLength;
     this.currentWidth = initialWidth;
     this.currentHeight = 0;
-    this.resizeHeight(initialHeight);
+    this.resize(initialWidth, initialHeight);
     this.cacheHash = "init";
     this.cacheHeight = 0;
     this.cacheWidth = 0;
@@ -70,40 +70,29 @@ export default class SharedArrayPool {
     this.cacheWidth = this.currentWidth;
   }
 
-  resizeHeight(newHeight: number): void {
+  resize(newWidth: number, newHeight: number): void {
     const requiredArrays = Math.max(1, Math.ceil(newHeight / this.maxHeight));
-
     if (
-      requiredArrays === this.arrays.length &&
-      newHeight === this.currentHeight
-    )
-      return;
-    if (requiredArrays > this.arrays.length) {
-      while (this.arrays.length < requiredArrays) {
-        this.arrays.push(this.createNewArray());
+      requiredArrays !== this.arrays.length ||
+      newHeight !== this.currentHeight
+    ) {
+      if (requiredArrays > this.arrays.length) {
+        while (this.arrays.length < requiredArrays) {
+          this.arrays.push(this.createNewArray());
+        }
+      } else if (requiredArrays < this.arrays.length) {
+        this.arrays = this.arrays.slice(0, requiredArrays);
+        this.cacheHeight = this.arrays.length * this.maxHeight;
       }
-    } else if (requiredArrays < this.arrays.length) {
-      this.arrays = this.arrays.slice(0, requiredArrays);
-      this.cacheHeight = this.arrays.length * this.maxHeight;
+      this.currentHeight = newHeight;
     }
 
-    this.currentHeight = newHeight;
-  }
-
-  resizeWidth(newWidth: number): void {
-    if (newWidth === this.currentWidth) return;
-    for (const array of this.arrays) {
-      array.resizeWidth(newWidth);
+    if (newWidth !== this.currentWidth) {
+      for (const array of this.arrays) {
+        array.resizeWidth(newWidth);
+      }
+      this.currentWidth = newWidth;
     }
-    this.currentWidth = newWidth;
-  }
-
-  get(x: number, y: number): Float64Array | undefined {
-    if (x >= this.currentWidth || y >= this.currentHeight) return undefined;
-
-    const arrayIndex = Math.floor(y / this.maxHeight);
-    const localY = y % this.maxHeight;
-    return this.arrays[arrayIndex].get(x, localY);
   }
 
   getRow(y: number, getZero = false): Float64Array | undefined {
@@ -141,14 +130,6 @@ export default class SharedArrayPool {
 
   getArrays(): SharedStackCache[] {
     return this.arrays;
-  }
-
-  getWidth(): number {
-    return this.currentWidth;
-  }
-
-  getHeight(): number {
-    return this.currentHeight;
   }
 
   private createNewArray(): SharedStackCache {

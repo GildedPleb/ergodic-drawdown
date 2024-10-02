@@ -33,8 +33,7 @@ export const useVolume = async (
 
   const [validWidth, validHeight] = volumeBuffer.getValidity(volumeCacheHash);
   if (validHeight === 0) volumeBuffer.clear();
-  volumeBuffer.resizeHeight(samples);
-  volumeBuffer.resizeWidth(epochCount);
+  volumeBuffer.resize(epochCount, samples);
   const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
 
   const taskQueueEpochs = needTasksForWidth

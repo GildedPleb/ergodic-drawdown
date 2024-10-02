@@ -1,4 +1,5 @@
 import { HALVING_INTERVAL, MS_PER_WEEK } from "./constants";
+import { type Task } from "./contexts/workers/types";
 import {
   type ApplyModel,
   type BaseColor,
@@ -9,7 +10,6 @@ import {
   type NormalizePrice,
   type Pallet,
   type RGBA,
-  type Task,
 } from "./types";
 
 // eslint-disable-next-line functional/functional-parameters

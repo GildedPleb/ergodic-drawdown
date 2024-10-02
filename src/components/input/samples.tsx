@@ -51,7 +51,7 @@ const SampleInput = (): JSX.Element => {
         autoComplete="off"
         id="sampleInput"
         max={MAX_SAMPLE_COUNT}
-        min="1"
+        min="1000"
         onChange={handleSamples}
         onKeyDown={handleEnterKey}
         type="number"

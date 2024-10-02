@@ -16,7 +16,7 @@ import { useDrawdownVariables } from "./compute/drawdown-variable";
 import { useInflationFactors } from "./compute/inflation-factors";
 import { useMaxArray } from "./compute/max-array";
 import { useMinArray } from "./compute/min-array";
-import { useSimulation } from "./compute/price-simulation";
+import { useSimulation } from "./compute/simulation";
 import { useVolume } from "./compute/volume";
 import { calculateVolumeStatistics } from "./compute/volume-statistics";
 import { calculateBalanceAndZero } from "./compute/zero-count";

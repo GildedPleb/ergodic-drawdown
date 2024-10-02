@@ -11,40 +11,35 @@ import { getDataSize } from "./get-data-size";
 import { getDataSetSize } from "./get-dataset-size";
 
 export const useMemory = (): number => {
-  const { priceData } = useComputedValues();
+  const { drawdownDistribution, priceData, priceDistribution } =
+    useComputedValues();
   const interimDataset = useInterimDataset();
   const priceWalkDatasets = usePriceWalkDataset();
-  const { drawdownDistribution, priceDistribution, volume } =
-    useComputedValues();
   const minModelDataset = useMinModel();
   const maxModelDataset = useMaxModel();
   const drawdownWalkDatasets = useDrawdownWalks();
 
-  return useMemo(
-    () =>
+  return useMemo(() => {
+    return (
+      // Model size * 2 === Model and Drawdown Data
       getDataSize(priceData ?? []) * 2 +
-      (volume === null ? 0 : getDataSize(volume)) +
       getDataSetSize([marketDataset]) +
       getDataSetSize([interimDataset]) +
-      getDataSetSize(priceWalkDatasets) +
-      (priceDistribution === null ? 0 : getDataSetSize(priceDistribution)) +
       getDataSetSize(minModelDataset) +
       getDataSetSize(maxModelDataset) +
+      getDataSetSize(priceWalkDatasets) +
       getDataSetSize(drawdownWalkDatasets) +
-      (drawdownDistribution === null
-        ? 0
-        : getDataSetSize(drawdownDistribution)),
-
-    [
-      drawdownDistribution,
-      drawdownWalkDatasets,
-      interimDataset,
-      maxModelDataset,
-      minModelDataset,
-      priceData,
-      priceDistribution,
-      priceWalkDatasets,
-      volume,
-    ],
-  );
+      (priceDistribution === null ? 0 : getDataSetSize(priceDistribution)) +
+      (drawdownDistribution === null ? 0 : getDataSetSize(drawdownDistribution))
+    );
+  }, [
+    drawdownDistribution,
+    drawdownWalkDatasets,
+    interimDataset,
+    maxModelDataset,
+    minModelDataset,
+    priceData,
+    priceDistribution,
+    priceWalkDatasets,
+  ]);
 };

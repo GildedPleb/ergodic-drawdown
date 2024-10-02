@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
-import DataPointCount from "../components/data-point-count";
 import { useModel } from "../contexts/model";
+import DataPointCount from "./data-point-count";
 
 const Container = styled.div`
   display: flex;

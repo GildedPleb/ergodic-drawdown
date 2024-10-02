@@ -1,6 +1,16 @@
-import { type Full, type OneOffFiatVariable, type Task } from "../../types";
+import { type Full, type OneOffFiatVariable } from "../../types";
 
 export type TaskStatus = "aborted" | "completed" | "pending";
+
+export interface Task {
+  arrayIndex: number;
+  endIndex: number;
+  startIndex: number;
+}
+
+export interface SupplementedTask extends Task {
+  startEpoch?: number;
+}
 
 interface AbortEvent {
   type: "ABORT";
@@ -17,7 +27,7 @@ export interface RunSimulationEvent {
     minArray: Float64Array;
     samples: number;
     sharedBuffer: SharedArrayBuffer;
-    task: Task;
+    task: SupplementedTask;
     weeksSince: number;
   };
   type: "RUN_PRICE_SIMULATION";

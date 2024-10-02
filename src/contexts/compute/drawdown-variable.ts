@@ -157,7 +157,6 @@ export const useDrawdownVariables = async (
       activeOneOffVariables.length,
       samples,
     );
-    console.log({ caches, finalResults });
     finalVariableCache.set(variableCacheHash, finalResults);
   }
   return variableCacheHash;

@@ -1,6 +1,6 @@
 /* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
 /* eslint-disable @shopify/strict-component-boundaries */
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import styled from "styled-components";
 
 import CaretSVG from "../components/caret";
@@ -10,9 +10,10 @@ import ModelInput from "../components/input/model";
 import SampleInput from "../components/input/samples";
 import VolInput from "../components/input/volatility";
 import WalkInput from "../components/input/walk";
+import ModelSize from "../components/model-size";
 import { fieldLabels } from "../content";
 import { useModel } from "../contexts/model";
-import ModelSize from "./model-size";
+import { useRender } from "../contexts/render";
 
 const GhostWrapper = styled.div<{ $isOpen: boolean }>``;
 
@@ -58,10 +59,20 @@ const Section = styled.section`
 
 const PriceModel = (): JSX.Element => {
   const { setShowModel, showModel } = useModel();
+  const { setShowResults, showResults } = useRender();
+  const savedShowResultsState = useRef<boolean | null>(null);
 
   const toggleModelExpansion = useCallback(() => {
+    if (showModel) {
+      if (savedShowResultsState.current !== null) {
+        setShowResults(savedShowResultsState.current);
+      }
+    } else {
+      savedShowResultsState.current = showResults;
+      setShowResults(false);
+    }
     setShowModel(!showModel);
-  }, [setShowModel, showModel]);
+  }, [setShowModel, showModel, setShowResults, showResults]);
 
   return (
     <GhostWrapper $isOpen={showModel}>
@@ -77,8 +88,8 @@ const PriceModel = (): JSX.Element => {
         </Section>
         <Section>
           <VolInput />
-          <SampleInput />
           <EpochInput />
+          <SampleInput />
         </Section>
       </Container>
       <ModelSize isExpanded={showModel} />
