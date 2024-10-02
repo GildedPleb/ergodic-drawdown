@@ -1,25 +1,25 @@
 import { useMemo } from "react";
 
 import { MS_PER_WEEK } from "../../constants";
-import { useDrawdown } from "../../contexts/drawdown";
+import { useComputedValues } from "../../contexts/computed";
 import { useRender } from "../../contexts/render";
-import { useVolumeData } from "../../contexts/volume";
+import { useTime } from "../../contexts/time";
 import { generateColor } from "../../helpers";
 import { type DatasetList } from "../../types";
 
 export const useDrawdownWalks = (): DatasetList => {
   const { samplesToRender } = useRender();
-  const { volumeData } = useVolumeData();
-  const { drawdownDate } = useDrawdown();
+  const { volume } = useComputedValues();
+  const now = useTime();
   const drawdownWalkDatasets: DatasetList = useMemo(
     () =>
-      samplesToRender === undefined
+      samplesToRender === undefined || volume === null
         ? []
-        : volumeData.slice(0, samplesToRender).map((graph, index) => ({
+        : volume.slice(0, samplesToRender).map((graph, index) => ({
             borderColor: generateColor(index),
             borderWidth: 1,
             data: Array.from(graph, (point, innerIndex) => ({
-              x: drawdownDate + innerIndex * MS_PER_WEEK,
+              x: now + innerIndex * MS_PER_WEEK,
               y: point,
             })),
             label: `BTC Amount (${index})`,
@@ -27,7 +27,7 @@ export const useDrawdownWalks = (): DatasetList => {
             tension: 0,
             yAxisID: "y1",
           })),
-    [samplesToRender, drawdownDate, volumeData],
+    [now, samplesToRender, volume],
   );
   return drawdownWalkDatasets;
 };

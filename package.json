@@ -9,7 +9,8 @@
     "deploy": "gh-pages -d dist",
     "dev": "vite",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "npx esbuild src/dynamic-array-test.ts --bundle --platform=node --outfile=out.js && node out.js"
   },
   "browserslist": [
     "defaults and supports es6-module",
@@ -32,7 +33,9 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
     "remark-frontmatter": "^5.0.0",
-    "remark-mdx-frontmatter": "^5.0.0"
+    "remark-mdx-frontmatter": "^5.0.0",
+    "styled-components": "^6.1.12",
+    "styled-reset": "^4.5.2"
   },
   "devDependencies": {
     "@svgr/core": "^8.1.0",
@@ -40,7 +43,9 @@
     "@types/memoizee": "^0.4.11",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "c8": "^10.1.2",
     "eslint-config-current-thing": "^7.3.6",
     "gh-pages": "^6.1.1",
     "typescript": "^5.2.2",

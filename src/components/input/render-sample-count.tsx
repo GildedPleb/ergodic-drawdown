@@ -1,19 +1,34 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useRender } from "../../contexts/render";
 import handleEnterKey from "./enter";
-// eslint-disable-next-line functional/no-mixed-types
-interface IRenderSampleCount {
-  disabled: boolean;
-  samplesToRender: number | undefined;
-  setSamplesToRender: (value: React.SetStateAction<number | undefined>) => void;
-}
 
-const RenderSampleCount = ({
-  disabled,
-  samplesToRender,
-  setSamplesToRender,
-}: IRenderSampleCount): JSX.Element => {
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: center;
+  gap: 0 5px;
+  padding-right: 5px;
+  flex: 0 1;
+`;
+
+const Input = styled.input`
+  max-width: 75px;
+  font-size: inherit;
+`;
+
+const RenderSampleCount = (): JSX.Element => {
+  const {
+    renderDrawdownWalks,
+    renderPriceWalks,
+    samplesToRender,
+    setSamplesToRender,
+  } = useRender();
+
   const handleSamplesToRender: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (event) => {
@@ -29,12 +44,13 @@ const RenderSampleCount = ({
       [setSamplesToRender],
     );
 
+  const disabled = !(renderPriceWalks || renderDrawdownWalks);
+
   return (
-    <div className="input-row">
+    <Container>
       <label htmlFor="sampleRenderInput">{inputLabels.samplesToRender}</label>
-      <input
+      <Input
         autoComplete="off"
-        className="input-number"
         disabled={disabled}
         id="sampleRenderInput"
         max="100"
@@ -43,7 +59,7 @@ const RenderSampleCount = ({
         type="number"
         value={samplesToRender}
       />
-    </div>
+    </Container>
   );
 };
 

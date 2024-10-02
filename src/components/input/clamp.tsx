@@ -1,31 +1,35 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useModel } from "../../contexts/model";
+import { usePriceData } from "../../contexts/price";
+import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IClampInput {
-  clampBottom: boolean;
-  clampTop: boolean;
-  setClampBottom: (value: React.SetStateAction<boolean>) => void;
-  setClampTop: (value: React.SetStateAction<boolean>) => void;
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  padding-right: 5px;
+  justify-content: flex-start;
+  gap: 0px 10px;
+`;
 
-const ClampInput = ({
-  clampBottom,
-  clampTop,
-  setClampBottom,
-  setClampTop,
-  setLoading,
-}: IClampInput): JSX.Element => {
+const ClampInput = (): JSX.Element => {
+  const { setLoadingPriceData } = usePriceData();
+  const { setLoadingVolumeData } = useVolumeData();
+  const { clampBottom, clampTop, setClampBottom, setClampTop } = useModel();
+
   const handleClampTop: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (event) => {
         setClampTop(event.target.checked);
-        setLoading(true);
+        setLoadingPriceData(true);
+        setLoadingVolumeData(true);
       },
-      [setClampTop, setLoading],
+      [setClampTop, setLoadingPriceData, setLoadingVolumeData],
     );
 
   const handleClampBottom: React.ChangeEventHandler<HTMLInputElement> =
@@ -37,8 +41,8 @@ const ClampInput = ({
     );
 
   return (
-    <div className="input-row start">
-      <label htmlFor="clampTop">{inputLabels.clampTop}</label>
+    <Container>
+      <span>{inputLabels.clamp}</span>
       <input
         autoComplete="off"
         checked={clampTop}
@@ -47,7 +51,7 @@ const ClampInput = ({
         onKeyDown={handleEnterKey}
         type="checkbox"
       />
-      <label htmlFor="clampBottom">{inputLabels.clampBottom}</label>
+      <label htmlFor="clampTop">{inputLabels.clampTop}</label>
       <input
         autoComplete="off"
         checked={clampBottom}
@@ -56,7 +60,8 @@ const ClampInput = ({
         onKeyDown={handleEnterKey}
         type="checkbox"
       />
-    </div>
+      <label htmlFor="clampBottom">{inputLabels.clampBottom}</label>
+    </Container>
   );
 };
 

@@ -1,6 +1,8 @@
 // eslint-disable-next-line spaced-comment, @typescript-eslint/triple-slash-reference
 /// <reference types="vite-plugin-svgr/client" />
 
+import { distributions } from "./content";
+
 // eslint-disable-next-line functional/no-mixed-types
 
 export interface ProviderProperties {
@@ -32,7 +34,7 @@ export interface BlockData {
 
 export type HalvingData = Record<string, number>;
 
-export interface HalvingWorker {
+export interface HalvingFinder {
   currentBlock: number;
   halvings: HalvingData;
 }
@@ -89,19 +91,22 @@ export interface Full {
 export interface Part {
   currentPrice: number;
   epochCount: number;
-  halvings: HalvingData;
+  logMaxArray: Float64Array;
+  logMinArray: Float64Array;
   maxArray: Float64Array;
   minArray: Float64Array;
   samples: number;
+  weeksSince: number;
 }
 
 export interface VolumeWorker {
   bitcoin: number;
-  costOfLiving: number;
   data: PriceData;
-  drawdownDate: number;
   inflation: number;
   now: number;
+  oneOffFiatVariables: OneOffFiatVariable[];
+  oneOffItems: OneOffItem[];
+  reoccurringItems: ReoccurringItem[];
 }
 
 export interface VolumeReturn {
@@ -162,4 +167,76 @@ export interface DataSetParameters {
   quantiles: Point[][];
   type: "quantile" | "sd";
   yAxisID: "y" | "y1";
+}
+
+export interface BaseDrawdownItem {
+  active: boolean;
+  id: string;
+  name: string;
+}
+
+export interface ReoccurringItem extends BaseDrawdownItem {
+  annualAmount: number;
+  annualPercentChange: number;
+  effective: Date;
+  end?: Date;
+  expense: boolean;
+  isFiat: boolean;
+  // Consider adding a way to toggle weather or not to account for inflation "todaysValue"
+}
+
+export interface OneOffItem extends BaseDrawdownItem {
+  amountToday: number;
+  effective: Date;
+  expense: boolean;
+  isFiat: boolean;
+  // Consider adding a way to toggle weather or not to account for inflation "todaysValue"
+}
+
+export interface OneOffFiatVariable extends BaseDrawdownItem {
+  amountToday: number;
+  btcWillingToSpend: number;
+  delay: number;
+  hash: string;
+  start: number;
+}
+
+export type DrawdownItem = OneOffFiatVariable | OneOffItem | ReoccurringItem;
+export interface Task {
+  arrayIndex: number;
+  endIndex: number;
+  startIndex: number;
+}
+
+export type DistributionType = (typeof distributions)[number];
+
+export const isValidDistribution = (
+  value: string,
+): value is DistributionType => {
+  return distributions.includes(value as DistributionType);
+};
+
+// Placeholder components for type-specific fields
+// eslint-disable-next-line functional/no-mixed-types
+export interface FieldProperties<T extends DrawdownItem> {
+  formData: Partial<T>;
+  handleInputChange: (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => void;
+}
+
+export type FormData = { type: string } & (
+  | BaseDrawdownItem
+  | OneOffFiatVariable
+  | OneOffItem
+  | ReoccurringItem
+);
+
+// eslint-disable-next-line functional/no-mixed-types
+export interface IModal {
+  isOpen: boolean;
+  item?: DrawdownItem;
+  onClose: () => void;
+  onDelete?: () => void;
+  onSave: (item: FormData) => void;
 }

@@ -12,12 +12,13 @@ import {
 } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import zoom from "chartjs-plugin-zoom";
-import { Suspense, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Line } from "react-chartjs-2";
+import styled from "styled-components";
 
 import { isMobile } from "../constants";
 import { useDataProperties } from "../data/datasets";
-import { useHalvings } from "../data/datasets/halvings";
+import { useHalvings } from "../data/effects/use-halvings";
 
 const watermarkPlugin = {
   afterDraw: (chart: ChartJS) => {
@@ -51,13 +52,22 @@ ChartJS.register(
   watermarkPlugin,
 );
 
+const Container = styled.section`
+  width: 100vw;
+  height: 40vh;
+  flex: 1;
+  transition: all 0.4s ease-in-out;
+`;
+
+const StyledLine = styled(Line)``;
+
 const Chart = (): JSX.Element => {
   const dataProperties = useDataProperties();
   const { halvings } = useHalvings();
+  const mobile = isMobile();
   const annotations = useCallback(
     (): Array<Record<string, number | object | string>> =>
       Object.entries(halvings).map(([, timestamp], index) => ({
-        borderColor: "green",
         borderWidth: 0.5,
         label: {
           content: `Halving ${index + 1}`,
@@ -71,8 +81,13 @@ const Chart = (): JSX.Element => {
   );
 
   const options = useMemo(() => {
+    const font = {
+      // eslint-disable-next-line sonarjs/no-all-duplicated-branches
+      size: mobile ? 12 : 12,
+    };
     return {
       animation: false,
+      maintainAspectRatio: false,
       plugins: {
         annotation: {
           annotations: annotations(),
@@ -80,7 +95,7 @@ const Chart = (): JSX.Element => {
         filler: {
           propagate: true,
         },
-        zoom: isMobile()
+        zoom: mobile
           ? {}
           : {
               pan: {
@@ -94,52 +109,79 @@ const Chart = (): JSX.Element => {
               },
             },
       },
+      responsive: true,
       scales: {
         x: {
           min: "2010-01-01",
           ticks: {
+            autoSkipPadding: 40,
             callback: function (value: number | string) {
               const date = new Date(value).toDateString().split(" ");
               return `${date[1]} ${date[3]}`;
+              // return `${date[3]}`;
             },
+            font,
+            labelOffset: 25,
+            maxRotation: 0,
           },
           time: {
             parser: "yyyy-mm-dd",
             tooltipFormat: "MM/dd/yyyy",
             unit: "week",
           },
-          title: { display: true, text: "Date" },
+          title: { display: false, text: "Date" },
           type: "time",
         },
         y: {
           ticks: {
+            autoSkipPadding: 30,
             callback: (value: number | string) => {
               const numericValue =
                 typeof value === "string" ? Number.parseFloat(value) : value;
-              return isMobile()
-                ? numericValue.toExponential()
-                : numericValue.toString();
+              return `$${numericValue.toLocaleString()}`;
             },
+            font,
+            // minRotation: 60,
+            mirror: true,
           },
-          title: { display: true, text: "Price (Log Scale)" },
+          title: {
+            display: true,
+            font,
+            padding: {
+              bottom: -5,
+            },
+            // margin: {
+            //   bottom -10,
+            // },
+            text: "Price (Log Scale)",
+          },
           type: "logarithmic",
         },
         y1: {
-          beginAtZero: true,
-          min: 0,
+          // beginAtZero: true,
+          // min: 0,
           position: "right",
-          title: { display: true, text: "BTC Volume" },
+          ticks: {
+            font,
+            mirror: Boolean(mobile),
+            padding: -3,
+          },
+          title: {
+            display: true,
+            font,
+            text: "BTC Volume",
+          },
           type: "linear",
         },
       },
     } satisfies ChartOptions<"line">;
-  }, [annotations]);
+  }, [annotations, mobile]);
 
   // eslint-disable-next-line react/react-in-jsx-scope
   return (
-    <Suspense fallback={<div className="loader" />}>
-      <Line className="chart" data={dataProperties} options={options} />
-    </Suspense>
+    <Container>
+      <StyledLine data={dataProperties} options={options} />
+    </Container>
   );
 };
 

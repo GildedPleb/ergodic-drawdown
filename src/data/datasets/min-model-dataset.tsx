@@ -1,21 +1,21 @@
 import { useMemo } from "react";
 
 import { MS_PER_WEEK } from "../../constants";
+import { useComputedValues } from "../../contexts/computed";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
 import { type DatasetList } from "../../types";
-import { useMinArray } from "./min-array";
 
 export const useMinModel = (): DatasetList => {
   const { renderModelMin } = useRender();
-  const minArray = useMinArray();
+  const { minArray } = useComputedValues();
   const now = useTime();
 
   return useMemo(() => {
-    if (!renderModelMin) return [];
+    if (!renderModelMin || minArray === null) return [];
     const minPoints = [];
     let index = 0;
-    for (const price of minArray) {
+    for (const price of minArray[0]) {
       minPoints.push({
         x: now + index * MS_PER_WEEK,
         y: price,

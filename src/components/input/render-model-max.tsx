@@ -1,18 +1,24 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useRender } from "../../contexts/render";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IRenderModelMax {
-  renderModelMax: boolean;
-  setRenderModelMax: (value: React.SetStateAction<boolean>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+  flex: 0 1;
+`;
 
-const RenderModelMaxInput = ({
-  renderModelMax,
-  setRenderModelMax,
-}: IRenderModelMax): JSX.Element => {
+const RenderModelMaxInput = (): JSX.Element => {
+  const { renderModelMax, setRenderModelMax } = useRender();
+
   const handleRenderModelMax: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (event) => {
@@ -22,7 +28,7 @@ const RenderModelMaxInput = ({
     );
 
   return (
-    <div className="input-row">
+    <Container>
       <label htmlFor="renderModelMax">{inputLabels.renderModelMax}</label>
       <input
         autoComplete="off"
@@ -32,7 +38,7 @@ const RenderModelMaxInput = ({
         onKeyDown={handleEnterKey}
         type="checkbox"
       />
-    </div>
+    </Container>
   );
 };
 

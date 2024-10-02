@@ -1,46 +1,54 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useDrawdown } from "../../contexts/drawdown";
+import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IBitcoinInput {
-  bitcoin: number;
-  setBitcoin: (value: React.SetStateAction<number>) => void;
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+`;
 
-const BitcoinInput = ({
-  bitcoin,
-  setBitcoin,
-  setLoading,
-}: IBitcoinInput): JSX.Element => {
+const Input = styled.input`
+  max-width: 75px;
+  font-size: inherit;
+`;
+
+const BitcoinInput = (): JSX.Element => {
+  const { bitcoin, setBitcoin } = useDrawdown();
+  const { setLoadingVolumeData } = useVolumeData();
+
   const handleBtc: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
       const value = Number.parseFloat(event.target.value);
       if (value >= 0) {
         setBitcoin(value);
-        setLoading(true);
+        setLoadingVolumeData(true);
       } else setBitcoin(0);
     },
-    [setBitcoin, setLoading],
+    [setBitcoin, setLoadingVolumeData],
   );
 
   return (
-    <div className="">
+    <Container>
       <label htmlFor="totalBitcoin">{inputLabels.totalBitcoin}</label>
-      <input
+      <Input
         autoComplete="off"
-        className="input-number"
         id="totalBitcoin"
         min="0"
         onChange={handleBtc}
         onKeyDown={handleEnterKey}
-        step="1"
+        step=".1"
         type="number"
         value={bitcoin}
       />
-    </div>
+    </Container>
   );
 };
 

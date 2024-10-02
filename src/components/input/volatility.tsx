@@ -1,41 +1,51 @@
 import React, { useCallback, useMemo } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useModel } from "../../contexts/model";
+import { usePriceData } from "../../contexts/price";
+import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IVolInput {
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-  setVolatility: (value: React.SetStateAction<number>) => void;
-  volatility: number;
-  walk: string;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+`;
 
-const VolInput = ({
-  setLoading,
-  setVolatility,
-  volatility,
-  walk,
-}: IVolInput): JSX.Element => {
+const Input = styled.input`
+  max-width: 75px;
+  font-size: inherit;
+`;
+
+const VolInput = (): JSX.Element => {
+  const { setLoadingPriceData } = usePriceData();
+  const { setLoadingVolumeData } = useVolumeData();
+  const { setVolatility, volatility, walk } = useModel();
+
   const handleVol: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
       const value = Number.parseFloat(event.target.value);
       if (value >= 0 && value <= 1) {
-        setLoading(true);
+        setLoadingPriceData(true);
+        setLoadingVolumeData(true);
         setVolatility(value);
       }
     },
-    [setLoading, setVolatility],
+    [setLoadingPriceData, setLoadingVolumeData, setVolatility],
   );
 
   const volStep = useMemo(() => (walk === "Bubble" ? 0.005 : 0.001), [walk]);
 
   return (
-    <div className="input-row">
+    <Container>
       <label htmlFor="volInput">{inputLabels.vol}</label>
-      <input
+      <Input
         autoComplete="off"
-        className="input-number"
         id="volInput"
         max="1"
         min="0"
@@ -45,7 +55,7 @@ const VolInput = ({
         type="number"
         value={volatility}
       />
-    </div>
+    </Container>
   );
 };
 

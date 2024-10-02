@@ -1,35 +1,38 @@
+import styled from "styled-components";
+
+import { useComputedValues } from "../contexts/computed";
 import { useModel } from "../contexts/model";
 import { usePriceData } from "../contexts/price";
-import { useVolumeData } from "../contexts/volume";
 import { useMemory } from "../data/data-size";
+import Loading from "./loading";
+
+const MemoryUsageSpan = styled.span<{ $memoryUsageMB: number }>`
+  color: ${({ $memoryUsageMB }) =>
+    $memoryUsageMB > 1024
+      ? "red"
+      : $memoryUsageMB > 256
+        ? "yellow"
+        : "inherit"};
+`;
 
 const DataPointCount = (): JSX.Element => {
-  const { loadingPriceData, priceData } = usePriceData();
-  const { volumeData } = useVolumeData();
+  const { loadingPriceData } = usePriceData();
+  const { dataLength, volume } = useComputedValues();
   const { samples } = useModel();
   const using =
-    priceData.length * priceData[0]?.length +
-    volumeData.length * volumeData[0]?.length;
+    samples * dataLength + (volume ?? []).length * (volume ?? [])[0]?.length;
 
   const memoryUsageMB = useMemory();
 
-  let memoryUsageClass = "";
-  if (memoryUsageMB > 1024) {
-    memoryUsageClass = "memory-high";
-  } else if (memoryUsageMB > 256) {
-    memoryUsageClass = "memory-medium";
-  }
-  const beginning = `(${using.toLocaleString()} data points @`;
+  const beginning = `${using.toLocaleString()} data points @`;
   const mid = `~${memoryUsageMB.toFixed(0)} MB`;
-  const end = `)`;
 
   return loadingPriceData || samples === 0 ? (
-    <div className="loader" />
+    <Loading />
   ) : (
     <>
       <span>{beginning}</span>
-      <span className={memoryUsageClass}>{mid}</span>
-      <span>{end}</span>
+      <MemoryUsageSpan $memoryUsageMB={memoryUsageMB}>{mid}</MemoryUsageSpan>
     </>
   );
 };

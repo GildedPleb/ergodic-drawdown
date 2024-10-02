@@ -50,7 +50,7 @@ const stockToFlowModel: PriceModel = {
     const confidence = (65 / 100) * basePrice;
     return basePrice - confidence;
   },
-  modelType: "Stock-To-Flow (exponential)" as const,
+  modelType: "Stock-To-Flow" as const,
   varInput: "",
 };
 
@@ -74,7 +74,7 @@ const stockToFlowModelNew: PriceModel = {
     const confidence = (68 / 100) * basePrice;
     return basePrice - confidence;
   },
-  modelType: "Stock-To-Flow 2024 refit (exponential)" as const,
+  modelType: "Stock-To-Flow 2024 refit" as const,
   varInput: "",
 };
 
@@ -107,7 +107,7 @@ const rainbowChartModel: PriceModel = {
     const currentDate = new Date(now + week * MS_PER_WEEK);
     return basePriceModel(currentDate) * 0.1;
   },
-  modelType: "Rainbow Chart (logarithmic)",
+  modelType: "Rainbow Chart",
   varInput: "",
 };
 
@@ -128,7 +128,7 @@ const powerLawModel: PriceModel = {
     const currentDate = now + week * MS_PER_WEEK;
     return powerLaw(currentDate, 0);
   },
-  modelType: "Power Law Regression Median (logarithmic)",
+  modelType: "Power Law Regression Median",
   varInput: "",
 };
 
@@ -152,7 +152,7 @@ const log10PriceModelConfig: PriceModel = {
     const currentDate = new Date(now + week * MS_PER_WEEK);
     return log10PriceModel(currentDate.getTime(), -17.928_912, 5.977_458);
   },
-  modelType: "Power Law Support Line (logarithmic)",
+  modelType: "Power Law Support Line",
   varInput: "",
 };
 

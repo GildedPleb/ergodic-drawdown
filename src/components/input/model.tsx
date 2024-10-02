@@ -2,31 +2,62 @@ import React, { useCallback } from "react";
 
 import { modelMap, models } from "../../data/models";
 import handleEnterKey from "./enter";
+import { usePriceData } from "../../contexts/price";
+import { useVolumeData } from "../../contexts/volume";
+import { useModel } from "../../contexts/model";
+import styled from "styled-components";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IModelInput {
-  model: string;
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-  setModel: (value: React.SetStateAction<string>) => void;
-  setVariable: (value: React.SetStateAction<number>) => void;
-  setMinMaxMultiple: (value: React.SetStateAction<number>) => void;
-  variable: number;
-  minMaxMultiple: number;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+`;
 
-const ModelInput = ({
-  model,
-  setLoading,
-  setModel,
-  setVariable,
-  variable,
-  setMinMaxMultiple,
-  minMaxMultiple,
-}: IModelInput): JSX.Element => {
+const Select = styled.select`
+  width: 100%;
+  font-size: inherit;
+`;
+
+const Input = styled.input`
+  max-width: 75px;
+  font-size: inherit;
+  width: 55px;
+  min-width: 1px;
+  flex-grow: 1;
+  text-align: right;
+`;
+
+const Options = styled.div`
+  flex-shrink: 1;
+  display: flex;
+  gap: 5px;
+`;
+
+const ModelInput = (): JSX.Element => {
+  const { setLoadingPriceData } = usePriceData();
+  const { setLoadingVolumeData } = useVolumeData();
+  const {
+    minMaxMultiple,
+    model,
+    setMinMaxMultiple,
+    setModel,
+    setVariable,
+    variable,
+  } = useModel();
+
+  const setLoading = useCallback(() => {
+    setLoadingPriceData(true);
+    setLoadingVolumeData(true);
+  }, [setLoadingPriceData, setLoadingVolumeData]);
+
   const handleModel: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
     (event) => {
       if (model !== event.target.value) {
-        setLoading(true);
+        setLoading();
         setModel(event.target.value);
 
         if (modelMap[event.target.value].varInput !== "") {
@@ -42,7 +73,7 @@ const ModelInput = ({
       (event) => {
         const value = Number.parseFloat(event.target.value);
         setVariable(value);
-        setLoading(true);
+        setLoading();
       },
       [setLoading, setVariable],
     );
@@ -53,7 +84,7 @@ const ModelInput = ({
         const value = Number.parseFloat(event.target.value);
         if (value < 1.01) setMinMaxMultiple(1.01);
         else setMinMaxMultiple(value);
-        setLoading(true);
+        setLoading();
       },
       [setLoading, setVariable],
     );
@@ -61,9 +92,8 @@ const ModelInput = ({
   const hasInput = modelMap[model].varInput !== "";
 
   return (
-    <div className="input-row">
-      <select
-        className="select-model"
+    <Container>
+      <Select
         id="modelInput"
         onChange={handleModel}
         onKeyDown={handleEnterKey}
@@ -74,13 +104,12 @@ const ModelInput = ({
             {item.modelType}
           </option>
         ))}
-      </select>
+      </Select>
       {hasInput && (
-        <div>
+        <Options>
           <label htmlFor="modelVariable">{modelMap[model].varInput}</label>
-          <input
+          <Input
             autoComplete="off"
-            className="input-number"
             id="modelVariable"
             onChange={handleVariable}
             onKeyDown={handleEnterKey}
@@ -89,9 +118,8 @@ const ModelInput = ({
             value={variable}
           />
           <label htmlFor="minMaxMultiple">{`+/-`}</label>
-          <input
+          <Input
             autoComplete="off"
-            className="input-number"
             id="minMaxMultiple"
             onChange={handleMinMaxMultiple}
             onKeyDown={handleEnterKey}
@@ -100,9 +128,9 @@ const ModelInput = ({
             type="number"
             value={minMaxMultiple}
           />
-        </div>
+        </Options>
       )}
-    </div>
+    </Container>
   );
 };
 

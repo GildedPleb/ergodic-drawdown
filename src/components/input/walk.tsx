@@ -1,33 +1,49 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useModel } from "../../contexts/model";
+import { usePriceData } from "../../contexts/price";
+import { useVolumeData } from "../../contexts/volume";
 import { walks } from "../../data/walks";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IWalkInput {
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-  setWalk: (value: React.SetStateAction<string>) => void;
-  walk: string;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+`;
 
-const WalkInput = ({ setLoading, setWalk, walk }: IWalkInput): JSX.Element => {
+const Select = styled.select`
+  width: 100%;
+  font-size: inherit;
+`;
+
+const WalkInput = (): JSX.Element => {
+  const { setLoadingPriceData } = usePriceData();
+  const { setLoadingVolumeData } = useVolumeData();
+  const { setWalk, walk } = useModel();
+
   const handleWalk: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
     (event) => {
       const value = event.target.value;
       if (Object.keys(walks).includes(value)) {
         setWalk(value);
-        setLoading(true);
+        setLoadingPriceData(true);
+        setLoadingVolumeData(true);
       }
     },
-    [setLoading, setWalk],
+    [setLoadingPriceData, setLoadingVolumeData, setWalk],
   );
 
   return (
-    <div className="input-row">
+    <Container>
       <label htmlFor="walkInput">{inputLabels.walk}</label>
-      <select
-        className="select-model"
+      <Select
         id="walkInput"
         onChange={handleWalk}
         onKeyDown={handleEnterKey}
@@ -38,8 +54,8 @@ const WalkInput = ({ setLoading, setWalk, walk }: IWalkInput): JSX.Element => {
             {item}
           </option>
         ))}
-      </select>
-    </div>
+      </Select>
+    </Container>
   );
 };
 

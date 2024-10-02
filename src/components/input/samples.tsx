@@ -1,20 +1,33 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
+import { MAX_SAMPLE_COUNT } from "../../constants";
 import { inputLabels } from "../../content";
+import { useModel } from "../../contexts/model";
+import { usePriceData } from "../../contexts/price";
+import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface ISampleInput {
-  samples: number;
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-  setSamples: (value: React.SetStateAction<number>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+`;
 
-const SampleInput = ({
-  samples,
-  setLoading,
-  setSamples,
-}: ISampleInput): JSX.Element => {
+const Input = styled.input`
+  max-width: 75px;
+  font-size: inherit;
+`;
+
+const SampleInput = (): JSX.Element => {
+  const { setLoadingPriceData } = usePriceData();
+  const { setLoadingVolumeData } = useVolumeData();
+  const { samples, setSamples } = useModel();
+
   const handleSamples: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
       if (event.target.value === "") {
@@ -22,29 +35,29 @@ const SampleInput = ({
         return;
       }
       const value = Number.parseInt(event.target.value, 10);
-      if (value >= 0 && value <= 10_000) {
-        setLoading(true);
+      if (value >= 0 && value <= MAX_SAMPLE_COUNT) {
+        setLoadingPriceData(true);
+        setLoadingVolumeData(true);
         setSamples(value);
       }
     },
-    [setLoading, setSamples],
+    [setLoadingPriceData, setLoadingVolumeData, setSamples],
   );
 
   return (
-    <div className="input-row">
+    <Container>
       <label htmlFor="sampleInput">{inputLabels.samples}</label>
-      <input
+      <Input
         autoComplete="off"
-        className="input-number"
         id="sampleInput"
-        max="10000"
-        min="1000"
+        max={MAX_SAMPLE_COUNT}
+        min="1"
         onChange={handleSamples}
         onKeyDown={handleEnterKey}
         type="number"
         value={samples}
       />
-    </div>
+    </Container>
   );
 };
 

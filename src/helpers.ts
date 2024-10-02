@@ -1,12 +1,15 @@
+import { HALVING_INTERVAL, MS_PER_WEEK } from "./constants";
 import {
   type ApplyModel,
   type BaseColor,
   type DatasetList,
   type DataSetParameters,
+  type DrawdownItem,
   type HalvingData,
   type NormalizePrice,
   type Pallet,
   type RGBA,
+  type Task,
 } from "./types";
 
 // eslint-disable-next-line functional/functional-parameters
@@ -23,18 +26,16 @@ export const weeksSinceLastHalving = (
     }
   }
 
-  const millisecondsPerWeek = 1000 * 60 * 60 * 24 * 7;
   const timeDifference =
     currentDate.getTime() - mostRecentHalvingDate.getTime();
-  return Math.floor(timeDifference / millisecondsPerWeek);
+  return Math.floor(timeDifference / MS_PER_WEEK);
 };
 
 export const calculateHalvings = (currentHeight: number): number[] => {
-  const halvingInterval = 210_000;
-  const count = Math.floor(currentHeight / halvingInterval);
+  const count = Math.floor(currentHeight / HALVING_INTERVAL);
   return Array.from(
     { length: count },
-    (_, index) => (index + 1) * halvingInterval,
+    (_, index) => (index + 1) * HALVING_INTERVAL,
   );
 };
 
@@ -88,7 +89,6 @@ export const applyModel = ({
   for (const price of normalizedPrices) {
     const min = minArray[index + week - offset];
     const max = maxArray[index + week - offset];
-    // if (min === undefined || max === undefined) throw new Error("gott it");
     if (price <= 0) {
       final[index] = min * base ** price;
     } else if (price < 1) {
@@ -220,4 +220,118 @@ export const createDataSet = ({
       yAxisID,
     };
   });
+};
+
+const divisor = (numb: number, max: number): number => {
+  for (let index = max; index > 0; index--)
+    if (numb % index === 0) return index;
+  return 1;
+};
+
+const createTask = (
+  arrayIndex: number,
+  startIndex: number,
+  endIndex: number,
+): Task => ({
+  arrayIndex,
+  endIndex,
+  startIndex,
+});
+
+const MAX_SAMPLES = 10 * 1024;
+
+// Function to create a task queue for distributing work among workers
+export const createTaskQueue = (
+  // Total number of samples required
+  totalSamplesNeeded: number,
+  // Number of available workers
+  workerCount: number,
+  // Number of samples per array (default: 1024)
+  samplesPerArray = 1024,
+  // Starting sample index (default: 0)
+  startingSample = 0,
+): Task[] => {
+  // Input validation
+  if (totalSamplesNeeded <= startingSample || workerCount === 0) return [];
+  if (totalSamplesNeeded > MAX_SAMPLES)
+    throw new Error(`Too many samples needed. Maximum allowed: ${MAX_SAMPLES}`);
+
+  const tasks: Task[] = [];
+  let currentSample = startingSample;
+  let saved = 0;
+
+  const addTask = (
+    ar: number,
+    begin: number,
+    end: number,
+    size: number,
+  ): void => {
+    for (let start = begin; start < end; start += size) {
+      const finish = Math.min(start + size, end);
+      tasks.push(createTask(ar, start, finish));
+      currentSample += finish - start;
+    }
+  };
+
+  // 1. Handle the starting array if we're not starting from the beginning
+  if (startingSample !== 0) {
+    const startingArray = Math.floor(startingSample / samplesPerArray);
+    const startSample = startingSample % samplesPerArray;
+    const additional = totalSamplesNeeded - startingSample;
+    const endSample = Math.min(additional + startSample, samplesPerArray);
+    const batchSize = Math.ceil((endSample - startSample) / workerCount);
+    addTask(startingArray, startSample, endSample, batchSize);
+    if (tasks.length < workerCount) saved = workerCount - tasks.length;
+  }
+
+  // 2. Handle full arrays
+  let currentArray = Math.floor(currentSample / samplesPerArray);
+  const remainingWorkMidway = totalSamplesNeeded - currentSample;
+  const fullArraysNeeded = Math.floor(remainingWorkMidway / samplesPerArray);
+  if (fullArraysNeeded >= 1) {
+    const rounds = [];
+    let remainingArrays = fullArraysNeeded;
+    while (remainingArrays > 0) {
+      const arraysForThisRound = divisor(workerCount, remainingArrays);
+      const rawBatchSize = (arraysForThisRound * samplesPerArray) / workerCount;
+      rounds.push({ arrayCount: arraysForThisRound, rawBatchSize });
+      remainingArrays -= arraysForThisRound;
+    }
+    const startArray = currentArray;
+    for (const { arrayCount, rawBatchSize } of rounds) {
+      const batchSize = Math.ceil(rawBatchSize);
+      for (let array = startArray; array < startArray + arrayCount; array++) {
+        addTask(currentArray, 0, samplesPerArray, batchSize);
+        currentArray++;
+      }
+    }
+  }
+
+  // 3. Handle leftovers (always 1 array)
+  const remainingWork = totalSamplesNeeded - currentSample;
+  if (remainingWork !== 0) {
+    const workers = saved !== 0 && remainingWork < 45 ? saved : workerCount;
+    const batchSize = Math.ceil(remainingWork / workers);
+    addTask(currentArray, 0, remainingWork, batchSize);
+  }
+  return tasks;
+};
+
+export const findNextGreatest1000 = (x: number, y: number): number => {
+  if (x > y) return x;
+  if (x <= 0) return Math.min(1000, y);
+  let nextThousand = Math.ceil(x / 1000) * 1000;
+  if (x % 1000 === 0) nextThousand += 1000;
+  return Math.min(nextThousand, y);
+};
+
+export const getItemDescription = (item: DrawdownItem): string => {
+  if ("annualAmount" in item) {
+    return `Starting ${item.effective.toLocaleDateString()}, ${item.expense ? "spend" : "acquire"} ${item.isFiat ? "$" : "₿"}${item.annualAmount.toLocaleString()} every year${item.end === undefined ? "" : " until " + item.end.toLocaleDateString()}${item.annualPercentChange === 0 ? "" : ", " + (item.annualPercentChange > 0 ? " increasing" : " decreasing") + " by " + item.annualPercentChange + "% per year"}`;
+  } else if ("amountToday" in item && !("btcWillingToSpend" in item)) {
+    return `${item.expense ? "Spend" : "Acquire"} ${item.isFiat ? "$" : "₿"}${item.amountToday.toLocaleString()} ${item.isFiat ? "(in todays purchasing power)" : ""} on ${item.effective.toLocaleDateString()}`;
+  } else if ("btcWillingToSpend" in item) {
+    return `Spend ₿${item.btcWillingToSpend} on a $${item.amountToday.toLocaleString()} item, at least ${item.delay * 7} day(s) after ${item.start}% between the first affordable day, and last unaffordable day.`;
+  }
+  return "";
 };

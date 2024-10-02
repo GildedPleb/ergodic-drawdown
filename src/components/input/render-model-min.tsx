@@ -1,18 +1,23 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useRender } from "../../contexts/render";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IRenderModelMin {
-  renderModelMin: boolean;
-  setRenderModelMin: (value: React.SetStateAction<boolean>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+  flex: 0 1;
+`;
 
-const RenderModelMinInput = ({
-  renderModelMin,
-  setRenderModelMin,
-}: IRenderModelMin): JSX.Element => {
+const RenderModelMinInput = (): JSX.Element => {
+  const { renderModelMin, setRenderModelMin } = useRender();
   const handleRenderModelMin: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (event) => {
@@ -22,7 +27,7 @@ const RenderModelMinInput = ({
     );
 
   return (
-    <div className="input-row">
+    <Container>
       <label htmlFor="renderModelMin">{inputLabels.renderModelMin}</label>
       <input
         autoComplete="off"
@@ -32,7 +37,7 @@ const RenderModelMinInput = ({
         onKeyDown={handleEnterKey}
         type="checkbox"
       />
-    </div>
+    </Container>
   );
 };
 

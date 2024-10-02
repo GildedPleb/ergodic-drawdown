@@ -1,10 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { usePriceData } from "../../contexts/price";
+import { useComputedValues } from "../../contexts/computed";
 import { useRender } from "../../contexts/render";
-import { useVolumeData } from "../../contexts/volume";
 import { type DataProperties, type DatasetList } from "../../types";
-import { useCostOfLiving } from "./cost-of-living";
 import { useDrawdownWalks } from "./drawdown-walks";
 import { marketDataset } from "./historic";
 import { useInterimDataset } from "./interim";
@@ -14,24 +12,37 @@ import { usePriceWalkDataset } from "./price-walk";
 
 export const useDataProperties: DataProperties = () => {
   const {
-    renderDrawdownNormal,
-    renderDrawdownQuantile,
+    renderDrawdownDistribution,
     renderDrawdownWalks,
-    renderExpenses,
     renderModelMax,
     renderModelMin,
-    renderPriceNormal,
-    renderPriceQuantile,
+    renderPriceDistribution,
     renderPriceWalks,
   } = useRender();
   const interimDataset = useInterimDataset();
   const priceWalkDatasets = usePriceWalkDataset();
-  const { priceNormal, priceQuantile } = usePriceData();
   const minModelDataset = useMinModel();
   const maxModelDataset = useMaxModel();
   const drawdownWalkDatasets = useDrawdownWalks();
-  const { volumeNormal, volumeQuantile } = useVolumeData();
-  const costOfLivingDataset = useCostOfLiving();
+  const { drawdownDistribution, priceDistribution } = useComputedValues();
+
+  const [previousPriceDistribution, setPreviousPriceDistribution] =
+    useState<DatasetList>([]);
+  const [previousDrawdownDistribution, setPreviousDrawdownDistribution] =
+    useState<DatasetList>([]);
+
+  // Update previous data when new data is available
+  useEffect(() => {
+    if (priceDistribution !== null) {
+      setPreviousPriceDistribution(priceDistribution);
+    }
+  }, [priceDistribution]);
+
+  useEffect(() => {
+    if (drawdownDistribution !== null) {
+      setPreviousDrawdownDistribution(drawdownDistribution);
+    }
+  }, [drawdownDistribution]);
 
   return useMemo(
     () =>
@@ -40,36 +51,31 @@ export const useDataProperties: DataProperties = () => {
           marketDataset,
           interimDataset,
           ...(renderPriceWalks ? priceWalkDatasets : []),
-          ...(renderPriceQuantile ? priceQuantile : []),
+          ...(renderPriceDistribution === "None"
+            ? []
+            : previousPriceDistribution),
           ...(renderModelMin ? minModelDataset : []),
           ...(renderModelMax ? maxModelDataset : []),
           ...(renderDrawdownWalks ? drawdownWalkDatasets : []),
-          ...(renderDrawdownQuantile ? volumeQuantile : []),
-          ...(renderDrawdownNormal ? volumeNormal : []),
-          ...(renderExpenses ? costOfLivingDataset : []),
-          ...(renderPriceNormal ? priceNormal : []),
+          ...(renderDrawdownDistribution === "None"
+            ? []
+            : previousDrawdownDistribution),
         ],
       }) satisfies { datasets: DatasetList },
     [
       interimDataset,
       renderPriceWalks,
       priceWalkDatasets,
-      renderPriceQuantile,
-      priceQuantile,
+      renderPriceDistribution,
+      previousPriceDistribution,
       renderModelMin,
       minModelDataset,
       renderModelMax,
       maxModelDataset,
       renderDrawdownWalks,
       drawdownWalkDatasets,
-      renderDrawdownQuantile,
-      volumeQuantile,
-      renderDrawdownNormal,
-      volumeNormal,
-      renderExpenses,
-      costOfLivingDataset,
-      renderPriceNormal,
-      priceNormal,
+      renderDrawdownDistribution,
+      previousDrawdownDistribution,
     ],
   );
 };

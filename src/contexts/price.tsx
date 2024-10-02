@@ -1,23 +1,24 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import SharedArrayPool from "../classes/shared-stack-cache-pool";
 import {
-  type DatasetList,
-  type PriceData,
-  type ProviderProperties,
-} from "../types";
+  DEFAULT_EPOCH_COUNT,
+  DEFAULT_SIMULATION_COUNT,
+  WEEKS_PER_EPOCH,
+} from "../constants";
+import { type ProviderProperties } from "../types";
 
 // eslint-disable-next-line functional/no-mixed-types
 interface PriceDataContextType {
   loadingPriceData: boolean;
-  priceCacheHash: string;
-  priceData: PriceData;
-  priceNormal: DatasetList;
-  priceQuantile: DatasetList;
+  priceDataPool: SharedArrayPool;
   setLoadingPriceData: React.Dispatch<React.SetStateAction<boolean>>;
-  setPriceCacheHash: React.Dispatch<React.SetStateAction<string>>;
-  setPriceData: React.Dispatch<React.SetStateAction<PriceData>>;
-  setPriceNormal: React.Dispatch<React.SetStateAction<DatasetList>>;
-  setPriceQuantile: React.Dispatch<React.SetStateAction<DatasetList>>;
 }
 
 // eslint-disable-next-line unicorn/no-null
@@ -26,26 +27,23 @@ const PriceDataContext = createContext<PriceDataContextType | null>(null);
 export const PriceDataProvider: React.FC<ProviderProperties> = ({
   children,
 }) => {
-  const [priceData, setPriceData] = useState<PriceData>([]);
-  const [priceQuantile, setPriceQuantile] = useState<DatasetList>([]);
-  const [priceNormal, setPriceNormal] = useState<DatasetList>([]);
   const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
-  const [priceCacheHash, setPriceCacheHash] = useState<string>("");
+  const poolReference = useRef<SharedArrayPool>(
+    new SharedArrayPool(
+      DEFAULT_EPOCH_COUNT,
+      DEFAULT_SIMULATION_COUNT,
+      WEEKS_PER_EPOCH,
+    ),
+  );
 
   const value = useMemo(
-    () => ({
-      loadingPriceData,
-      priceCacheHash,
-      priceData,
-      priceNormal,
-      priceQuantile,
-      setLoadingPriceData,
-      setPriceCacheHash,
-      setPriceData,
-      setPriceNormal,
-      setPriceQuantile,
-    }),
-    [priceData, priceQuantile, priceNormal, loadingPriceData, priceCacheHash],
+    () =>
+      ({
+        loadingPriceData,
+        priceDataPool: poolReference.current,
+        setLoadingPriceData,
+      }) satisfies PriceDataContextType,
+    [loadingPriceData],
   );
 
   return (

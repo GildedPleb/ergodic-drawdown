@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 
-import { usePriceData } from "../../contexts/price";
-import { useVolumeData } from "../../contexts/volume";
-import { useCostOfLiving } from "../datasets/cost-of-living";
+import { useComputedValues } from "../../contexts/computed";
 import { useDrawdownWalks } from "../datasets/drawdown-walks";
 import { marketDataset } from "../datasets/historic";
 import { useInterimDataset } from "../datasets/interim";
@@ -13,45 +11,40 @@ import { getDataSize } from "./get-data-size";
 import { getDataSetSize } from "./get-dataset-size";
 
 export const useMemory = (): number => {
-  const { priceData } = usePriceData();
-  const { volumeData } = useVolumeData();
+  const { priceData } = useComputedValues();
   const interimDataset = useInterimDataset();
   const priceWalkDatasets = usePriceWalkDataset();
-  const { priceNormal, priceQuantile } = usePriceData();
+  const { drawdownDistribution, priceDistribution, volume } =
+    useComputedValues();
   const minModelDataset = useMinModel();
   const maxModelDataset = useMaxModel();
   const drawdownWalkDatasets = useDrawdownWalks();
-  const { volumeNormal, volumeQuantile } = useVolumeData();
-  const costOfLivingDataset = useCostOfLiving();
 
   return useMemo(
     () =>
-      getDataSize(priceData) * 2 +
-      getDataSize(volumeData) +
+      getDataSize(priceData ?? []) * 2 +
+      (volume === null ? 0 : getDataSize(volume)) +
       getDataSetSize([marketDataset]) +
       getDataSetSize([interimDataset]) +
       getDataSetSize(priceWalkDatasets) +
-      getDataSetSize(priceQuantile) +
+      (priceDistribution === null ? 0 : getDataSetSize(priceDistribution)) +
       getDataSetSize(minModelDataset) +
       getDataSetSize(maxModelDataset) +
       getDataSetSize(drawdownWalkDatasets) +
-      getDataSetSize(volumeQuantile) +
-      getDataSetSize(volumeNormal) +
-      getDataSetSize(costOfLivingDataset) +
-      getDataSetSize(priceNormal),
+      (drawdownDistribution === null
+        ? 0
+        : getDataSetSize(drawdownDistribution)),
+
     [
-      costOfLivingDataset,
+      drawdownDistribution,
       drawdownWalkDatasets,
       interimDataset,
       maxModelDataset,
       minModelDataset,
       priceData,
-      priceNormal,
-      priceQuantile,
+      priceDistribution,
       priceWalkDatasets,
-      volumeData,
-      volumeNormal,
-      volumeQuantile,
+      volume,
     ],
   );
 };

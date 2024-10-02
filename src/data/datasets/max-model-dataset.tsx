@@ -1,21 +1,21 @@
 import { useMemo } from "react";
 
 import { MS_PER_WEEK } from "../../constants";
+import { useComputedValues } from "../../contexts/computed";
 import { useRender } from "../../contexts/render";
 import { useTime } from "../../contexts/time";
 import { type DatasetList } from "../../types";
-import { useMaxArray } from "./max-array";
 
 export const useMaxModel = (): DatasetList => {
   const { renderModelMax } = useRender();
-  const maxArray = useMaxArray();
+  const { maxArray } = useComputedValues();
   const now = useTime();
 
   return useMemo(() => {
-    if (!renderModelMax) return [];
+    if (!renderModelMax || maxArray === null) return [];
     const maxPoints = [];
     let index = 0;
-    for (const price of maxArray) {
+    for (const price of maxArray[0]) {
       maxPoints.push({
         x: now + index * MS_PER_WEEK,
         y: price,

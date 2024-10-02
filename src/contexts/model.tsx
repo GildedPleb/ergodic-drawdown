@@ -18,9 +18,11 @@ interface ModelContextType {
   setMinMaxMultiple: React.Dispatch<React.SetStateAction<number>>;
   setModel: React.Dispatch<React.SetStateAction<string>>;
   setSamples: React.Dispatch<React.SetStateAction<number>>;
+  setShowModel: React.Dispatch<React.SetStateAction<boolean>>;
   setVariable: React.Dispatch<React.SetStateAction<number>>;
   setVolatility: React.Dispatch<React.SetStateAction<number>>;
   setWalk: React.Dispatch<React.SetStateAction<string>>;
+  showModel: boolean;
   variable: number;
   volatility: number;
   walk: string;
@@ -30,38 +32,43 @@ interface ModelContextType {
 const ModelContext = createContext<ModelContextType | null>(null);
 
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
+  const [showModel, setShowModel] = useState<boolean>(false);
   const [model, setModel] = useState<string>(models[2].modelType);
   const [variable, setVariable] = useState<number>(0);
   const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);
   const [walk, setWalk] = useState<string>("Bubble");
   const [clampTop, setClampTop] = useState<boolean>(false);
-  const [clampBottom, setClampBottom] = useState<boolean>(false);
+  const [clampBottom, setClampBottom] = useState<boolean>(true);
   const [volatility, setVolatility] = useState<number>(0.1);
   const [samples, setSamples] = useState<number>(DEFAULT_SIMULATION_COUNT);
   const [epochCount, setEpochCount] = useState<number>(DEFAULT_EPOCH_COUNT);
 
   const value = useMemo(
-    () => ({
-      clampBottom,
-      clampTop,
-      epochCount,
-      minMaxMultiple,
-      model,
-      samples,
-      setClampBottom,
-      setClampTop,
-      setEpochCount,
-      setMinMaxMultiple,
-      setModel,
-      setSamples,
-      setVariable,
-      setVolatility,
-      setWalk,
-      variable,
-      volatility,
-      walk,
-    }),
+    () =>
+      ({
+        clampBottom,
+        clampTop,
+        epochCount,
+        minMaxMultiple,
+        model,
+        samples,
+        setClampBottom,
+        setClampTop,
+        setEpochCount,
+        setMinMaxMultiple,
+        setModel,
+        setSamples,
+        setShowModel,
+        setVariable,
+        setVolatility,
+        setWalk,
+        showModel,
+        variable,
+        volatility,
+        walk,
+      }) satisfies ModelContextType,
     [
+      showModel,
       clampBottom,
       clampTop,
       epochCount,

@@ -4,13 +4,25 @@ import mdx from "@mdx-js/rollup";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import svgrPlugin from "vite-plugin-svgr";
+import fs from "fs";
 
 const options = {
   remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter],
 };
 
-// https://vitejs.dev/config/
+const httpsOptions = {
+  key: fs.readFileSync("localhost-key.pem"),
+  cert: fs.readFileSync("localhost.pem"),
+};
+
 export default defineConfig({
   plugins: [react(), mdx(options), svgrPlugin()],
   base: "/ergodic-drawdown/",
+  server: {
+    https: httpsOptions,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
+  },
 });

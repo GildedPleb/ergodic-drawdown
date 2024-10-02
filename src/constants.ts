@@ -15,6 +15,13 @@ export const LAST_SAVED_TIMESTAMP = 1_719_014_400;
 export const DEFAULT_SIMULATION_COUNT = 1000;
 export const DEFAULT_EPOCH_COUNT = 10;
 
+export const MAX_SAMPLE_COUNT = 10_000;
+export const MAX_EPOCH_COUNT = 30;
+export const MAX_FIAT_VARIABLES = 100;
+export const SIMULATIONS_PER_ARRAY = 1000;
+
+export const MAX_WEEKS = MAX_EPOCH_COUNT * WEEKS_PER_EPOCH;
+
 // eslint-disable-next-line functional/functional-parameters
 export const isMobile = (): boolean => {
   if (typeof window !== "undefined" && typeof navigator !== "undefined") {

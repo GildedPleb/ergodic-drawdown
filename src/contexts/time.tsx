@@ -27,7 +27,7 @@ export const TimeProvider: React.FC<ProviderProperties> = ({ children }) => {
     };
   }, []);
 
-  const value = useMemo(() => now, [now]);
+  const value = useMemo(() => now satisfies TimeContextType, [now]);
 
   return <TimeContext.Provider value={value}>{children}</TimeContext.Provider>;
 };

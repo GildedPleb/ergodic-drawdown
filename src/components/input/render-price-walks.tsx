@@ -1,18 +1,24 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useRender } from "../../contexts/render";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IRenderPriceWalks {
-  renderPriceWalks: boolean;
-  setRenderPriceWalks: (value: React.SetStateAction<boolean>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  white-space: nowrap;
+  align-items: baseline;
+  gap: 0 5px;
+  padding-right: 5px;
+  flex: 0 1;
+`;
 
-const RenderPriceWalkInput = ({
-  renderPriceWalks,
-  setRenderPriceWalks,
-}: IRenderPriceWalks): JSX.Element => {
+const RenderPriceWalkInput = (): JSX.Element => {
+  const { renderPriceWalks, setRenderPriceWalks } = useRender();
+
   const handleRenderPriceWalks: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (event) => {
@@ -22,8 +28,7 @@ const RenderPriceWalkInput = ({
     );
 
   return (
-    <div className="input-row">
-      <label htmlFor="renderWalk">{inputLabels.renderWalk}</label>
+    <Container>
       <input
         autoComplete="off"
         checked={renderPriceWalks}
@@ -32,7 +37,8 @@ const RenderPriceWalkInput = ({
         onKeyDown={handleEnterKey}
         type="checkbox"
       />
-    </div>
+      <label htmlFor="renderWalk">{inputLabels.renderWalk}</label>
+    </Container>
   );
 };
 

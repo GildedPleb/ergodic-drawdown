@@ -283,5 +283,5 @@ export const walks: Record<string, IWalk> = {
   Saw: sawtooth,
   Shark: shark,
   Sin: sinusoidal,
-  "Vote Counting": USElections,
+  "Vote Count": USElections,
 } as const;

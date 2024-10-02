@@ -1,44 +1,55 @@
 import React, { useCallback } from "react";
+import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useDrawdown } from "../../contexts/drawdown";
+import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
-// eslint-disable-next-line functional/no-mixed-types
-interface IInflationInput {
-  inflation: number;
-  setInflation: (value: React.SetStateAction<number>) => void;
-  setLoading: (value: React.SetStateAction<boolean>) => void;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  white-space: nowrap;
+  align-items: center;
+  gap: 0 5px;
+  padding-right: 5px;
+`;
 
-const InflationInput = ({
-  inflation,
-  setInflation,
-  setLoading,
-}: IInflationInput): JSX.Element => {
+const Input = styled.input`
+  max-width: 40px;
+  font-size: 1rem;
+`;
+
+const InflationInput = (): JSX.Element => {
+  const { setLoadingVolumeData } = useVolumeData();
+  const { inflation, setInflation } = useDrawdown();
+
   const handleInflation: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(
       (event) => {
         const value = Number.parseFloat(event.target.value);
-        setInflation(value);
-        setLoading(true);
+        if (!Number.isNaN(value)) {
+          setInflation(value);
+          setLoadingVolumeData(true);
+        }
       },
-      [setInflation, setLoading],
+      [setInflation, setLoadingVolumeData],
     );
 
   return (
-    <div className="">
+    <Container>
       <label htmlFor="inflation">{inputLabels.inflation}</label>
-      <input
+      <Input
         autoComplete="off"
-        className="input-number"
         id="inflation"
         onChange={handleInflation}
         onKeyDown={handleEnterKey}
+        placeholder="%"
         step="1"
         type="number"
         value={inflation}
       />
-    </div>
+    </Container>
   );
 };
 
