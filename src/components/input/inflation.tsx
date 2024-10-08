@@ -3,7 +3,6 @@ import styled from "styled-components";
 
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
-import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
 const Container = styled.div`
@@ -21,8 +20,7 @@ const Input = styled.input`
 `;
 
 const InflationInput = (): JSX.Element => {
-  const { setLoadingVolumeData } = useVolumeData();
-  const { inflation, setInflation } = useDrawdown();
+  const { inflation, setInflation, setLoadingVolumeData } = useDrawdown();
 
   const handleInflation: React.ChangeEventHandler<HTMLInputElement> =
     useCallback(

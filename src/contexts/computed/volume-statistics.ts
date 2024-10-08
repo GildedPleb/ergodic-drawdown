@@ -6,10 +6,7 @@ export const calculateVolumeStatistics = (
   dataLength: number,
   { finalBalance }: { finalBalance: Float64Array; zero: number },
   showModel: boolean,
-): {
-  average: number;
-  median: number;
-} => {
+): { average: number; median: number } => {
   if (showModel) return { average: 0, median: 0 };
   let sum = 0;
   const length = finalBalance.length;

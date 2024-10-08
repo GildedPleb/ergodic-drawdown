@@ -2,9 +2,8 @@ import React, { useCallback, useMemo } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import { usePriceData } from "../../contexts/price";
-import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
 const Container = styled.div`
@@ -23,9 +22,8 @@ const Input = styled.input`
 `;
 
 const VolInput = (): JSX.Element => {
-  const { setLoadingPriceData } = usePriceData();
-  const { setLoadingVolumeData } = useVolumeData();
-  const { setVolatility, volatility, walk } = useModel();
+  const { setLoadingVolumeData } = useDrawdown();
+  const { setLoadingPriceData, setVolatility, volatility, walk } = useModel();
 
   const handleVol: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {

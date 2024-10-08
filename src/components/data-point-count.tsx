@@ -2,7 +2,6 @@ import styled from "styled-components";
 
 import { useComputedValues } from "../contexts/computed";
 import { useModel } from "../contexts/model";
-import { usePriceData } from "../contexts/price";
 import { useMemory } from "../data/data-size";
 import Loading from "./loading";
 
@@ -16,9 +15,8 @@ const MemoryUsageSpan = styled.span<{ $memoryUsageMB: number }>`
 `;
 
 const DataPointCount = (): JSX.Element => {
-  const { loadingPriceData } = usePriceData();
   const { dataLength } = useComputedValues();
-  const { samples } = useModel();
+  const { loadingPriceData, samples } = useModel();
   const using = samples * dataLength * 2;
 
   const memoryUsageMB = useMemory();

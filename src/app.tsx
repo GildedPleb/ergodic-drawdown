@@ -47,9 +47,9 @@ const LimitHeight = styled.div<{ $zIndex: number }>`
 `;
 
 const StochasticGraph = (): React.ReactNode => {
-  console.time("render");
+  // console.time("render");
   useProcessing();
-  console.timeEnd("render");
+  // console.timeEnd("render");
   return (
     <App>
       {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, sonarjs/no-redundant-boolean */}

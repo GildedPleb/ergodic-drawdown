@@ -1,6 +1,6 @@
 import { type LRUCache } from "lru-cache";
 
-import type SharedArrayPool from "../../classes/shared-stack-cache-pool";
+import type GrowableSharedArray from "../../classes/growable-shared-array";
 import VariableDrawdownCache from "../../classes/variable-drawdown-cache";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
 import { type WorkerContextType } from "../../contexts/workers";
@@ -10,13 +10,13 @@ import { type RunDrawdownVariableEvent } from "../workers/types";
 
 const NO_CACHE_ERROR = "No cache for variable drawdown";
 
-export const useDrawdownVariables = async (
+export const handleDrawdownVariables = async (
   signal: AbortSignal,
   _hash: string,
   epochCount: number,
   samples: number,
   fullHashInflation: string,
-  priceDataPool: SharedArrayPool,
+  simulationData: GrowableSharedArray,
   finalVariableCache: LRUCache<string, VariableDrawdownFinal>,
   activeOneOffVariables: OneOffFiatVariable[],
   variableDrawdownCache: LRUCache<string, VariableDrawdownCache>,
@@ -27,7 +27,13 @@ export const useDrawdownVariables = async (
   showModel: boolean,
   // eslint-disable-next-line max-params
 ): Promise<string> => {
-  if (showModel) return "not rendering";
+  const returnHash =
+    epochCount + samples + variableCacheHash + fullHashInflation;
+
+  if (showModel) {
+    console.log("NOT RENDERING VARIABLE DRAWDOWN");
+    return "not rendering:" + returnHash;
+  }
   // console.log({
   //   activeOneOffVariables,
   //   epochCount,
@@ -46,9 +52,7 @@ export const useDrawdownVariables = async (
   //   console.log("GOT FINAL CACHE HIT", previous);
   //   return variableCacheHash;
   // }
-  const sharedBuffers = priceDataPool
-    .getArrays()
-    .map((array) => array.getSharedBuffer());
+  const simulationExport = simulationData.exportState();
 
   const taskQueue = [
     ...new Map(activeOneOffVariables.map((item) => [item.hash, item])).values(),
@@ -84,7 +88,7 @@ export const useDrawdownVariables = async (
         const newTasks = createTaskQueue(
           spread[1],
           Math.ceil(worker.count / activeOneOffVariables.length),
-          1000,
+          samples,
           spread[0],
         );
         console.log("iterable", { newTasks, spread });
@@ -99,7 +103,7 @@ export const useDrawdownVariables = async (
         ...createTaskQueue(
           samples,
           Math.ceil(worker.count / activeOneOffVariables.length),
-          1000,
+          samples,
           validHeight,
         ),
       );
@@ -108,10 +112,9 @@ export const useDrawdownVariables = async (
       (task) =>
         ({
           payload: {
-            epochCount,
             inflationFactors,
             oneOffFiatVariable,
-            priceDataBuffer: sharedBuffers[task.arrayIndex],
+            simulationExport,
             task,
             variableDrawdownBuffer: variableCache.getBuffer(),
             weeksSince,
@@ -137,7 +140,7 @@ export const useDrawdownVariables = async (
       samples,
     );
     finalVariableCache.set(variableCacheHash, finalResults);
-    return variableCacheHash;
+    return "no tasks:" + returnHash;
   }
 
   const results = await worker.addTasks(taskQueue, signal);
@@ -159,5 +162,5 @@ export const useDrawdownVariables = async (
     );
     finalVariableCache.set(variableCacheHash, finalResults);
   }
-  return variableCacheHash;
+  return "success:" + variableCacheHash;
 };

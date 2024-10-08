@@ -1,7 +1,7 @@
-import { useRenderSimulation } from "./use-render-simulation";
-import { useVolume } from "./use-volume";
+import { useDrawdownLoaded } from "./use-drawdown-loaded";
+import { useSimulationLoaded } from "./use-simulation-loaded";
 
 export const useProcessing = (): void => {
-  useVolume();
-  useRenderSimulation();
+  useDrawdownLoaded();
+  useSimulationLoaded();
 };

@@ -1,9 +1,9 @@
 /* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
 /* eslint-disable security/detect-object-injection */
 
-import SharedStackCache from "../../classes/shared-stack-cache";
+import GrowableSharedArray from "../../classes/growable-shared-array";
 import VariableDrawdownCache from "../../classes/variable-drawdown-cache";
-import { SIMULATIONS_PER_ARRAY, WEEKS_PER_EPOCH } from "../../constants";
+import { SIMULATIONS_PER_ARRAY } from "../../constants";
 import { type RunDrawdownVariableEvent, type SignalState } from "./types";
 
 export const handleDrawdownVariable = (
@@ -14,20 +14,15 @@ export const handleDrawdownVariable = (
     return;
   }
   const {
-    epochCount,
     inflationFactors,
     oneOffFiatVariable: { amountToday, btcWillingToSpend, delay, start },
-    priceDataBuffer,
+    simulationExport,
     task: { arrayIndex, endIndex, startIndex },
     variableDrawdownBuffer,
     weeksSince,
   } = payload;
 
-  const data = new SharedStackCache(
-    priceDataBuffer,
-    epochCount,
-    WEEKS_PER_EPOCH,
-  );
+  const data = GrowableSharedArray.fromExportedState(simulationExport);
 
   const variableDrawdownCache = new VariableDrawdownCache(
     variableDrawdownBuffer,

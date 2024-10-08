@@ -2,10 +2,9 @@ import React, { useCallback } from "react";
 
 import { modelMap, models } from "../../data/models";
 import handleEnterKey from "./enter";
-import { usePriceData } from "../../contexts/price";
-import { useVolumeData } from "../../contexts/volume";
 import { useModel } from "../../contexts/model";
 import styled from "styled-components";
+import { useDrawdown } from "../../contexts/drawdown";
 
 const Container = styled.div`
   display: flex;
@@ -38,14 +37,14 @@ const Options = styled.div`
 `;
 
 const ModelInput = (): JSX.Element => {
-  const { setLoadingPriceData } = usePriceData();
-  const { setLoadingVolumeData } = useVolumeData();
+  const { setLoadingVolumeData } = useDrawdown();
   const {
     minMaxMultiple,
     model,
     setMinMaxMultiple,
     setModel,
     setVariable,
+    setLoadingPriceData,
     variable,
   } = useModel();
 

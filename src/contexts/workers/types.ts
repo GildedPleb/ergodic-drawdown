@@ -1,3 +1,4 @@
+import { type ExportedState } from "../../classes/growable-shared-array";
 import { type Full, type OneOffFiatVariable } from "../../types";
 
 export type TaskStatus = "aborted" | "completed" | "pending";
@@ -15,18 +16,15 @@ export interface SupplementedTask extends Task {
 interface AbortEvent {
   type: "ABORT";
 }
-
 export interface RunSimulationEvent {
   payload: {
+    bufferState: ExportedState;
     currentPrice: number;
     epochCount: number;
     full: Full;
-    logMaxArray: Float64Array;
-    logMinArray: Float64Array;
-    maxArray: Float64Array;
-    minArray: Float64Array;
+    maxArray: Float64Array[];
+    minArray: Float64Array[];
     samples: number;
-    sharedBuffer: SharedArrayBuffer;
     task: SupplementedTask;
     weeksSince: number;
   };
@@ -36,17 +34,17 @@ export interface RunSimulationEvent {
 export interface RunVolumeEvent {
   payload: {
     bitcoin: number;
+    drawdownExport: ExportedState;
     epochCount: number;
     exportedVariableCache: {
       buffer: SharedArrayBuffer;
       sampleCount: number;
       weekCount: number;
     };
-    priceBuffer: SharedArrayBuffer;
+    simulationExport: ExportedState;
     task: Task;
     totalWeeklyBitcoinItems: Float64Array;
     totalWeeklyFiatItems: Float64Array;
-    volumeBuffer: SharedArrayBuffer;
     weeksSince: number;
   };
   type: "RUN_VOLUME";
@@ -54,10 +52,9 @@ export interface RunVolumeEvent {
 
 export interface RunDrawdownVariableEvent {
   payload: {
-    epochCount: number;
     inflationFactors: Float64Array;
     oneOffFiatVariable: OneOffFiatVariable;
-    priceDataBuffer: SharedArrayBuffer;
+    simulationExport: ExportedState;
     task: Task;
     variableDrawdownBuffer: SharedArrayBuffer;
     weeksSince: number;
@@ -67,9 +64,8 @@ export interface RunDrawdownVariableEvent {
 
 export interface DistributionGroupEvent {
   payload: {
-    buffer: SharedArrayBuffer;
+    buffer: ExportedState;
     dataLength: number;
-    epochCount: number;
     getZero: boolean;
     groupedDataBuffer: SharedArrayBuffer;
     samples: number;

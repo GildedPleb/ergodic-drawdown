@@ -1,47 +1,52 @@
+import { type ChartOptions } from "chart.js";
 import hashSum from "hash-sum";
-import React, { createContext, useCallback, useContext, useMemo } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 
-import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../constants";
-import { useCurrentPrice } from "../data/effects/current-price";
-import { narrow, useDependency } from "../data/effects/hooks/use-dependancy";
-import { useHalvings } from "../data/effects/use-halvings";
-import { weeksSinceLastHalving } from "../helpers";
-import { type DatasetList, type Full, type ProviderProperties } from "../types";
-import { useDistribution } from "./compute/distribution";
+import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../../constants";
+import { weeksSinceLastHalving } from "../../helpers";
 import {
-  type DrawdownStaticReturn,
-  handleDrawdownStatic,
-} from "./compute/drawdown-static";
-import { useDrawdownVariables } from "./compute/drawdown-variable";
-import { useInflationFactors } from "./compute/inflation-factors";
-import { useMaxArray } from "./compute/max-array";
-import { useMinArray } from "./compute/min-array";
-import { useSimulation } from "./compute/simulation";
-import { useVolume } from "./compute/volume";
-import { calculateVolumeStatistics } from "./compute/volume-statistics";
-import { calculateBalanceAndZero } from "./compute/zero-count";
-import { useDrawdown } from "./drawdown";
-import { useModel } from "./model";
-import { usePriceData } from "./price";
-import { useRender } from "./render";
-import { useTime } from "./time";
-import { useVolumeData } from "./volume";
-import { useWorker } from "./workers";
+  type DatasetList,
+  type Full,
+  type ProviderProperties,
+} from "../../types";
+import { useDrawdown } from "../drawdown";
+import { useModel } from "../model";
+import { useRender } from "../render";
+import { useTime } from "../time";
+import { useWorker } from "../workers";
+import { handleChartOptions } from "./chart-options";
+import { handleEnsureNotZero } from "./current";
+import { handleDataProperties } from "./data-properties";
+import { handleDistribution } from "./distribution";
+import { handleDrawdownStatic } from "./drawdown-static";
+import { handleDrawdownVariables } from "./drawdown-variable";
+import { handleDrawdownWalkDataset } from "./drawdown-walks";
+import { handleHalvingAnnotations } from "./halving-annotations";
+import { useCurrentPrice } from "./hooks/use-current-price";
+import { narrow, useDependency } from "./hooks/use-dependancy";
+import { useHalvings } from "./hooks/use-halvings";
+import { useInterimDataset } from "./hooks/use-interim";
+import { handleInflationFactors } from "./inflation-factors";
+import { handleInterimDataset } from "./interim";
+import { handleMaxArray } from "./max-array";
+import { handleMaxModel } from "./max-dataset";
+import { handleMinArray } from "./min-array";
+import { handleMinModel } from "./min-dataset";
+import { handlePriceWalkDataset } from "./price-walks";
+import { handleSimulation } from "./simulation";
+import { handleSimulationStats } from "./simulation-statistics";
+import { handleVolume } from "./volume";
+import { calculateVolumeStatistics } from "./volume-statistics";
+import { calculateBalanceAndZero } from "./zero-count";
 
 interface ComputedContextType {
+  chartOptions: ChartOptions<"line"> | null;
   dataLength: number;
-  drawdownDistribution: DatasetList | null;
-  drawdownStatic: DrawdownStaticReturn | null;
-  inflationFactors: Float64Array | null;
-  maxArray: Float64Array[] | null;
-  minArray: Float64Array[] | null;
-  priceData: Float64Array[] | null;
-  priceDistribution: DatasetList | null;
-  volume: Float64Array[] | null;
-  volumeStats: {
-    average: number;
-    median: number;
+  dataProperties: {
+    datasets: DatasetList;
   } | null;
+  simulationStats: { average: number; median: number } | null;
+  volumeStats: { average: number; median: number } | null;
   zeroCount: { finalBalance: Float64Array; zero: number } | null;
 }
 
@@ -56,8 +61,17 @@ const useDep = <T extends unknown[]>(...deps: T): T => {
 export const ComputedProvider: React.FC<ProviderProperties> = ({
   children,
 }) => {
-  const { renderDrawdownDistribution, renderPriceDistribution } = useRender();
+  const {
+    renderDrawdownDistribution,
+    renderDrawdownWalks,
+    renderModelMax,
+    renderModelMin,
+    renderPriceDistribution,
+    renderPriceWalks,
+    samplesToRender,
+  } = useRender();
   const { currentBlock, halvings } = useHalvings();
+  const interim = useInterimDataset();
   const {
     clampBottom,
     clampTop,
@@ -66,15 +80,16 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     model,
     samples,
     showModel,
+    simulationData,
     variable,
     volatility,
     walk,
   } = useModel();
-  const { priceDataPool } = usePriceData();
   const currentPrice = useCurrentPrice();
   const now = useTime();
   const {
     bitcoin,
+    drawdownData,
     finalVariableCache,
     inflation,
     oneOffFiatVariables,
@@ -82,7 +97,6 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     reoccurringItems,
     variableDrawdownCache,
   } = useDrawdown();
-  const { volumeDataPool } = useVolumeData();
 
   const worker = useWorker();
   const weeksSince = useMemo(() => weeksSinceLastHalving(halvings), [halvings]);
@@ -132,65 +146,62 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       }),
     [epochCount, fullHash, activeOneOffVariablesHash, inflation, samples],
   );
-  const volumeCacheHash = useMemo(
-    () =>
-      hashSum({
-        activeOneOffVariablesHash,
-        bitcoin,
-        fullHash,
-        inflation,
-        oneOffItems,
-        reoccurringItems,
-      }),
-    [
+  const volumeCacheHash = useMemo(() => {
+    return hashSum({
       activeOneOffVariablesHash,
       bitcoin,
       fullHash,
+      inflation,
       oneOffItems,
       reoccurringItems,
-      inflation,
-    ],
-  );
+    });
+  }, [
+    activeOneOffVariablesHash,
+    bitcoin,
+    fullHash,
+    oneOffItems,
+    reoccurringItems,
+    inflation,
+  ]);
   const fullHashInflation = useMemo(
     () => hashSum({ fullHash, weeklyInflationRate }),
     [fullHash, weeklyInflationRate],
   );
 
-  const currentFunction = useCallback(
-    async (
-      sig: AbortSignal,
-      _hash: string,
-      block: number,
-      price: number,
-    ): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        if (block !== 0 && price !== 0) resolve("Success");
-        const timer = setTimeout(reject, 10_000);
-        sig.addEventListener("abort", () => {
-          clearTimeout(timer);
-          resolve("Success");
-        });
-      });
-    },
-    [],
+  // Tier 0
+  const interimDataset = useDependency(
+    "Interim Dataset",
+    handleInterimDataset,
+    useDep(interim),
   );
 
-  // Tier 0
   const inflationFactors = useDependency(
     "Inflation Factors",
-    useInflationFactors,
+    handleInflationFactors,
     useDep(weeklyInflationRate),
   );
 
   const currentNotZero = useDependency(
-    "Current Price/Block",
-    currentFunction,
+    "Current Price/Block Not Zero",
+    handleEnsureNotZero,
     useDep(currentBlock, currentPrice),
+  );
+
+  const halvingAnnotations = useDependency(
+    "Halving Annotations",
+    handleHalvingAnnotations,
+    useDep(halvings, currentNotZero),
+  );
+
+  const chartOptions = useDependency(
+    "Chart Options",
+    handleChartOptions,
+    useDep(narrow(halvingAnnotations), halvingAnnotations),
   );
 
   const maxArray = useDependency(
     "Max Array",
-    useMaxArray,
+    handleMaxArray,
     useDep(
       currentBlock,
       minMaxMultiple,
@@ -204,9 +215,21 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     ),
   );
 
+  const maxDataset = useDependency(
+    "Max Dataset",
+    handleMaxModel,
+    useDep(
+      renderModelMax,
+      narrow(maxArray),
+      now,
+
+      maxArray,
+    ),
+  );
+
   const minArray = useDependency(
     "Min Array",
-    useMinArray,
+    handleMinArray,
     useDep(
       currentBlock,
       minMaxMultiple,
@@ -217,6 +240,18 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       dataLength,
 
       currentNotZero,
+    ),
+  );
+
+  const minDataset = useDependency(
+    "Min Dataset",
+    handleMinModel,
+    useDep(
+      renderModelMin,
+      narrow(minArray),
+      now,
+
+      minArray,
     ),
   );
 
@@ -237,14 +272,14 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
   );
 
   const simulation = useDependency(
-    "Base Simulation",
-    useSimulation,
+    "Simulation",
+    handleSimulation,
     useDep(
       currentPrice,
       narrow(minArray),
       narrow(maxArray),
       epochCount,
-      priceDataPool,
+      simulationData,
       samples,
       worker,
       weeksSince,
@@ -257,14 +292,24 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     ),
   );
 
+  const simulationStats = useDependency(
+    "Simulation Stats",
+    handleSimulationStats,
+    useDep(
+      simulationData,
+
+      simulation,
+    ),
+  );
+
   const drawdownVariables = useDependency(
     "Drawdown Variables",
-    useDrawdownVariables,
+    handleDrawdownVariables,
     useDep(
       epochCount,
       samples,
       fullHashInflation,
-      priceDataPool,
+      simulationData,
       finalVariableCache,
       activeOneOffVariables,
       variableDrawdownCache,
@@ -280,16 +325,16 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
   );
 
   const volume = useDependency(
-    "Base Volume",
-    useVolume,
+    "Volume",
+    handleVolume,
     useDep(
       bitcoin,
       narrow(drawdownStatic),
       finalVariableCache,
       samples,
       epochCount,
-      priceDataPool,
-      volumeDataPool,
+      simulationData,
+      drawdownData,
       volumeCacheHash,
       variableCacheHash,
       weeksSince,
@@ -306,7 +351,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     "Zero Count",
     calculateBalanceAndZero,
     useDep(
-      narrow(volume),
+      drawdownData,
       showModel,
 
       volume,
@@ -327,18 +372,31 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
 
   const priceDistribution = useDependency(
     "Price Distribution",
-    useDistribution,
+    handleDistribution,
     useDep(
-      priceDataPool,
+      simulationData,
       now,
       worker,
       samples,
-      epochCount,
       dataLength,
       weeksSince,
       renderPriceDistribution,
-      "price",
+      "price" as const,
       false,
+
+      simulation,
+    ),
+  );
+
+  const priceWalks = useDependency(
+    "Price Walk",
+    handlePriceWalkDataset,
+    useDep(
+      now,
+      simulationData,
+      renderPriceWalks,
+      samplesToRender,
+      weeksSince,
 
       simulation,
     ),
@@ -346,50 +404,77 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
 
   const drawdownDistribution = useDependency(
     "Drawdown Distribution",
-    useDistribution,
+    handleDistribution,
     useDep(
-      volumeDataPool,
+      drawdownData,
       now,
       worker,
       samples,
-      epochCount,
       dataLength,
       weeksSince,
       renderDrawdownDistribution,
-      "drawdown",
+      "drawdown" as const,
       showModel,
 
       volume,
     ),
   );
 
+  const drawdownWalks = useDependency(
+    "Drawdown Walk",
+    handleDrawdownWalkDataset,
+    useDep(
+      now,
+      drawdownData,
+      renderDrawdownWalks,
+      samplesToRender,
+      weeksSince,
+      showModel,
+
+      volume,
+    ),
+  );
+
+  const dataProperties = useDependency(
+    "Data Properties",
+    handleDataProperties,
+    useDep(
+      narrow(drawdownDistribution),
+      narrow(drawdownWalks),
+      narrow(interimDataset),
+      narrow(maxDataset),
+      narrow(minDataset),
+      narrow(priceDistribution),
+      narrow(priceWalks),
+
+      drawdownDistribution,
+      drawdownWalks,
+      interimDataset,
+      maxDataset,
+      minDataset,
+      priceDistribution,
+      priceWalks,
+    ),
+    false,
+  );
+
   const computedValues = useMemo(
     () =>
       ({
+        chartOptions: chartOptions.result,
         dataLength,
-        drawdownDistribution: drawdownDistribution.result,
-        drawdownStatic: drawdownStatic.result,
-        inflationFactors: inflationFactors.result,
-        maxArray: maxArray.result,
-        minArray: minArray.result,
-        priceData: simulation.result,
-        priceDistribution: priceDistribution.result,
-        volume: volume.result,
+        dataProperties: dataProperties.result,
+        simulationStats: simulationStats.result,
         volumeStats: volumeStats.result,
         zeroCount: zeroCount.result,
       }) satisfies ComputedContextType,
     [
+      chartOptions.result,
       dataLength,
-      drawdownStatic.result,
-      inflationFactors.result,
-      maxArray.result,
-      minArray.result,
-      priceDistribution.result,
-      simulation.result,
-      volume.result,
+      dataProperties.result,
       volumeStats.result,
       zeroCount.result,
-      drawdownDistribution.result,
+      simulationStats.result,
     ],
   );
 

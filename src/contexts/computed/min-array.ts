@@ -4,7 +4,7 @@ import { modelMap } from "../../data/models";
 
 const lruCache = new LRUCache<string, Float64Array[]>({ max: 5 });
 
-export const useMinArray = (
+export const handleMinArray = (
   _signal: AbortSignal,
   hash: string,
   currentBlock: number,

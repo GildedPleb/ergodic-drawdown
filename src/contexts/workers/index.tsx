@@ -8,14 +8,14 @@ import React, {
   useRef,
 } from "react";
 
-import { type ProviderProperties } from "../types";
+import { type ProviderProperties } from "../../types";
 import {
   type QueueTask,
   type TaskResult,
   type TaskStatus,
   type WorkerEvent,
   type WorkerTasks,
-} from "./workers/types";
+} from "./types";
 
 const WORKER_COUNT =
   navigator.hardwareConcurrency === 0 ? 4 : navigator.hardwareConcurrency;
@@ -38,7 +38,7 @@ const WorkerContext = createContext<WorkerContextType | null>(null);
 
 const createWorkerPool = (): WorkerWithId[] => {
   return Array.from({ length: WORKER_COUNT }, (_, index): WorkerWithId => {
-    const worker = new Worker(new URL("workers/index.ts", import.meta.url), {
+    const worker = new Worker(new URL("worker.ts", import.meta.url), {
       type: "module",
     }) as WorkerWithId;
     worker.workerId = index;

@@ -1,7 +1,7 @@
 /* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
 /* eslint-disable security/detect-object-injection */
 
-import SharedStackCache from "../../classes/shared-stack-cache";
+import GrowableSharedArray from "../../classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { walks } from "../../data/walks";
 import { type RunSimulationEvent, type SignalState } from "./types";
@@ -10,14 +10,12 @@ const base = 10;
 
 export const handleSimulation = (
   {
+    bufferState,
     currentPrice,
     epochCount,
     full: { clampBottom, clampTop, volatility, walk },
-    logMaxArray,
-    logMinArray,
-    maxArray,
-    minArray,
-    sharedBuffer,
+    maxArray: [maxArray, logMaxArray],
+    minArray: [minArray, logMinArray],
     task: { endIndex, startEpoch, startIndex },
     weeksSince,
   }: RunSimulationEvent["payload"],
@@ -27,7 +25,7 @@ export const handleSimulation = (
     return;
   }
   const walking = walks[walk];
-  const data = new SharedStackCache(sharedBuffer, epochCount, WEEKS_PER_EPOCH);
+  const data = GrowableSharedArray.fromExportedState(bufferState);
   // console.log("called with random id:", { epochCount, id, task });
   for (let sample = startIndex; sample < endIndex; sample++) {
     const adjustedEpoch = (startEpoch ?? 1) - 1;
@@ -39,6 +37,8 @@ export const handleSimulation = (
       if (signalState.aborted) {
         return;
       }
+      // this can be done without the indirection simply by getting the last cached item,
+      // which we now have the location of (bufferState.cacheWidth)
       const segment = data.get(epoch, sample);
       if (segment !== undefined) {
         sampleLength += segment.length;
@@ -56,17 +56,7 @@ export const handleSimulation = (
       const logStartingMin = logMinArray[currentStart];
       const logStartingMax = logMaxArray[currentStart];
       const logLastPrice = Math.log10(lastPrice);
-      // if (sample % 100 === 0)
-      //   console.log({
-      //     currentLength,
-      //     currentStart,
-      //     logLastPrice,
-      //     logStartingMax,
-      //     logStartingMin,
-      //     starting,
-      //     startingMax,
-      //     startingMin,
-      //   });
+
       if (lastPrice <= startingMin) {
         innerStartingPrice = logLastPrice - logStartingMin;
       } else if (lastPrice < startingMax) {

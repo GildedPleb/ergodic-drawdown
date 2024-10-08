@@ -1,18 +1,17 @@
-import SharedStackCache from "../../classes/shared-stack-cache";
+import GrowableSharedArray from "../../classes/growable-shared-array";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
-import { WEEKS_PER_EPOCH } from "../../constants";
 import { type RunVolumeEvent, type SignalState } from "./types";
 
 export const handleVolumeCalculation = (
   {
     bitcoin,
+    drawdownExport,
     epochCount,
     exportedVariableCache,
-    priceBuffer,
-    task: { arrayIndex, endIndex, startIndex },
+    simulationExport,
+    task: { endIndex, startIndex },
     totalWeeklyBitcoinItems,
     totalWeeklyFiatItems,
-    volumeBuffer,
     weeksSince,
   }: RunVolumeEvent["payload"],
   signalState: SignalState,
@@ -20,18 +19,8 @@ export const handleVolumeCalculation = (
   if (signalState.aborted) {
     return;
   }
-  const priceData = new SharedStackCache(
-    priceBuffer,
-    epochCount,
-    WEEKS_PER_EPOCH,
-  );
-
-  const volumeData = new SharedStackCache(
-    volumeBuffer,
-    epochCount,
-    WEEKS_PER_EPOCH,
-  );
-
+  const priceData = GrowableSharedArray.fromExportedState(simulationExport);
+  const volumeData = GrowableSharedArray.fromExportedState(drawdownExport);
   // console.log("VOLUME WORKER", {
   //   bitcoin,
   //   epochCount,
@@ -81,10 +70,7 @@ export const handleVolumeCalculation = (
           dataArray[week] = Number.NaN;
         } else {
           const absoluteWeek = sampleLength + week;
-          const item = variableCache.get(
-            sample + 1000 * arrayIndex,
-            absoluteWeek,
-          );
+          const item = variableCache.get(sample, absoluteWeek);
           const y =
             previous +
             (totalWeeklyFiatItems[absoluteWeek] - (item ?? 0)) / price +

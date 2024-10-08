@@ -3,9 +3,8 @@ import styled from "styled-components";
 
 import { MAX_SAMPLE_COUNT } from "../../constants";
 import { inputLabels } from "../../content";
+import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import { usePriceData } from "../../contexts/price";
-import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
 const Container = styled.div`
@@ -24,9 +23,8 @@ const Input = styled.input`
 `;
 
 const SampleInput = (): JSX.Element => {
-  const { setLoadingPriceData } = usePriceData();
-  const { setLoadingVolumeData } = useVolumeData();
-  const { samples, setSamples } = useModel();
+  const { setLoadingVolumeData } = useDrawdown();
+  const { samples, setLoadingPriceData, setSamples } = useModel();
 
   const handleSamples: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
@@ -51,7 +49,7 @@ const SampleInput = (): JSX.Element => {
         autoComplete="off"
         id="sampleInput"
         max={MAX_SAMPLE_COUNT}
-        min="1000"
+        min="1"
         onChange={handleSamples}
         onKeyDown={handleEnterKey}
         type="number"

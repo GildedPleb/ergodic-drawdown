@@ -2,7 +2,7 @@
 /* eslint-disable unicorn/prefer-add-event-listener */
 /* eslint-disable security/detect-object-injection */
 
-import type SharedArrayPool from "../../classes/shared-stack-cache-pool";
+import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { createTaskQueue } from "../../helpers";
 import { type Full } from "../../types";
 import { type WorkerContextType } from "../workers";
@@ -11,30 +11,29 @@ import {
   type SupplementedTask,
 } from "../workers/types";
 
-export const useSimulation = async (
+export const handleSimulation = async (
   signal: AbortSignal,
   _hash: string,
   currentPrice: number,
-  [minArray, logMinArray]: Float64Array[],
-  [maxArray, logMaxArray]: Float64Array[],
+  minArray: Float64Array[],
+  maxArray: Float64Array[],
   epochCount: number,
-  priceDataPool: SharedArrayPool,
+  simulationData: GrowableSharedArray,
   samples: number,
   worker: WorkerContextType,
   weeksSince: number,
   full: Full,
   fullHash: string,
   // eslint-disable-next-line max-params
-): Promise<Float64Array[]> => {
-  console.time("PERFORMANCE TEST");
-
-  const [validWidth, validHeight] = priceDataPool.getValidity(fullHash);
-  priceDataPool.resize(epochCount, samples);
-  if (validHeight === 0) priceDataPool.clear();
+): Promise<string> => {
+  const returnHash = fullHash + epochCount + samples;
+  const [validWidth, validHeight] = simulationData.getValidity(fullHash);
+  simulationData.resize(epochCount, samples);
+  if (validHeight === 0) simulationData.clear();
   const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
 
   const taskQueueEpochs: SupplementedTask[] = needTasksForWidth
-    ? createTaskQueue(validHeight, worker.count, 1000, 0).map((task) => ({
+    ? createTaskQueue(validHeight, worker.count, samples, 0).map((task) => ({
         ...task,
         startEpoch: validWidth,
       }))
@@ -43,33 +42,27 @@ export const useSimulation = async (
   const taskQueueSamples = createTaskQueue(
     samples,
     worker.count,
-    1000,
+    samples,
     validHeight,
   );
 
   // eslint-disable-next-line unicorn/prefer-spread
   const taskQueue = taskQueueEpochs.concat(taskQueueSamples);
   if (taskQueue.length === 0) {
-    console.log("SIMULATION NO TASKS");
-    console.timeEnd("PERFORMANCE TEST");
-    return priceDataPool.coalesce(weeksSince);
+    return "no tasks:" + returnHash;
   }
 
-  const sharedPriceBuffers = priceDataPool
-    .getArrays()
-    .map((array) => array.getSharedBuffer());
+  const bufferState = simulationData.exportState();
   const processedTasks = taskQueue.map((task) => {
     return {
       payload: {
+        bufferState,
         currentPrice,
         epochCount,
         full,
-        logMaxArray,
-        logMinArray,
         maxArray,
         minArray,
         samples,
-        sharedBuffer: sharedPriceBuffers[task.arrayIndex],
         task,
         weeksSince,
       },
@@ -80,18 +73,10 @@ export const useSimulation = async (
   const results = await worker.addTasks(processedTasks, signal);
   if (results.some((result) => result.status !== "completed")) {
     // console.log("Results failed");
-    console.timeEnd("PERFORMANCE TEST");
-    return [];
+    return "failed:" + returnHash;
   }
 
-  const newData = priceDataPool.coalesce(weeksSince);
-  if (newData.length === 0) {
-    // console.log("simulation yielded no data");
-    console.timeEnd("PERFORMANCE TEST");
-    return [];
-  }
-  // console.log("simulation success", newData);
-  priceDataPool.setValidity(fullHash);
-  console.timeEnd("PERFORMANCE TEST");
-  return newData;
+  console.log("simulation success");
+  simulationData.setValidity(fullHash);
+  return "success:" + returnHash;
 };

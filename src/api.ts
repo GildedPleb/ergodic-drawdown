@@ -3,8 +3,6 @@ import { LRUCache } from "lru-cache";
 import { LAST_SAVED_TIMESTAMP } from "./constants";
 import { type BitcoinDataPoint, type BlockData } from "./types";
 
-const CURRENT_PRICE = "current price";
-
 const lruCache = new LRUCache<string, BitcoinDataPoint[]>({ max: 1 });
 
 // eslint-disable-next-line functional/functional-parameters
@@ -43,7 +41,6 @@ export const fetchBlockByHeight = async (height: number): Promise<number> => {
 export const getCurrentPrice = async (
   now: number,
 ): Promise<BitcoinDataPoint> => {
-  console.time(CURRENT_PRICE);
   const url = `https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD`;
   const cacheKey = "BTC_PRICE_CACHE";
   // 1 hour cache
@@ -55,7 +52,6 @@ export const getCurrentPrice = async (
     if (cachedData !== null) {
       const cache = JSON.parse(cachedData) as BitcoinDataPoint;
       if (currentTimestamp - cache.time < cacheExpiry) {
-        console.timeEnd(CURRENT_PRICE);
         return cache;
       }
     }
@@ -75,12 +71,10 @@ export const getCurrentPrice = async (
       volumeto: 0,
     };
     localStorage.setItem(cacheKey, JSON.stringify(currentPriceData));
-    console.timeEnd(CURRENT_PRICE);
 
     return currentPriceData;
   } catch (error) {
     console.error("Error fetching current price:", error);
-    console.timeEnd(CURRENT_PRICE);
     return {
       close: 0,
       conversionSymbol: "",
@@ -99,10 +93,8 @@ export const getCurrentPrice = async (
 export const getInterimWeeklyData = async (
   now: number,
 ): Promise<BitcoinDataPoint[]> => {
-  console.time("interim");
   const cache = lruCache.get("interim");
   if (cache !== undefined) {
-    console.timeEnd("interim");
     return cache;
   }
   const nowDate = new Date(now);
@@ -136,7 +128,6 @@ export const getInterimWeeklyData = async (
     // eslint-disable-next-line unicorn/prefer-spread
     const interim = cachedData.concat(currentPriceData);
     lruCache.set("interim", interim);
-    console.timeEnd("interim");
     return interim;
   }
   const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=${weeksSinceLastCache}&toTs=${now / 1000}&aggregate=7`;
@@ -164,6 +155,5 @@ export const getInterimWeeklyData = async (
   // eslint-disable-next-line unicorn/prefer-spread
   const interim = cachedData.concat(currentPriceData);
   lruCache.set("interim", interim);
-  console.timeEnd("interim");
   return interim;
 };

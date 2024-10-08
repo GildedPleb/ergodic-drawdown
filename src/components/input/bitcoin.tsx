@@ -3,7 +3,6 @@ import styled from "styled-components";
 
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
-import { useVolumeData } from "../../contexts/volume";
 import handleEnterKey from "./enter";
 
 const Container = styled.div`
@@ -21,8 +20,7 @@ const Input = styled.input`
 `;
 
 const BitcoinInput = (): JSX.Element => {
-  const { bitcoin, setBitcoin } = useDrawdown();
-  const { setLoadingVolumeData } = useVolumeData();
+  const { bitcoin, setBitcoin, setLoadingVolumeData } = useDrawdown();
 
   const handleBtc: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {

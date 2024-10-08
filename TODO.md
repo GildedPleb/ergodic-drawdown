@@ -22,3 +22,6 @@ Things to do:
 - Add the new MODE: solve for X ... as in, I want to retire in 2050, that means i'll need Y bitcoin today. Or better, "I want 1 bitcoin left over, with 90% probability, how many do i need to start?"
 - add a new MODEL: S curve / hyperinflation
 - full performance audit
+- On Mobile, when you expand Model or Render, it should collapse Drawdown. On Desktop it should stay as is.
+- Remove leading 0s in all inputs
+- Firefox allocs max-array upfront and does not memory clear it. It might be better to force firefox to use set-size arrays.

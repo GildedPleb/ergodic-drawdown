@@ -1,24 +1,26 @@
 /* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
 /* eslint-disable unicorn/no-null */
+import { type ChartOptions, type Point } from "chart.js";
 import hashSum from "hash-sum";
 import { LRUCache } from "lru-cache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import SharedArrayPool from "../../../classes/shared-stack-cache-pool";
+import GrowableSharedArray from "../../../classes/growable-shared-array";
 import type VariableDrawdownCache from "../../../classes/variable-drawdown-cache";
 import { type VariableDrawdownFinal } from "../../../classes/variable-drawdown-final";
-import { type DrawdownStaticReturn } from "../../../contexts/compute/drawdown-static";
-import { type WorkerContextType } from "../../../contexts/workers";
 import {
-  type TaskResult,
-  type WorkerTasks,
-} from "../../../contexts/workers/types";
-import {
+  type BitcoinDataPoint,
+  type Dataset,
+  type DatasetList,
   type Full,
+  type HalvingData,
   type OneOffFiatVariable,
   type OneOffItem,
   type ReoccurringItem,
 } from "../../../types";
+import { type WorkerContextType } from "../../workers";
+import { type TaskResult, type WorkerTasks } from "../../workers/types";
+import { type DrawdownStaticReturn } from "../drawdown-static";
 
 const dependencyObjectSymbol = Symbol("DependencyObject");
 
@@ -29,19 +31,26 @@ type PrimitiveDependency =
       finalBalance: Float64Array;
       zero: number;
     }
+  | Array<Record<string, number | object | string>>
+  | BitcoinDataPoint[]
+  | ChartOptions<"line">
+  | Dataset
+  | DatasetList
   | DrawdownStaticReturn
   | Float64Array
   | Float64Array[]
   | Full
+  | GrowableSharedArray
+  | HalvingData
   | LRUCache<string, VariableDrawdownCache>
   | LRUCache<string, VariableDrawdownFinal>
   | OneOffFiatVariable[]
   | OneOffItem[]
   | ReoccurringItem[]
-  | SharedArrayPool
   | WorkerContextType
   | boolean
   | number
+  | (number | undefined)
   | string;
 
 type Dependency<R> = DependencyObject<R> | PrimitiveDependency;
@@ -107,6 +116,64 @@ function isDependencyObject<R>(dep: unknown): dep is DependencyObject<R> {
   );
 }
 
+/**
+ *
+ * @param object - object to test
+ * @returns status
+ */
+function isDatasetOrDatasetList(object: unknown): boolean {
+  if (Array.isArray(object)) {
+    // Check if it's potentially a DatasetList
+    if (object.length === 0 || isDataset(object[0])) {
+      return true;
+    }
+  } else if (
+    typeof object === "object" &&
+    object !== null &&
+    isDataset(object)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ *
+ * @param object - object to test
+ * @returns status
+ */
+function isDataset(object: unknown): object is Dataset {
+  return (
+    typeof object === "object" &&
+    object !== null &&
+    "data" in object &&
+    Array.isArray(object.data) &&
+    isPoint(object.data[0]) &&
+    "label" in object &&
+    typeof object.label === "string" &&
+    "pointRadius" in object &&
+    typeof object.pointRadius === "number" &&
+    "tension" in object &&
+    typeof object.tension === "number"
+  );
+}
+
+/**
+ *
+ * @param point - object to test
+ * @returns status
+ */
+function isPoint(point: unknown): point is Point {
+  return (
+    typeof point === "object" &&
+    point !== null &&
+    "x" in point &&
+    typeof point.x === "number" &&
+    "y" in point &&
+    typeof point.y === "number"
+  );
+}
+
 const fastCustomHashSum = <T extends PrimitiveDependency[], P>(
   dependencies: [...T, ...Array<Dependency<P>>],
 ): string => {
@@ -115,8 +182,8 @@ const fastCustomHashSum = <T extends PrimitiveDependency[], P>(
   for (let index = 0; index < length; index++) {
     const dep = dependencies[index];
 
-    if (dep instanceof SharedArrayPool) {
-      parts[index] = "SharedArrayPool";
+    if (dep instanceof GrowableSharedArray) {
+      parts[index] = "GrowableSharedArray";
     } else if (dep instanceof Float64Array) {
       parts[index] = "Float64Array";
     } else if (
@@ -132,18 +199,22 @@ const fastCustomHashSum = <T extends PrimitiveDependency[], P>(
       parts[index] = "function";
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (typeof dep === "object" && dep !== null) {
-      // New handling for objects that may contain Float64Array values
-      const objectParts: string[] = [];
-      for (const [key, value] of Object.entries(dep)) {
-        if (value instanceof Float64Array) {
-          objectParts.push(`${key}:Float64Array`);
-        } else if (typeof value === "object" && value !== null) {
-          objectParts.push(`${key}:${hashSum(value)}`);
-        } else {
-          objectParts.push(`${key}:${String(value)}`);
+      if (isDatasetOrDatasetList(dep)) {
+        parts[index] = "Dataset";
+      } else {
+        // New handling for objects that may contain Float64Array values
+        const objectParts: string[] = [];
+        for (const [key, value] of Object.entries(dep)) {
+          if (value instanceof Float64Array) {
+            objectParts.push(`${key}:Float64Array`);
+          } else if (typeof value === "object" && value !== null) {
+            objectParts.push(`${key}:${hashSum(value)}`);
+          } else {
+            objectParts.push(`${key}:${String(value)}`);
+          }
         }
+        parts[index] = objectParts.join(",");
       }
-      parts[index] = objectParts.join(",");
     } else {
       parts[index] = String(dep);
     }
@@ -157,6 +228,7 @@ export const useDependency = <T extends PrimitiveDependency[], R, P>(
   name: string,
   computeFunction: ComputeFunction<T, R>,
   dependencies: [...T, ...Array<Dependency<P>>],
+  clearResults = true,
 ): DependencyObject<R> => {
   const [result, setResult] = useState<R | null>(null);
 
@@ -164,20 +236,35 @@ export const useDependency = <T extends PrimitiveDependency[], R, P>(
   const computingHashReference = useRef<null | string>(null);
   const latestComputeRequestReference = useRef<null | symbol>(null);
   const timerRunningReference = useRef<boolean>(false);
+  const individualTimerRunningReference = useRef<boolean>(false);
   const lastComputed = useRef<string>("");
   const waitingOn = useRef<string[]>([]);
 
   const startTimer = useCallback(() => {
     if (!timerRunningReference.current) {
-      console.time(name);
+      console.time(name + " Finished around");
       timerRunningReference.current = true;
     }
   }, [name]);
 
   const endTimer = useCallback(() => {
     if (timerRunningReference.current) {
-      console.timeEnd(name);
+      console.timeEnd(name + " Finished around");
       timerRunningReference.current = false;
+    }
+  }, [name]);
+
+  const innerStartTimer = useCallback(() => {
+    if (!individualTimerRunningReference.current) {
+      console.time(name + " Took");
+      individualTimerRunningReference.current = true;
+    }
+  }, [name]);
+
+  const innerEndTimer = useCallback(() => {
+    if (individualTimerRunningReference.current) {
+      console.timeEnd(name + " Took");
+      individualTimerRunningReference.current = false;
     }
   }, [name]);
 
@@ -196,19 +283,27 @@ export const useDependency = <T extends PrimitiveDependency[], R, P>(
       try {
         const deps = dependencies.slice(0, computeFunction.length - 1) as T;
         // console.log(name, `Attempting Compute for ${hash}`);
-
+        innerStartTimer();
         const computedResult = await computeFunction(signal, hash, ...deps);
 
         if (!signal.aborted && isLatestRequest()) {
-          console.log(name, `Completed Compute for ${hash}`);
+          // console.log(name, `Completed Compute for ${hash}`);
           setResult(computedResult);
           lastComputed.current = currentHash;
         } else {
-          console.log(name, `Failed Compute for ${hash}`, signal.aborted);
+          console.log(
+            name,
+            `Compute ended for ${hash} ${signal.aborted ? "on abort." : "on invalid compute."}`,
+          );
         }
       } catch (error) {
         if (!signal.aborted && isLatestRequest()) {
           console.error(`Error in compute for ${name}:`, error);
+        } else {
+          console.warn(
+            name,
+            `Compute failed for ${hash} ${signal.aborted ? "on abort." : "on invalid compute."}`,
+          );
         }
       } finally {
         if (isLatestRequest()) {
@@ -219,10 +314,19 @@ export const useDependency = <T extends PrimitiveDependency[], R, P>(
           // eslint-disable-next-line require-atomic-updates
           abortControllerReference.current = null;
         }
+        innerEndTimer();
         endTimer();
       }
     },
-    [dependencies, computeFunction, name, endTimer, currentHash],
+    [
+      dependencies,
+      computeFunction,
+      innerStartTimer,
+      name,
+      currentHash,
+      endTimer,
+      innerEndTimer,
+    ],
   );
 
   useEffect(() => {
@@ -273,7 +377,7 @@ export const useDependency = <T extends PrimitiveDependency[], R, P>(
     // if they are a dependency obj, if even 1 of their current DOES NOT match their last, then they have NOT completed and we are waiting on them.
     if (newWaitingOn.length > 0) {
       // console.log(name, `waiting on [${newWaitingOn.join(",")}]`);
-      if (result !== null) setResult(null);
+      if (result !== null && clearResults) setResult(null);
       waitingOn.current = newWaitingOn;
       return;
     }
@@ -282,7 +386,16 @@ export const useDependency = <T extends PrimitiveDependency[], R, P>(
     computingHashReference.current = currentHash;
     void compute(currentHash);
     // console.log(name, `Started Compute for ${currentHash}`);
-  }, [dependencies, compute, waitingOn, name, currentHash, result, startTimer]);
+  }, [
+    dependencies,
+    compute,
+    waitingOn,
+    name,
+    currentHash,
+    result,
+    startTimer,
+    clearResults,
+  ]);
 
   const memoizedBase = useMemo(
     () => ({

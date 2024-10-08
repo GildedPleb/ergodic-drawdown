@@ -3,7 +3,7 @@ import { LRUCache } from "lru-cache";
 import { MAX_WEEKS } from "../../constants";
 const lruCache = new LRUCache<string, Float64Array>({ max: 10 });
 
-export const useInflationFactors = (
+export const handleInflationFactors = (
   _signal: AbortSignal,
   hash: string,
   weeklyInflationRate: number,

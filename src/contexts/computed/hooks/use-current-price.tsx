@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getCurrentPrice } from "../../api";
-import { useTime } from "../../contexts/time";
+import { getCurrentPrice } from "../../../api";
+import { useTime } from "../../time";
 
 export const useCurrentPrice = (): number => {
   const now = useTime();

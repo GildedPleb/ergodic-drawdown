@@ -1,6 +1,17 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT } from "../constants";
+import GrowableSharedArray from "../classes/growable-shared-array";
+import {
+  DEFAULT_EPOCH_COUNT,
+  DEFAULT_SIMULATION_COUNT,
+  WEEKS_PER_EPOCH,
+} from "../constants";
 import { models } from "../data/models";
 import { type ProviderProperties } from "../types";
 
@@ -9,12 +20,14 @@ interface ModelContextType {
   clampBottom: boolean;
   clampTop: boolean;
   epochCount: number;
+  loadingPriceData: boolean;
   minMaxMultiple: number;
   model: string;
   samples: number;
   setClampBottom: React.Dispatch<React.SetStateAction<boolean>>;
   setClampTop: React.Dispatch<React.SetStateAction<boolean>>;
   setEpochCount: React.Dispatch<React.SetStateAction<number>>;
+  setLoadingPriceData: React.Dispatch<React.SetStateAction<boolean>>;
   setMinMaxMultiple: React.Dispatch<React.SetStateAction<number>>;
   setModel: React.Dispatch<React.SetStateAction<string>>;
   setSamples: React.Dispatch<React.SetStateAction<number>>;
@@ -23,6 +36,7 @@ interface ModelContextType {
   setVolatility: React.Dispatch<React.SetStateAction<number>>;
   setWalk: React.Dispatch<React.SetStateAction<string>>;
   showModel: boolean;
+  simulationData: GrowableSharedArray;
   variable: number;
   volatility: number;
   walk: string;
@@ -33,6 +47,7 @@ const ModelContext = createContext<ModelContextType | null>(null);
 
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [showModel, setShowModel] = useState<boolean>(true);
+  const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
   const [model, setModel] = useState<string>(models[2].modelType);
   const [variable, setVariable] = useState<number>(0);
   const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);
@@ -42,6 +57,13 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [volatility, setVolatility] = useState<number>(0.1);
   const [samples, setSamples] = useState<number>(DEFAULT_SIMULATION_COUNT);
   const [epochCount, setEpochCount] = useState<number>(DEFAULT_EPOCH_COUNT);
+  const simulationData = useRef<GrowableSharedArray>(
+    new GrowableSharedArray(
+      DEFAULT_EPOCH_COUNT,
+      DEFAULT_SIMULATION_COUNT,
+      WEEKS_PER_EPOCH,
+    ),
+  );
 
   const value = useMemo(
     () =>
@@ -49,12 +71,14 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
         clampBottom,
         clampTop,
         epochCount,
+        loadingPriceData,
         minMaxMultiple,
         model,
         samples,
         setClampBottom,
         setClampTop,
         setEpochCount,
+        setLoadingPriceData,
         setMinMaxMultiple,
         setModel,
         setSamples,
@@ -63,6 +87,7 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
         setVolatility,
         setWalk,
         showModel,
+        simulationData: simulationData.current,
         variable,
         volatility,
         walk,
@@ -78,6 +103,7 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
       variable,
       volatility,
       walk,
+      loadingPriceData,
     ],
   );
 

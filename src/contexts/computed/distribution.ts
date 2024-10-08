@@ -1,4 +1,6 @@
-import type SharedArrayPool from "../../classes/shared-stack-cache-pool";
+// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
+/* eslint-disable unicorn/no-null */
+import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { MS_PER_WEEK } from "../../constants";
 import { createDataSet, createTaskQueue } from "../../helpers";
 import {
@@ -9,14 +11,13 @@ import {
 import { type WorkerContextType } from "../workers";
 import { type DistributionGroupEvent } from "../workers/types";
 
-export const useDistribution = async (
+export const handleDistribution = async (
   signal: AbortSignal,
   _hash: string,
-  buffer: SharedArrayPool,
+  buffer: GrowableSharedArray,
   now: number,
   worker: WorkerContextType,
   samples: number,
-  epochCount: number,
   dataLength: number,
   weeksSince: number,
   renderDistribution: DistributionType,
@@ -37,19 +38,18 @@ export const useDistribution = async (
   // });
   if (renderDistribution === "None" || showModel) return [];
   // Step 1: Data Preparation
-  const groupedDataBuffer = new SharedArrayBuffer(
+  let groupedDataBuffer: SharedArrayBuffer = new SharedArrayBuffer(
     Float64Array.BYTES_PER_ELEMENT * dataLength * samples,
   );
-  const taskQueueSamples = createTaskQueue(samples, worker.count, 1000, 0);
+  const taskQueueSamples = createTaskQueue(samples, worker.count, samples, 0);
 
   // Step 2: Grouping Data (workers)
   const groupStageResults = await worker.addTasks(
     taskQueueSamples.map((task) => {
       return {
         payload: {
-          buffer: buffer.getArrays()[task.arrayIndex].getSharedBuffer(),
+          buffer: buffer.exportState(),
           dataLength,
-          epochCount,
           getZero: character === "drawdown",
           groupedDataBuffer,
           samples,
@@ -62,8 +62,13 @@ export const useDistribution = async (
     signal,
   );
 
-  if (!groupStageResults.every((result) => result.status === "completed")) {
-    throw new Error("Group stage failed");
+  if (
+    !groupStageResults.every((result) => result.status === "completed") ||
+    signal.aborted
+  ) {
+    // @ts-expect-error we set to null to tell compiler to clear this
+    groupedDataBuffer = null;
+    return [];
   }
 
   // eslint-disable-next-line unicorn/no-new-array
@@ -114,7 +119,7 @@ export const useDistribution = async (
   // Step 3: Data Preparation 2
   cutoffs.sort((first, second) => first - second);
   if (cutoffs.length % 2 !== 1) throw new Error("cutoffs must be odd");
-  const quantilesBuffer = new SharedArrayBuffer(
+  let quantilesBuffer: SharedArrayBuffer = new SharedArrayBuffer(
     Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length,
   );
 
@@ -140,8 +145,16 @@ export const useDistribution = async (
     signal,
   );
 
-  if (!quantileStageResults.every((result) => result.status === "completed")) {
-    throw new Error("Quantile stage failed");
+  if (
+    !quantileStageResults.every((result) => result.status === "completed") ||
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    signal.aborted
+  ) {
+    // @ts-expect-error we set to null to tell compiler to clear this
+    groupedDataBuffer = null;
+    // @ts-expect-error we set to null to tell compiler to clear this
+    quantilesBuffer = null;
+    return [];
   }
 
   // Step 5: Final Data Creation
@@ -157,8 +170,6 @@ export const useDistribution = async (
       quantiles[index][week] = { x, y };
     }
   }
-
-  // console.log({ quantiles });
 
   return createDataSet({
     color,

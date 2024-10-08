@@ -8,7 +8,6 @@ import { useDrawdown } from "../contexts/drawdown";
 import { useModel } from "../contexts/model";
 import { useRender } from "../contexts/render";
 import { useTime } from "../contexts/time";
-import { useVolumeData } from "../contexts/volume";
 
 const FloatBox = styled.fieldset<{ $isDragging: boolean; $isOpen: boolean }>`
   position: absolute;
@@ -64,17 +63,16 @@ const Summary = (): JSX.Element => {
 
   const { setShowResults, showResults } = useRender();
 
-  const { loadingVolumeData } = useVolumeData();
-  const { volumeStats, zeroCount } = useComputedValues();
+  const { simulationStats, volumeStats, zeroCount } = useComputedValues();
 
   const average = volumeStats === null ? 0 : volumeStats.average;
   const median = volumeStats === null ? 0 : volumeStats.median;
   const zero = zeroCount === null ? 0 : zeroCount.zero;
 
-  const { bitcoin, inflation } = useDrawdown();
+  const { bitcoin, inflation, loadingVolumeData } = useDrawdown();
   const { model, samples, walk } = useModel();
   const now = useTime();
-  const { dataLength, priceData } = useComputedValues();
+  const { dataLength } = useComputedValues();
 
   const expired = new Date(now + dataLength * MS_PER_WEEK)
     .toDateString()
@@ -107,7 +105,7 @@ const Summary = (): JSX.Element => {
 
   const bitcoinWorth =
     (Number.isNaN(average) ? bitcoin : average) *
-    (priceData === null ? 0 : priceData[0]?.at(-1) ?? 0);
+    (simulationStats === null ? 0 : simulationStats.average);
 
   const balanceWorth = useMemo(
     () =>

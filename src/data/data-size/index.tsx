@@ -1,45 +1,19 @@
 import { useMemo } from "react";
 
+import { WEEKS_PER_EPOCH } from "../../constants";
 import { useComputedValues } from "../../contexts/computed";
-import { useDrawdownWalks } from "../datasets/drawdown-walks";
-import { marketDataset } from "../datasets/historic";
-import { useInterimDataset } from "../datasets/interim";
-import { useMaxModel } from "../datasets/max-model-dataset";
-import { useMinModel } from "../datasets/min-model-dataset";
-import { usePriceWalkDataset } from "../datasets/price-walk";
-import { getDataSize } from "./get-data-size";
+import { useModel } from "../../contexts/model";
 import { getDataSetSize } from "./get-dataset-size";
-
 export const useMemory = (): number => {
-  const { drawdownDistribution, priceData, priceDistribution } =
-    useComputedValues();
-  const interimDataset = useInterimDataset();
-  const priceWalkDatasets = usePriceWalkDataset();
-  const minModelDataset = useMinModel();
-  const maxModelDataset = useMaxModel();
-  const drawdownWalkDatasets = useDrawdownWalks();
+  const { dataProperties } = useComputedValues();
+
+  const { epochCount, samples } = useModel();
 
   return useMemo(() => {
     return (
-      // Model size * 2 === Model and Drawdown Data
-      getDataSize(priceData ?? []) * 2 +
-      getDataSetSize([marketDataset]) +
-      getDataSetSize([interimDataset]) +
-      getDataSetSize(minModelDataset) +
-      getDataSetSize(maxModelDataset) +
-      getDataSetSize(priceWalkDatasets) +
-      getDataSetSize(drawdownWalkDatasets) +
-      (priceDistribution === null ? 0 : getDataSetSize(priceDistribution)) +
-      (drawdownDistribution === null ? 0 : getDataSetSize(drawdownDistribution))
+      // Model size * 2 === Model and Drawdown Data CONSIDER ADDING CACHE COUNTS
+      (8 * WEEKS_PER_EPOCH * epochCount * samples * 2) / (1024 * 1024) +
+      getDataSetSize(dataProperties?.datasets ?? [])
     );
-  }, [
-    drawdownDistribution,
-    drawdownWalkDatasets,
-    interimDataset,
-    maxModelDataset,
-    minModelDataset,
-    priceData,
-    priceDistribution,
-    priceWalkDatasets,
-  ]);
+  }, [dataProperties?.datasets, epochCount, samples]);
 };

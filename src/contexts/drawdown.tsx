@@ -7,9 +7,15 @@ import React, {
   useState,
 } from "react";
 
+import GrowableSharedArray from "../classes/growable-shared-array";
 import type VariableDrawdownCache from "../classes/variable-drawdown-cache";
 import { type VariableDrawdownFinal } from "../classes/variable-drawdown-final";
-import { MS_PER_YEAR } from "../constants";
+import {
+  DEFAULT_EPOCH_COUNT,
+  DEFAULT_SIMULATION_COUNT,
+  MS_PER_YEAR,
+  WEEKS_PER_EPOCH,
+} from "../constants";
 import { loadHalvings } from "../helpers";
 import {
   type OneOffFiatVariable,
@@ -19,13 +25,16 @@ import {
 } from "../types"; // eslint-disable-next-line functional/no-mixed-types
 interface DrawdownContextType {
   bitcoin: number;
+  drawdownData: GrowableSharedArray;
   finalVariableCache: LRUCache<string, VariableDrawdownFinal>;
   inflation: number;
+  loadingVolumeData: boolean;
   oneOffFiatVariables: OneOffFiatVariable[];
   oneOffItems: OneOffItem[];
   reoccurringItems: ReoccurringItem[];
   setBitcoin: React.Dispatch<React.SetStateAction<number>>;
   setInflation: React.Dispatch<React.SetStateAction<number>>;
+  setLoadingVolumeData: React.Dispatch<React.SetStateAction<boolean>>;
   setOneOffFiatVariables: React.Dispatch<
     React.SetStateAction<OneOffFiatVariable[]>
   >;
@@ -44,6 +53,14 @@ const reward = 50 / 2 ** Object.keys(loadedHalvings).length;
 export const DrawdownProvider: React.FC<ProviderProperties> = ({
   children,
 }) => {
+  const [loadingVolumeData, setLoadingVolumeData] = useState<boolean>(true);
+  const drawdownData = useRef(
+    new GrowableSharedArray(
+      DEFAULT_EPOCH_COUNT,
+      DEFAULT_SIMULATION_COUNT,
+      WEEKS_PER_EPOCH,
+    ),
+  );
   const [bitcoin, setBitcoin] = useState<number>(reward);
   const [inflation, setInflation] = useState<number>(8);
   const [reoccurringItems, setReoccurringItems] = useState<ReoccurringItem[]>([
@@ -57,17 +74,17 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     //   isFiat: true,
     //   name: "Live off Bitcoin",
     // },
-    // {
-    //   active: false,
-    //   annualAmount: 1,
-    //   annualPercentChange: 0,
-    //   effective: new Date(Date.now() + 24.5 * MS_PER_YEAR),
-    //   end: new Date(Date.now() + 25 * MS_PER_YEAR),
-    //   expense: false,
-    //   id: "item-2",
-    //   isFiat: false,
-    //   name: "Basic Bitcoin Reoccurring",
-    // },
+    {
+      active: false,
+      annualAmount: 1,
+      annualPercentChange: 0,
+      effective: new Date(Date.now() + 24.5 * MS_PER_YEAR),
+      end: new Date(Date.now() + 25 * MS_PER_YEAR),
+      expense: false,
+      id: "item-2",
+      isFiat: false,
+      name: "Basic Bitcoin Reoccurring",
+    },
   ]);
 
   const [oneOffItems, setOneOffItems] = useState<OneOffItem[]>([
@@ -187,19 +204,29 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     () =>
       ({
         bitcoin,
+        drawdownData: drawdownData.current,
         finalVariableCache: finalVariableCacheReference.current,
         inflation,
+        loadingVolumeData,
         oneOffFiatVariables,
         oneOffItems,
         reoccurringItems,
         setBitcoin,
         setInflation,
+        setLoadingVolumeData,
         setOneOffFiatVariables,
         setOneOffItems,
         setReoccurringItems,
         variableDrawdownCache: innerCacheReference.current,
       }) satisfies DrawdownContextType,
-    [bitcoin, inflation, oneOffFiatVariables, oneOffItems, reoccurringItems],
+    [
+      bitcoin,
+      inflation,
+      loadingVolumeData,
+      oneOffFiatVariables,
+      oneOffItems,
+      reoccurringItems,
+    ],
   );
 
   return (

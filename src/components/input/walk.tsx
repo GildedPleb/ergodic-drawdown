@@ -2,9 +2,8 @@ import React, { useCallback } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import { usePriceData } from "../../contexts/price";
-import { useVolumeData } from "../../contexts/volume";
 import { walks } from "../../data/walks";
 import handleEnterKey from "./enter";
 
@@ -24,9 +23,8 @@ const Select = styled.select`
 `;
 
 const WalkInput = (): JSX.Element => {
-  const { setLoadingPriceData } = usePriceData();
-  const { setLoadingVolumeData } = useVolumeData();
-  const { setWalk, walk } = useModel();
+  const { setLoadingVolumeData } = useDrawdown();
+  const { setLoadingPriceData, setWalk, walk } = useModel();
 
   const handleWalk: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
     (event) => {
