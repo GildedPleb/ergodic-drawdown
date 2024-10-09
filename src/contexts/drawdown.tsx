@@ -23,7 +23,7 @@ import {
   type ProviderProperties,
   type ReoccurringItem,
 } from "../types"; // eslint-disable-next-line functional/no-mixed-types
-interface DrawdownContextType {
+export interface DrawdownContextType {
   bitcoin: number;
   drawdownData: GrowableSharedArray;
   finalVariableCache: LRUCache<string, VariableDrawdownFinal>;

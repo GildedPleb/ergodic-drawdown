@@ -1,22 +1,31 @@
+// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
+/* eslint-disable unicorn/no-null */
 import hashSum from "hash-sum";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import Modal from "../components/drawdown-modal";
 import DrawdownTable from "../components/drawdown-table";
+import { SecureFileOperationsModal } from "../components/file-operations-modal";
 // eslint-disable-next-line @shopify/strict-component-boundaries
 import BitcoinInput from "../components/input/bitcoin";
 // eslint-disable-next-line @shopify/strict-component-boundaries
 import InflationInput from "../components/input/inflation";
 import { isMobile } from "../constants";
 import { fieldLabels } from "../content";
-import { useDrawdown } from "../contexts/drawdown";
+import { type DrawdownContextType, useDrawdown } from "../contexts/drawdown";
+import { type ModelContextType, useModel } from "../contexts/model";
+import { type RenderContextType, useRender } from "../contexts/render";
 import {
   type FormData,
   type OneOffFiatVariable,
   type OneOffItem,
   type ReoccurringItem,
 } from "../types";
+
+const buttonText = "➕";
+const buttonSave = "💾";
+const buttonLoad = "📂";
 
 const Container = styled.fieldset<{ $guessHeight: number }>`
   width: calc(100vw - 50px);
@@ -48,7 +57,6 @@ const Fill = styled.div`
   width: 100%;
   min-height: 10px;
   background-color: #242424;
-  /* background-color: red; */
   position: sticky;
   top: 0px;
   transform: translateY(-1px);
@@ -90,7 +98,16 @@ const Button = styled.button`
   padding: 5px;
 `;
 
+export interface AppState
+  extends ModelContextType,
+    DrawdownContextType,
+    RenderContextType {}
+
 const Drawdown = (): JSX.Element => {
+  const modelState = useModel();
+  const drawdownState = useDrawdown();
+  const renderState = useRender();
+
   const {
     oneOffFiatVariables,
     oneOffItems,
@@ -98,8 +115,17 @@ const Drawdown = (): JSX.Element => {
     setOneOffFiatVariables,
     setOneOffItems,
     setReoccurringItems,
-  } = useDrawdown();
+  } = drawdownState;
+
+  const fullState = useMemo(
+    () => ({ ...modelState, ...drawdownState, ...renderState }),
+    [drawdownState, modelState, renderState],
+  );
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [fileModalMode, setFileModalMode] = useState<"load" | "save" | null>(
+    null,
+  );
 
   const length =
     oneOffFiatVariables.length + oneOffItems.length + reoccurringItems.length;
@@ -112,7 +138,7 @@ const Drawdown = (): JSX.Element => {
     setIsModalOpen(false);
   }, []);
 
-  const handleSave = useCallback(
+  const handleAdd = useCallback(
     (item: FormData) => {
       const cleanItem = (object: object, allowedKeys: string[]): object => {
         return Object.fromEntries(
@@ -182,22 +208,75 @@ const Drawdown = (): JSX.Element => {
     },
     [setOneOffFiatVariables, setOneOffItems, setReoccurringItems],
   );
+
+  const handleSave = useCallback(() => {
+    setFileModalMode("save");
+  }, []);
+
+  const handleLoad = useCallback(() => {
+    setFileModalMode("load");
+  }, []);
+
+  const handleCloseFile = useCallback(() => {
+    setFileModalMode(null);
+  }, []);
+
+  const restoreAppState = useCallback(
+    (state: AppState) => {
+      for (const key of Object.keys(state) as Array<keyof AppState>) {
+        const setterKey = `set${key.charAt(0).toUpperCase() + key.slice(1)}` as
+          | keyof DrawdownContextType
+          | keyof ModelContextType;
+        if (typeof fullState[setterKey] === "function") {
+          (fullState[setterKey] as (value: AppState[typeof key]) => void)(
+            state[key],
+          );
+        }
+      }
+    },
+    [fullState],
+  );
+
+  const appState = useMemo(() => {
+    const {
+      drawdownData,
+      finalVariableCache,
+      simulationData,
+      variableDrawdownCache,
+      ...rest
+    } = fullState;
+
+    return Object.fromEntries(
+      Object.entries(rest).filter(([key]) => !key.startsWith("set")),
+    ) as unknown as AppState;
+  }, [fullState]);
+
   return (
     <Container $guessHeight={guessHeight}>
       <Legend>{fieldLabels.drawdown}</Legend>
       <Fill />
       <SectionRow>
-        <Button onClick={handleOpenModal}>➕</Button>
+        <Button onClick={handleOpenModal}>{buttonText}</Button>
         <BitcoinInput />
         <InflationInput />
       </SectionRow>
       <Section>
         <DrawdownTable />
       </Section>
+      <SectionRow>
+        <Button onClick={handleSave}>{buttonSave}</Button>
+        <Button onClick={handleLoad}>{buttonLoad}</Button>
+      </SectionRow>
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSave={handleSave}
+        onSave={handleAdd}
+      />
+      <SecureFileOperationsModal
+        appState={appState}
+        mode={fileModalMode}
+        onClose={handleCloseFile}
+        setAppState={restoreAppState}
       />
     </Container>
   );

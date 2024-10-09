@@ -129,7 +129,7 @@ const ItemRow: React.FC<ItemRowProperties> = ({
         <CheckboxCell>
           <Checkbox checked={item.active} onChange={handleToggle} />
         </CheckboxCell>
-        <ContentCell>
+        <ContentCell tabIndex={0}>
           <ItemText onClick={openModal}>
             <ItemName>{item.name}</ItemName>
             <ItemDescription>{additionalInfo}</ItemDescription>

@@ -1,6 +1,5 @@
 Things to do:
 
-- Figure out a way to persist user settings that is private and that can not be "hacked"
 - Figure out a way to share the settings in a link.
 - Add a TODAY annotation that deliniates a seperation between past and future.
 - if bitcoin goes to Zero, find which date it does so on.
@@ -27,3 +26,4 @@ Things to do:
 - Firefox allocs max-array upfront and does not memory clear it. It might be better to force firefox to use set-size arrays.
 - If you try and hit "delete" on an entered date, it kills the page.
 - crosshair at mouse option, draw line / vertical / horizontal / box / text box
+- when you tab into a drawdown content table cell, you shoudl be able to hit enter to enter the cell, same with any other buttons and tabbing also escape shoudl exit modal.

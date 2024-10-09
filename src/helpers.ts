@@ -1,5 +1,6 @@
 import { HALVING_INTERVAL, MS_PER_WEEK } from "./constants";
 import { type Task } from "./contexts/workers/types";
+import { type AppState } from "./panels/drawdown";
 import {
   type ApplyModel,
   type BaseColor,
@@ -334,4 +335,97 @@ export const getItemDescription = (item: DrawdownItem): string => {
     return `Spend ₿${item.btcWillingToSpend} on a $${item.amountToday.toLocaleString()} item, at least ${item.delay * 7} day(s) after ${item.start}% between the first affordable day, and last unaffordable day.`;
   }
   return "";
+};
+
+const generateKey = async (
+  password: string,
+  salt?: Uint8Array,
+): Promise<{ key: CryptoKey; salt: Uint8Array }> => {
+  const encoder = new TextEncoder();
+  const passwordBuffer = encoder.encode(password);
+  const saltBuffer = salt ?? crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    passwordBuffer,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"],
+  );
+  const key = await crypto.subtle.deriveKey(
+    {
+      hash: "SHA-256",
+      iterations: 100_000,
+      name: "PBKDF2",
+      salt: saltBuffer,
+    },
+    keyMaterial,
+    { length: 256, name: "AES-GCM" },
+    true,
+    ["encrypt", "decrypt"],
+  );
+  return { key, salt: saltBuffer };
+};
+
+// Custom replacer function for JSON.stringify
+const customReplacer = (_key: string, value: unknown): unknown => {
+  return value;
+};
+
+const isSerializedDate = (value: string): boolean => {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value);
+};
+// Custom reviver function for JSON.parse
+/**
+ *
+ * @param _key - stuff
+ * @param value - stuff
+ * @returns marshaled data
+ */
+function customReviver<T>(_key: string, value: T): Date | T {
+  if (typeof value === "string" && isSerializedDate(value)) {
+    return new Date(value);
+  }
+  return value;
+}
+
+export const encryptData = async (
+  data: object,
+  password: string,
+): Promise<Uint8Array> => {
+  const { key, salt } = await generateKey(password);
+  const encoder = new TextEncoder();
+  const stringified = JSON.stringify(data, customReplacer);
+  const encodedData = encoder.encode(stringified);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encryptedContent = await crypto.subtle.encrypt(
+    { iv, name: "AES-GCM" },
+    key,
+    encodedData,
+  );
+  const encryptedContentArray = new Uint8Array(encryptedContent);
+  const resultArray = new Uint8Array(
+    salt.length + iv.length + encryptedContentArray.length,
+  );
+  resultArray.set(salt, 0);
+  resultArray.set(iv, salt.length);
+  resultArray.set(encryptedContentArray, salt.length + iv.length);
+  return resultArray;
+};
+
+export const decryptData = async (
+  encryptedData: Uint8Array,
+  password: string,
+): Promise<AppState> => {
+  const salt = encryptedData.slice(0, 16);
+  const iv = encryptedData.slice(16, 28);
+  const data = encryptedData.slice(28);
+  const { key } = await generateKey(password, salt);
+  const decryptedContent = await crypto.subtle.decrypt(
+    { iv, name: "AES-GCM" },
+    key,
+    data,
+  );
+  const decoder = new TextDecoder();
+  const decoded = decoder.decode(decryptedContent);
+  return JSON.parse(decoded, customReviver) as AppState;
 };

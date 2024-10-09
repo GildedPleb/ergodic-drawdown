@@ -16,7 +16,7 @@ import { models } from "../data/models";
 import { type ProviderProperties } from "../types";
 
 // eslint-disable-next-line functional/no-mixed-types
-interface ModelContextType {
+export interface ModelContextType {
   clampBottom: boolean;
   clampTop: boolean;
   epochCount: number;

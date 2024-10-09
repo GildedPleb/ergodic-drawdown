@@ -4,7 +4,7 @@ import { isMobile } from "../constants";
 import { type DistributionType, type ProviderProperties } from "../types";
 
 // eslint-disable-next-line functional/no-mixed-types
-interface RenderContextType {
+export interface RenderContextType {
   renderDrawdownDistribution: DistributionType;
   renderDrawdownWalks: boolean;
   renderModelMax: boolean;

@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from "react";
-import { createPortal } from "react-dom";
 import styled from "styled-components";
 
 import { getItemDescription } from "../helpers";
@@ -12,49 +11,9 @@ import {
   type OneOffItem,
   type ReoccurringItem,
 } from "../types";
+import { ActionButton } from "./buttons/action";
 import handleEnterKey from "./input/enter";
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background-color: rgba(36, 36, 36, 0.5);
-  padding: 20px;
-  border-radius: 2px;
-  width: calc(100vw - 70px);
-  max-width: 400px;
-  border: 1px solid grey;
-
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  text-decoration: none;
-  padding: 0;
-`;
+import { Modal } from "./modal";
 
 const ModalBody = styled.div`
   display: flex;
@@ -67,24 +26,6 @@ const ModalFooter = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 10px;
-`;
-
-const SaveButton = styled.button`
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
-`;
-
-const DeleteButton = styled.button`
-  background-color: #ff005d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
 `;
 
 const Select = styled.select`
@@ -400,7 +341,7 @@ const OneOffFiatVariableFields: React.FC<
   </>
 );
 
-const Modal = ({
+const DrawdownModal = ({
   isOpen,
   item,
   onClose,
@@ -471,15 +412,6 @@ const Modal = ({
     onClose();
   }, [onDelete, onClose]);
 
-  const stopPropagation: React.MouseEventHandler<HTMLDivElement> = useCallback(
-    (event) => {
-      event.stopPropagation();
-    },
-    [],
-  );
-
-  if (!isOpen) return undefined;
-
   const options: Record<string, string> = {
     oneOffFiatVariable: "One-Off Fiat Variable-Date",
     oneOffItem: "One-Off",
@@ -489,6 +421,7 @@ const Modal = ({
     item === undefined
       ? "Add New Drawdown Event"
       : `Edit ${options[formData.type]} Drawdown Event`;
+
   const input = {
     active: "Active:",
     close: "\u00D7",
@@ -518,77 +451,77 @@ const Modal = ({
     }
   };
 
-  return createPortal(
-    <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={stopPropagation}>
-        <ModalHeader>
-          <h2>{title}</h2>
-          <CloseButton onClick={onClose}>{input.close}</CloseButton>
-        </ModalHeader>
-        <ModalBody>
-          {item === undefined && (
-            <Row>
-              <Label htmlFor="type">{input.type}</Label>
-              <Select
-                id="type"
-                name="type"
-                onChange={handleInputChange}
-                onKeyDown={handleEnterKey}
-                value={formData.type}
-              >
-                {Object.entries(options).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </Row>
-          )}
-          <InputField
-            label={input.name}
-            name="name"
-            onChange={handleInputChange}
-            value={formData.name}
-          />
-          {item !== undefined && (
-            <InputField
-              checked={formData.active}
-              label={input.active}
-              name="active"
+  const deletable =
+    onDelete === undefined ? (
+      <div />
+    ) : (
+      <ActionButton backgroundColor="#ff005d" onClick={handleDelete}>
+        {input.delete}
+      </ActionButton>
+    );
+
+  return (
+    <Modal heading={title} isOpen={isOpen} onClose={onClose}>
+      <ModalBody>
+        {item === undefined && (
+          <Row>
+            <Label htmlFor="type">{input.type}</Label>
+            <Select
+              id="type"
+              name="type"
               onChange={handleInputChange}
-              type="checkbox"
-            />
-          )}
-          {formData.type === "reoccurringItem" && (
-            <ReoccurringItemFields
-              formData={formData as ReoccurringItem}
-              handleInputChange={handleInputChange}
-            />
-          )}
-          {formData.type === "oneOffItem" && (
-            <OneOffItemFields
-              formData={formData as OneOffItem}
-              handleInputChange={handleInputChange}
-            />
-          )}
-          {formData.type === "oneOffFiatVariable" && (
-            <OneOffFiatVariableFields
-              formData={formData as OneOffFiatVariable}
-              handleInputChange={handleInputChange}
-            />
-          )}
-          <Summary>{getItemDescriptionWrapper(formData)}</Summary>
-        </ModalBody>
-        <ModalFooter>
-          {onDelete !== undefined && (
-            <DeleteButton onClick={handleDelete}>{input.delete}</DeleteButton>
-          )}
-          <SaveButton onClick={handleSave}>{input.save}</SaveButton>
-        </ModalFooter>
-      </ModalContent>
-    </ModalOverlay>,
-    document.body,
+              onKeyDown={handleEnterKey}
+              value={formData.type}
+            >
+              {Object.entries(options).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Row>
+        )}
+        <InputField
+          label={input.name}
+          name="name"
+          onChange={handleInputChange}
+          value={formData.name}
+        />
+        {item !== undefined && (
+          <InputField
+            checked={formData.active}
+            label={input.active}
+            name="active"
+            onChange={handleInputChange}
+            type="checkbox"
+          />
+        )}
+        {formData.type === "reoccurringItem" && (
+          <ReoccurringItemFields
+            formData={formData as ReoccurringItem}
+            handleInputChange={handleInputChange}
+          />
+        )}
+        {formData.type === "oneOffItem" && (
+          <OneOffItemFields
+            formData={formData as OneOffItem}
+            handleInputChange={handleInputChange}
+          />
+        )}
+        {formData.type === "oneOffFiatVariable" && (
+          <OneOffFiatVariableFields
+            formData={formData as OneOffFiatVariable}
+            handleInputChange={handleInputChange}
+          />
+        )}
+        <Summary>{getItemDescriptionWrapper(formData)}</Summary>
+      </ModalBody>
+      <ModalFooter>
+        {deletable}
+        <ActionButton onClick={handleSave}>{input.save}</ActionButton>
+      </ModalFooter>
+    </Modal>
   );
 };
 
-export default Modal;
+export default DrawdownModal;
