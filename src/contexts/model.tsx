@@ -46,7 +46,7 @@ interface ModelContextType {
 const ModelContext = createContext<ModelContextType | null>(null);
 
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
-  const [showModel, setShowModel] = useState<boolean>(true);
+  const [showModel, setShowModel] = useState<boolean>(false);
   const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
   const [model, setModel] = useState<string>(models[2].modelType);
   const [variable, setVariable] = useState<number>(0);

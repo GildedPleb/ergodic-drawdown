@@ -298,7 +298,7 @@ export default class GrowableSharedArray {
   }
 
   private validateDimensions(width: number, height: number): void {
-    if (width <= 0 || height <= 0) {
+    if (width < 0 || height < 0) {
       throw new Error(
         `Invalid dimensions: width and height must be positive. Got: width "${width}", height "${height}"`,
       );

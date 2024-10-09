@@ -45,10 +45,12 @@ const totalSlides = 12;
 const Slide1 = (
   <div className="slide-content">
     <p>
-      <strong>How much bitcoin is enough?</strong> Is it 6.15? Is it .21? Is it
-      1 block reward? Trying to figure out an answer can be overwhelming, and is
-      generally unanswerable across people because it relies on big assumptions
-      and personal circumstances.
+      <strong>How much bitcoin is enough?</strong>
+    </p>
+    <p>
+      Is it 10? 6.15? 1? .21? Is it 1 block reward? Trying to figure out an
+      answer can be overwhelming, and is generally unanswerable across people
+      because it relies on big assumptions and personal circumstances.
     </p>
     <p>
       However, it can be answered probabilistically with the right tools. To
@@ -75,7 +77,7 @@ const Slide2 = (
       be familiar to you. But if it's not, it is highly recommended to pause
       here and go buy some Bitcoin.
     </p>
-    <p>Seriously. We'll wait.</p>
+    <p>Seriously.</p>
     <p>
       Got some Bitcoin and a little price history under your belt? Click{" "}
       <strong>Next</strong> to visualize our first Bitcoin price model.
@@ -97,14 +99,21 @@ const Slide3 = (
       price, and stretching off into the distant future.
     </p>
     <p>
-      Problematically, Bitcoin price historically travels in a non-linear,
-      non-random, semi-chaotic walk, not a smooth line. As such, the predicted
-      price isn't very useful--Bitcoins actual price is obviously not going to
-      be anything like the path that the model takes. Even if its a support or
-      ceiling, these almost always eventually get invalidated. To remedy this,
-      lets convert the simple price into a range of prices that might fit the
-      model and capture this uncertainty better. Tap <strong>Next</strong> to
-      add a Range.
+      Problematically, the Bitcoin price historically travels on a path which is
+      non-linear (it's not smooth like the green line below), non-random
+      (despite being non-linear it is still path-dependent on the previous
+      traded price), and semi-chaotic (despite not being random, the price is
+      still affected by the chaos of the world around it: hacks, inflation,
+      liquidity event, etc). As such, the predicted price isn't very useful--the
+      actual price of Bitcoin is obviously not going to be anything like the
+      path that the model takes. Even if the model represents a support or
+      ceiling, these almost always eventually get invalidated, and are
+      universally misinterpreted as price predictions.
+    </p>
+    <p>
+      To remedy this, let's convert the simple price into a range of prices that
+      might fit the model and capture this uncertainty better. Tap{" "}
+      <strong>Next</strong> to add a Range.
     </p>
   </div>
 );
@@ -112,19 +121,26 @@ const Slide3 = (
 const Slide4 = (
   <div className="slide-content">
     <p>
-      Now that we have a range (Green Min, Red Max) we can get a better sense of
-      a model. You can think of these lines as containing most (but not all)
-      future price movements for any model. Explore different models (Models /
-      Power Law Regression Median / CAGR, for instance) and notice the shape,
-      scale, tapering and options they have.
+      The original Bitcoin Rainbow Chart became famous for plotting the bitcoin
+      price in a Rainbow Range. And rightly so, for it takes the 'price
+      predicting' out of the equation. Now that we have a range (Green Min, Red
+      Max) we can think of these lines as containing most (but not all) future
+      price movements for any model. Explore different models (Models / Power
+      Law Regression Median / CAGR, for instance) and notice the shape, scale,
+      tapering and options they have.
     </p>
     <p>
       However, simply having a range is not enough. If Bitcoin were to mostly
-      trade at the top of the range, or mostly at the bottom, we could have
-      wildly different projected outcomes, often spanning orders of magnitude,
-      that quickly becoming meaningless. But, with the two model boundaries (min
-      and max) we do have a range we can traverse the bitcoin price through.
-      Let's add one potential walk by clicking <strong>Next</strong>.{" "}
+      trade at the top of the range, or mostly at the bottom, or hit top and
+      bottom at opposite points to our projections, we could have wildly
+      different projected outcomes, often spanning orders of magnitude that
+      quickly becoming meaningless. But, with the two model guidelines (min and
+      max) we do have a range we can traverse the bitcoin price through with
+      respect to macro-scale assumptions.
+    </p>
+    <p>
+      Let's look at one potential bitcoin future by clicking{" "}
+      <strong>Next</strong>.{" "}
     </p>
   </div>
 );
@@ -132,18 +148,18 @@ const Slide5 = (
   <div className="slide-content">
     <p>
       As you can see, one of an infinite amount of a semi-chaotic, non-random
-      price projection is now shown that roughly follows the larger shape of the
-      boundaries (but does not strictly respect them).
+      price projections is now shown that roughly follows the larger shape of
+      the guard-rails (but does not strictly respect them).
     </p>
     <p>
       Of note, this path seems to follow a noisy, jagged, up-down pattern. This
-      pattern is called a 'walk', it is how the price moves through the range
+      pattern is called a 'walk', it is how the price 'steps' through the range
       while remaining path-dependent on its previous location.
     </p>
     <p>
       There is also an underlying shape to this walk. To see the shape, let's
       remove all the volatility by clicking <strong>Next</strong> to set the
-      volatility to 0..
+      volatility to 0.
     </p>
   </div>
 );
@@ -157,11 +173,17 @@ const Slide6 = (
       volatility, and, when set to zero, are flat.
     </p>
     <p>
-      For others, the walk can be considered "Ergodic". This means that given
+      For others, the walk might be considered "Ergodic". This means that given
       enough time, the path will always hit both the min, the max, and every
       vertical point in-between despite having a probabilistic distribution that
-      might make it seem unlikely. With these walks in mind, let's now pump the
-      volatility back up to .1 by clicking <strong>Next</strong>
+      might make it seem unlikely. This is fundamental to robust modeling
+      because it maps what we all know is previously observable to any future
+      predictions. This is the first categorical differentiation that sets this
+      modeling paradigm apart.
+    </p>
+    <p>
+      With these walks in mind, let's now pump the volatility back up to .1 by
+      clicking <strong>Next</strong>
     </p>
   </div>
 );
@@ -170,49 +192,133 @@ const Slide7 = (
   <div className="slide-content">
     <p>
       Cycle through the models, walks, and volatility together. Get comfortable
-      plotting bitcoins future. Which combination do you like? What seems
-      reasonable? What is missing? You will notice that some walks respect the
-      min and max while others do not. This is because all walks are strategic
-      and rely on a variety of inputs. Some walks care about min and max, others
-      care about cycles, momentum, or freak accidents. To force a respect of min
-      and/or max, tap the respective 'clamp' checkbox.
+      plotting Bitcoins future. Which combination do you like? What seems
+      reasonable? What is missing?
     </p>
     <p>
-      See if you can find a walk that does not seem to have ergodicity. If you
-      gravitated to Random, you found one of them. A random walk has no respect
-      for anything but volatility! For the walks that do not respect min and max
-      to become ergodic, which is important for robust modeling, we simply add
-      more of them. Let's do this now by clicking <strong>Next</strong>.
+      You will notice that some walks respect the min and max while others do
+      not. This is because all walks are strategic, relying on a variety of
+      inputs. Some walks care about min and max, others care about cycles,
+      momentum, or freak accidents. To force a respect of min and/or max, tap
+      the respective 'clamp' checkbox.
+    </p>
+    <p>
+      You should already be thinking "Ok, but the odds that any of these walks
+      end up as the actual path of bitcoin is impossible."
+    </p>
+    <p>
+      And you are correct. One walk, alone, is irrelevant. But what about in
+      aggregate? Let's address this directly by clicking <strong>Next</strong>.
+    </p>
+  </div>
+);
+
+const Slide8 = (
+  <div className="slide-content">
+    <p>
+      A Monte Carlo Simulation is were many walks are taken into account to find
+      larger patterns in the data, like strategy probabilities. We have added 10
+      walks so you can begin to see this effect: The walks follow similar
+      patterns to <strong>themselves</strong>.
+    </p>
+    <p>
+      Zoom in and examine various areas of the chart. What do you notice? Open
+      up the Render Tab, and increase the number of walks shown. As you increase
+      the number of shown walks you will see that no matter the walk, they will
+      begin to converge on filling the full range. Now we can start looking at
+      our walks in aggregate.
+    </p>
+    <p>
+      Lets look at the statistics of these walks by clicking{" "}
+      <strong>Next</strong>.
+    </p>
+  </div>
+);
+
+const Slide9 = (
+  <div className="slide-content">
+    <p>
+      We have two methods for analyzing aggregate walk data: Quantile
+      Distribution and Normal Distribution
+    </p>
+    <p>
+      <strong>Quantile Distribution</strong> looks at all the points on all the
+      walks at 1 point in time and then it sorts and divides those points in
+      Quantiles--or percentages. From the median, it allows you to see data
+      shape and asymmetries, where paths gather or were they spread.
+    </p>
+    <p>
+      <strong>Normal Distribution</strong> looks at all the points on all the
+      walks at 1 point in time and then determines the standard deviation from
+      this data and, assuming the data is distributed normally, overlooks
+      asymmetries, and plots those bands from the mean.
+    </p>
+    <p>
+      Lets focus on Quantile for the time being with a quick discussion of
+      Granularity and Data by clicking <strong>Next</strong>.
+    </p>
+  </div>
+);
+
+const Slide10 = (
+  <div className="slide-content">
+    <p>
+      Two key inputs significantly impact this tool's quality:{" "}
+      <strong>Epoch Count</strong> and <strong>Samples</strong>.
+    </p>
+    <p>
+      <strong>Epoch Count</strong> represents the number of 4-year halving
+      cycles on the chart. Remember: longer projections become less relevant and
+      more computationally expensive. Monte Carlo Simulators are
+      resource-intensive, especially in browsers. While limits are in place,
+      exercise caution with your device.
+    </p>
+    <p>
+      <strong>Samples</strong> determine data granularity. More samples (e.g.,
+      2000 vs 1000) result in smoother Quantile bands but impact performance.
+      Keep samples at 1000 while adjusting other parameters, then increase if
+      needed. The app's limit is 10,000, which is the typical minimum for
+      serious Monte Carlo Simulations.
+    </p>
+    <p>
+      We've provided an estimated data size for reference, though actual size
+      will vary across browsers.
+    </p>
+    <p>
+      Before we get some answers to "How much is enough?" we have one more
+      important concept to cover. Click <strong>Next</strong> to continue.
+    </p>
+  </div>
+);
+const Slide11 = (
+  <div className="slide-content">
+    <p>
+      So far, we have looked at Bitcoin Price modeling, walks, using these in
+      concert to create thousands of price predictions, and the probabilities
+      given our assumptions.
+    </p>
+    <p>
+      This, on its own, is a very powerful tool. No one knows the future, of
+      course, but with this tool we can begin to speculate on the probabilities
+      around price predictions, given model assumptions, which offers yet
+      another categorical modeling advantage over all other types of modeling.
+    </p>
+    <p>
+      For instance, Gating: If I assume Power Law Regression Median, and I
+      assume 1 bubble per epoch, I might then expect a very low probability of
+      price being above $1.8M mid 2034, but equally unlikely to be below $1.8M
+      mid 2037. As such, we have a time gate we might expect the price of
+      bitcoin to travel though. From this primitive, we can then introduce the
+      concept of "First Affordable" and "Last Unaffordable".
+    </p>
+    <p>
+      But we are getting ahead of ourselves. Ready to finally get some answers
+      to "How much is enough?" Click <strong>Next</strong> to continue to
+      Drawdowns.
     </p>
   </div>
 );
 /*
-    </li>
-    <li>
-
-    <li>
-
-    </li>
-    <li>
-      <p>
-        This is now a Monte Carlo Simulation, were many walks are taken into
-        account to find larger patterns in the data. As you increase the number
-        of shown walks you will see that no matter the walk, they will begin to
-        converge on filling the full range. Now we can start looking at our
-        walks in aggregate. <a href="">toggle quantile</a>
-      </p>
-    </li>
-    <li>
-      <p>
-        Quantiles are determined by the actual walk data. If you increase the
-        visible walk count enough you will eventually find the specific walk
-        that defined the best or worst case (even if it was for one touch at one
-        point in time). We now have a full Monte Carlo simulation which captures
-        ergodicity in bitcoins price walk. Perfect! Let's now consider
-        drawdowns. To do this, we will reset the graph to show only one walk and
-        one drawdown. <a href="">reset</a>
-      </p>
-    </li>
     <li>
       <p>
         A drawdown is taking the initial bitcoin holdings and selling the amount
@@ -347,8 +453,28 @@ const Tutorial = (): JSX.Element => {
   const toSlide6 = (): void => {
     setVolatility(0);
   };
+
   const toSlide7 = (): void => {
     setVolatility(0.1);
+    setSamplesToRender(1);
+    setSamples(1);
+  };
+
+  const toSlide8 = (): void => {
+    setSamples(1000);
+    setSamplesToRender(10);
+    setRenderPriceWalks(true);
+    setRenderPriceDistribution("None");
+  };
+
+  const toSlide9 = (): void => {
+    setRenderPriceWalks(false);
+    setRenderPriceDistribution("Quantile");
+  };
+
+  const toSlide10 = (): void => {
+    setRenderPriceWalks(false);
+    setRenderPriceDistribution("Quantile");
   };
 
   const nextSlide = useCallback(() => {
@@ -371,6 +497,15 @@ const Tutorial = (): JSX.Element => {
       }
       if (currentSlide === 5) {
         toSlide7();
+      }
+      if (currentSlide === 6) {
+        toSlide8();
+      }
+      if (currentSlide === 7) {
+        toSlide9();
+      }
+      if (currentSlide === 8) {
+        toSlide10();
       }
     }
   }, [currentSlide]);
@@ -395,6 +530,15 @@ const Tutorial = (): JSX.Element => {
       }
       if (currentSlide === 6) {
         toSlide6();
+      }
+      if (currentSlide === 7) {
+        toSlide7();
+      }
+      if (currentSlide === 8) {
+        toSlide8();
+      }
+      if (currentSlide === 9) {
+        toSlide9();
       }
     }
   }, [currentSlide]);
@@ -426,9 +570,9 @@ const Tutorial = (): JSX.Element => {
           <div className="slide">{Slide5}</div>
           <div className="slide">{Slide6}</div>
           <div className="slide">{Slide7}</div>
-          <div className="slide">{Slide1}</div>
-          <div className="slide">{Slide1}</div>
-          <div className="slide">{Slide1}</div>
+          <div className="slide">{Slide8}</div>
+          <div className="slide">{Slide9}</div>
+          <div className="slide">{Slide10}</div>
           <div className="slide">{Slide1}</div>
           <div className="slide">{Slide1}</div>
         </div>

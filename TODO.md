@@ -11,7 +11,7 @@ Things to do:
 - Add a `priceImproved` flag to OneOffVariableFiat items. Prresently it would be activated by default, but if we de-activated it, it would ensure that a variable drawdown that we are willing to spend 1BTC on will _always_ remove 1BTC from holdings, on a date that it is affordable to do so. This would make the drawdown graph pretty. To do this, we need to re-implament variable-drawdown-cache and variable drawdown final. We need to add a new column (boolean) as the flag, and shorten the week column from a Float64 to a Uint32 or UInt16. By doing this, we add a feature and reduce memory footprint! Woudl then off course need to pipe a new state setting throw everythign, but coudl be fun!
 - when in mobil mode, opening Model and Render pains should toggle each other so only 1 can be open at a time.
 - the bottom should have:
-  - copyright, legal, contact, source, FAQ,
+  - copyright, legal, privacy, contact, source, FAQ,
 - Add info buttons where appropriate. Model, Walks,
 - this needs to be deployed on netlify with apporpriate HTTPS headers for using SharedArrayBuffers
 - add annotations that show when a drawdown starts / ends / type / name on the graph.
@@ -25,3 +25,5 @@ Things to do:
 - On Mobile, when you expand Model or Render, it should collapse Drawdown. On Desktop it should stay as is.
 - Remove leading 0s in all inputs
 - Firefox allocs max-array upfront and does not memory clear it. It might be better to force firefox to use set-size arrays.
+- If you try and hit "delete" on an entered date, it kills the page.
+- crosshair at mouse option, draw line / vertical / horizontal / box / text box
