@@ -42,6 +42,10 @@ const FloatBox = styled.fieldset<{ $isDragging: boolean; $isOpen: boolean }>`
   -webkit-backdrop-filter: blur(4px);
 `;
 
+const Hidden = styled.div`
+  position: absolute;
+`;
+
 const Legend = styled.legend`
   padding-inline-start: 10px;
   padding-inline-end: 7px;
@@ -218,7 +222,7 @@ const Summary = (): JSX.Element => {
   const results = "Results";
 
   // eslint-disable-next-line unicorn/no-null
-  if (hideResults) return <div />;
+  if (hideResults) return <Hidden />;
 
   return (
     <FloatBox
