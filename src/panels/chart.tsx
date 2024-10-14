@@ -14,26 +14,7 @@ import zoom from "chartjs-plugin-zoom";
 import { Line } from "react-chartjs-2";
 import styled from "styled-components";
 
-import { isMobile } from "../constants";
 import { useComputedValues } from "../contexts/computed";
-
-const watermarkPlugin = {
-  afterDraw: (chart: ChartJS) => {
-    const context = chart.ctx;
-    context.save();
-    const text = `${isMobile() ? "" : "gildedpleb.github.io/ergodic-drawdown | "}@gildedpleb `;
-    const fontSize = isMobile() ? 10 : 18;
-    context.font = `${fontSize}px Arial`;
-    context.textAlign = "right";
-    context.textBaseline = "bottom";
-    context.fillStyle = "#999";
-    const x = chart.chartArea.right;
-    const y = chart.chartArea.bottom;
-    context.fillText(text, x, y);
-    context.restore();
-  },
-  id: "watermark",
-};
 
 ChartJS.register(
   CategoryScale,
@@ -46,7 +27,6 @@ ChartJS.register(
   zoom,
   TimeScale,
   Filler,
-  watermarkPlugin,
 );
 
 const Container = styled.section`
