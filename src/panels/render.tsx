@@ -12,7 +12,10 @@ import RenderModelMinInput from "../components/input/render-model-min";
 import RenderPriceDistribution from "../components/input/render-price-distributions";
 import RenderPriceWalkInput from "../components/input/render-price-walks";
 import RenderSampleCount from "../components/input/render-sample-count";
+import { isMobile } from "../constants";
 import { fieldLabels } from "../content";
+import { useDrawdown } from "../contexts/drawdown";
+import { useModel } from "../contexts/model";
 import { useRender } from "../contexts/render";
 
 const Container = styled.fieldset<{ $isOpen: boolean }>`
@@ -74,11 +77,29 @@ const StandAlone = styled.div`
 `;
 
 const RenderOptions = (): JSX.Element => {
-  const { setShowRender, showRender } = useRender();
+  const { setHideResults, setShowRender, showRender } = useRender();
+  const { setShowModel } = useModel();
+  const { setShowDrawdown } = useDrawdown();
 
   const toggleModelExpansion = useCallback(() => {
+    if (isMobile()) {
+      if (showRender) {
+        setShowDrawdown(true);
+        setHideResults(false);
+      } else {
+        setHideResults(true);
+        setShowDrawdown(false);
+      }
+      setShowModel(false);
+    }
     setShowRender(!showRender);
-  }, [setShowRender, showRender]);
+  }, [
+    setHideResults,
+    setShowDrawdown,
+    setShowModel,
+    setShowRender,
+    showRender,
+  ]);
 
   return (
     <Container $isOpen={showRender}>

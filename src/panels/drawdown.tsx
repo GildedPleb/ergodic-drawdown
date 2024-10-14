@@ -4,6 +4,7 @@ import hashSum from "hash-sum";
 import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 
+import CaretSVG from "../components/caret";
 import Modal from "../components/drawdown-modal";
 import DrawdownTable from "../components/drawdown-table";
 import { SecureFileOperationsModal } from "../components/file-operations-modal";
@@ -27,9 +28,12 @@ const buttonText = "➕";
 const buttonSave = "💾";
 const buttonLoad = "📂";
 
-const Container = styled.fieldset<{ $guessHeight: number }>`
+const Container = styled.fieldset<{ $guessHeight: number; $isOpen: boolean }>`
   width: calc(100vw - 50px);
   height: calc(${isMobile() ? "50vh" : "39vh"} - 117px);
+
+  max-height: ${({ $guessHeight, $isOpen }) =>
+    $isOpen ? $guessHeight : "20"}px;
 
   display: flex;
   flex-direction: column;
@@ -46,9 +50,12 @@ const Container = styled.fieldset<{ $guessHeight: number }>`
   position: relative;
 
   z-index: 1;
+
+  transition: max-height 0.4s ease-in-out;
 `;
 
 const Legend = styled.legend`
+  cursor: pointer;
   padding-inline-start: 10px;
   padding-inline-end: 7px;
 `;
@@ -115,7 +122,12 @@ const Drawdown = (): JSX.Element => {
     setOneOffFiatVariables,
     setOneOffItems,
     setReoccurringItems,
+    setShowDrawdown,
+    showDrawdown,
   } = drawdownState;
+
+  const { setShowRender } = renderState;
+  const { setShowModel } = modelState;
 
   const fullState = useMemo(
     () => ({ ...modelState, ...drawdownState, ...renderState }),
@@ -251,9 +263,20 @@ const Drawdown = (): JSX.Element => {
     ) as unknown as AppState;
   }, [fullState]);
 
+  const toggleModelExpansion = useCallback(() => {
+    if (isMobile() && !showDrawdown) {
+      setShowRender(false);
+      setShowModel(false);
+    }
+    setShowDrawdown(!showDrawdown);
+  }, [setShowDrawdown, setShowModel, setShowRender, showDrawdown]);
+
   return (
-    <Container $guessHeight={guessHeight}>
-      <Legend>{fieldLabels.drawdown}</Legend>
+    <Container $guessHeight={guessHeight} $isOpen={showDrawdown}>
+      <Legend onClick={toggleModelExpansion}>
+        {fieldLabels.drawdown}
+        <CaretSVG $isOpen={showDrawdown} />
+      </Legend>
       <Fill />
       <SectionRow>
         <Button onClick={handleOpenModal}>{buttonText}</Button>

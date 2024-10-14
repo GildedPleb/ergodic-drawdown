@@ -5,6 +5,7 @@ import { type DistributionType, type ProviderProperties } from "../types";
 
 // eslint-disable-next-line functional/no-mixed-types
 export interface RenderContextType {
+  hideResults: boolean;
   renderDrawdownDistribution: DistributionType;
   renderDrawdownWalks: boolean;
   renderModelMax: boolean;
@@ -12,6 +13,7 @@ export interface RenderContextType {
   renderPriceDistribution: DistributionType;
   renderPriceWalks: boolean;
   samplesToRender: number | undefined;
+  setHideResults: React.Dispatch<React.SetStateAction<boolean>>;
   setRenderDrawdownDistribution: React.Dispatch<
     React.SetStateAction<DistributionType>
   >;
@@ -47,10 +49,12 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [renderDrawdownDistribution, setRenderDrawdownDistribution] =
     useState<DistributionType>("Quantile");
   const [showResults, setShowResults] = useState<boolean>(false);
+  const [hideResults, setHideResults] = useState<boolean>(false);
 
   const value = useMemo(
     () =>
       ({
+        hideResults,
         renderDrawdownDistribution,
         renderDrawdownWalks,
         renderModelMax,
@@ -58,6 +62,7 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
         renderPriceDistribution,
         renderPriceWalks,
         samplesToRender,
+        setHideResults,
         setRenderDrawdownDistribution,
         setRenderDrawdownWalks,
         setRenderModelMax,
@@ -71,6 +76,7 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
         showResults,
       }) satisfies RenderContextType,
     [
+      hideResults,
       renderDrawdownDistribution,
       renderDrawdownWalks,
       renderModelMax,

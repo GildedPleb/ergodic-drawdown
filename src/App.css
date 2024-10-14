@@ -182,14 +182,14 @@
   max-width: 95vw;
 }
 
-.how-to-panel {
+/* .how-to-panel {
   overflow: hidden;
   max-height: 0px;
   transition: max-height .5s;
   width: auto;
   max-width: min(95vw, 1000px);
   text-align: left;
-}
+} */
 
 .how-to-panel.visible {
   max-height: 4500px;

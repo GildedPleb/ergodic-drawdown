@@ -1,6 +1,6 @@
 /* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
 /* eslint-disable @shopify/strict-component-boundaries */
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import styled from "styled-components";
 
 import CaretSVG from "../components/caret";
@@ -11,7 +11,9 @@ import SampleInput from "../components/input/samples";
 import VolInput from "../components/input/volatility";
 import WalkInput from "../components/input/walk";
 import ModelSize from "../components/model-size";
+import { isMobile } from "../constants";
 import { fieldLabels } from "../content";
+import { useDrawdown } from "../contexts/drawdown";
 import { useModel } from "../contexts/model";
 import { useRender } from "../contexts/render";
 
@@ -59,20 +61,34 @@ const Section = styled.section`
 
 const PriceModel = (): JSX.Element => {
   const { setShowModel, showModel } = useModel();
-  const { setShowResults, showResults } = useRender();
-  const savedShowResultsState = useRef<boolean | null>(null);
+  const { setHideResults, setShowRender, showRender } = useRender();
+  const { setShowDrawdown } = useDrawdown();
 
   const toggleModelExpansion = useCallback(() => {
     if (showModel) {
-      if (savedShowResultsState.current !== null) {
-        setShowResults(savedShowResultsState.current);
+      if (isMobile()) {
+        setHideResults(false);
+        setShowDrawdown(true);
       }
     } else {
-      savedShowResultsState.current = showResults;
-      setShowResults(false);
+      if (isMobile()) {
+        if (showRender) {
+          setShowRender(false);
+        }
+        setHideResults(true);
+
+        setShowDrawdown(false);
+      }
     }
     setShowModel(!showModel);
-  }, [setShowModel, showModel, setShowResults, showResults]);
+  }, [
+    showModel,
+    setShowModel,
+    setHideResults,
+    setShowDrawdown,
+    showRender,
+    setShowRender,
+  ]);
 
   return (
     <GhostWrapper $isOpen={showModel}>

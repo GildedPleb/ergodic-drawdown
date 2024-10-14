@@ -61,7 +61,7 @@ const Summary = (): JSX.Element => {
   const [isDragging, setIsDragging] = useState(false);
   const dragReference = useRef<{ x: number; y: number } | null>(null);
 
-  const { setShowResults, showResults } = useRender();
+  const { hideResults, setShowResults, showResults } = useRender();
 
   const { simulationStats, volumeStats, zeroCount } = useComputedValues();
 
@@ -216,6 +216,9 @@ const Summary = (): JSX.Element => {
   );
 
   const results = "Results";
+
+  // eslint-disable-next-line unicorn/no-null
+  if (hideResults) return <div />;
 
   return (
     <FloatBox

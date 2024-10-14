@@ -40,6 +40,8 @@ export interface DrawdownContextType {
   >;
   setOneOffItems: React.Dispatch<React.SetStateAction<OneOffItem[]>>;
   setReoccurringItems: React.Dispatch<React.SetStateAction<ReoccurringItem[]>>;
+  setShowDrawdown: React.Dispatch<React.SetStateAction<boolean>>;
+  showDrawdown: boolean;
   variableDrawdownCache: LRUCache<string, VariableDrawdownCache>;
 }
 
@@ -53,6 +55,7 @@ const reward = 50 / 2 ** Object.keys(loadedHalvings).length;
 export const DrawdownProvider: React.FC<ProviderProperties> = ({
   children,
 }) => {
+  const [showDrawdown, setShowDrawdown] = useState<boolean>(true);
   const [loadingVolumeData, setLoadingVolumeData] = useState<boolean>(true);
   const drawdownData = useRef(
     new GrowableSharedArray(
@@ -75,7 +78,7 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     //   name: "Live off Bitcoin",
     // },
     {
-      active: false,
+      active: true,
       annualAmount: 1,
       annualPercentChange: 0,
       effective: new Date(Date.now() + 24.5 * MS_PER_YEAR),
@@ -111,16 +114,16 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
   const [oneOffFiatVariables, setOneOffFiatVariables] = useState<
     OneOffFiatVariable[]
   >([
-    {
-      active: true,
-      amountToday: 250_000,
-      btcWillingToSpend: 2,
-      delay: 0,
-      hash: "3ccbd62a",
-      id: "item-0",
-      name: "New Back House",
-      start: 100,
-    },
+    // {
+    //   active: true,
+    //   amountToday: 250_000,
+    //   btcWillingToSpend: 2,
+    //   delay: 0,
+    //   hash: "3ccbd62a",
+    //   id: "item-0",
+    //   name: "New Back House",
+    //   start: 100,
+    // },
     // {
     //   active: true,
     //   amountToday: 20_000,
@@ -217,6 +220,8 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
         setOneOffFiatVariables,
         setOneOffItems,
         setReoccurringItems,
+        setShowDrawdown,
+        showDrawdown,
         variableDrawdownCache: innerCacheReference.current,
       }) satisfies DrawdownContextType,
     [
@@ -226,6 +231,7 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
       oneOffFiatVariables,
       oneOffItems,
       reoccurringItems,
+      showDrawdown,
     ],
   );
 

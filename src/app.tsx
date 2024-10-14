@@ -4,6 +4,7 @@ import "chartjs-adapter-date-fns";
 import React from "react";
 import styled from "styled-components";
 
+import { isMobile } from "./constants";
 // import ForkUs from "./components/fork-us";
 import { useProcessing } from "./data/effects";
 
@@ -35,14 +36,14 @@ const Top = styled.div`
   display: flex;
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 5px 10px;
+  ${isMobile() ? "margin-bottom: -20px;" : ""}
 `;
 
 const LimitHeight = styled.div<{ $zIndex: number }>`
-  max-height: 22px;
+  max-height: ${isMobile() ? "100%" : "22px"};
   flex: 1;
   min-width: 350px;
-
   z-index: ${({ $zIndex }) => $zIndex};
 `;
 
