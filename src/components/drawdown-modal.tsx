@@ -455,7 +455,7 @@ const DrawdownModal = ({
     onDelete === undefined ? (
       <div />
     ) : (
-      <ActionButton backgroundColor="#ff005d" onClick={handleDelete}>
+      <ActionButton $backgroundColor="#ff005d" onClick={handleDelete}>
         {input.delete}
       </ActionButton>
     );

@@ -1,8 +1,8 @@
 import styled from "styled-components";
 
-export const ActionButton = styled.button<{ backgroundColor?: string }>`
+export const ActionButton = styled.button<{ $backgroundColor?: string }>`
   align-self: flex-end;
-  background-color: ${({ backgroundColor }) => backgroundColor ?? "#007bff"};
+  background-color: ${({ $backgroundColor }) => $backgroundColor ?? "#007bff"};
   color: white;
   border: none;
   border-radius: 4px;
