@@ -111,8 +111,8 @@ export const seededRandom = (seed: number): number => {
   return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
 };
 
-export const generateColor = (index: number): string => {
-  if (index === 0) return "rgb(246, 145, 50)";
+export const generateColor = (index: number, opacity = 1): string => {
+  if (index === 0) return `rgba(246, 145, 50, ${opacity})`;
   let temporary = index;
   // eslint-disable-next-line functional/functional-parameters
   const random = (): number => seededRandom((temporary += 0x6d_2b_79_f5));
@@ -120,7 +120,7 @@ export const generateColor = (index: number): string => {
   const green = Math.floor(random() * 256);
   const blue = Math.floor(random() * 256);
 
-  return `rgb(${red}, ${green}, ${blue})`;
+  return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 };
 
 export const quantile = (

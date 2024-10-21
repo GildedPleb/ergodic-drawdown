@@ -1,6 +1,7 @@
 /* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
 /* eslint-disable unicorn/no-null */
 import { type ChartOptions, type Point } from "chart.js";
+import { type LineAnnotationOptions } from "chartjs-plugin-annotation";
 import hashSum from "hash-sum";
 import { LRUCache } from "lru-cache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,7 +32,11 @@ type PrimitiveDependency =
       finalBalance: Float64Array;
       zero: number;
     }
-  | Array<Record<string, number | object | string>>
+  | Array<{
+      effectiveWeek: number;
+      endWeek: number;
+      name: string;
+    }>
   | BitcoinDataPoint[]
   | ChartOptions<"line">
   | Dataset
@@ -44,6 +49,7 @@ type PrimitiveDependency =
   | HalvingData
   | LRUCache<string, VariableDrawdownCache>
   | LRUCache<string, VariableDrawdownFinal>
+  | LineAnnotationOptions[]
   | OneOffFiatVariable[]
   | OneOffItem[]
   | ReoccurringItem[]

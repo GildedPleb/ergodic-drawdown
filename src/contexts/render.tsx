@@ -25,8 +25,10 @@ export interface RenderContextType {
   >;
   setRenderPriceWalks: React.Dispatch<React.SetStateAction<boolean>>;
   setSamplesToRender: React.Dispatch<React.SetStateAction<number | undefined>>;
+  setShowHistoric: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRender: React.Dispatch<React.SetStateAction<boolean>>;
   setShowResults: React.Dispatch<React.SetStateAction<boolean>>;
+  showHistoric: boolean;
   showRender: boolean;
   showResults: boolean;
 }
@@ -50,6 +52,7 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
     useState<DistributionType>("Quantile");
   const [showResults, setShowResults] = useState<boolean>(false);
   const [hideResults, setHideResults] = useState<boolean>(false);
+  const [showHistoric, setShowHistoric] = useState<boolean>(true);
 
   const value = useMemo(
     () =>
@@ -70,8 +73,10 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
         setRenderPriceDistribution,
         setRenderPriceWalks,
         setSamplesToRender,
+        setShowHistoric,
         setShowRender,
         setShowResults,
+        showHistoric,
         showRender,
         showResults,
       }) satisfies RenderContextType,
@@ -84,6 +89,7 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
       renderPriceDistribution,
       renderPriceWalks,
       samplesToRender,
+      showHistoric,
       showRender,
       showResults,
     ],

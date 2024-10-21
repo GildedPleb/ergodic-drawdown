@@ -20,6 +20,7 @@ import { handleDataProperties } from "./data-properties";
 import { handleDistribution } from "./distribution";
 import { handleDrawdownStatic } from "./drawdown-static";
 import { handleDrawdownVariables } from "./drawdown-variable";
+import { handleDrawdownVariableStats } from "./drawdown-variable-stats";
 import { handleDrawdownWalkDataset } from "./drawdown-walks";
 import { handleHalvingAnnotations } from "./halving-annotations";
 import { useCurrentPrice } from "./hooks/use-current-price";
@@ -42,9 +43,7 @@ import { calculateBalanceAndZero } from "./zero-count";
 interface ComputedContextType {
   chartOptions: ChartOptions<"line"> | null;
   dataLength: number;
-  dataProperties: {
-    datasets: DatasetList;
-  } | null;
+  dataProperties: { datasets: DatasetList } | null;
   simulationStats: { average: number; median: number } | null;
   volumeStats: { average: number; median: number } | null;
   zeroCount: { finalBalance: Float64Array; zero: number } | null;
@@ -69,6 +68,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     renderPriceDistribution,
     renderPriceWalks,
     samplesToRender,
+    showHistoric,
   } = useRender();
   const { currentBlock, halvings } = useHalvings();
   const interim = useInterimDataset();
@@ -172,7 +172,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
   const interimDataset = useDependency(
     "Interim Dataset",
     handleInterimDataset,
-    useDep(interim),
+    useDep(interim, showHistoric),
   );
 
   const inflationFactors = useDependency(
@@ -191,12 +191,6 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     "Halving Annotations",
     handleHalvingAnnotations,
     useDep(halvings, currentNotZero),
-  );
-
-  const chartOptions = useDependency(
-    "Chart Options",
-    handleChartOptions,
-    useDep(narrow(halvingAnnotations), halvingAnnotations),
   );
 
   const maxArray = useDependency(
@@ -324,6 +318,38 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     ),
   );
 
+  const drawdownVariableStats = useDependency(
+    "Drawdown Variables",
+    handleDrawdownVariableStats,
+    useDep(
+      activeOneOffVariables,
+      variableDrawdownCache,
+      showModel,
+      narrow(drawdownVariables),
+
+      drawdownVariables,
+    ),
+  );
+
+  const chartOptions = useDependency(
+    "Chart Options",
+    handleChartOptions,
+    useDep(
+      narrow(halvingAnnotations),
+      now,
+      reoccurringItems,
+      dataLength,
+      oneOffItems,
+      showModel,
+      narrow(drawdownVariableStats),
+      showHistoric,
+
+      halvingAnnotations,
+      drawdownVariableStats,
+    ),
+    false,
+  );
+
   const volume = useDependency(
     "Volume",
     handleVolume,
@@ -446,6 +472,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       narrow(minDataset),
       narrow(priceDistribution),
       narrow(priceWalks),
+      showHistoric,
 
       drawdownDistribution,
       drawdownWalks,

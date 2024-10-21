@@ -27,7 +27,8 @@ export const handleGroup = (
     if (row === undefined) throw new Error("no data");
     for (let week = 0; week < dataLength; week++) {
       const value = row[week + weeksSince];
-      groupedData[week * samples + sample] = value <= 0.01 ? 0.01 : value;
+      groupedData[week * samples + sample] =
+        value <= 0.01 && !getZero ? 0.01 : value;
     }
   }
 };

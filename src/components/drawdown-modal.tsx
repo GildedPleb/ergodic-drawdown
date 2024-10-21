@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import { getItemDescription } from "../helpers";
@@ -37,13 +37,11 @@ const Row = styled.div`
   justify-content: space-between;
   width: 100%;
   white-space: nowrap;
-  align-items: baseline;
   gap: 0 5px;
   padding-right: 5px;
 `;
 
 const Input = styled.input<{ $isPercent?: boolean }>`
-  border: none;
   border: 1px solid grey;
   border-radius: 2px;
   background-color: #333;
@@ -123,7 +121,59 @@ const InputField: React.FC<{
   type?: string;
   value?: number | string;
 }> = ({ checked, isPercent, label, max, min, name, onChange, type, value }) => {
+  const [localValue, setLocalValue] = useState<string>(value?.toString() ?? "");
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const { name: nName, type: nType, value: nValue } = event.target;
+      setLocalValue(nValue);
+
+      if (type === "date" && nValue === "") {
+        // For date inputs, if the value is empty, don't propagate the change
+        return;
+      }
+
+      onChange({
+        ...event,
+        target: { ...event.target, name: nName, type: nType, value: nValue },
+      });
+    },
+    [onChange, type],
+  );
+
+  const handleBlur = useCallback(
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      if (type === "number") {
+        const numberValue =
+          event.target.value === "" ? 0 : Number.parseFloat(event.target.value);
+        if (Number.isNaN(numberValue)) {
+          const validatedValue = "0";
+          setLocalValue(validatedValue);
+          onChange({
+            ...event,
+            target: { ...event.target, value: validatedValue },
+          });
+        } else {
+          const validatedValue = numberValue.toString();
+          setLocalValue(validatedValue);
+          onChange({
+            ...event,
+            target: { ...event.target, value: validatedValue },
+          });
+        }
+      } else if (type === "date" && event.target.value === "") {
+        // If the date is empty on blur, reset it to the current date
+        const currentDate = new Date().toISOString().split("T")[0];
+        setLocalValue(currentDate);
+        onChange({
+          ...event,
+          target: { ...event.target, value: currentDate },
+        });
+      }
+    },
+    [onChange, type],
+  );
   const overrideEnter = type === "checkbox" ? () => {} : handleEnterKey;
+
   return (
     <Row>
       <Label htmlFor={name}>{label}</Label>
@@ -134,10 +184,11 @@ const InputField: React.FC<{
         max={max}
         min={min}
         name={name}
-        onChange={onChange}
+        onBlur={handleBlur}
+        onChange={handleChange}
         onKeyDown={overrideEnter}
         type={type}
-        value={value}
+        value={localValue}
       />
     </Row>
   );
@@ -198,6 +249,57 @@ const ReoccurringItemFields: React.FC<FieldProperties<ReoccurringItem>> = ({
     [handleInputChange],
   );
 
+  const handleDateChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = event.target;
+      const effectiveDate =
+        formData.effective === undefined
+          ? new Date()
+          : new Date(formData.effective);
+      const endDate =
+        formData.end === undefined ? undefined : new Date(formData.end);
+
+      if (name === "effective") {
+        const newEffectiveDate = new Date(value);
+        if (endDate !== undefined && newEffectiveDate > endDate) {
+          // If new effective date is after end date, set end date to effective date
+          handleInputChange({
+            ...event,
+            target: { ...event.target, name: "end", value },
+          });
+        }
+      } else if (name === "end") {
+        const newEndDate = new Date(value);
+        if (newEndDate < effectiveDate) {
+          // If new end date is before effective date, set it to effective date
+          handleInputChange({
+            ...event,
+            target: {
+              ...event.target,
+              value: effectiveDate.toISOString().split("T")[0],
+            },
+          });
+          return;
+        }
+      }
+
+      handleInputChange(event);
+    },
+    [formData.effective, formData.end, handleInputChange],
+  );
+
+  const effectiveDate = useMemo(
+    () =>
+      formData.effective?.toISOString().split("T")[0] ??
+      new Date().toISOString().split("T")[0],
+    [formData.effective],
+  );
+
+  const endDate = useMemo(
+    () => formData.end?.toISOString().split("T")[0] ?? "",
+    [formData.end],
+  );
+
   return (
     <>
       <CurrencyRadioGroup
@@ -230,19 +332,16 @@ const ReoccurringItemFields: React.FC<FieldProperties<ReoccurringItem>> = ({
       <InputField
         label={labels.effectiveDate}
         name="effective"
-        onChange={handleInputChange}
+        onChange={handleDateChange}
         type="date"
-        value={
-          formData.effective?.toISOString().split("T")[0] ??
-          new Date().toISOString().split("T")[0]
-        }
+        value={effectiveDate}
       />
       <InputField
         label={labels.endDate}
         name="end"
-        onChange={handleInputChange}
+        onChange={handleDateChange}
         type="date"
-        value={formData.end?.toISOString().split("T")[0] ?? ""}
+        value={endDate}
       />
     </>
   );
@@ -374,7 +473,6 @@ const DrawdownModal = ({
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { name, type, value } = event.target;
-
       setFormData((previous) => {
         let newValue;
 

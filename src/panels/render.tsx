@@ -7,10 +7,12 @@ import styled from "styled-components";
 import CaretSVG from "../components/caret";
 import RenderDrawdownDistribution from "../components/input/render-drawdown-distribution";
 import RenderDrawdownWalksInput from "../components/input/render-drawdown-walks";
+import RenderHistoric from "../components/input/render-historic";
 import RenderModelMaxInput from "../components/input/render-model-max";
 import RenderModelMinInput from "../components/input/render-model-min";
 import RenderPriceDistribution from "../components/input/render-price-distributions";
 import RenderPriceWalkInput from "../components/input/render-price-walks";
+import RenderShowResults from "../components/input/render-results";
 import RenderSampleCount from "../components/input/render-sample-count";
 import { isMobile } from "../constants";
 import { fieldLabels } from "../content";
@@ -29,7 +31,7 @@ const Container = styled.fieldset<{ $isOpen: boolean }>`
   padding-left: 10px;
   padding-right: 10px;
   padding-top: 5px;
-  max-height: ${({ $isOpen }) => ($isOpen ? "200px" : "22px")};
+  max-height: ${({ $isOpen }) => ($isOpen ? "240px" : "22px")};
   padding-bottom: ${({ $isOpen }) => ($isOpen ? "10px" : "0px")};
   margin-bottom: 20px;
   overflow: hidden;
@@ -48,19 +50,13 @@ const Legend = styled.legend`
   padding-inline-end: 7px;
 `;
 
-const TopBox = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0px 10px;
-`;
-
 const InnerFieldset = styled.fieldset`
   max-width: min(85vw, 1000px);
   display: flex;
   border: 1px solid gray;
   padding-left: 10px;
   padding-right: 10px;
-  padding-bottom: 10px;
+  padding-bottom: 5px;
   flex-direction: row;
   align-content: baseline;
   flex-grow: 1;
@@ -77,7 +73,7 @@ const StandAlone = styled.div`
 `;
 
 const RenderOptions = (): JSX.Element => {
-  const { setHideResults, setShowRender, showRender } = useRender();
+  const { setShowRender, showRender } = useRender();
   const { setShowModel } = useModel();
   const { setShowDrawdown } = useDrawdown();
 
@@ -85,21 +81,13 @@ const RenderOptions = (): JSX.Element => {
     if (isMobile()) {
       if (showRender) {
         setShowDrawdown(true);
-        setHideResults(false);
       } else {
-        setHideResults(true);
         setShowDrawdown(false);
       }
       setShowModel(false);
     }
     setShowRender(!showRender);
-  }, [
-    setHideResults,
-    setShowDrawdown,
-    setShowModel,
-    setShowRender,
-    showRender,
-  ]);
+  }, [setShowDrawdown, setShowModel, setShowRender, showRender]);
 
   return (
     <Container $isOpen={showRender}>
@@ -107,22 +95,25 @@ const RenderOptions = (): JSX.Element => {
         {fieldLabels.render}
         <CaretSVG $isOpen={showRender} />
       </Legend>
-      <TopBox>
-        <InnerFieldset>
-          <Legend>{fieldLabels.price}</Legend>
-          <RenderPriceWalkInput />
-          <RenderPriceDistribution />
-        </InnerFieldset>
-        <InnerFieldset>
-          <Legend>{fieldLabels.drawdown}</Legend>
-          <RenderDrawdownWalksInput />
-          <RenderDrawdownDistribution />
-        </InnerFieldset>
-      </TopBox>
-      <StandAlone>
+      <InnerFieldset>
+        <Legend>{fieldLabels.model}</Legend>
+        <RenderHistoric />
         <RenderModelMaxInput />
         <RenderModelMinInput />
+      </InnerFieldset>
+      <InnerFieldset>
+        <Legend>{fieldLabels.price}</Legend>
+        <RenderPriceWalkInput />
+        <RenderPriceDistribution />
+      </InnerFieldset>
+      <InnerFieldset>
+        <Legend>{fieldLabels.drawdown}</Legend>
+        <RenderDrawdownWalksInput />
+        <RenderDrawdownDistribution />
+      </InnerFieldset>
+      <StandAlone>
         <RenderSampleCount />
+        <RenderShowResults />
       </StandAlone>
     </Container>
   );

@@ -24,7 +24,7 @@ export const handleDrawdownStatic = (
   weeklyInflationRate: number,
 ): DrawdownStaticReturn => {
   const dateToWeek = (date: Date): number =>
-    Math.floor((date.getTime() - now) / MS_PER_WEEK);
+    Math.floor((date.getTime() - now) / MS_PER_WEEK) + 1;
 
   // Calculate Weekly reoccurringItems
   const totalWeeklyFiatItems = new Float64Array(dataLength);

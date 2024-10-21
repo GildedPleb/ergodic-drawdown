@@ -40,7 +40,6 @@ export const handleDrawdownVariables = async (
   //   finalVariableCache,
   //   fullHashInflation,
   //   inflationFactors,
-  //   priceDataPool,
   //   samples,
   //   variableCacheHash,
   //   variableDrawdownCache,
@@ -59,7 +58,8 @@ export const handleDrawdownVariables = async (
   ].flatMap((oneOffFiatVariable) => {
     // Get the variable shared array buffer
     if (!variableDrawdownCache.has(oneOffFiatVariable.hash)) {
-      // Add the item
+      // Add the item, since its not there.
+      // console.log("adding the item");
       variableDrawdownCache.set(
         oneOffFiatVariable.hash,
         new VariableDrawdownCache(),
@@ -91,7 +91,7 @@ export const handleDrawdownVariables = async (
           samples,
           spread[0],
         );
-        console.log("iterable", { newTasks, spread });
+        // console.log("iterable", { newTasks, spread });
         taskQueueSamples.push(...newTasks);
       }
     } else {
@@ -123,7 +123,6 @@ export const handleDrawdownVariables = async (
         }) satisfies RunDrawdownVariableEvent,
     );
   });
-
   // console.log({ taskQueue });
   if (taskQueue.length === 0) {
     // console.log("NO TASKS", { activeOneOffVariables });
@@ -132,7 +131,7 @@ export const handleDrawdownVariables = async (
       const variableCache = variableDrawdownCache.get(hash);
       if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
       variableCache.setValidity(fullHashInflation, samples, epochCount);
-      caches.push(variableCache);
+      if (variableCache.isFull()) caches.push(variableCache);
     }
     const finalResults = new VariableDrawdownFinal(
       caches,
@@ -146,14 +145,14 @@ export const handleDrawdownVariables = async (
   const results = await worker.addTasks(taskQueue, signal);
 
   if (results.some((result) => result.status === "aborted")) {
-    // console.log("aborted");
+    console.log("aborted");
   } else {
     const caches = [];
     for (const { hash } of activeOneOffVariables) {
       const variableCache = variableDrawdownCache.get(hash);
       if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
       variableCache.setValidity(fullHashInflation, samples, epochCount);
-      caches.push(variableCache);
+      if (variableCache.isFull()) caches.push(variableCache);
     }
     const finalResults = new VariableDrawdownFinal(
       caches,
@@ -162,5 +161,5 @@ export const handleDrawdownVariables = async (
     );
     finalVariableCache.set(variableCacheHash, finalResults);
   }
-  return "success:" + variableCacheHash;
+  return "success:" + returnHash;
 };

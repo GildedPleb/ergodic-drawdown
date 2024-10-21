@@ -15,6 +15,7 @@ import { Line } from "react-chartjs-2";
 import styled from "styled-components";
 
 import { useComputedValues } from "../contexts/computed";
+import { type DatasetList } from "../types";
 
 ChartJS.register(
   CategoryScale,
@@ -35,20 +36,19 @@ const Container = styled.section`
   flex: 1;
   transition: all 0.4s ease-in-out;
 `;
-
-const StyledLine = styled(Line)``;
-
-const defaultCart = { datasets: [] };
+const defaultData = { datasets: [] as DatasetList };
 
 const Chart = (): JSX.Element => {
   const { chartOptions, dataProperties } = useComputedValues();
   return (
     <Container>
+      {/*
+        Rendering the chart without options, or with default options, will
+        create a chart that will essentially be stuck with the default options
+        while annotations pipe through.
+      */}
       {chartOptions !== null && (
-        <StyledLine
-          data={dataProperties ?? defaultCart}
-          options={chartOptions}
-        />
+        <Line data={dataProperties ?? defaultData} options={chartOptions} />
       )}
     </Container>
   );

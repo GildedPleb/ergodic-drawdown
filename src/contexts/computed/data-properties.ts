@@ -11,11 +11,14 @@ export const handleDataProperties = (
   minDataset: DatasetList,
   priceDistribution: DatasetList,
   priceWalks: DatasetList,
+  showHistoric: boolean,
   // eslint-disable-next-line max-params
 ): { datasets: DatasetList } => {
+  // @ts-expect-error this works fine and is annoying to fix better
   return {
     datasets: [
-      marketDataset,
+      // @ts-expect-error this works fine and is annoying to fix better
+      showHistoric ? marketDataset : {},
       interimDataset,
       ...priceWalks,
       ...priceDistribution,

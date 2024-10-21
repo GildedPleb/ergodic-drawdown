@@ -67,7 +67,7 @@ export default class VariableDrawdownCache {
 
   isFull(): boolean {
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let index = 0; index < this.view.length; index++) {
+    for (let index = 0; index < this.cacheHeight; index += 2) {
       if (this.view[index] === -1) {
         return false;
       }
@@ -105,6 +105,17 @@ export default class VariableDrawdownCache {
     }
     const index = sample * 2;
     return [this.view[index], this.view[index + 1]];
+  }
+
+  getGate(): [effective: number, end: number] {
+    let min = Number.MAX_SAFE_INTEGER;
+    let max = 0;
+    for (let index = 0; index < this.cacheHeight * 2; index += 2) {
+      const week = this.view[index];
+      if (week < min) min = week;
+      if (week > max) max = week;
+    }
+    return [min, max];
   }
 
   set(sample: number, week: number, amount: number): void {
