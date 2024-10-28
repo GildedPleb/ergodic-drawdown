@@ -1,11 +1,9 @@
-import "./App.css";
 import "chartjs-adapter-date-fns";
 
 import React from "react";
 import styled from "styled-components";
 
 import { isMobile } from "./constants";
-// import ForkUs from "./components/fork-us";
 import { useProcessing } from "./data/effects";
 
 const Tutorial = React.lazy(async () => import("./tutorial"));
@@ -44,6 +42,7 @@ const LimitHeight = styled.div<{ $zIndex: number }>`
   min-width: 350px;
   z-index: ${({ $zIndex }) => $zIndex};
 `;
+
 const StochasticGraph = (): React.ReactNode => {
   useProcessing();
   return (

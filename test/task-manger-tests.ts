@@ -1,6 +1,6 @@
 // Import the function (assuming it's in a file named taskQueue.js)
-import { createTaskQueue } from "./helpers";
-import { type Task } from "./types";
+import { createTaskQueue } from "../src/helpers";
+import { type Task } from "../src/types";
 
 interface RuntimeAnalysis {
   roundBreakdown: Array<{ round: number; runtime: number }>;

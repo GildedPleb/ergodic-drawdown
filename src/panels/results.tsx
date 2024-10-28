@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import CaretSVG from "../components/caret";
+import Loading from "../components/loading";
 import { MS_PER_WEEK } from "../constants";
 import { useComputedValues } from "../contexts/computed";
 import { useDrawdown } from "../contexts/drawdown";
@@ -85,7 +86,7 @@ const Summary = (): JSX.Element => {
   const escapeVelocity = useMemo(
     () =>
       loadingVolumeData || samples === 0 ? (
-        <div className="loader" />
+        <Loading />
       ) : (
         `${(100 - (zero / samples) * 100).toFixed(2)}% chance of not exhausting bitcoin holdings ${expired === "" ? expired : "by " + expired}
         with an average of ${Number.isNaN(average) ? bitcoin : average.toFixed(4)} Bitcoin left

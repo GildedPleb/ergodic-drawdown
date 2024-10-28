@@ -56,6 +56,22 @@ const Slide = styled.div`
   justify-content: center;
 `;
 
+const Nav = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+`;
+
+const SlideContent = styled.div`
+  max-width: 70vw;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+`;
+
 const Tutorial = (): JSX.Element => {
   const {
     setClampBottom,
@@ -110,7 +126,7 @@ const Tutorial = (): JSX.Element => {
   ]);
 
   const Slide1 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         <strong>How Much Bitcoin is Enough?</strong>
       </p>
@@ -135,7 +151,7 @@ const Tutorial = (): JSX.Element => {
         Ready to get started? Let's 0 out everything by clicking{" "}
         <strong>Next</strong>.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toggleTutorial = useCallback(() => {
@@ -168,7 +184,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide2 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         In the chart below, we now only see the historic bitcoin price (Orange
         Line), vertical past halving dates (Vertical Grey Lines), and today
@@ -180,7 +196,7 @@ const Tutorial = (): JSX.Element => {
         Got some Bitcoin and a little price history under your belt? Click{" "}
         <strong>Next</strong> to visualize our first Bitcoin price model.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide3 = (): void => {
@@ -193,7 +209,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide3 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         Pricing models for Bitcoin have become famous over the years for
         predicting what the future price of bitcoin will be by regressing the
@@ -222,7 +238,7 @@ const Tutorial = (): JSX.Element => {
         that might fit the model and capture this uncertainty better. Tap{" "}
         <strong>Next</strong> to add a Range.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide4 = (): void => {
@@ -233,7 +249,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide4 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         The original Bitcoin Rainbow Chart became famous for plotting the
         bitcoin price in a Rainbow Range. And rightly so, for it takes the
@@ -256,7 +272,7 @@ const Tutorial = (): JSX.Element => {
         Let's look at one potential bitcoin future by clicking{" "}
         <strong>Next</strong>.{" "}
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide5 = (): void => {
@@ -272,7 +288,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide5 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         As you can see, one semi-chaotic, non-random price projection is now
         shown that roughly follows (but does not strictly respect) the shape of
@@ -292,7 +308,7 @@ const Tutorial = (): JSX.Element => {
         <strong>Next</strong> which will set the volatility to 0 (Model ▼,
         Volatility: 0).
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide6 = (): void => {
@@ -302,7 +318,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide6 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         This is the pure pattern with no noise or randomness added. Cycle
         through all the different walks to see how they are differentiated
@@ -324,7 +340,7 @@ const Tutorial = (): JSX.Element => {
         either by clicking <strong>Next</strong> or by manually increasing it
         and then clicking <strong>Next</strong>.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide7 = (): void => {
@@ -334,7 +350,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide7 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         Cycle through the models, walks, and volatility together. Get
         comfortable plotting Bitcoins future. Which combination do you like?
@@ -356,7 +372,7 @@ const Tutorial = (): JSX.Element => {
         After all, one walk, alone, is irrelevant. But what about many in
         aggregate?
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide8 = (): void => {
@@ -369,7 +385,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide8 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         A Monte Carlo Simulation is were many walks are taken into account,
         given the same assumptions, to find larger patterns in the data. We have
@@ -389,7 +405,7 @@ const Tutorial = (): JSX.Element => {
         Let's look at some statistics for these walks by clicking{" "}
         <strong>Next</strong>.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide9 = (): void => {
@@ -400,7 +416,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide9 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         We have two methods for analyzing aggregate walk data:{" "}
         <strong>Quantile Distribution</strong> and{" "}
@@ -426,7 +442,7 @@ const Tutorial = (): JSX.Element => {
         Let's focus on Quantile with a quick discussion of Granularity and Data
         by clicking <strong>Next</strong>.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide10 = (): void => {
@@ -437,7 +453,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide10 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         Two key inputs significantly impact this tool's quality:{" "}
         <strong>Epoch Count</strong> and <strong>Samples</strong>.
@@ -467,7 +483,7 @@ const Tutorial = (): JSX.Element => {
         Before we get some answers to "How much is enough?" we have one more
         important, preliminary concept to cover.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide11 = (): void => {
@@ -482,7 +498,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide11 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         So far, we have looked at Bitcoin Price modeling, walks, using these in
         concert to create thousands of price predictions, and the probabilities
@@ -509,7 +525,7 @@ const Tutorial = (): JSX.Element => {
         to "How much is enough?" Click <strong>Next</strong> to continue to
         Drawdowns.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide12 = (): void => {
@@ -529,7 +545,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide12 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>Congratulations!</p>
       <p>
         A Nigerian Prince recently passed away and you have inherited 1000
@@ -553,7 +569,7 @@ const Tutorial = (): JSX.Element => {
         We will start as we started for bitcoin price projections: with 1
         drawdown sample.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide13 = (): void => {
@@ -577,7 +593,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide13 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>We have now added a drawdown event.</p>
       <p>
         With your new-found massive net worth (but pleb ways), you plan to buy a
@@ -600,7 +616,7 @@ const Tutorial = (): JSX.Element => {
       <p>
         Click <strong>Next</strong> to check out the stats.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide14 = (): void => {
@@ -619,7 +635,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide14 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         We now see the quantile distribution of price and our single drawdown.
         On the right, at the end of the chart, when you hover your mouse, you
@@ -648,7 +664,7 @@ const Tutorial = (): JSX.Element => {
         We will reset the house when we click <strong>Next</strong> and learn to
         add a new drawdown event.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide15 = (): void => {
@@ -678,7 +694,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide15 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         Click the ➕ button to add a new drawdown event. Select Type:
         "Reoccurring", give it the name "Retirement", choose currency "USD",
@@ -698,13 +714,13 @@ const Tutorial = (): JSX.Element => {
         We have one more darwdown event type to cover:{" "}
         <strong>One-Off Fiat Variable-Date</strong>
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide16 = (): void => {};
 
   const Slide16 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         What if you have low time preference and instead of needing an item by a
         specific date, would rather wait to spend a specific amount of bitcoin?
@@ -733,13 +749,13 @@ const Tutorial = (): JSX.Element => {
         As expected, increasing the bitcoin willing to spend, will push up the
         range, and decreasing it will decrease the range.
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide17 = (): void => {};
 
   const Slide17 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         Now that we have a strong sense of our drawdown options, it's time to
         talk about inflation.
@@ -769,7 +785,7 @@ const Tutorial = (): JSX.Element => {
         Bad enough, to be sure. But this doesn't even scratch the surface of how
         evil inflation is. Let's see a more realistic scenario...
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide18 = (): void => {
@@ -811,7 +827,7 @@ const Tutorial = (): JSX.Element => {
   };
 
   const Slide18 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         You wasted your 20s on fiat BS and have no net worth, but at 30 years
         old, you finally took the Orange Pill: 🤯 You have committed to stacking
@@ -839,13 +855,13 @@ const Tutorial = (): JSX.Element => {
         Assuming 8% inflation, what can you do to last till 110? There are many
         ways to skin this cat. How would you do it?
       </p>
-    </div>
+    </SlideContent>
   );
 
   const toSlide19 = (): void => {};
 
   const Slide19 = (
-    <div className="slide-content">
+    <SlideContent>
       <p>
         Solving the above problem is hard. But Bitcioners are used to doing
         things the hard way and as such inflation defaults to 8%.
@@ -854,7 +870,7 @@ const Tutorial = (): JSX.Element => {
       <p />
       <p />
       <p>Fiat delenda est.</p>
-    </div>
+    </SlideContent>
   );
 
   const nextSlide = useCallback(() => {
@@ -992,9 +1008,6 @@ const Tutorial = (): JSX.Element => {
         {tutorialText}
         <CaretSVG $isOpen={isTutorialActive} />
       </Legend>
-      {/* <button onClick={toggleTutorial} type="button">
-        {tutorialText}
-      </button> */}
       <Showable $isOpen={isTutorialActive}>
         <Slides style={transitionStyle}>
           <Slide>{Slide1}</Slide>
@@ -1017,7 +1030,7 @@ const Tutorial = (): JSX.Element => {
           <Slide>{Slide18}</Slide>
           <Slide>{Slide19}</Slide>
         </Slides>
-        <div className="nav">
+        <Nav>
           <button
             disabled={currentSlide === 0}
             onClick={previousSlide}
@@ -1033,7 +1046,7 @@ const Tutorial = (): JSX.Element => {
           >
             Next
           </button>
-        </div>
+        </Nav>
       </Showable>
     </Container>
   );
