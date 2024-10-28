@@ -13,10 +13,8 @@ const Model = React.lazy(async () => import("./panels/model"));
 const RenderOptions = React.lazy(async () => import("./panels/render"));
 const Chart = React.lazy(async () => import("./panels/chart"));
 const Drawdown = React.lazy(async () => import("./panels/drawdown"));
-// const More = React.lazy(async () => import("./panels/More"));
-// const PayMe = React.lazy(async () => import("./panels/pay-me"));
+const Footer = React.lazy(async () => import("./panels/footer"));
 const Results = React.lazy(async () => import("./panels/results"));
-// const Legal = React.lazy(async () => import("./panels/legal"));
 
 const App = styled.div`
   display: flex;
@@ -46,14 +44,10 @@ const LimitHeight = styled.div<{ $zIndex: number }>`
   min-width: 350px;
   z-index: ${({ $zIndex }) => $zIndex};
 `;
-
 const StochasticGraph = (): React.ReactNode => {
-  // console.time("render");
   useProcessing();
-  // console.timeEnd("render");
   return (
     <App>
-      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, sonarjs/no-redundant-boolean */}
       <Top>
         <Tutorial />
         <LimitHeight $zIndex={5}>
@@ -66,10 +60,7 @@ const StochasticGraph = (): React.ReactNode => {
       <Chart />
       <Drawdown />
       <Results />
-      {/* <More /> */}
-      {/* <PayMe /> */}
-      {/* <ForkUs /> */}
-      {/* <Legal /> */}
+      <Footer />
     </App>
   );
 };

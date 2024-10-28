@@ -102,11 +102,11 @@ const labels = {
   btcWillingToSpend: "BTC Willing to Spend:",
   currency: "Currency:",
   currencyType: "Currency Type:",
-  delay: "Delay:",
+  delay: "Delay (Weeks):",
   effectiveDate: "Effective Date:",
   endDate: "End Date (optional):",
   expense: "Expense:",
-  start: "Start:",
+  start: "Start (%):",
   usd: "USD",
 };
 

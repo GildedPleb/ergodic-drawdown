@@ -2,8 +2,6 @@ Things to do:
 
 - Add a `priceImproved` flag to OneOffVariableFiat items. Presently it would be activated by default, but if we de-activated it, it would ensure that a variable drawdown that we are willing to spend 1BTC on will _always_ remove 1BTC from holdings, on a date that it is affordable to do so. This would make the drawdown graph pretty. To do this, we need to re-implament variable-drawdown-cache and variable drawdown final. We need to add a new column (boolean) as the flag, and shorten the week column from a Float64 to a Uint32 or UInt16. By doing this, we add a feature and reduce memory footprint! Woudl then off course need to pipe a new state setting throw everythign, but coudl be fun!
 
-- the bottom should have:
-  - copyright, legal, privacy, contact, source, FAQ,
 - Add info buttons where appropriate. Model, Walks,
 - this needs to be deployed on netlify with apporpriate HTTPS headers for using SharedArrayBuffers
 - improve the bubble walk
@@ -20,3 +18,4 @@ Things to do:
 - review / finalize the open/close state of all panels and positioning as the user navigates the app on mobil and desktop (if the use clicks Model on cell, Render and Drawdown should close, etc)
 - Add the ability for a variable drawdown that is tied to % of total. Thus being able to model the 4% rule.
 - When set to Random Walk, it looks like one of the quantiles converges with Max Price line. INvestigate this, cus this shoudl not be the case.
+- Add a one-off drawdown event that is random between two dates.

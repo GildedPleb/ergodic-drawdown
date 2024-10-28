@@ -67,27 +67,27 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
   const [bitcoin, setBitcoin] = useState<number>(reward);
   const [inflation, setInflation] = useState<number>(8);
   const [reoccurringItems, setReoccurringItems] = useState<ReoccurringItem[]>([
-    // {
-    //   active: false,
-    //   annualAmount: 100_000,
-    //   annualPercentChange: 0,
-    //   effective: new Date(Date.now()),
-    //   expense: true,
-    //   id: "item-1",
-    //   isFiat: true,
-    //   name: "Live off Bitcoin",
-    // },
     {
       active: true,
-      annualAmount: 1,
+      annualAmount: 100_000,
       annualPercentChange: 0,
-      effective: new Date(Date.now() + 24.5 * MS_PER_YEAR),
-      end: new Date(Date.now() + 25 * MS_PER_YEAR),
-      expense: false,
-      id: "item-2",
-      isFiat: false,
-      name: "Basic Bitcoin Reoccurring",
+      effective: new Date(Date.now() + 8 * MS_PER_YEAR),
+      expense: true,
+      id: "item-1",
+      isFiat: true,
+      name: "Live off Bitcoin",
     },
+    // {
+    //   active: false,
+    //   annualAmount: 1,
+    //   annualPercentChange: 0,
+    //   effective: new Date(Date.now() + 24.5 * MS_PER_YEAR),
+    //   end: new Date(Date.now() + 25 * MS_PER_YEAR),
+    //   expense: false,
+    //   id: "item-2",
+    //   isFiat: false,
+    //   name: "Basic Bitcoin Reoccurring",
+    // },
   ]);
 
   const [oneOffItems, setOneOffItems] = useState<OneOffItem[]>([
@@ -126,12 +126,12 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     // },
     // {
     //   active: true,
-    //   amountToday: 20_000,
-    //   btcWillingToSpend: 0.1,
-    //   delay: 90,
-    //   hash: "item-1",
-    //   id: "item-1",
-    //   name: "Basic Variable 1",
+    //   amountToday: 40_000,
+    //   btcWillingToSpend: 0.01,
+    //   delay: 0,
+    //   hash: "0f0dd5a8",
+    //   id: "30f01e9e",
+    //   name: "New Item",
     //   start: 100,
     // },
     // {
@@ -197,7 +197,7 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
   ]);
 
   const innerCacheReference = useRef(
-    new LRUCache<string, VariableDrawdownCache>({ max: 1 }),
+    new LRUCache<string, VariableDrawdownCache>({ max: 100 }),
   );
   const finalVariableCacheReference = useRef(
     new LRUCache<string, VariableDrawdownFinal>({ max: 10 }),
