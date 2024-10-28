@@ -10,19 +10,28 @@ const options = {
   remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter],
 };
 
+// Development-only HTTPS options
 const httpsOptions = {
   key: fs.readFileSync("localhost-key.pem"),
   cert: fs.readFileSync("localhost.pem"),
 };
 
-export default defineConfig({
-  plugins: [react(), mdx(options), svgrPlugin()],
-  base: "/ergodic-drawdown/",
-  server: {
-    https: httpsOptions,
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
-    },
-  },
+// Conditional configuration based on environment
+export default defineConfig(({ mode }) => {
+  const isDev = mode === "development";
+
+  return {
+    plugins: [react(), mdx(options), svgrPlugin()],
+    // Remove the base as Netlify will handle this
+    base: isDev ? "/ergodic-drawdown/" : "/",
+    server: isDev
+      ? {
+          https: httpsOptions,
+          headers: {
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+          },
+        }
+      : undefined,
+  };
 });
