@@ -13,7 +13,7 @@ import {
   WEEKS_PER_EPOCH,
 } from "../constants";
 import { models } from "../data/models";
-import { type ProviderProperties } from "../types";
+import { type ModelNames, type ProviderProperties } from "../types";
 
 // eslint-disable-next-line functional/no-mixed-types
 export interface ModelContextType {
@@ -29,7 +29,7 @@ export interface ModelContextType {
   setEpochCount: React.Dispatch<React.SetStateAction<number>>;
   setLoadingPriceData: React.Dispatch<React.SetStateAction<boolean>>;
   setMinMaxMultiple: React.Dispatch<React.SetStateAction<number>>;
-  setModel: React.Dispatch<React.SetStateAction<string>>;
+  setModel: React.Dispatch<React.SetStateAction<ModelNames>>;
   setSamples: React.Dispatch<React.SetStateAction<number>>;
   setShowModel: React.Dispatch<React.SetStateAction<boolean>>;
   setVariable: React.Dispatch<React.SetStateAction<number>>;
@@ -48,7 +48,7 @@ const ModelContext = createContext<ModelContextType | null>(null);
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [showModel, setShowModel] = useState<boolean>(false);
   const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
-  const [model, setModel] = useState<string>(models[2].modelType);
+  const [model, setModel] = useState<ModelNames>(models[2].modelType);
   const [variable, setVariable] = useState<number>(0);
   const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);
   const [walk, setWalk] = useState<string>("Bubble");

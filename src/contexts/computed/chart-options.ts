@@ -188,8 +188,6 @@ export const handleChartOptions = (
     size: mobile ? 12 : 12,
   };
   return {
-    animation: false,
-    maintainAspectRatio: false,
     plugins: {
       annotation: {
         annotations: [
@@ -206,6 +204,9 @@ export const handleChartOptions = (
           ...(showHistoric ? halvingAnnotations : []),
         ],
       },
+      decimation: {
+        enabled: true,
+      },
       filler: { propagate: true },
       zoom: mobile
         ? {}
@@ -218,7 +219,6 @@ export const handleChartOptions = (
             },
           },
     },
-    responsive: true,
     scales: {
       x: {
         min: showHistoric
@@ -262,16 +262,16 @@ export const handleChartOptions = (
         type: "logarithmic",
       },
       y1: {
+        min: 0,
         position: "right",
         ticks: { font, mirror: Boolean(mobile), padding: -3 },
         title: { display: true, font, text: "BTC Volume" },
         type: "linear",
       },
       y2: {
-        max: window.innerHeight / 2,
+        display: false,
         min: 0,
         position: "right",
-        ticks: { display: false },
         type: "linear",
       },
     },

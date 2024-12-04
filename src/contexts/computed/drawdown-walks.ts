@@ -40,6 +40,7 @@ export const handleDrawdownWalkDataset = (
         }),
       ),
       label: `BTC Amount (${index})`,
+      parsing: false,
       pointRadius: 0,
       tension: 0,
       yAxisID: "y1",

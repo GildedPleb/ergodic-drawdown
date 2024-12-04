@@ -11,7 +11,7 @@ const Container = styled.div`
   color: grey;
   font-size: small;
   margin-top: -19px;
-  padding-right: 5px;
+  padding-right: 2px;
 
   z-index: 12;
 `;

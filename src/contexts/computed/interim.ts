@@ -17,6 +17,7 @@ export const handleInterimDataset = (
         }))
       : [],
     label: `Bitcoin Historic Price`,
+    parsing: false,
     pointRadius: 0,
     tension: 0,
   };

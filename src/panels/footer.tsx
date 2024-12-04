@@ -8,11 +8,9 @@ import styled from "styled-components";
 import { Modal } from "../components/modal";
 
 const Container = styled.div`
-  width: 100vw;
   display: flex;
   justify-content: center;
-  margin-bottom: 5px;
-  margin-top: -5px;
+  margin: 5px;
   font-size: 0.6rem;
   color: grey;
 
@@ -73,17 +71,17 @@ const Footer = (): JSX.Element => {
   return (
     <>
       <Container>
-        &copy; 2024 GildedPleb
-        <SmallButton onClick={handleSetLegal}>Legal</SmallButton>
+        &copy; 2024{" "}
         <SmallHref
           aria-label="https://x.com/gildedpleb"
           href="https://x.com/gildedpleb"
           tabIndex={0}
         >
-          Contact
+          @GildedPleb
         </SmallHref>
+        <SmallButton onClick={handleSetLegal}>Legal</SmallButton>
         <SmallHref
-          aria-label="Verify Course on Github"
+          aria-label="Verify Source on Github"
           href="https://github.com/gildedpleb/ergodic-drawdown"
         >
           Source
@@ -101,218 +99,215 @@ const Footer = (): JSX.Element => {
         <Legal>
           <p>
             Many of these questions and concepts are addressed in the Tutorial
-            and it is recommended to start there.
+            and it is recommended to start there <strong>(Desktop only)</strong>
+            .
           </p>
-          <ol>
-            <li>
-              <p>
-                <strong>
-                  What is drawdown in the context of Bitcoin financial modeling?
-                </strong>
-              </p>
-              <p>
-                Drawdown refers to the reduction in one's Bitcoin holdings as a
-                result of withdrawals or expenditures. In financial terms, it's
-                the peak-to-trough decline during a specific recorded period of
-                an investment. In the context of Bitcoin financial modeling,
-                such as on the website using Monte Carlo simulations, drawdown
-                specifically addresses how much Bitcoin balance decreases over
-                time due to regular withdrawals to meet expenses or other
-                financial obligations.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  What does "ergodic" mean in the context of this Bitcoin
-                  drawdown tool?
-                </strong>
-              </p>
-              <p>
-                "Ergodic" is a term often used in statistics, mathematics, and
-                physics to describe systems or processes where, given enough
-                time, they cover all possible states or configurations. It
-                implies that the time average of a process is equivalent to its
-                average over its entire space of states. In simpler terms, an
-                ergodic process is one where every part of the system, or every
-                outcome, is eventually sampled over time. This concept is
-                fundamental in areas like thermodynamics, where it helps in
-                understanding how gases behave, and in economics and finance for
-                modeling market behaviors and predictions.
-              </p>
-              <p>
-                In the context of this tool, "ergodic" refers to the assumption
-                that over a long period, the average results of the Bitcoin
-                price simulations will represent the ensemble average across
-                many different economic scenarios. This concept is critical in
-                ensuring that the projections made by the tool reflect a
-                comprehensive range of possible futures, not just a single
-                trajectory.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  How does the Monte Carlo simulation method work for an Ergodic
-                  drawdown?
-                </strong>
-              </p>
-              <p>
-                The Monte Carlo simulation method involves running a large
-                number of simulations ('walks') to forecast the future behavior
-                of Bitcoin prices. By inputting different parameters like
-                volatility and walk strategies, the tool generates multiple
-                potential outcomes, helping to illustrate the range of possible
-                scenarios for Bitcoin holdings over time, and their associated
-                probability.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>What is meant by 'walks' in this simulation?</strong>
-              </p>
-              <p>
-                'Walks' refer to individual iterations of the Monte Carlo
-                simulation, where the Bitcoin price is projected forward in time
-                based on predefined volatility, strategy, and other factors.
-                Each walk represents a single possible future path that
-                Bitcoin's price might take, contributing to the broader
-                statistical analysis of potential outcomes. Walks are ergodic in
-                that they attempt to eventually hit both the bottom (min) and
-                top (max) of the given model, which usually corresponds to
-                around 1st percentile and 99th percentile. However, these
-                boundaries are not always respected or enforced.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  Why is understanding quantiles important in analyzing the
-                  simulation results?
-                </strong>
-              </p>
-              <p>
-                Quantiles are points or values that divide a dataset into groups
-                containing equal numbers of data points, or that represent
-                specific proportions of the dataset. They are useful in
-                statistics for understanding the distribution and spread of
-                data.
-              </p>
-              <p>
-                Quantiles, here, are essential for understanding the
-                distribution of possible Bitcoin prices at the end of the
-                simulation period. Though a quantile is not an actually walked
-                path, by examining different quantiles (e.g., 25th, 75th, 99th
-                percentiles), users can gauge the range of best to worst-case
-                scenarios and plan their financial strategies accordingly.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  How do different walk strategies impact the outcomes of the
-                  simulations?
-                </strong>
-              </p>
-              <p>
-                Different walk strategies follow waypoints, paths, logic, and
-                other inputs to alter their course. Set the volatility to 0 to
-                see how each walk operates without noise.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  What is the primary goal of this Bitcoin drawdown simulation?
-                </strong>
-              </p>
-              <p>
-                The primary goal is to help Bitcoin holders intuit future
-                financial scenarios where they might begin to draw on their
-                Bitcoin holdings. By simulating different market conditions and
-                personal spending requirements, users can better understand just
-                how valuable their bitcoin is.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>Who should use this simulation tool?</strong>
-              </p>
-              <p>
-                This tool is designed for people who save in bitcoin, people who
-                are considering using their holdings as a source of regular
-                income, financial planners advising on bitcoin, or anyone
-                interested in understanding the long-term financial implications
-                of holding and using Bitcoin. For all users, this tool does not
-                in any way constitute financial advice. Please speak with a
-                licensed financial planner before making any financial
-                decisions. Further, this tool does not apply in any way to other
-                media beside bitcoin. Especially media that has no future such
-                as every other currency or cryptocurrency.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  How accurate are the predictions made by the Monte Carlo
-                  simulation?
-                </strong>
-              </p>
-              <p>
-                While the Monte Carlo simulation provides a robust model by
-                considering thousands of possible outcomes, all predictions are
-                hypothetical and based on user assumptions which will
-                undoubtedly be proven wrong. That said, being based on
-                historical data, statistical assumptions, and pure random number
-                generation, makes it a powerful tool to be used along with many
-                other such tools in financial planning. Again consult with a
-                financial planner.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  Can this tool predict the future price of Bitcoin?
-                </strong>
-              </p>
-              <p>
-                No. The tool is not designed to predict exact future prices but
-                rather to offer scenarios based on different inputs and shed
-                light on probabilities around those assumptions. It helps users
-                understand risks under various conditions.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>
-                  What are the limitations of this simulation tool?
-                </strong>
-              </p>
-              <p>
-                Limitations include the reliance on historical data, which may
-                not capture future market conditions accurately. The tool also
-                assumes certain financial and economic conditions will remain
-                constant, which may not be the case. The base assumption is that
-                all models will be proven wrong, and thus many models are
-                included. As such, the modeling assumes ergodicity to a fault,
-                and this too, might prove wanting in time.
-              </p>
-            </li>
-            <li>
-              <p>
-                <strong>How often is the data and model updated?</strong>
-              </p>
-              <p>
-                This tool scrapes the current daily price of bitcoin, and keeps
-                a record of past prices. All other information is generated
-                based on user input. For requests, open a{" "}
-                <a href="https://github.com/GildedPleb/ergodic-drawdown/issues/new">
-                  github issue
-                </a>
-                .
-              </p>
-            </li>
-          </ol>
+          <p>
+            <strong>
+              Q: What is Delay (Weeks) and Start (%) in One-Off Fiat
+              Variable-Date Drawdown Event settings?
+            </strong>
+          </p>
+          <p>
+            Start (%) is the % offset between the first-affordable week and
+            last-unaffordable week for a drawdown event. As their As their names
+            suggests, these two form two meaningful date bounds for spending on
+            each sample. The default Start (%) is 100, meaning spend on the
+            last-unaffordable day. Be cautions about any % that's not 0 or 100,
+            as many could mean spending more bitcoin than you might like! Delay,
+            is an additional weekly delay from the start point.
+          </p>
+
+          <p>
+            <strong>
+              Q: What is drawdown in the context of Bitcoin financial modeling?
+            </strong>
+          </p>
+          <p>
+            Drawdown refers to the reduction in one's Bitcoin holdings as a
+            result of withdrawals or expenditures. In financial terms, it's the
+            peak-to-trough decline during a specific recorded period of an
+            investment. In the context of Bitcoin financial modeling, such as on
+            the website using Monte Carlo simulations, drawdown specifically
+            addresses how much Bitcoin balance decreases over time due to
+            regular withdrawals to meet expenses or other financial obligations.
+          </p>
+
+          <p>
+            <strong>
+              Q: What does "ergodic" mean in the context of this Bitcoin
+              drawdown tool?
+            </strong>
+          </p>
+          <p>
+            "Ergodic" is a term often used in statistics, mathematics, and
+            physics to describe systems or processes where, given enough time,
+            they cover all possible states or configurations. It implies that
+            the time average of a process is equivalent to its average over its
+            entire space of states. In simpler terms, an ergodic process is one
+            where every part of the system, or every outcome, is eventually
+            sampled over time. This concept is fundamental in areas like
+            thermodynamics, where it helps in understanding how gases behave,
+            and in economics and finance for modeling market behaviors and
+            predictions.
+          </p>
+          <p>
+            In the context of this tool, "ergodic" refers to the assumption that
+            over a long period, the average results of the Bitcoin price
+            simulations will represent the ensemble average across many
+            different economic scenarios. This concept is critical in ensuring
+            that the projections made by the tool reflect a comprehensive range
+            of possible futures, not just a single trajectory.
+          </p>
+
+          <p>
+            <strong>
+              Q: How does the Monte Carlo simulation method work for an Ergodic
+              drawdown?
+            </strong>
+          </p>
+          <p>
+            The Monte Carlo simulation method involves running a large number of
+            simulations ('walks') to forecast the future behavior of Bitcoin
+            prices. By inputting different parameters like volatility and walk
+            strategies, the tool generates multiple potential outcomes, helping
+            to illustrate the range of possible scenarios for Bitcoin holdings
+            over time, and their associated probability.
+          </p>
+
+          <p>
+            <strong>Q: What is meant by 'walks' in this simulation?</strong>
+          </p>
+          <p>
+            'Walks' refer to individual iterations of the Monte Carlo
+            simulation, where the Bitcoin price is projected forward in time
+            based on predefined volatility, strategy, and other factors. Each
+            walk represents a single possible future path that Bitcoin's price
+            might take, contributing to the broader statistical analysis of
+            potential outcomes. Walks are ergodic in that they attempt to
+            eventually hit both the bottom (min) and top (max) of the given
+            model, which usually corresponds to around 1st percentile and 99th
+            percentile. However, these boundaries are not always respected or
+            enforced.
+          </p>
+
+          <p>
+            <strong>
+              Q: Why is understanding quantiles important in analyzing the
+              simulation results?
+            </strong>
+          </p>
+          <p>
+            Quantiles are points or values that divide a dataset into groups
+            containing equal numbers of data points, or that represent specific
+            proportions of the dataset. They are useful in statistics for
+            understanding the distribution and spread of data.
+          </p>
+          <p>
+            Quantiles, here, are essential for understanding the distribution of
+            possible Bitcoin prices at the end of the simulation period. Though
+            a quantile is not an actually walked path, by examining different
+            quantiles (e.g., 25th, 75th, 99th percentiles), users can gauge the
+            range of best to worst-case scenarios and plan their financial
+            strategies accordingly.
+          </p>
+
+          <p>
+            <strong>
+              Q: How do different walk strategies impact the outcomes of the
+              simulations?
+            </strong>
+          </p>
+          <p>
+            Different walk strategies follow waypoints, paths, logic, and other
+            inputs to alter their course. Set the volatility to 0 to see how
+            each walk operates without noise.
+          </p>
+
+          <p>
+            <strong>
+              Q: What is the primary goal of this Bitcoin drawdown simulation?
+            </strong>
+          </p>
+          <p>
+            The primary goal is to help Bitcoin holders intuit future financial
+            scenarios where they might begin to draw on their Bitcoin holdings.
+            By simulating different market conditions and personal spending
+            requirements, users can better understand just how valuable their
+            bitcoin is.
+          </p>
+
+          <p>
+            <strong>Q: Who should use this simulation tool?</strong>
+          </p>
+          <p>
+            This tool is designed for people who save in bitcoin, people who are
+            considering using their holdings as a source of regular income,
+            financial planners advising on bitcoin, or anyone interested in
+            understanding the long-term financial implications of holding and
+            using Bitcoin. For all users, this tool does not in any way
+            constitute financial advice. Please speak with a licensed financial
+            planner before making any financial decisions. Further, this tool
+            does not apply in any way to other media beside bitcoin. Especially
+            media that has no future such as every other currency or
+            cryptocurrency.
+          </p>
+
+          <p>
+            <strong>
+              Q: How accurate are the predictions made by the Monte Carlo
+              simulation?
+            </strong>
+          </p>
+          <p>
+            While the Monte Carlo simulation provides a robust model by
+            considering thousands of possible outcomes, all predictions are
+            hypothetical and based on user assumptions which will undoubtedly be
+            proven wrong. That said, being based on historical data, statistical
+            assumptions, and pure random number generation, makes it a powerful
+            tool to be used along with many other such tools in financial
+            planning. Again consult with a financial planner.
+          </p>
+
+          <p>
+            <strong>
+              Q: Can this tool predict the future price of Bitcoin?
+            </strong>
+          </p>
+          <p>
+            No. The tool is not designed to predict exact future prices but
+            rather to offer scenarios based on different inputs and shed light
+            on probabilities around those assumptions. It helps users understand
+            risks under various conditions.
+          </p>
+
+          <p>
+            <strong>
+              Q: What are the limitations of this simulation tool?
+            </strong>
+          </p>
+          <p>
+            Limitations include the reliance on historical data, which may not
+            capture future market conditions accurately. The tool also assumes
+            certain financial and economic conditions will remain constant,
+            which may not be the case. The base assumption is that all models
+            will be proven wrong, and thus many models are included. As such,
+            the modeling assumes ergodicity to a fault, and this too, might
+            prove wanting in time.
+          </p>
+
+          <p>
+            <strong>Q: How often is the data and model updated?</strong>
+          </p>
+          <p>
+            This tool scrapes the current daily price of bitcoin, and keeps a
+            record of past prices. All other information is generated based on
+            user input. For requests, open a{" "}
+            <a href="https://github.com/GildedPleb/ergodic-drawdown/issues/new">
+              github issue
+            </a>
+            .
+          </p>
         </Legal>
       </Modal>
       <Modal
@@ -400,36 +395,58 @@ const Footer = (): JSX.Element => {
               you must not use this website.
             </p>
             <p>
-              <strong>Use License:</strong> This website grants you a limited,
-              non-exclusive, non-transferable license to access and use the
-              materials and information available on the site for personal,
-              non-commercial purposes only, subject to these restrictions:
-            </p>
-            <ol>
-              <li>
-                - You may not modify, copy, or distribute any content without
-                express written permission
-              </li>
-              <li>
-                - You may not use any content for commercial purposes or public
-                display
-              </li>
-              <li>
-                - You may not attempt to reverse engineer any software on this
-                website
-              </li>
-              <li>
-                - You must not remove any copyright or proprietary notices from
-                the materials
-              </li>
-              <li>
-                - You may not transfer the content to another person or
-                replicate it on any other server
-              </li>
-            </ol>
-            <p>
-              This license shall automatically terminate if you violate any of
-              these restrictions.
+              <strong>Use License:</strong>
+
+              <p>
+                This work is licensed under the Creative Commons
+                Attribution-NonCommercial-ShareAlike 4.0 International License.
+              </p>
+
+              <p>You are free to:</p>
+              <ul>
+                <li>
+                  Share — copy and redistribute the material in any medium or
+                  format
+                </li>
+                <li>Adapt — remix, transform, and build upon the material</li>
+              </ul>
+
+              <p>Under the following terms:</p>
+              <ul>
+                <li>
+                  <strong>Attribution</strong> — You must give appropriate
+                  credit, provide a link to the license, and indicate if changes
+                  were made. You may do so in any reasonable manner, but not in
+                  any way that suggests the licensor endorses you or your use.
+                </li>
+                <li>
+                  <strong>NonCommercial</strong> — You may not use the material
+                  for commercial purposes.
+                </li>
+                <li>
+                  <strong>ShareAlike</strong> — If you remix, transform, or
+                  build upon the material, you must distribute your
+                  contributions under the same license as the original.
+                </li>
+                <li>
+                  <strong>No additional restrictions</strong> — You may not
+                  apply legal terms or technological measures that legally
+                  restrict others from doing anything the license permits.
+                </li>
+                <strong>Personal Information Disclaimer</strong>
+                <p>
+                  Content on this site may contain THE USERS PERSONAL
+                  INFORMATION. By sharing any content from this site, you
+                  acknowledge and assume all risks associated with the
+                  distribution of such information. The site owners and
+                  operators are not responsible for any consequences resulting
+                  from your sharing of website content.
+                </p>
+                For the full license text, visit:{" "}
+                <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode">
+                  https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+                </a>
+              </ul>
             </p>
             <p>
               <strong>Limitation of Liability:</strong> The website, its owners,
@@ -507,8 +524,15 @@ const Footer = (): JSX.Element => {
           <section id="contact">
             <strong>Contact Information</strong>
             <p>
-              For questions regarding these terms, please contact us at:
-              @gildedpleb on X
+              For questions regarding these terms, please contact us at{" "}
+              <SmallHref
+                aria-label="https://x.com/gildedpleb"
+                href="https://x.com/gildedpleb"
+                tabIndex={0}
+              >
+                @GildedPleb
+              </SmallHref>{" "}
+              on X
             </p>
           </section>
         </Legal>

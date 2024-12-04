@@ -216,6 +216,7 @@ export const createDataSet = ({
           ? `+${midIndex - index}`
           : `-${index - midIndex}`,
       label: `${getLabel(cutoff, length, index, type)} ${midLabel}`,
+      parsing: false,
       pointRadius: 0,
       tension: 0,
       yAxisID,

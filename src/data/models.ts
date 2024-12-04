@@ -9,7 +9,7 @@ import {
   MS_PER_YEAR,
   WEEKS_PER_YEAR,
 } from "../constants";
-import { type PriceModel } from "../types";
+import type { PriceModel } from "../types";
 
 const getRewardForHalving = memoize((halvingIndex: number): number => {
   return 50 / 2 ** halvingIndex;
@@ -30,7 +30,7 @@ const calculateOneYearFlow = memoize((blockNumber: number): number => {
   return calculateTotalStock(blockNumber) - calculateTotalStock(startBlock);
 });
 
-const stockToFlowModel: PriceModel = {
+const stockToFlowModel = {
   default: 0,
   maxPrice: ({ currentBlock, week }): number => {
     const blockToFind = currentBlock + week * BLOCKS_PER_WEEK;
@@ -52,9 +52,9 @@ const stockToFlowModel: PriceModel = {
   },
   modelType: "Stock-To-Flow" as const,
   varInput: "",
-};
+} satisfies PriceModel;
 
-const stockToFlowModelNew: PriceModel = {
+const stockToFlowModelNew = {
   default: 0,
   maxPrice: ({ currentBlock, week }): number => {
     const blockToFind = currentBlock + week * BLOCKS_PER_WEEK;
@@ -76,9 +76,9 @@ const stockToFlowModelNew: PriceModel = {
   },
   modelType: "Stock-To-Flow 2024 refit" as const,
   varInput: "",
-};
+} satisfies PriceModel;
 
-const basicGrowthModel: PriceModel = {
+const basicGrowthModel = {
   default: 2,
   maxPrice: ({ currentPrice, minMaxMultiple, variable, week }): number => {
     return currentPrice * minMaxMultiple + 2 * variable * week ** 2;
@@ -88,7 +88,7 @@ const basicGrowthModel: PriceModel = {
   },
   modelType: "Quadratic" as const,
   varInput: "coefficient",
-};
+} satisfies PriceModel;
 
 const basePriceModel = memoize((currentDate: Date): number => {
   const coefficientA = 18;
@@ -97,7 +97,7 @@ const basePriceModel = memoize((currentDate: Date): number => {
   return Math.exp(coefficientA * lnMilliseconds + coefficientB);
 });
 
-const rainbowChartModel: PriceModel = {
+const rainbowChartModel = {
   default: 0,
   maxPrice: ({ now, week }): number => {
     const currentDate = new Date(now + week * MS_PER_WEEK);
@@ -107,9 +107,9 @@ const rainbowChartModel: PriceModel = {
     const currentDate = new Date(now + week * MS_PER_WEEK);
     return basePriceModel(currentDate) * 0.1;
   },
-  modelType: "Rainbow Chart",
+  modelType: "Rainbow Chart" as const,
   varInput: "",
-};
+} satisfies PriceModel;
 
 const powerLaw = memoize((unixTimeMs: number, offsetYears: number): number => {
   const scaleFactor = 10 ** -17.3;
@@ -118,7 +118,7 @@ const powerLaw = memoize((unixTimeMs: number, offsetYears: number): number => {
   return scaleFactor * daysSinceStart ** 5.83;
 });
 
-const powerLawModel: PriceModel = {
+const powerLawModel = {
   default: 0,
   maxPrice: ({ now, week }): number => {
     const currentDate = now + week * MS_PER_WEEK;
@@ -128,9 +128,9 @@ const powerLawModel: PriceModel = {
     const currentDate = now + week * MS_PER_WEEK;
     return powerLaw(currentDate, 0);
   },
-  modelType: "Power Law Regression Median",
+  modelType: "Power Law Regression Median" as const,
   varInput: "",
-};
+} satisfies PriceModel;
 
 const log10PriceModel = memoize(
   (unixTimeMs: number, coefficient: number, exponent: number): number => {
@@ -140,7 +140,7 @@ const log10PriceModel = memoize(
   },
 );
 
-const log10PriceModelConfig: PriceModel = {
+const log10PriceModelConfig = {
   default: 0,
   maxPrice: ({ now, week }): number => {
     const currentDate = new Date(now + week * MS_PER_WEEK);
@@ -152,9 +152,9 @@ const log10PriceModelConfig: PriceModel = {
     const currentDate = new Date(now + week * MS_PER_WEEK);
     return log10PriceModel(currentDate.getTime(), -17.928_912, 5.977_458);
   },
-  modelType: "Power Law Support Line",
+  modelType: "Power Law Support Line" as const,
   varInput: "",
-};
+} satisfies PriceModel;
 
 const calculateCAGRPrice = memoize(
   (startPrice: number, timeInMs: number, variable: number): number => {
@@ -163,7 +163,7 @@ const calculateCAGRPrice = memoize(
   },
 );
 
-const cagrModel: PriceModel = {
+const cagrModel = {
   default: 50,
   maxPrice: ({ currentPrice, minMaxMultiple, variable, week }): number => {
     const startPrice = currentPrice * minMaxMultiple;
@@ -175,9 +175,9 @@ const cagrModel: PriceModel = {
     const targetDate = week * MS_PER_WEEK;
     return calculateCAGRPrice(startPrice, targetDate, variable);
   },
-  modelType: "CAGR",
+  modelType: "CAGR" as const,
   varInput: "R (%)",
-};
+} satisfies PriceModel;
 
 const calculateLinearPrice = memoize(
   (weeks: number, current: number, variable: number): number => {
@@ -185,7 +185,7 @@ const calculateLinearPrice = memoize(
   },
 );
 
-const linearModel: PriceModel = {
+const linearModel = {
   default: Math.floor(4747 / WEEKS_PER_YEAR),
   maxPrice: ({ currentPrice, minMaxMultiple, variable, week }): number => {
     return calculateLinearPrice(week, currentPrice, variable) * minMaxMultiple;
@@ -193,9 +193,9 @@ const linearModel: PriceModel = {
   minPrice: ({ currentPrice, minMaxMultiple, variable, week }): number => {
     return calculateLinearPrice(week, currentPrice, variable) / minMaxMultiple;
   },
-  modelType: `Linear`,
+  modelType: `Linear` as const,
   varInput: "slope",
-};
+} satisfies PriceModel;
 
 export const models = [
   linearModel,

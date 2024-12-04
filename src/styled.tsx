@@ -21,7 +21,7 @@ const GlobalStyle = styled.createGlobalStyle`
 
     color-scheme: light dark;
     color: #f3f3f3;
-    background-color: #242424;
+    background-color: hsl(0, 0%, 14%);
 
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
     text-rendering: optimizeLegibility;
@@ -34,7 +34,9 @@ const GlobalStyle = styled.createGlobalStyle`
     text-align: left;
   }
 
-  :root {
+  &#root {
+    width: 100vw;
+    height: 100vh;
   }
 
   a {
@@ -73,6 +75,7 @@ const GlobalStyle = styled.createGlobalStyle`
 
   p {
     margin: 0.5rem 0.5rem;
+    font-size: 0.8rem;
   }
 
   ul {
@@ -81,7 +84,8 @@ const GlobalStyle = styled.createGlobalStyle`
   }
 
   li {
-    margin: 0.5rem 0;
+    margin: 0.8rem 0.8rem;
+    font-size: 0.8rem;
   }
 
   strong {

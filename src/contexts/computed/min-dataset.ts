@@ -24,6 +24,7 @@ export const handleMinModel = (
       borderWidth: 0.5,
       data: minPoints,
       label: `Model Min Value`,
+      parsing: false,
       pointRadius: 0,
       tension: 0,
     },

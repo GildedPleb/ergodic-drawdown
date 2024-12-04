@@ -28,7 +28,7 @@ export const isMobile = (): boolean => {
     return (
       /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
         navigator.userAgent,
-      ) || window.innerWidth <= 768
+      ) || window.innerWidth <= 800
     );
   }
   return false;

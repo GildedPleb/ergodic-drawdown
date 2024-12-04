@@ -5,6 +5,7 @@ export const marketDataset = {
   borderWidth: 0.5,
   data: marketData,
   label: `Bitcoin Historic Price`,
+  parsing: false,
   pointRadius: 0,
   tension: 0,
 };

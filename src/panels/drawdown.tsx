@@ -29,9 +29,7 @@ const buttonSave = "💾";
 const buttonLoad = "📂";
 
 const Container = styled.fieldset<{ $guessHeight: number; $isOpen: boolean }>`
-  width: calc(100vw - 50px);
   height: calc(${isMobile() ? "50vh" : "39vh"} - 117px);
-
   max-height: ${({ $guessHeight, $isOpen }) =>
     $isOpen ? $guessHeight : "20"}px;
 
@@ -46,11 +44,8 @@ const Container = styled.fieldset<{ $guessHeight: number; $isOpen: boolean }>`
   padding-top: 0px;
   padding-bottom: 10px;
   overflow: scroll;
-
   position: relative;
-
   z-index: 1;
-
   transition: max-height 0.4s ease-in-out;
 `;
 

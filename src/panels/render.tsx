@@ -21,7 +21,6 @@ import { useModel } from "../contexts/model";
 import { useRender } from "../contexts/render";
 
 const Container = styled.fieldset<{ $isOpen: boolean }>`
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,7 +32,7 @@ const Container = styled.fieldset<{ $isOpen: boolean }>`
   padding-top: 5px;
   max-height: ${({ $isOpen }) => ($isOpen ? "240px" : "22px")};
   padding-bottom: ${({ $isOpen }) => ($isOpen ? "10px" : "0px")};
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   overflow: hidden;
   transition:
     max-height 0.4s ease-in-out,

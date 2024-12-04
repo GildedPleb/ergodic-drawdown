@@ -5,11 +5,7 @@ export const getDataSetSize = (data: DatasetList): number => {
   const numberSize = 8;
 
   for (const dataset of data) {
-    totalSize += dataset.label.length * 2;
-    if (dataset.backgroundColor !== undefined)
-      totalSize += dataset.backgroundColor.length * 2;
-    if (dataset.borderColor !== undefined)
-      totalSize += dataset.borderColor.length * 2;
+    totalSize += (dataset.label?.length ?? 0) * 2;
     if (dataset.yAxisID !== undefined) totalSize += dataset.yAxisID.length * 2;
     totalSize += numberSize;
     totalSize += numberSize;

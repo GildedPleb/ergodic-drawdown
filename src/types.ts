@@ -1,7 +1,10 @@
 // eslint-disable-next-line spaced-comment, @typescript-eslint/triple-slash-reference
 /// <reference types="vite-plugin-svgr/client" />
 
+import { type ChartDataset, type Point } from "chart.js";
+
 import { distributions } from "./content";
+import { type modelMap } from "./data/models";
 
 // eslint-disable-next-line functional/no-mixed-types
 
@@ -9,7 +12,7 @@ export interface ProviderProperties {
   children: React.ReactNode;
 }
 
-interface MinMaxOptions {
+export interface MinMaxOptions {
   currentBlock: number;
   currentPrice: number;
   minMaxMultiple: number;
@@ -19,11 +22,11 @@ interface MinMaxOptions {
 }
 
 // eslint-disable-next-line functional/no-mixed-types
-export interface PriceModel {
+export interface PriceModel<T extends string = string> {
   default: number;
   maxPrice: (options: MinMaxOptions) => number;
   minPrice: (options: MinMaxOptions) => number;
-  modelType: string;
+  modelType: T;
   varInput: string;
 }
 
@@ -54,23 +57,7 @@ export interface ApplyModel {
   week: number;
 }
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
-export interface Dataset {
-  backgroundColor?: string;
-  borderColor?: string;
-  borderDash?: number[];
-  borderWidth?: number;
-  data: Point[];
-  fill?: boolean | string;
-  label: string;
-  pointRadius: number;
-  tension: number;
-  yAxisID?: string;
-}
+export type Dataset = ChartDataset<"line", Point[]>;
 
 export type DatasetList = Dataset[];
 
@@ -234,4 +221,33 @@ export interface IModal {
   onClose: () => void;
   onDelete?: () => void;
   onSave: (item: FormData) => void;
+}
+
+export type ModelNames = keyof typeof modelMap;
+
+export interface SlideRequirement {
+  bitcoin?: number;
+  clampBottom?: boolean;
+  clampTop?: boolean;
+  epochCount?: number;
+  hideResults?: boolean;
+  inflation?: number;
+  model?: ModelNames;
+  oneOffFiatVariables?: OneOffFiatVariable[];
+  oneOffItems?: OneOffItem[];
+  renderDrawdownDistribution?: DistributionType;
+  renderDrawdownWalks?: boolean;
+  renderModelMax?: boolean;
+  renderModelMin?: boolean;
+  renderPriceDistribution?: DistributionType;
+  renderPriceWalks?: boolean;
+  reoccurringItems?: ReoccurringItem[];
+  samples?: number;
+  samplesToRender?: number;
+  showDrawdown?: boolean;
+  showModel?: boolean;
+  showRender?: boolean;
+  showResults?: boolean;
+  volatility?: number;
+  walk?: string;
 }

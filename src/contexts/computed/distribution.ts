@@ -1,13 +1,11 @@
 // eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
 /* eslint-disable unicorn/no-null */
+import { type Point } from "chart.js";
+
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { MS_PER_WEEK } from "../../constants";
 import { createDataSet, createTaskQueue } from "../../helpers";
-import {
-  type DatasetList,
-  type DistributionType,
-  type Point,
-} from "../../types";
+import { type DatasetList, type DistributionType } from "../../types";
 import { type WorkerContextType } from "../workers";
 import { type DistributionGroupEvent } from "../workers/types";
 
