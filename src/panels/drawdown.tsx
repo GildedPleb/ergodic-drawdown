@@ -58,7 +58,7 @@ const Legend = styled.legend`
 const Fill = styled.div`
   width: 100%;
   min-height: 10px;
-  background-color: #242424;
+  background-color: hsl(0, 0%, 14%);
   position: sticky;
   top: 0px;
   transform: translateY(-1px);
@@ -81,7 +81,7 @@ const SectionRow = styled(Section)`
   gap: 10px;
   position: sticky;
   top: 10px;
-  background-color: #242424;
+  background-color: hsl(0, 0%, 14%);
   padding-bottom: 10px;
   border-bottom: 1px solid #333;
   transform: translateY(-1px);

@@ -11,13 +11,12 @@ import { type SlideRequirement } from "../../types";
 const Slide17: FC = () => (
   <SlideContent>
     <p>
-      Now that we have a strong sense of our drawdown options, it's time to talk
-      about inflation. Next to your starting bitcoin amount (1000), you'll see
-      an Inflation box presently at 0%. Increase inflation by a few %. As
-      expected, increasing the inflation moves the Skyscraper event out in time.
-      At some level of inflation, you may never be able to afford the
-      skyscraper! Also notice that as you increase inflation, your retirement
-      becomes more expensive, too.
+      Next to your starting bitcoin amount (1000), you'll see an Inflation box
+      presently at 0%. Increase inflation by a few %. As expected, increasing
+      the inflation moves the Skyscraper event out in time. At some level of
+      inflation, you may never be able to afford the skyscraper! Also notice
+      that as you increase inflation, your retirement becomes more expensive,
+      too.
     </p>
     <p>
       The Inflation box applies to drawdowns only and not bitcoin price. If it

@@ -18,7 +18,7 @@ const Slide5: FC = () => (
     <p>
       This pattern is called a 'walk', it is how the price might 'step' through
       the range while remaining path-dependent on its previous step. Of course,
-      this is only 1 possible future of an infinite amount of futures, but
+      this is only one possible future of an infinite amount of futures, but
       before we get into that, let's do what we can to fully understand this
       singular walk.
     </p>

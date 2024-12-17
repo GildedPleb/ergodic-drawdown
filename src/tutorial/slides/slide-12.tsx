@@ -28,9 +28,10 @@ const Slide12: FC = () => (
       <strong>Source</strong> links at the bottom of this page.
     </p>
     <p>
-      You will also notice that a new horizontal line has appeared in the chart.
-      This is how much bitcoin you have over time (in this case 1000). We will
-      start as we started for bitcoin price projections: with 1 drawdown sample.
+      You will also notice that a new orange horizontal line has appeared in the
+      chart. This is how much bitcoin you have over time (in this case 1000). We
+      will start as we started for bitcoin price projections: with 1 drawdown
+      sample.
     </p>
   </SlideContent>
 );

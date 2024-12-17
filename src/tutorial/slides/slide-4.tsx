@@ -13,8 +13,10 @@ const Slide4: FC = () => (
     <p>
       The original{" "}
       <a
+        aria-label="View Bitcoin Rainbow Chart - Opens in new tab"
         href="https://www.blockchaincenter.net/bitcoin-rainbow-chart/"
         rel="noopener noreferrer"
+        tabIndex={0}
         target="_blank"
       >
         Bitcoin Rainbow Chart
@@ -33,8 +35,6 @@ const Slide4: FC = () => (
       trade at the top of the range, or mostly at the bottom, or hit top and
       bottom in some asymmetric way, we could have wildly different projected
       outcomes, spanning orders of magnitude and quickly becoming unless.
-      Fortunately, with the two model guard-rails we have a range we can
-      traverse the bitcoin price through.
     </p>
     <p>
       Let's look at one potential bitcoin future by clicking{" "}

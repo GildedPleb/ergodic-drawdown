@@ -262,12 +262,12 @@ export const handleChartOptions = (
         type: "logarithmic",
       },
       y1: {
-        min: 0,
         position: "right",
         ticks: { font, mirror: Boolean(mobile), padding: -3 },
         title: { display: true, font, text: "BTC Volume" },
         type: "linear",
       },
+      // THis is for the label locations for drawdowns
       y2: {
         display: false,
         min: 0,

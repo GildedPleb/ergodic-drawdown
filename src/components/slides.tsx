@@ -11,5 +11,22 @@ export const SlideContent = styled.div`
   align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
-  overflow: scroll;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+
+    &:hover {
+      background: #555;
+    }
+  }
 `;

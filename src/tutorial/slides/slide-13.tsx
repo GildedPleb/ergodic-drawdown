@@ -22,10 +22,10 @@ const Slide13: FC = () => (
     </p>
     <p>
       Now, again, no one can know the price of bitcoin 8 years in advance making
-      this event meaningless, so, let's bump up the sample count. Open Render ▼,
-      and increase the Walk Count. As you do, notice the new bitcoin price at
-      the event date, and how much bitcoin you are left with after each walk. In
-      aggregate we start to see some probabilities.
+      this event meaningless, so, let's bump up the rendered walk count. Open
+      Render ▼, and increase the Walk Count. As you do, notice the new bitcoin
+      price at the event date, and how much bitcoin you are left with after each
+      walk. In aggregate we start to see some probabilities.
     </p>
     <p>
       Click <strong>Next</strong> to check out the stats.

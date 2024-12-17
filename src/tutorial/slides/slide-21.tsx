@@ -20,17 +20,19 @@ const Slide21: FC = () => (
       learned some things along the way!
     </p>
     <p>
-      If you find this tool useful, please follow me on{" "}
+      If you find this tool useful, please follow{" "}
       <a
-        aria-label="https://x.com/gildedpleb"
+        aria-label="Visit GildedPleb on X (formerly Twitter) - Opens in new tab"
         href="https://x.com/gildedpleb"
+        rel="noopener noreferrer"
         tabIndex={0}
+        target="_blank"
       >
         @GildedPleb
       </a>{" "}
-      and support my work with a{" "}
+      and support our work with a{" "}
       <a
-        aria-label="LNURL gildedpleb@getalby.com"
+        aria-label="Send Lightning tip to gildedpleb@getalby.com"
         href="lightning:gildedpleb@getalby.com"
         tabIndex={0}
       >

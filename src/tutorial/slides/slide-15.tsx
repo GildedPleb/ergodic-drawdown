@@ -22,9 +22,9 @@ const Slide15: FC = () => (
     <p>
       A reoccurring event takes the annual expense (or income) amortizes it to a
       weekly basis, and plots that change every week. If you chose $10,000,000,
-      you might run into a few cases where you run out of Bitcoin. You can also
-      choose to start this reoccurring event later, or set an end date. You can
-      also make it income.
+      you should see around a 15% chance of running out of bitcoin by counting
+      the quantiles. You can also choose to start this reoccurring event later,
+      or set an end date. You can also make it income.
     </p>
     <p>
       We have one more darwdown event type to cover:{" "}

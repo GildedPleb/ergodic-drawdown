@@ -17,8 +17,8 @@ const Slide9: FC = () => (
     </p>
     <p>
       <strong>Quantile Distribution</strong> (Render ▼, Price: Quantile) looks
-      at all the walks at 1 point in time and then it sorts and divides those
-      points into Quantiles--or percentages. Mouse over the edges of the orange
+      at all the walks at one point in time and then sorts and divides those
+      points into Quantiles—or percentages. Mouse over the edges of the orange
       bands to see the percentile. From the median, it allows you to see data
       shape and asymmetries, where paths gather or were they spread. For
       Quantile, 50% of all data points fall within the inner-most band.

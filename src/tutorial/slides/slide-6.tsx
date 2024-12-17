@@ -13,16 +13,16 @@ const Slide6: FC = () => (
     <p>
       This is the pure walk pattern without any randomness. Try different walks
       using the selector (Model ▼, Walk Strategy). Some collapse to straight
-      lines when volatility is zero, showing how much they depend on price
-      swings. This is easiest to see in non-S2F models.
+      lines when volatility is zero, showing how they depend more on volatility,
+      not bounds. This is easiest to see in non-S2F models.
     </p>
     <p>
       Some walks, like the Bubble Walk, are "ergodic" - given enough time,
-      they'll naturally hit every possible price level in their range. This is
-      crucial because it means past patterns reliably inform future predictions.
-      Unlike simpler models (e.g., Rainbow), this property lets us reason
-      confidently about future behavior based on historical data. This is the
-      first categorical differentiation that sets this modeling paradigm apart.
+      they'll hit every possible level in their range. This is crucial because
+      it means objective, small-cycle patterns can be reflected into future
+      modeling. Unlike simpler models (e.g., Rainbow, Power Law), this egodicity
+      gives us dimensionality to our modeling. This is the first categorical
+      differentiation that sets this modeling paradigm apart.
     </p>
     <p>
       Now, let's increase the volatility back to 0.1 - either click{" "}

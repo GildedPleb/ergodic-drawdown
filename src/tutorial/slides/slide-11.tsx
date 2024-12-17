@@ -16,13 +16,14 @@ const Slide11: FC = () => (
       given our assumptions.
     </p>
     <p>
-      This, on its own, is a very powerful tool. The key advantage of this Monte
-      Carlo approach is that it allows us to capture market uncertainty
-      explicitly. While traditional forecasting methods might tell you "Bitcoin
-      will be worth $X in 2028," our simulations tell us there's a 20% chance
-      it'll be above $Y, a 50% chance above $Z, and so on. This mirrors how real
-      markets behave - they don't follow a single path, but rather explore many
-      possible futures with different probabilities.
+      This, on its own, is a very powerful tool. The key advantage of this
+      ergodic Monte Carlo approach is that it allows us to capture market
+      uncertainty explicitly. While traditional forecasting methods might tell
+      you "Bitcoin will be worth $X in 2028," our simulations tell us there's a
+      20% chance it'll be above $Y, a 50% chance above $Z, and so on. This
+      mirrors how real markets behave—they don't follow a set path, but rather
+      produce surprising results every second, allowing for many possible
+      futures with different probabilities.
     </p>
     <p>
       But we're just scratching the surface of what's possible. Ready to finally

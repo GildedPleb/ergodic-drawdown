@@ -11,10 +11,10 @@ import { type SlideRequirement } from "../../types";
 const Slide14: FC = () => (
   <SlideContent>
     <p>
-      We now see the quantile distribution of price and our single drawdown.
-      Hover at the chart's end to see the final median and specific quantiles.
-      Consider: what's the worst possible drawdown from a $10,000,000 house
-      purchase? Given the probability, is it worth the risk?
+      We now see the quantile distribution of price and our single drawdown
+      event. Hover at the chart's end to see the final median and specific
+      quantiles. Consider: what's the worst possible drawdown from a $10,000,000
+      house purchase? Given the probability, is it worth the risk?
     </p>
     <p>
       To explore further, click "El Salvador Dream Home" in Drawdown ▼. In the

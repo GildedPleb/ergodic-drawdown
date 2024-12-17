@@ -73,22 +73,27 @@ const Footer = (): JSX.Element => {
       <Container>
         &copy; 2024{" "}
         <SmallHref
-          aria-label="https://x.com/gildedpleb"
+          aria-label="Visit GildedPleb on X (formerly Twitter) - Opens in new tab"
           href="https://x.com/gildedpleb"
+          rel="noopener noreferrer"
           tabIndex={0}
+          target="_blank"
         >
           @GildedPleb
         </SmallHref>
         <SmallButton onClick={handleSetLegal}>Legal</SmallButton>
         <SmallHref
-          aria-label="Verify Source on Github"
+          aria-label="Verify Source on Github - Opens in new tab"
           href="https://github.com/gildedpleb/ergodic-drawdown"
+          rel="noopener noreferrer"
+          tabIndex={0}
+          target="_blank"
         >
           Source
         </SmallHref>
         <SmallButton onClick={handleSetFAQ}>FAQ</SmallButton>
         <SmallHref
-          aria-label="LNURL gildedpleb@getalby.com"
+          aria-label="Send Lightning tip to gildedpleb@getalby.com"
           href="lightning:gildedpleb@getalby.com"
           tabIndex={0}
         >
@@ -303,7 +308,13 @@ const Footer = (): JSX.Element => {
             This tool scrapes the current daily price of bitcoin, and keeps a
             record of past prices. All other information is generated based on
             user input. For requests, open a{" "}
-            <a href="https://github.com/GildedPleb/ergodic-drawdown/issues/new">
+            <a
+              aria-label="Create new Github issue - Opens in new tab"
+              href="https://github.com/GildedPleb/ergodic-drawdown/issues/new"
+              rel="noopener noreferrer"
+              tabIndex={0}
+              target="_blank"
+            >
               github issue
             </a>
             .
@@ -443,8 +454,14 @@ const Footer = (): JSX.Element => {
                   from your sharing of website content.
                 </p>
                 For the full license text, visit:{" "}
-                <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode">
-                  https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+                <a
+                  aria-label="View Creative Commons License - Opens in new tab"
+                  href="https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode"
+                  rel="noopener noreferrer"
+                  tabIndex={0}
+                  target="_blank"
+                >
+                  creativecommons.org
                 </a>
               </ul>
             </p>
@@ -526,9 +543,11 @@ const Footer = (): JSX.Element => {
             <p>
               For questions regarding these terms, please contact us at{" "}
               <SmallHref
-                aria-label="https://x.com/gildedpleb"
+                aria-label="Visit GildedPleb on X (formerly Twitter) - Opens in new tab"
                 href="https://x.com/gildedpleb"
+                rel="noopener noreferrer"
                 tabIndex={0}
+                target="_blank"
               >
                 @GildedPleb
               </SmallHref>{" "}

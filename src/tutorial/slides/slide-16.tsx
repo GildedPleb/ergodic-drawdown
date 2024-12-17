@@ -30,9 +30,8 @@ const Slide16: FC = () => (
       out the FAQ below.
     </p>
     <p>
-      If your model assumes the price of bitcoin will go up over time,
-      increasing the bitcoin willing to spend, will bring the range close to the
-      present, and decreasing it will push it further into the future.
+      Now that we have a strong sense of our drawdown options, it's time to talk
+      about inflation.
     </p>
   </SlideContent>
 );

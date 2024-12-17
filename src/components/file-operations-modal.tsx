@@ -55,7 +55,7 @@ const alertText = {
   message:
     "Your data on this app is sensitive. We do not receive, transmit, read or otherwise have access to any of this data (See Privacy Policy and review the Source Code to confirm). As such, to save your work, it must be saved locally. AES-256 encryption required.",
   quote:
-    "It is good to talk about Bitcoin. It is not good to talk about YOUR Bitcoin.",
+    '"It is good to talk about Bitcoin. It is not good to talk about YOUR Bitcoin."',
   strongMessage: "Use a strong password and manage it well.",
   warning: "⚠️",
 };

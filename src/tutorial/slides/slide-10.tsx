@@ -12,7 +12,7 @@ const Slide10: FC = () => (
   <SlideContent>
     <p>
       Two key inputs significantly impact this tool's quality:{" "}
-      <strong>Epoch Count</strong> and <strong>Samples</strong>.
+      <strong>Epoch Count</strong> and <strong>Sample Count</strong>.
     </p>
     <p>
       <strong>Epoch Count</strong> (Model ▼, Epoch Count) represents the number
@@ -20,17 +20,17 @@ const Slide10: FC = () => (
       resource-intensive, especially in browsers. While limits are in place,
       exercise caution with your device as this app can easily eat all memory.
       Remember, longer projections are more computationally expensive and less
-      relevant (e.g. if fiat collapses this entire app is irrelevant, and we
+      relevant (e.g. if fiat collapses, this entire app is irrelevant, and we
       know that's coming eventually).
     </p>
     <p>
       <strong>Samples</strong> (Model ▼, Statistical Sample Count) determine
-      data granularity. More samples (e.g., 2000 vs 1000) result in smoother
-      Quantile bands but impacts performance. Keep samples at 1000 while
-      adjusting other parameters, then increase once finished. The app's limit
-      is 10,000, which is the typical minimum for serious Monte Carlo
-      Simulations. We've provided an estimated data size for reference, though
-      actual size will vary across browsers.
+      data granularity. More samples result in smoother Quantile bands but
+      impacts performance. Keep samples at 1000 while adjusting other parameters
+      and drawdowns, then increase to finalize results. The app's limit is
+      10,000, which is the typical minimum for serious Monte Carlo Simulations.
+      We've provided an estimated data size for reference, though actual size
+      will vary across browsers.
     </p>
     <p>
       Before we get some answers to "How much is enough?" we have one more

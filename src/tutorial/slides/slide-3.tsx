@@ -17,17 +17,17 @@ const Slide3: FC = () => (
       from current prices into the future.
     </p>
     <p>
-      Notice anything different about the Orange and Green lines? You should.
+      Notice anything different between the Orange and Green lines? You should.
       Bitcoin's price movement is complex, it does not follow a nice even line:
       it's non-linear (not smooth), path-dependent (influenced by previous
       prices), and semi-chaotic (affected by external events like exchange hacks
       and market conditions). This makes precise predictions unreliable, even if
-      they might suggest general price ranges or high R squared.
+      they might suggest general price ranges or high R squared. This app
+      attempts to reconcile these differences.
     </p>
     <p>
-      Let's improve on this by converting the single price line into a range
-      that better reflects this uncertainty. Tap <strong>Next</strong> to define
-      a Range.
+      To start, let's convert the single price line into a range that better
+      reflects this uncertainty. Tap <strong>Next</strong> to define a Range.
     </p>
   </SlideContent>
 );
