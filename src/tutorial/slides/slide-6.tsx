@@ -19,7 +19,7 @@ const Slide6: FC = () => (
     <p>
       Some walks, like the Bubble Walk, are "ergodic" - given enough time,
       they'll hit every possible level in their range. This is crucial because
-      it means objective, small-cycle patterns can be reflected into future
+      it means objective, intra-cycle patterns can be reflected into future
       modeling. Unlike simpler models (e.g., Rainbow, Power Law), this egodicity
       gives us dimensionality to our modeling. This is the first categorical
       differentiation that sets this modeling paradigm apart.
