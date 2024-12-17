@@ -5,9 +5,9 @@ IMPROVE MODELING
 - improve the bubble walk
 - alter as many existing walks as possible to not be clamped, like SIn and Random presently are.
 - Add a new model, a trajectory of past lows and highes per cycle as min and max. As per: https://www.ecoinometrics.com/bitcoins-growth-trajectory-after-the-halving/
-- remove quadratic and linear modeling
 - add walk settings ? like 1 variable that can be used for cycle frequency or something else
 - SAW walk shoudl be spaced further apart / or have a less steep climb.
+- INvestigate a custom walk like Zack was talking about
 
 NOTIFICATION FEATURE
 

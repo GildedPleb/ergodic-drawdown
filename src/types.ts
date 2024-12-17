@@ -251,3 +251,12 @@ export interface SlideRequirement {
   volatility?: number;
   walk?: string;
 }
+
+interface WalkOptions {
+  clampBottom: boolean;
+  clampTop: boolean;
+  start: number;
+  startWeek: number;
+  volatility: number;
+}
+export type IWalk = (Options: WalkOptions) => Float64Array;

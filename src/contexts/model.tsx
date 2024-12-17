@@ -48,11 +48,11 @@ const ModelContext = createContext<ModelContextType | null>(null);
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [showModel, setShowModel] = useState<boolean>(false);
   const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
-  const [model, setModel] = useState<ModelNames>(models[2].modelType);
+  const [model, setModel] = useState<ModelNames>(models[0].modelType);
   const [variable, setVariable] = useState<number>(0);
   const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);
   const [walk, setWalk] = useState<string>("Bubble");
-  const [clampTop, setClampTop] = useState<boolean>(false);
+  const [clampTop, setClampTop] = useState<boolean>(true);
   const [clampBottom, setClampBottom] = useState<boolean>(true);
   const [volatility, setVolatility] = useState<number>(0.1);
   const [samples, setSamples] = useState<number>(DEFAULT_SIMULATION_COUNT);
