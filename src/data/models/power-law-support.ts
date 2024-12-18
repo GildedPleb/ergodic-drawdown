@@ -24,7 +24,10 @@ const log10PriceModelConfig = {
     return log10PriceModel(currentDate.getTime(), -17.928_912, 5.977_458);
   },
   modelType: "Power Law Support Line" as const,
+  rangeMax: Infinity,
+  rangeMin: 0,
   varInput: "",
+  varRange: false,
 } satisfies PriceModel;
 
 export default log10PriceModelConfig;

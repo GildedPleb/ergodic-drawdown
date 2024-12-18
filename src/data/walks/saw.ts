@@ -17,15 +17,16 @@ export const sawtooth: IWalk = ({
 
   for (let week = startWeek + 1; week < WEEKS_PER_EPOCH; week++) {
     const randomComponent = (Math.random() - 0.5) * volatility;
-    increment = 0.01 + randomComponent;
+    increment = 0.0025 + randomComponent;
 
     currentValue += increment;
 
     // Reset at the top and reflect at the bottom to ensure full range coverage
-    if (currentValue >= 1) {
-      currentValue = 0;
-    } else if (currentValue < 0) {
-      currentValue = -currentValue;
+    if (
+      currentValue >= 1 + volatility * 100 * Math.random() ||
+      (clampTop && currentValue >= 1)
+    ) {
+      currentValue = clampBottom ? 0 : 0 - volatility * 10 * Math.random();
     }
 
     // Optionally clamp values if specified

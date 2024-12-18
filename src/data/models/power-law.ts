@@ -21,6 +21,9 @@ const powerLawModel = {
     return powerLaw(currentDate, 0);
   },
   modelType: "Power Law Regression Median" as const,
+  rangeMax: Infinity,
+  rangeMin: 0,
   varInput: "",
+  varRange: false,
 } satisfies PriceModel;
 export default powerLawModel;

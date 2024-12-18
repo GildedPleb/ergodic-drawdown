@@ -5,6 +5,7 @@ import handleEnterKey from "./enter";
 import { useModel } from "../../contexts/model";
 import styled from "styled-components";
 import { useDrawdown } from "../../contexts/drawdown";
+import { ModelNames } from "../../types";
 
 const Container = styled.div`
   display: flex;
@@ -55,12 +56,13 @@ const ModelInput = (): JSX.Element => {
 
   const handleModel: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
     (event) => {
-      if (model !== event.target.value) {
+      const value = event.target.value as ModelNames;
+      if (model !== value) {
         setLoading();
-        setModel(event.target.value);
+        setModel(value);
 
-        if (modelMap[event.target.value].varInput !== "") {
-          setVariable(modelMap[event.target.value].default);
+        if (modelMap[value].varInput !== "") {
+          setVariable(modelMap[value].default);
         }
       }
     },
@@ -71,8 +73,13 @@ const ModelInput = (): JSX.Element => {
     useCallback(
       (event) => {
         const value = Number.parseFloat(event.target.value);
-        setVariable(value);
-        setLoading();
+        if (
+          value <= modelMap[model].rangeMax &&
+          value >= modelMap[model].rangeMin
+        ) {
+          setVariable(value);
+          setLoading();
+        }
       },
       [setLoading, setVariable],
     );
@@ -89,6 +96,7 @@ const ModelInput = (): JSX.Element => {
     );
 
   const hasInput = modelMap[model].varInput !== "";
+  const hasRange = modelMap[model].varRange;
 
   return (
     <Container>
@@ -104,31 +112,39 @@ const ModelInput = (): JSX.Element => {
           </option>
         ))}
       </Select>
-      {hasInput && (
-        <Options>
-          <label htmlFor="modelVariable">{modelMap[model].varInput}</label>
-          <Input
-            autoComplete="off"
-            id="modelVariable"
-            onChange={handleVariable}
-            onKeyDown={handleEnterKey}
-            step="1"
-            type="number"
-            value={variable}
-          />
-          <label htmlFor="minMaxMultiple">{`+/-`}</label>
-          <Input
-            autoComplete="off"
-            id="minMaxMultiple"
-            onChange={handleMinMaxMultiple}
-            onKeyDown={handleEnterKey}
-            step=".1"
-            min="1.01"
-            type="number"
-            value={minMaxMultiple}
-          />
-        </Options>
-      )}
+      <Options>
+        {hasInput && (
+          <>
+            <label htmlFor="modelVariable">{modelMap[model].varInput}</label>
+            <Input
+              autoComplete="off"
+              id="modelVariable"
+              onChange={handleVariable}
+              onKeyDown={handleEnterKey}
+              step="1"
+              type="number"
+              value={variable}
+              min={modelMap[model].rangeMin}
+              max={modelMap[model].rangeMax}
+            />
+          </>
+        )}
+        {hasRange && (
+          <>
+            <label htmlFor="minMaxMultiple">{`+/-`}</label>
+            <Input
+              autoComplete="off"
+              id="minMaxMultiple"
+              onChange={handleMinMaxMultiple}
+              onKeyDown={handleEnterKey}
+              step=".1"
+              min="1.01"
+              type="number"
+              value={minMaxMultiple}
+            />
+          </>
+        )}
+      </Options>
     </Container>
   );
 };

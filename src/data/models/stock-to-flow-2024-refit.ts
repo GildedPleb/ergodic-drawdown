@@ -46,8 +46,11 @@ const stockToFlowModelNew = {
     const confidence = (68 / 100) * basePrice;
     return basePrice - confidence;
   },
-  modelType: "Stock-To-Flow 2024 refit" as const,
+  modelType: "Stock-To-Flow 2024 Refit" as const,
+  rangeMax: Infinity,
+  rangeMin: 0,
   varInput: "",
+  varRange: false,
 } satisfies PriceModel;
 
 export default stockToFlowModelNew;

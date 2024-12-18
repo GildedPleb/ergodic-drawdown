@@ -13,6 +13,7 @@ import {
   WEEKS_PER_EPOCH,
 } from "../constants";
 import { models } from "../data/models";
+import { type WalkTypes } from "../data/walks";
 import { type ModelNames, type ProviderProperties } from "../types";
 
 // eslint-disable-next-line functional/no-mixed-types
@@ -22,7 +23,7 @@ export interface ModelContextType {
   epochCount: number;
   loadingPriceData: boolean;
   minMaxMultiple: number;
-  model: string;
+  model: ModelNames;
   samples: number;
   setClampBottom: React.Dispatch<React.SetStateAction<boolean>>;
   setClampTop: React.Dispatch<React.SetStateAction<boolean>>;
@@ -34,12 +35,12 @@ export interface ModelContextType {
   setShowModel: React.Dispatch<React.SetStateAction<boolean>>;
   setVariable: React.Dispatch<React.SetStateAction<number>>;
   setVolatility: React.Dispatch<React.SetStateAction<number>>;
-  setWalk: React.Dispatch<React.SetStateAction<string>>;
+  setWalk: React.Dispatch<React.SetStateAction<WalkTypes>>;
   showModel: boolean;
   simulationData: GrowableSharedArray;
   variable: number;
   volatility: number;
-  walk: string;
+  walk: WalkTypes;
 }
 
 // eslint-disable-next-line unicorn/no-null
@@ -51,9 +52,9 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [model, setModel] = useState<ModelNames>(models[0].modelType);
   const [variable, setVariable] = useState<number>(0);
   const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);
-  const [walk, setWalk] = useState<string>("Bubble");
-  const [clampTop, setClampTop] = useState<boolean>(true);
-  const [clampBottom, setClampBottom] = useState<boolean>(true);
+  const [walk, setWalk] = useState<WalkTypes>("Bubble");
+  const [clampTop, setClampTop] = useState<boolean>(false);
+  const [clampBottom, setClampBottom] = useState<boolean>(false);
   const [volatility, setVolatility] = useState<number>(0.1);
   const [samples, setSamples] = useState<number>(DEFAULT_SIMULATION_COUNT);
   const [epochCount, setEpochCount] = useState<number>(DEFAULT_EPOCH_COUNT);

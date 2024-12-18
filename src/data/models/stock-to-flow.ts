@@ -47,7 +47,10 @@ const stockToFlowModel = {
     return basePrice - confidence;
   },
   modelType: "Stock-To-Flow" as const,
+  rangeMax: Infinity,
+  rangeMin: 0,
   varInput: "",
+  varRange: false,
 } satisfies PriceModel;
 
 export default stockToFlowModel;

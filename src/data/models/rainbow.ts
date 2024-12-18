@@ -21,7 +21,10 @@ const rainbowChartModel = {
     return basePriceModel(currentDate) * 0.1;
   },
   modelType: "Rainbow Chart" as const,
+  rangeMax: Infinity,
+  rangeMin: 0,
   varInput: "",
+  varRange: false,
 } satisfies PriceModel;
 
 export default rainbowChartModel;

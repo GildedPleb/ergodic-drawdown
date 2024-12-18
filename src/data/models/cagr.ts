@@ -23,7 +23,10 @@ const cagrModel = {
     return calculateCAGRPrice(startPrice, targetDate, variable);
   },
   modelType: "CAGR" as const,
+  rangeMax: Infinity,
+  rangeMin: 0,
   varInput: "R (%)",
+  varRange: true,
 } satisfies PriceModel;
 
 export default cagrModel;

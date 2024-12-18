@@ -5,6 +5,7 @@ import { type ChartDataset, type Point } from "chart.js";
 
 import { distributions } from "./content";
 import { type modelMap } from "./data/models";
+import { type WalkTypes } from "./data/walks";
 
 // eslint-disable-next-line functional/no-mixed-types
 
@@ -27,7 +28,10 @@ export interface PriceModel<T extends string = string> {
   maxPrice: (options: MinMaxOptions) => number;
   minPrice: (options: MinMaxOptions) => number;
   modelType: T;
+  rangeMax: number;
+  rangeMin: number;
   varInput: string;
+  varRange: boolean;
 }
 
 export interface BlockData {
@@ -72,7 +76,7 @@ export interface Full {
   model: string;
   variable: number;
   volatility: number;
-  walk: string;
+  walk: WalkTypes;
 }
 
 export interface Part {
@@ -249,7 +253,7 @@ export interface SlideRequirement {
   showRender?: boolean;
   showResults?: boolean;
   volatility?: number;
-  walk?: string;
+  walk?: WalkTypes;
 }
 
 interface WalkOptions {

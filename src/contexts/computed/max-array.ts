@@ -1,6 +1,9 @@
+// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
+/* eslint-disable security/detect-object-injection */
 import { LRUCache } from "lru-cache";
 
 import { modelMap } from "../../data/models";
+import { type ModelNames } from "../../types";
 
 const lruCache = new LRUCache<string, Float64Array[]>({ max: 5 });
 
@@ -9,7 +12,7 @@ export const handleMaxArray = (
   hash: string,
   currentBlock: number,
   minMaxMultiple: number,
-  model: string,
+  model: ModelNames,
   variable: number,
   currentPrice: number,
   now: number,

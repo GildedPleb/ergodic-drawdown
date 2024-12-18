@@ -1,16 +1,15 @@
-import { type IWalk } from "../../types";
+import { ballOnHill } from "./ball-on-hill";
 import { bubble } from "./bubble";
 import { USElections } from "./jeb-bush";
-import { momentumDrift } from "./momentum";
 import { pingPong } from "./ping-pong";
 import { random } from "./random";
 import { sawtooth } from "./saw";
 import { shark } from "./shark";
 import { sinusoidal } from "./sin";
 
-export const walks: Record<string, IWalk> = {
+export const walks = {
   Bubble: bubble,
-  Momentum: momentumDrift,
+  Momentum: ballOnHill,
   Pong: pingPong,
   Random: random,
   Saw: sawtooth,
@@ -18,3 +17,5 @@ export const walks: Record<string, IWalk> = {
   Sin: sinusoidal,
   "Vote Count": USElections,
 } as const;
+
+export type WalkTypes = keyof typeof walks;

@@ -2,12 +2,8 @@ Things to do:
 
 IMPROVE MODELING
 
-- improve the bubble walk
-- alter as many existing walks as possible to not be clamped, like SIn and Random presently are.
-- Add a new model, a trajectory of past lows and highes per cycle as min and max. As per: https://www.ecoinometrics.com/bitcoins-growth-trajectory-after-the-halving/
-- add walk settings ? like 1 variable that can be used for cycle frequency or something else
-- SAW walk shoudl be spaced further apart / or have a less steep climb.
-- INvestigate a custom walk like Zack was talking about
+- INvestigate a custom model like Zack was talking about
+- add Saylor Models
 
 NOTIFICATION FEATURE
 
@@ -56,6 +52,7 @@ BUGS
 - If you select normal distribution for the drawdown, and have a flat leading area, it will not say your darwdown is flat, but instead it will be non-existant.
 - can not set inflation to nothing (undefined) by hitting delete. Check other fields
 - add a versioning system to saved files so that they can be improved if needed.
+- Render -> Show Historic toggle kills the app
 
 PROBABLY REJECTED:
 
