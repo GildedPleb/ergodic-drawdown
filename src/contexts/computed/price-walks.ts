@@ -33,6 +33,7 @@ export const handlePriceWalkDataset = (
         }),
       ),
       label: `Potential Bitcoin Price (${index})`,
+      order: 1,
       parsing: false,
       pointRadius: 0,
       tension: 0,

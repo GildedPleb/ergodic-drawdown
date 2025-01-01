@@ -24,6 +24,7 @@ export const handleMaxModel = (
       borderWidth: 0.5,
       data: maxPoints,
       label: `Model Max Value`,
+      order: 2,
       parsing: false,
       pointRadius: 0,
       tension: 0,

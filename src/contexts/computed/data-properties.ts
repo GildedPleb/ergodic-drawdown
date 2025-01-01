@@ -20,10 +20,10 @@ export const handleDataProperties = (
       // @ts-expect-error this works fine and is annoying to fix better
       showHistoric ? marketDataset : {},
       interimDataset,
-      ...priceWalks,
-      ...priceDistribution,
       ...minDataset,
       ...maxDataset,
+      ...priceWalks,
+      ...priceDistribution,
       ...drawdownWalks,
       ...drawdownDistribution,
     ],

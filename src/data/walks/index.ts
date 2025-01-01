@@ -1,5 +1,6 @@
 import { ballOnHill } from "./ball-on-hill";
 import { bubble } from "./bubble";
+import { fourYearCycle } from "./green-red";
 import { USElections } from "./jeb-bush";
 import { pingPong } from "./ping-pong";
 import { random } from "./random";
@@ -16,6 +17,7 @@ export const walks = {
   Shark: shark,
   Sin: sinusoidal,
   "Vote Count": USElections,
+  "🟢🟢🟢🔴": fourYearCycle,
 } as const;
 
 export type WalkTypes = keyof typeof walks;
