@@ -25,16 +25,16 @@ export const handleMinArray = (
 
   const logMinArray = new Float64Array(dataLength);
   const minPoints = new Float64Array(dataLength);
-  for (let index = 0; index < dataLength; index++) {
-    minPoints[index] = modelMap[model].minPrice({
+  for (let week = 0; week < dataLength; week++) {
+    minPoints[week] = modelMap[model].minPrice({
       currentBlock,
       currentPrice,
       minMaxMultiple,
       now,
       variable,
-      week: index,
+      week,
     });
-    logMinArray[index] = Math.log10(minPoints[index]);
+    logMinArray[week] = Math.log10(minPoints[week]);
   }
   lruCache.set(hash, [minPoints, logMinArray]);
   return [minPoints, logMinArray];

@@ -25,16 +25,16 @@ export const handleMaxArray = (
 
   const maxPoints = new Float64Array(dataLength);
   const logMaxArray = new Float64Array(dataLength);
-  for (let index = 0; index < dataLength; index++) {
-    maxPoints[index] = modelMap[model].maxPrice({
+  for (let week = 0; week < dataLength; week++) {
+    maxPoints[week] = modelMap[model].maxPrice({
       currentBlock,
       currentPrice,
       minMaxMultiple,
       now,
       variable,
-      week: index,
+      week,
     });
-    logMaxArray[index] = Math.log10(maxPoints[index]);
+    logMaxArray[week] = Math.log10(maxPoints[week]);
   }
   lruCache.set(hash, [maxPoints, logMaxArray]);
   return [maxPoints, logMaxArray];
