@@ -1,9 +1,10 @@
 Things to do:
 
-IMPROVE MODELING
+REFACTOR DRAWDOWN MODAL
 
-- INvestigate a custom model like Zack was talking about
-- add Saylor Models
+- when you hit "today" on the drawdow item, it goes to the previsou day?
+- When you uncheck Active on a drawdown item, no matter what the setting is set to, it will only refrect something that was already loaded. It needs to fully copy over the items state into the modal, and not save any prev state artifacts.
+- If i have 2 identical drawdown items, they both show up in the results, but i can not see the labels for both the labels overwrite eachother, it seems
 
 NOTIFICATION FEATURE
 
@@ -30,12 +31,6 @@ IMPROVE DRAWDOWN
 - Add the ability for a variable drawdown that is tied to % of total. Thus being able to model the 4% rule.
 - Add a one-off drawdown event that is random between two dates. Say, if someone is expected to die and get inheritance. Do the same with a bitcoin amount.
 
-REFACTOR DRAWDOWN MODAL
-
-- when you hit "today" on the drawdow item, it goes to the previsou day?
-- When you uncheck Active on a drawdown item, no matter what the setting is set to, it will only refrect something that was already loaded. It needs to fully copy over the items state into the modal, and not save any prev state artifacts.
-- If i have 2 identical drawdown items, they both show up in the results, but i can not see the labels for both the labels overwrite eachother, it seems
-
 IMPROVE AESTHETICS / UX
 
 - Add info buttons where appropriate. Model, Walks,
@@ -52,7 +47,15 @@ BUGS
 - If you select normal distribution for the drawdown, and have a flat leading area, it will not say your darwdown is flat, but instead it will be non-existant.
 - can not set inflation to nothing (undefined) by hitting delete. Check other fields
 - add a versioning system to saved files so that they can be improved if needed.
-- Render -> Show Historic toggle kills the app
+- Render -> Show Historic toggle kills the app but only in weird circumstances like if the model pane is open or not?
+
+IMPROVE MODELING
+
+- INvestigate a custom models: "what if bitcoin is above this price by this year"
+- add Saylor Models
+- Add a +/- tab to a power law regression
+
+---
 
 PROBABLY REJECTED:
 

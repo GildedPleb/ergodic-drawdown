@@ -50,15 +50,6 @@ const Legend = styled.legend`
   padding-inline-end: 7px;
 `;
 
-const Section = styled.section`
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: column;
-  align-items: flex-start;
-  flex: 1;
-  gap: 10px;
-`;
-
 const PriceModel = (): JSX.Element => {
   const { setShowModel, showModel } = useModel();
   const { setHideResults, setShowRender, showRender } = useRender();
@@ -97,16 +88,12 @@ const PriceModel = (): JSX.Element => {
           {fieldLabels.model}
           <CaretSVG $isOpen={showModel} />
         </Legend>
-        <Section>
-          <ModelInput />
-          <WalkInput />
-          <ClampInput />
-        </Section>
-        <Section>
-          <VolInput />
-          <EpochInput />
-          <SampleInput />
-        </Section>
+        <ModelInput />
+        <WalkInput />
+        <ClampInput />
+        <VolInput />
+        <EpochInput />
+        <SampleInput />
       </Container>
       <ModelSize isExpanded={showModel} />
     </GhostWrapper>

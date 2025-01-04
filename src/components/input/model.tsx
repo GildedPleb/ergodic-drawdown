@@ -14,7 +14,6 @@ const Container = styled.div`
   white-space: nowrap;
   align-items: baseline;
   gap: 0 5px;
-  padding-right: 5px;
 `;
 
 const Select = styled.select`

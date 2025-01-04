@@ -1,5 +1,9 @@
+import { type Point } from "chart.js";
+
 import { marketDataset } from "../../data/datasets/historic";
 import { type Dataset, type DatasetList } from "../../types";
+
+const emptyDataset = { data: [] as Point[] } satisfies Dataset;
 
 export const handleDataProperties = (
   _signal: AbortSignal,
@@ -14,11 +18,9 @@ export const handleDataProperties = (
   showHistoric: boolean,
   // eslint-disable-next-line max-params
 ): { datasets: DatasetList } => {
-  // @ts-expect-error this works fine and is annoying to fix better
   return {
     datasets: [
-      // @ts-expect-error this works fine and is annoying to fix better
-      showHistoric ? marketDataset : {},
+      showHistoric ? marketDataset : emptyDataset,
       interimDataset,
       ...minDataset,
       ...maxDataset,
