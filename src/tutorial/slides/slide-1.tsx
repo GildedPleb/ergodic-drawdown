@@ -14,11 +14,11 @@ const Slide1: FC = () => (
       <strong>How Much Bitcoin is Enough?</strong>
     </p>
     <p>
-      Is it 100? 10? 6.15? 1? .21? What about 1 block reward from two halving
-      epochs ago? Trying to figure out an answer can be overwhelming, and is
-      generally unanswerable simply because it relies on big assumptions and
-      personal circumstances that traditional financial tools are not robust
-      enough to account for (it's 6.15, btw).
+      Is it 10? 6.15? 1? .21? What about 1 block reward from two halving epochs
+      ago? Trying to figure out an answer can be overwhelming, and is generally
+      unanswerable simply because it relies on big assumptions and personal
+      circumstances that traditional financial tools are not robust enough to
+      account for (it's 6.15, btw).
     </p>
     <p>
       However, this question can be answered probabilistically with the right
