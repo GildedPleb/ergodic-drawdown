@@ -103,7 +103,9 @@ const Button = styled.button`
 export interface AppState
   extends ModelContextType,
     DrawdownContextType,
-    RenderContextType {}
+    RenderContextType {
+  version: number;
+}
 
 const Drawdown = (): JSX.Element => {
   const modelState = useModel();
@@ -230,14 +232,17 @@ const Drawdown = (): JSX.Element => {
 
   const restoreAppState = useCallback(
     (state: AppState) => {
-      for (const key of Object.keys(state) as Array<keyof AppState>) {
-        const setterKey = `set${key.charAt(0).toUpperCase() + key.slice(1)}` as
-          | keyof DrawdownContextType
-          | keyof ModelContextType;
-        if (typeof fullState[setterKey] === "function") {
-          (fullState[setterKey] as (value: AppState[typeof key]) => void)(
-            state[key],
-          );
+      if (state.version === 1) {
+        for (const key of Object.keys(state) as Array<keyof AppState>) {
+          const setterKey =
+            `set${key.charAt(0).toUpperCase() + key.slice(1)}` as
+              | keyof DrawdownContextType
+              | keyof ModelContextType;
+          if (typeof fullState[setterKey] === "function") {
+            (fullState[setterKey] as (value: AppState[typeof key]) => void)(
+              state[key],
+            );
+          }
         }
       }
     },
@@ -253,9 +258,12 @@ const Drawdown = (): JSX.Element => {
       ...rest
     } = fullState;
 
-    return Object.fromEntries(
-      Object.entries(rest).filter(([key]) => !key.startsWith("set")),
-    ) as unknown as AppState;
+    return {
+      ...Object.fromEntries(
+        Object.entries(rest).filter(([key]) => !key.startsWith("set")),
+      ),
+      version: 1,
+    } as unknown as AppState;
   }, [fullState]);
 
   const toggleModelExpansion = useCallback(() => {

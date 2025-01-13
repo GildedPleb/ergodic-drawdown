@@ -89,7 +89,7 @@ export const SecureFileOperationsModal = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `ergodic-drawdown-${new Date().toLocaleDateString()}.dat`;
+    link.download = `ergodic-drawdown-${new Date().toLocaleDateString()}.edw`;
     document.body.append(link);
     link.click();
     link.remove();
@@ -153,7 +153,7 @@ export const SecureFileOperationsModal = ({
       )}
 
       {mode === "load" && (
-        <Input accept=".dat" onChange={handleFileChange} type="file" />
+        <Input accept=".edw" onChange={handleFileChange} type="file" />
       )}
 
       <Input

@@ -34,15 +34,16 @@ export const handleDrawdownStatic = (
     if (!item.active) continue;
     const cacheKey = hashSum(item) + hash + String(weeklyInflationRate);
     const cachedResult = reoccurringItemCache.get(cacheKey);
-
+    const { isFiat } = item;
     if (cachedResult === undefined) {
       const toBeCached = new Float64Array(dataLength);
-      const { effective, end, expense, isFiat } = item;
+      const { annualAmount, annualPercentChange, effective, end, expense } =
+        item;
       const startWeek = dateToWeek(effective);
       const endWeek = end === undefined ? dataLength : dateToWeek(end);
       const weeklyChangeRate =
-        (1 + item.annualPercentChange / 100) ** (1 / WEEKS_PER_YEAR) - 1;
-      let weeklyCost = item.annualAmount / WEEKS_PER_YEAR;
+        (1 + annualPercentChange / 100) ** (1 / WEEKS_PER_YEAR) - 1;
+      let weeklyCost = annualAmount / WEEKS_PER_YEAR;
       if (isFiat && startWeek > 0) weeklyCost *= inflationFactors[startWeek];
       for (let week = startWeek; week < endWeek; week++) {
         if (week !== startWeek) {
@@ -56,7 +57,7 @@ export const handleDrawdownStatic = (
       }
       reoccurringItemCache.set(cacheKey, toBeCached);
     } else {
-      const targetArray = item.isFiat
+      const targetArray = isFiat
         ? totalWeeklyFiatItems
         : totalWeeklyBitcoinItems;
       for (let week = 0; week < dataLength; week++) {
