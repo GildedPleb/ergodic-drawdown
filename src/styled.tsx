@@ -99,6 +99,8 @@ const GlobalStyle = styled.createGlobalStyle`
   input {
     background-color: #1e1e1e;
     color: #ffffff;
+    background-color: hsl(0, 0%, 14%);
+    border: 1px solid grey;
   }
 
   @media (prefers-color-scheme: light) {

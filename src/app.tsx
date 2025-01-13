@@ -6,6 +6,7 @@ import styled from "styled-components";
 import CaretSVG from "./components/caret";
 import { isMobile } from "./constants";
 import { useProcessing } from "./data/effects";
+import Notifications from "./components/notification";
 
 const Tutorial = React.lazy(async () => import("./tutorial"));
 const Model = React.lazy(async () => import("./panels/model"));
@@ -193,6 +194,7 @@ const StochasticGraph = (): React.ReactNode => {
         </FooterWrapper>
         <Results />
       </GridApp>
+      <Notifications />
     </Container>
   );
 };

@@ -4,7 +4,7 @@
 /* eslint-disable unicorn/no-null */
 import hashSum from "hash-sum";
 import { useCallback, useMemo, useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 import CaretSVG from "../components/caret";
 import Modal from "../components/drawdown-modal";
@@ -43,10 +43,25 @@ const Container = styled.fieldset<{ $guessHeight: number; $isOpen: boolean }>`
   padding-right: 10px;
   padding-top: 0px;
   padding-bottom: 10px;
+  margin-bottom: -1px;
   overflow: scroll;
   position: relative;
   z-index: 1;
   transition: max-height 0.4s ease-in-out;
+
+  /* Hide scrollbar on close */
+  ${({ $isOpen }) =>
+    $isOpen
+      ? ""
+      : css`
+          overflow-y: auto;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+
+          &::-webkit-scrollbar {
+            display: none;
+          }
+        `}
 `;
 
 const Legend = styled.legend`

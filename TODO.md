@@ -1,9 +1,6 @@
-Things to do:
-
 NOTIFICATION FEATURE
 
 - In the tutorial, if you set Model Linear slope and then +/- to 1.01, the line will be a compressed, flat line. Some kind of note or notice should display, "hey now, remember what we said in lesson 3? When their is no range the the model is useless!"
-- add a note that if they are visiting the website for the first time, and they are on mobile, they should open it up on desktop and do the tutorial
 
 SHARE FEATURE:
 
@@ -34,7 +31,6 @@ IMPROVE AESTHETICS / UX
 - when you tab into a drawdown content table cell, you should be able to hit enter to enter the cell, same with any other buttons and tabbing also escape should exit modal.
 - We should be able to see the full setting in a screen shot (so put the full settings in the results.)
 - is it possible to solve for: "When Bitcoin hits $100k, all you would need is 4 BTC to withdraw $10k/mo for the rest of your life. \*Assuming BTC has a CAGR of at least 30% for the rest of your life."
-- all input fields might be white on some browsers. this needs to be changed to be better.
 
 BUGS
 
