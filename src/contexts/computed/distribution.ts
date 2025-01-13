@@ -104,7 +104,7 @@ export const handleDistribution = async (
           }
         : {
             color: { blue: 255, green: 0, red: 0 },
-            cutoffs: [-1, 0, 1],
+            cutoffs: [-3, -2, -1, 0, 1, 2, 3],
             midLabel: "Bitcoin Remaining",
             type: "sd" as const,
             workerEventType: "RUN_DISTRIBUTION_NORMAL" as const,

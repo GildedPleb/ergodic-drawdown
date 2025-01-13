@@ -39,7 +39,6 @@ IMPROVE AESTHETICS / UX
 BUGS
 
 - swiping the results box around can force a refresh of the page. Results box can be dragged out of frame on mobile
-- If you select normal distribution for the drawdown, and have a flat leading area, it will not say your drawdown is flat, but instead it will be non-existent.
 - can not set inflation to nothing (undefined) by hitting delete. Check other fields
 
 IMPROVE MODELING

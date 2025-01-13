@@ -1,5 +1,8 @@
 import { type DistributionNormalEvent, type SignalState } from "./types";
 
+// Small number to check for effectively zero variance
+const EPSILON = 1e-10;
+
 export const handleNormal = (
   {
     cutoffs,
@@ -30,6 +33,16 @@ export const handleNormal = (
 
     const mean = sum / count;
     const variance = sumOfSquares / count - mean * mean;
+
+    if (variance < EPSILON) {
+      // If variance is effectively zero, all values must be the same
+      const value = Math.exp(mean);
+      for (let quantile = 0; quantile < cutoffs.length; quantile++) {
+        quantiles[week * cutoffs.length + quantile] = value;
+      }
+      continue;
+    }
+
     const standardDeviation = Math.sqrt(variance);
 
     for (let quantile = 0; quantile < cutoffs.length; quantile++) {
