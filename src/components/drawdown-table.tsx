@@ -141,13 +141,15 @@ const ItemRow: React.FC<ItemRowProperties> = ({
           </Button>
         </ActionCell>
       </Row>
-      <Modal
-        isOpen={isModalOpen}
-        item={item}
-        onClose={closeModal}
-        onDelete={handleDelete}
-        onSave={handleSave}
-      />
+      {isModalOpen && (
+        <Modal
+          isOpen={isModalOpen}
+          item={item}
+          onClose={closeModal}
+          onDelete={handleDelete}
+          onSave={handleSave}
+        />
+      )}
     </>
   );
 };

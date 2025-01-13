@@ -1,23 +1,33 @@
-import type React from "react";
+import type { KeyboardEvent, KeyboardEventHandler } from "react";
 
-const handleEnterKey: React.KeyboardEventHandler<
-  HTMLInputElement | HTMLSelectElement
-> = (event: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
-  if (event.key === "Enter") {
-    const target = event.target as HTMLInputElement | HTMLSelectElement;
+type FocusableElement = HTMLInputElement | HTMLSelectElement;
 
-    const elements = [
-      ...document.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-        "input, select",
-      ),
-    ];
-    const currentIndex = elements.indexOf(target);
-    const nextElement = elements[currentIndex + 1];
-    if (typeof nextElement.focus === "function") {
-      nextElement.focus();
-      event.preventDefault();
-    }
+const handleEnterKey: KeyboardEventHandler<FocusableElement> = (
+  event: KeyboardEvent<FocusableElement>,
+): void => {
+  if (event.key !== "Enter") {
+    return;
   }
+
+  const target = event.currentTarget;
+  const selector = "input:not([type='hidden']), select";
+
+  const elements = [...document.querySelectorAll<HTMLElement>(selector)].filter(
+    (element): element is FocusableElement =>
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLSelectElement,
+  );
+
+  const currentIndex = elements.indexOf(target);
+
+  // Ensure we have a valid index and there is a next element
+  if (currentIndex === -1 || currentIndex >= elements.length - 1) {
+    return;
+  }
+
+  const nextElement = elements[currentIndex + 1];
+  nextElement.focus();
+  event.preventDefault();
 };
 
 export default handleEnterKey;

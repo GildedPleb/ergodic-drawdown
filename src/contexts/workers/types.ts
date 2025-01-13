@@ -1,5 +1,5 @@
 import { type ExportedState } from "../../classes/growable-shared-array";
-import { type Full, type OneOffFiatVariable } from "../../types";
+import { type Full, type NarrowedOneOffFiat } from "../../types";
 
 export type TaskStatus = "aborted" | "completed" | "pending";
 
@@ -53,7 +53,7 @@ export interface RunVolumeEvent {
 export interface RunDrawdownVariableEvent {
   payload: {
     inflationFactors: Float64Array;
-    oneOffFiatVariable: OneOffFiatVariable;
+    oneOffFiatVariable: NarrowedOneOffFiat;
     simulationExport: ExportedState;
     task: Task;
     variableDrawdownBuffer: SharedArrayBuffer;

@@ -15,7 +15,7 @@ import {
   type DatasetList,
   type Full,
   type HalvingData,
-  type OneOffFiatVariable,
+  type NarrowedOneOffFiat,
   type OneOffItem,
   type ReoccurringItem,
 } from "../../../types";
@@ -50,7 +50,7 @@ type PrimitiveDependency =
   | LRUCache<string, VariableDrawdownCache>
   | LRUCache<string, VariableDrawdownFinal>
   | LineAnnotationOptions[]
-  | OneOffFiatVariable[]
+  | NarrowedOneOffFiat[]
   | OneOffItem[]
   | ReoccurringItem[]
   | WorkerContextType
@@ -130,7 +130,7 @@ function isDependencyObject<R>(dep: unknown): dep is DependencyObject<R> {
 function isDatasetOrDatasetList(object: unknown): boolean {
   if (Array.isArray(object)) {
     // Check if it's potentially a DatasetList
-    if (object.length === 0 || isDataset(object[0])) {
+    if (object.length > 0 && isDataset(object[0])) {
       return true;
     }
   } else if (

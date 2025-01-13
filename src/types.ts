@@ -192,6 +192,11 @@ export interface OneOffFiatVariable extends BaseDrawdownItem {
   start: number;
 }
 
+export type NarrowedOneOffFiat = Pick<
+  OneOffFiatVariable,
+  "amountToday" | "btcWillingToSpend" | "delay" | "hash" | "start"
+>;
+
 export type DrawdownItem = OneOffFiatVariable | OneOffItem | ReoccurringItem;
 
 export type DistributionType = (typeof distributions)[number];
@@ -211,13 +216,15 @@ export interface FieldProperties<T extends DrawdownItem> {
   ) => void;
 }
 
-export type FormData = { type: string } & (
-  | BaseDrawdownItem
-  | OneOffFiatVariable
-  | OneOffItem
-  | ReoccurringItem
-);
+export type DrawdownTypes =
+  | "oneOffFiatVariable"
+  | "oneOffItem"
+  | "reoccurringItem";
 
+export type FormData =
+  | ({ type: "oneOffFiatVariable" } & BaseDrawdownItem & OneOffFiatVariable)
+  | ({ type: "oneOffItem" } & BaseDrawdownItem & OneOffItem)
+  | ({ type: "reoccurringItem" } & BaseDrawdownItem & ReoccurringItem);
 // eslint-disable-next-line functional/no-mixed-types
 export interface IModal {
   isOpen: boolean;

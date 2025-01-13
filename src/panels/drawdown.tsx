@@ -1,4 +1,6 @@
 // eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
+/* eslint-disable @shopify/strict-component-boundaries */
+// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
 /* eslint-disable unicorn/no-null */
 import hashSum from "hash-sum";
 import { useCallback, useMemo, useState } from "react";
@@ -8,9 +10,7 @@ import CaretSVG from "../components/caret";
 import Modal from "../components/drawdown-modal";
 import DrawdownTable from "../components/drawdown-table";
 import { SecureFileOperationsModal } from "../components/file-operations-modal";
-// eslint-disable-next-line @shopify/strict-component-boundaries
 import BitcoinInput from "../components/input/bitcoin";
-// eslint-disable-next-line @shopify/strict-component-boundaries
 import InflationInput from "../components/input/inflation";
 import { isMobile } from "../constants";
 import { fieldLabels } from "../content";
@@ -209,7 +209,7 @@ const Drawdown = (): JSX.Element => {
           break;
         }
         default: {
-          console.error("Unknown item type:", item.type);
+          console.error("Unknown item type:", item);
         }
       }
     },
@@ -285,11 +285,14 @@ const Drawdown = (): JSX.Element => {
         <Button onClick={handleSave}>{buttonSave}</Button>
         <Button onClick={handleLoad}>{buttonLoad}</Button>
       </SectionRow>
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleAdd}
-      />
+      {isModalOpen && (
+        <Modal
+          isOpen={isModalOpen}
+          item={undefined}
+          onClose={handleCloseModal}
+          onSave={handleAdd}
+        />
+      )}
       <SecureFileOperationsModal
         appState={appState}
         mode={fileModalMode}

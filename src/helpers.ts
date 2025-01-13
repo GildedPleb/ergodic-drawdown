@@ -329,7 +329,7 @@ export const findNextGreatest1000 = (x: number, y: number): number => {
 
 export const getItemDescription = (item: DrawdownItem): string => {
   if ("annualAmount" in item) {
-    return `Starting ${item.effective.toLocaleDateString()}, ${item.expense ? "spend" : "acquire"} ${item.isFiat ? "$" : "₿"}${item.annualAmount.toLocaleString()}${item.isFiat ? " of bitcoin " : ""} every year${item.end === undefined ? "" : " until " + item.end.toLocaleDateString()}${item.annualPercentChange === 0 ? "" : ", " + (item.annualPercentChange > 0 ? " increasing" : " decreasing") + " by " + item.annualPercentChange + "% per year"}`;
+    return `Starting ${item.effective.toLocaleDateString()}, ${item.expense ? "spend" : "acquire"} ${item.isFiat ? "$" : "₿"}${item.annualAmount.toLocaleString()}${item.isFiat ? " of bitcoin " : ""} every year${item.end === undefined ? "" : " until " + item.end.toLocaleDateString()}${item.annualPercentChange === 0 ? "" : ", changing by " + item.annualPercentChange + "% per year"}`;
   } else if ("amountToday" in item && !("btcWillingToSpend" in item)) {
     return `${item.expense ? "Spend" : "Acquire"} ${item.isFiat ? "$" : "₿"}${item.amountToday.toLocaleString()} ${item.isFiat ? "(in todays purchasing power)" : ""} on ${item.effective.toLocaleDateString()}`;
   } else if ("btcWillingToSpend" in item) {

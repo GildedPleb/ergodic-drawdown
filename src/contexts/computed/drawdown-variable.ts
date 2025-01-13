@@ -5,7 +5,7 @@ import VariableDrawdownCache from "../../classes/variable-drawdown-cache";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
 import { type WorkerContextType } from "../../contexts/workers";
 import { createTaskQueue } from "../../helpers";
-import { type OneOffFiatVariable } from "../../types";
+import { type NarrowedOneOffFiat } from "../../types";
 import { type RunDrawdownVariableEvent } from "../workers/types";
 
 const NO_CACHE_ERROR = "No cache for variable drawdown";
@@ -18,7 +18,7 @@ export const handleDrawdownVariables = async (
   fullHashInflation: string,
   simulationData: GrowableSharedArray,
   finalVariableCache: LRUCache<string, VariableDrawdownFinal>,
-  activeOneOffVariables: OneOffFiatVariable[],
+  activeOneOffVariables: NarrowedOneOffFiat[],
   variableDrawdownCache: LRUCache<string, VariableDrawdownCache>,
   worker: WorkerContextType,
   inflationFactors: Float64Array,

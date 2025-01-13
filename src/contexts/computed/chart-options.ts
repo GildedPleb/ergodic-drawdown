@@ -267,7 +267,7 @@ export const handleChartOptions = (
         title: { display: true, font, text: "BTC Volume" },
         type: "linear",
       },
-      // THis is for the label locations for drawdowns
+      // This is for the label locations for draw downs
       y2: {
         display: false,
         min: 0,

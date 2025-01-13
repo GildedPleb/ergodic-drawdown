@@ -7,6 +7,7 @@ import { weeksSinceLastHalving } from "../../helpers";
 import {
   type DatasetList,
   type Full,
+  type NarrowedOneOffFiat,
   type ProviderProperties,
 } from "../../types";
 import { useDrawdown } from "../drawdown";
@@ -20,7 +21,7 @@ import { handleDataProperties } from "./data-properties";
 import { handleDistribution } from "./distribution";
 import { handleDrawdownStatic } from "./drawdown-static";
 import { handleDrawdownVariables } from "./drawdown-variable";
-import { handleDrawdownVariableStats } from "./drawdown-variable-stats";
+import { handleDrawdownVariableLabels } from "./drawdown-variable-labels";
 import { handleDrawdownWalkDataset } from "./drawdown-walks";
 import { handleHalvingAnnotations } from "./halving-annotations";
 import { useCurrentPrice } from "./hooks/use-current-price";
@@ -125,6 +126,20 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     () => oneOffFiatVariables.filter(({ active }) => active),
     [oneOffFiatVariables],
   );
+  const activeOneOffVariablesToProcess = useMemo(
+    () =>
+      activeOneOffVariables.map(
+        (input): NarrowedOneOffFiat => ({
+          amountToday: input.amountToday,
+          btcWillingToSpend: input.btcWillingToSpend,
+          delay: input.delay,
+          hash: input.hash,
+          start: input.start,
+        }),
+      ),
+    [activeOneOffVariables],
+  );
+
   const activeOneOffVariablesHash = useMemo(
     () =>
       hashSum({
@@ -305,7 +320,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       fullHashInflation,
       simulationData,
       finalVariableCache,
-      activeOneOffVariables,
+      activeOneOffVariablesToProcess,
       variableDrawdownCache,
       worker,
       narrow(inflationFactors),
@@ -318,9 +333,9 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     ),
   );
 
-  const drawdownVariableStats = useDependency(
-    "Drawdown Variables",
-    handleDrawdownVariableStats,
+  const drawdownVariableLabels = useDependency(
+    "Drawdown Variables Labels",
+    handleDrawdownVariableLabels,
     useDep(
       activeOneOffVariables,
       variableDrawdownCache,
@@ -341,11 +356,11 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       dataLength,
       oneOffItems,
       showModel,
-      narrow(drawdownVariableStats),
+      narrow(drawdownVariableLabels),
       showHistoric,
 
       halvingAnnotations,
-      drawdownVariableStats,
+      drawdownVariableLabels,
     ),
     false,
   );

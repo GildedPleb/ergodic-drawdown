@@ -5,27 +5,26 @@ import { type OneOffFiatVariable } from "../../types";
 
 const NO_CACHE_ERROR = "No cache for variable drawdown stats";
 
-export const handleDrawdownVariableStats = (
+export const handleDrawdownVariableLabels = (
   _signal: AbortSignal,
   _hash: string,
   activeOneOffVariables: OneOffFiatVariable[],
   variableDrawdownCache: LRUCache<string, VariableDrawdownCache>,
   showModel: boolean,
 ): Array<{ effectiveWeek: number; endWeek: number; name: string }> => {
+  console.log("HIT");
   if (showModel) {
     console.log("NOT RENDERING VARIABLE DRAWDOWN");
     return [];
   }
-  return [
-    ...new Map(activeOneOffVariables.map((item) => [item.hash, item])).values(),
-  ].flatMap((oneOffFiatVariable) => {
-    const variableCache = variableDrawdownCache.get(oneOffFiatVariable.hash);
+  return activeOneOffVariables.flatMap(({ hash, name }) => {
+    const variableCache = variableDrawdownCache.get(hash);
     if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
     if (!variableCache.isFull()) {
-      console.log("NOT FULL");
+      console.log(`Variable cache ${name}: NOT FULL! Returning no results.`);
       return [];
     }
     const [effectiveWeek, endWeek] = variableCache.getGate();
-    return { effectiveWeek, endWeek, name: oneOffFiatVariable.name };
+    return { effectiveWeek, endWeek, name };
   });
 };
