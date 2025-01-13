@@ -96,6 +96,11 @@ const GlobalStyle = styled.createGlobalStyle`
     font-style: italic;
   }
 
+  input {
+    background-color: #1e1e1e;
+    color: #ffffff;
+  }
+
   @media (prefers-color-scheme: light) {
     :root {
       color: #213547;
