@@ -1,5 +1,6 @@
 import { type LineAnnotationOptions } from "chartjs-plugin-annotation";
 
+import { isMobile } from "../../constants";
 import { type HalvingData } from "../../types";
 
 export const handleHalvingAnnotations = (
@@ -16,12 +17,12 @@ export const handleHalvingAnnotations = (
       content: `Halving ${index + 1}`,
       display: true,
       font: {
-        size: 12,
+        size: isMobile() ? 8 : 12,
         weight: "bold",
       },
       position: "end",
       rotation: -90,
-      xAdjust: -10,
+      xAdjust: isMobile() ? -7 : -10,
       yAdjust: 0,
     },
     scaleID: "x",

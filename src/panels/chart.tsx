@@ -67,7 +67,12 @@ const Chart = (): JSX.Element => {
         while annotations pipe through.
       */}
       {chartOptions !== null && (
-        <Line data={dataProperties ?? defaultData} options={fullOption} />
+        <Line
+          // eslint-disable-next-line tailwindcss/no-custom-classname
+          className="chart-canvas"
+          data={dataProperties ?? defaultData}
+          options={fullOption}
+        />
       )}
     </Container>
   );

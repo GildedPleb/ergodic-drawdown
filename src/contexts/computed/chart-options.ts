@@ -6,6 +6,10 @@ import { generateColor } from "../../helpers";
 import { type OneOffItem, type ReoccurringItem } from "../../types";
 
 const annotationColor = "rgba(255, 99, 132, 0.2)";
+const SPACING_PX = 5;
+const HEIGHT =
+  document.querySelector(".chart-canvas")?.getBoundingClientRect().height ??
+  100;
 
 const createDateLabel = (date: Date): string => {
   const today = new Date();
@@ -34,12 +38,12 @@ const createVerticalAnnotation = (
     content: labelContent,
     display: true,
     font: {
-      size: 12,
+      size: isMobile() ? 8 : 12,
       weight: "bold",
     },
     position: "end",
     rotation: -90,
-    xAdjust: 10,
+    xAdjust: isMobile() ? 7 : 10,
     yAdjust: 0,
   },
   scaleID: "x",
@@ -75,13 +79,17 @@ const createHorizontalAnnotation = (
     color,
     content: labelContent,
     display: true,
+    font: {
+      size: isMobile() ? 8 : 12,
+    },
     position: "center",
-    yAdjust: -10,
+    yAdjust: isMobile() ? -7 : -10,
   },
   xMax,
   xMin,
-  yMax: window.innerHeight / 2 - 20 * (index + 1),
-  yMin: window.innerHeight / 2 - 20 * (index + 1),
+  yMax: HEIGHT - (index + 1) * SPACING_PX,
+  yMin: HEIGHT - (index + 1) * SPACING_PX,
+
   yScaleID: "y2",
 });
 
@@ -184,8 +192,7 @@ export const handleChartOptions = (
 ): ChartOptions<"line"> => {
   const mobile = isMobile();
   const font = {
-    // eslint-disable-next-line sonarjs/no-all-duplicated-branches
-    size: mobile ? 12 : 12,
+    size: mobile ? 10 : 12,
   };
   return {
     plugins: {
@@ -270,6 +277,7 @@ export const handleChartOptions = (
       // This is for the label locations for draw downs
       y2: {
         display: false,
+        max: HEIGHT,
         min: 0,
         position: "right",
         type: "linear",
