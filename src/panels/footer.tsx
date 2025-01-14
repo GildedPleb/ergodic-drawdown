@@ -104,7 +104,7 @@ const Footer = (): JSX.Element => {
         <Legal>
           <p>
             Many of these questions and concepts are addressed in the Tutorial
-            and it is recommended to start there <strong>(Desktop only)</strong>
+            and it is recommended to start there <strong>(Desktop Only)</strong>
             .
           </p>
           <p>
@@ -115,12 +115,13 @@ const Footer = (): JSX.Element => {
           </p>
           <p>
             Start (%) is the % offset between the first-affordable week and
-            last-unaffordable week for a drawdown event. As their As their names
-            suggests, these two form two meaningful date bounds for spending on
-            each sample. The default Start (%) is 100, meaning spend on the
-            last-unaffordable day. Be cautions about any % that's not 0 or 100,
-            as many could mean spending more bitcoin than you might like! Delay,
-            is an additional weekly delay from the start point.
+            last-unaffordable week for a drawdown event. As their names suggest,
+            these two events in sequential price data form two meaningful date
+            bounds for spending on each sample. The default Start (%) is 100,
+            meaning spend on the last-unaffordable day. Be cautions about any %
+            that's not 0 or 100, as many could mean spending more bitcoin than
+            you might like! Delay, is an additional weekly delay from the start
+            point.
           </p>
 
           <p>
@@ -133,7 +134,7 @@ const Footer = (): JSX.Element => {
             result of withdrawals or expenditures. In financial terms, it's the
             peak-to-trough decline during a specific recorded period of an
             investment. In the context of Bitcoin financial modeling, such as on
-            the website using Monte Carlo simulations, drawdown specifically
+            this website using Monte Carlo simulations, drawdown specifically
             addresses how much Bitcoin balance decreases over time due to
             regular withdrawals to meet expenses or other financial obligations.
           </p>
@@ -189,11 +190,11 @@ const Footer = (): JSX.Element => {
             based on predefined volatility, strategy, and other factors. Each
             walk represents a single possible future path that Bitcoin's price
             might take, contributing to the broader statistical analysis of
-            potential outcomes. Walks are ergodic in that they attempt to
-            eventually hit both the bottom (min) and top (max) of the given
-            model, which usually corresponds to around 1st percentile and 99th
-            percentile. However, these boundaries are not always respected or
-            enforced.
+            potential outcomes. Some walks themselves are ergodic in that they
+            attempt to eventually hit both the bottom (min) and top (max) of the
+            given model, which usually corresponds to around 1st percentile and
+            99th percentile. However, these boundaries are not always respected
+            or enforced.
           </p>
 
           <p>
@@ -307,7 +308,7 @@ const Footer = (): JSX.Element => {
           <p>
             This tool scrapes the current daily price of bitcoin, and keeps a
             record of past prices. All other information is generated based on
-            user input. For requests, open a{" "}
+            user input. For requests to add models or walks, open a{" "}
             <a
               aria-label="Create new Github issue - Opens in new tab"
               href="https://github.com/GildedPleb/ergodic-drawdown/issues/new"
