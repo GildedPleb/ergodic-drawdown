@@ -31,8 +31,8 @@ const Slide9: FC = () => (
       mean.
     </p>
     <p>
-      Let's focus on Quantile with a quick discussion of Granularity and Data by
-      clicking <strong>Next</strong>.
+      Let's focus on Quantile with a quick discussion of Granularity and
+      Limitations by clicking <strong>Next</strong>.
     </p>
   </SlideContent>
 );

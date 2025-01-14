@@ -31,7 +31,7 @@ const Slide7: FC = () => (
       >
         GitHub
       </a>
-      .
+      !
     </p>
     <p>
       Alright, now that we understand a single walk, we can begin to address the

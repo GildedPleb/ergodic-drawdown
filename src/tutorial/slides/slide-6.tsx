@@ -18,15 +18,16 @@ const Slide6: FC = () => (
     </p>
     <p>
       Some walks, like the Bubble Walk, are "ergodic" - given enough time,
-      they'll hit every possible level in their range. This is crucial because
-      it means objective, intra-cycle patterns can be reflected into future
-      modeling. Unlike simpler models (e.g., Rainbow, Power Law), this egodicity
-      gives us dimensionality to our modeling. This is the first categorical
-      differentiation that sets this modeling paradigm apart.
+      they'll hit every possible vertical level in their range. This is crucial
+      because it means objective, intra-cycle patterns can be reflected into
+      future modeling. Unlike simpler models (e.g., Rainbow, Power Law), this
+      egodicity gives us dimensionality to our modeling. This is the first
+      categorical differentiation that sets this modeling apart.
     </p>
     <p>
       Now, let's increase the volatility back to 0.1 - either click{" "}
-      <strong>Next</strong> or set it manually before moving forward.
+      <strong>Next</strong> or scale it up slowly before moving forward
+      (recommended!).
     </p>
   </SlideContent>
 );

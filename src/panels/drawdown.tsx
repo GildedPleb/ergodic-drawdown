@@ -107,12 +107,13 @@ const SectionRow = styled(Section)`
 const Button = styled.button`
   background-color: transparent;
   text-decoration: none;
-  max-width: 40px;
-  max-height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 5px;
+  padding: 0px;
+  /* border: 1px solid red; */
 `;
 
 export interface AppState
@@ -289,6 +290,13 @@ const Drawdown = (): JSX.Element => {
     setShowDrawdown(!showDrawdown);
   }, [setShowDrawdown, setShowModel, setShowRender, showDrawdown]);
 
+  const inlineStyles = useMemo(
+    () => ({
+      paddingRight: "2px",
+    }),
+    [],
+  );
+
   return (
     <Container $guessHeight={guessHeight} $isOpen={showDrawdown}>
       <Legend onClick={toggleModelExpansion}>
@@ -297,7 +305,9 @@ const Drawdown = (): JSX.Element => {
       </Legend>
       <Fill />
       <SectionRow>
-        <Button onClick={handleOpenModal}>{buttonText}</Button>
+        <Button onClick={handleOpenModal} style={inlineStyles}>
+          {buttonText}
+        </Button>
         <BitcoinInput />
         <InflationInput />
       </SectionRow>

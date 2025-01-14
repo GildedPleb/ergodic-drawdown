@@ -111,6 +111,7 @@ const Footer = (): JSX.Element => {
           $special
           aria-label="Get ahold of GildedPleb on 𝕏"
           href="https://x.com/gildedpleb"
+          rel="noopener noreferrer"
           tabIndex={0}
         >
           Hire Us!
