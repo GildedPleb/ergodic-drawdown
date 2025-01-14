@@ -51,7 +51,7 @@ export const RenderProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [renderDrawdownDistribution, setRenderDrawdownDistribution] =
     useState<DistributionType>("Quantile");
   const [showResults, setShowResults] = useState<boolean>(false);
-  const [hideResults, setHideResults] = useState<boolean>(false);
+  const [hideResults, setHideResults] = useState<boolean>(isMobile());
   const [showHistoric, setShowHistoric] = useState<boolean>(true);
 
   const value = useMemo(

@@ -52,13 +52,12 @@ const Legend = styled.legend`
 
 const PriceModel = (): JSX.Element => {
   const { setShowModel, showModel } = useModel();
-  const { setHideResults, setShowRender, showRender } = useRender();
+  const { setShowRender, showRender } = useRender();
   const { setShowDrawdown } = useDrawdown();
 
   const toggleModelExpansion = useCallback(() => {
     if (showModel) {
       if (isMobile()) {
-        setHideResults(false);
         setShowDrawdown(true);
       }
     } else {
@@ -66,20 +65,12 @@ const PriceModel = (): JSX.Element => {
         if (showRender) {
           setShowRender(false);
         }
-        setHideResults(true);
 
         setShowDrawdown(false);
       }
     }
     setShowModel(!showModel);
-  }, [
-    showModel,
-    setShowModel,
-    setHideResults,
-    setShowDrawdown,
-    showRender,
-    setShowRender,
-  ]);
+  }, [showModel, setShowModel, setShowDrawdown, showRender, setShowRender]);
 
   return (
     <GhostWrapper $isOpen={showModel}>
