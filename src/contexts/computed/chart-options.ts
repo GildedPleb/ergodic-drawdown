@@ -139,7 +139,7 @@ const generateReoccurringItemAnnotations = (
               ...createVerticalAnnotation(startTime, color, "").label,
               content: `${item.name} - ${createDateLabel(new Date(startTime))}`,
               position: "center",
-              xAdjust: -10,
+              xAdjust: isMobile() ? -7 : -10,
             },
           },
         ];
@@ -195,6 +195,7 @@ export const handleChartOptions = (
     size: mobile ? 10 : 12,
   };
   return {
+    events: ["mousemove", "mouseout", "mouseenter", "mouseleave"],
     plugins: {
       annotation: {
         annotations: [

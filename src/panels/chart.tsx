@@ -18,6 +18,7 @@ import { useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import styled from "styled-components";
 
+import { crosshairPlugin } from "../components/crosshair-plugin";
 import { useComputedValues } from "../contexts/computed";
 
 ChartJS.register(
@@ -31,6 +32,7 @@ ChartJS.register(
   zoom,
   TimeScale,
   Filler,
+  crosshairPlugin,
 );
 
 const Container = styled.section`
