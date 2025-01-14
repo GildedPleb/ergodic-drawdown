@@ -1,11 +1,7 @@
 // eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
 /* eslint-disable security/detect-object-injection */
-import { WEEKS_PER_EPOCH } from "../../constants";
+import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../../constants";
 import { type IWalk } from "../../types";
-
-const WEEKS_PER_YEAR = WEEKS_PER_EPOCH / 4;
-
-type Phase = "green" | "red";
 
 export const fourYearCycle: IWalk = ({
   clampBottom = false,
@@ -18,31 +14,32 @@ export const fourYearCycle: IWalk = ({
   data[startWeek] = start;
   let currentValue = start;
 
-  // Determine initial phase based on which year we're in
-  const yearIndex = Math.floor(startWeek / WEEKS_PER_YEAR);
-  let currentPhase: Phase = yearIndex === 3 ? "red" : "green";
-
-  // Base trends for each phase
-  // Positive trend during green years
-  const greenTrend = 0.005;
-  // Stronger negative trend during red year
-  const redTrend = -0.015;
+  // Determine initial phase and rate
+  let rate = 0;
+  if (startWeek < WEEKS_PER_YEAR) {
+    if (start < 1) {
+      rate = (1 - start) / (WEEKS_PER_YEAR - startWeek);
+    }
+  } else if (startWeek < WEEKS_PER_YEAR * 2) {
+    if (start > 0) {
+      rate = (0 - start) / (WEEKS_PER_YEAR - (startWeek % WEEKS_PER_YEAR));
+    }
+  } else if (start < 1) {
+    rate = (1 - start) / (WEEKS_PER_YEAR * 4 - startWeek);
+  }
 
   for (let week = startWeek + 1; week < WEEKS_PER_EPOCH; week++) {
-    // Calculate which year we're in (0-3)
-    const currentYear = Math.floor(week / WEEKS_PER_YEAR);
+    if (week === WEEKS_PER_YEAR && currentValue > 0) {
+      rate = (0 - currentValue) / WEEKS_PER_YEAR;
+    } else if (week === WEEKS_PER_YEAR * 2 && currentValue < 1) {
+      rate = (1 - currentValue) / (WEEKS_PER_YEAR * 3);
+    }
 
-    // Update phase based on year
-    currentPhase = currentYear === 3 ? "red" : "green";
+    if (rate > 0 && currentValue > 1) rate = 0;
+    if (rate < 0 && currentValue < 0) rate = 0;
 
-    // Add randomness
-    const randomComponent = (Math.random() - 0.5) * volatility;
-    // Apply trend based on phase
-    currentValue +=
-      currentPhase === "green"
-        ? greenTrend + randomComponent
-        : redTrend + randomComponent;
-    // Apply clamping if enabled
+    currentValue += rate + (Math.random() - 0.5) * volatility;
+
     if (clampTop && currentValue > 1) currentValue = 1;
     if (clampBottom && currentValue < 0) currentValue = 0;
 
