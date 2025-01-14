@@ -251,6 +251,8 @@ export const handleChartOptions = (
         type: "time",
       },
       y: {
+        // max: 100_000_000,
+        // min: 0.1,
         ticks: {
           autoSkipPadding: 30,
           callback: (value: number | string) => {

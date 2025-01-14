@@ -20,7 +20,7 @@ interface CrosshairOptions {
 }
 
 export const crosshairPlugin: Plugin<"line"> = {
-  afterDatasetsDraw(chart: ChartJS, arguments_, options: CrosshairOptions) {
+  afterDatasetsDraw(chart: ChartJS, _, options: CrosshairOptions) {
     const { chartArea, ctx, scales } = chart;
     const { bottom, left, right, top } = chartArea;
 
