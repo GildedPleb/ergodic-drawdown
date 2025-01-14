@@ -3,7 +3,7 @@
 /* eslint-disable i18next/no-literal-string */
 /* eslint-disable @shopify/jsx-no-hardcoded-content */
 import { useCallback, useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 import { Modal } from "../components/modal";
 
@@ -14,7 +14,7 @@ const Container = styled.div`
   font-size: 0.6rem;
   color: grey;
 
-  gap: 5px;
+  gap: 6px;
   align-items: baseline;
 `;
 
@@ -31,7 +31,7 @@ const SmallButton = styled.button`
   }
 `;
 
-const SmallHref = styled.a`
+const SmallHref = styled.a<{ $special?: boolean }>`
   color: inherit;
   text-decoration: inherit;
   background: inherit;
@@ -41,6 +41,14 @@ const SmallHref = styled.a`
   &:hover {
     color: inherit;
   }
+  ${({ $special = false }) =>
+    $special
+      ? css`
+          background: rgba(255, 165, 0, 0.1);
+          border-radius: 5px;
+          padding: 0 5px;
+        `
+      : ""}
 `;
 
 const Legal = styled.div`
@@ -71,15 +79,15 @@ const Footer = (): JSX.Element => {
   return (
     <>
       <Container>
-        &copy; 2024{" "}
+        &copy; {new Date().getFullYear()}
         <SmallHref
-          aria-label="Visit GildedPleb on X (formerly Twitter) - Opens in new tab"
-          href="https://x.com/gildedpleb"
+          aria-label="Follow GildedPleb on 𝕏 (formerly Twitter) - Opens in new tab"
+          href="https://x.com/intent/follow?screen_name=gildedpleb"
           rel="noopener noreferrer"
           tabIndex={0}
           target="_blank"
         >
-          @GildedPleb
+          GildedPleb on 𝕏
         </SmallHref>
         <SmallButton onClick={handleSetLegal}>Legal</SmallButton>
         <SmallHref
@@ -97,7 +105,15 @@ const Footer = (): JSX.Element => {
           href="lightning:gildedpleb@getalby.com"
           tabIndex={0}
         >
-          Tip Me!
+          LN Tips
+        </SmallHref>
+        <SmallHref
+          $special
+          aria-label="Get ahold of GildedPleb on 𝕏"
+          href="https://x.com/gildedpleb"
+          tabIndex={0}
+        >
+          Hire Us!
         </SmallHref>
       </Container>
       <Modal heading="FAQ" isOpen={faq} onClose={handleSetFAQOff}>
