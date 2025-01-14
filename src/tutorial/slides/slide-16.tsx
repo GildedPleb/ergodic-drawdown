@@ -11,17 +11,16 @@ import { type SlideRequirement } from "../../types";
 const Slide16: FC = () => (
   <SlideContent>
     <p>
-      What if you have low time preference and instead of needing an item by a
+      What if you have low time preferences and instead of needing an item by a
       specific date, would rather wait to spend a specific amount of bitcoin?
       Enter One-Off Fiat Variable-Date Event type.
     </p>
     <p>
       Click the ➕ button to add another drawdown event. Select Type: "One-Off
-      Fiat Variable-Date", give it the name "Skyscraper", enter $1,000,000,000
-      USD. Let's start with willing to spend 500 bitcoin. Leave the other fields
-      as they are and click "Save". As you can see we now have a new drawdown
-      event, but unlike other one-off events this event has a strange shape and
-      a range. Why?
+      Fiat Variable-Date", give it the name "Boat", enter $3,000,000 USD. Let's
+      start with willing to spend 1 bitcoin. Leave the other fields as they are
+      and click "Save". As you can see we now have a new drawdown event, but
+      unlike other events this event has a strange shape and a range. Why?
     </p>
     <p>
       If you are only willing to spend a specific amount of bitcoin, and can
@@ -38,5 +37,18 @@ const Slide16: FC = () => (
 
 export const slide16 = {
   component: Slide16,
-  requirements: {} satisfies SlideRequirement,
+  requirements: {
+    reoccurringItems: [
+      {
+        active: true,
+        annualAmount: 100_000,
+        annualPercentChange: 0,
+        effective: new Date(Date.now()),
+        expense: true,
+        id: "tutorial_item_2",
+        isFiat: true,
+        name: "Retirement",
+      },
+    ],
+  } satisfies SlideRequirement,
 };

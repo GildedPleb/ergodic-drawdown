@@ -13,12 +13,12 @@ const Slide13: FC = () => (
   <SlideContent>
     <p>
       With your new-found massive net worth (but pleb ways), you plan to buy a
-      dream home in 8 years, presently valued at $10,000,000, in El Salvador! We
-      have now added this drawdown event. You should see a new vertical line
+      vacation home in 8 years, presently valued at $2,000,000, in El Salvador!
+      We have now added this drawdown event. You should see a new vertical line
       with a label and a change in your total remaining bitcoin. Zoom into the
       event, you should notice that your total bitcoin has been drawn down by
       the cost of the event, divided by the first price after the event
-      ($10,000,000 / bitcoin price in 8 years).
+      ($2,000,000 / bitcoin price in 8 years).
     </p>
     <p>
       Now, again, no one can know the price of bitcoin 8 years in advance making
@@ -40,12 +40,12 @@ export const slide13 = {
     oneOffItems: [
       {
         active: true,
-        amountToday: 10_000_000,
+        amountToday: 2_000_000,
         effective: new Date(Date.now() + 8 * MS_PER_YEAR),
         expense: true,
         id: "tutorial_item_1",
         isFiat: true,
-        name: "El Salvador Dream Home",
+        name: "El Salvador Vacation Home",
       },
     ],
     renderDrawdownDistribution: "None",

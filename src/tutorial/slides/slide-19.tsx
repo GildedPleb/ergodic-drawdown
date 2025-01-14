@@ -17,7 +17,7 @@ const StyledS = styled.strong`
 const Slide19: FC = () => (
   <SlideContent>
     <p>
-      Assuming 8% inflation, what can you do to last till 110? There are many
+      Assuming 8% inflation, what can you do to last till 100? There are many
       ways to skin this cat. How would you do it?
     </p>
     <p>

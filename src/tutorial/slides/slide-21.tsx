@@ -15,22 +15,30 @@ const StyledS = styled(SlideContent)`
 
 const Slide21: FC = () => (
   <StyledS>
+    <p>This concludes the Tutorial.</p>
     <p>
-      This concludes the Tutorial. Thank you for your time and I hope you
-      learned some things along the way!
+      <strong>Thank You</strong> for your time and I hope you learned something
+      along the way!
     </p>
     <p>
-      If you find this tool useful, please follow{" "}
+      From initial conception to completion, this project represents about six
+      years worth of research, testing, spreadsheets, think-boi walks, and
+      coding, drawing from our experience in financial planning, engagement with
+      financial markets, academic studies in economics, deep software
+      engineering expertise, human-centered design work, and pursuit of Bitcoin.
+    </p>
+    <p>
+      If you find this tool as useful as we do, please follow{" "}
       <a
-        aria-label="Visit GildedPleb on X (formerly Twitter) - Opens in new tab"
-        href="https://x.com/gildedpleb"
+        aria-label="Follow GildedPleb on 𝕏 (formerly Twitter) - Opens in new tab"
+        href="https://x.com/intent/follow?screen_name=gildedpleb"
         rel="noopener noreferrer"
         tabIndex={0}
         target="_blank"
       >
         @GildedPleb
       </a>{" "}
-      and support our work with a{" "}
+      on 𝕏 and support our work with a{" "}
       <a
         aria-label="Send Lightning tip to gildedpleb@getalby.com"
         href="lightning:gildedpleb@getalby.com"
@@ -38,6 +46,10 @@ const Slide21: FC = () => (
       >
         tip!
       </a>
+    </p>
+    <p>
+      The GildedPleb project is always looking for collaboration opportunities.
+      If you like what you have seen here, do not hesitate to reach out!
     </p>
   </StyledS>
 );

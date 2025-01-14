@@ -12,10 +12,10 @@ const Slide12: FC = () => (
   <SlideContent>
     <p>Congratulations!</p>
     <p>
-      A Nigerian Prince recently passed away and you have inherited 1000 bitcoin
-      from his estate! You can now see that you have 1000 bitcoin in the
-      Drawdown Box on the bottom. This number represent the current starting
-      drawdown amount; the amount of bitcoin held today.
+      A Nigerian Prince recently passed away and you have inherited 10 bitcoin
+      from his estate! You can now see that you have 10 bitcoin in the Drawdown
+      Box on the bottom. This number represent the current starting drawdown
+      amount; the amount of bitcoin held today.
     </p>
     <p>
       It is important to note that you should never enter how much bitcoin you
@@ -29,9 +29,12 @@ const Slide12: FC = () => (
     </p>
     <p>
       You will also notice that a new orange horizontal line has appeared in the
-      chart. This is how much bitcoin you have over time (in this case 1000). We
+      chart. This is how much bitcoin you have over time (in this case 10). We
       will start as we started for bitcoin price projections: with 1 drawdown
       sample.
+    </p>
+    <p>
+      Click <strong>Next</strong> to continue.
     </p>
   </SlideContent>
 );
@@ -39,7 +42,7 @@ const Slide12: FC = () => (
 export const slide12 = {
   component: Slide12,
   requirements: {
-    bitcoin: 1000,
+    bitcoin: 10,
     inflation: 0,
     oneOffFiatVariables: [],
     oneOffItems: [],
