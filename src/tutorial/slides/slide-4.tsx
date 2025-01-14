@@ -37,8 +37,8 @@ const Slide4: FC = () => (
       outcomes, spanning orders of magnitude and quickly becoming unless.
     </p>
     <p>
-      Let's look at one potential bitcoin future by clicking{" "}
-      <strong>Next</strong>.{" "}
+      Let's begin to think about solving for this by looking at one potential
+      bitcoin future. Click <strong>Next</strong>.{" "}
     </p>
   </SlideContent>
 );
