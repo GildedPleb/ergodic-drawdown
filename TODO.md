@@ -39,7 +39,6 @@ IMPROVE AESTHETICS / UX
 BUGS
 
 - swiping the results box around can force a refresh of the page. Results box can be dragged out of frame on mobile
-- can not set inflation to nothing (undefined) by hitting delete. Check other fields
 - when you are in reocurring item, and you click up on the annual change % it moves to modal. This i no good. either give it padding or make the modal stick on the top.
 
 IMPROVE MODELING
