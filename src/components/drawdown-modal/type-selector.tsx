@@ -21,6 +21,8 @@ const Label = styled.label`
 
 const Select = styled.select`
   font-size: inherit;
+  color: #ffffff;
+  background-color: hsl(0, 0%, 14%);
 `;
 
 // eslint-disable-next-line functional/no-mixed-types
