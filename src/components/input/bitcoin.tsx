@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
@@ -21,17 +21,44 @@ const Input = styled.input`
 
 const BitcoinInput = (): JSX.Element => {
   const { bitcoin, setBitcoin, setLoadingVolumeData } = useDrawdown();
+  const [localValue, setLocalValue] = useState<string>(bitcoin.toString());
 
-  const handleBtc: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+  const handleChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
-      const value = Number.parseFloat(event.target.value);
-      if (value >= 0) {
+      const inputValue = event.target.value;
+      setLocalValue(inputValue);
+
+      // If input is empty, don't update the actual value yet
+      if (inputValue === "") return;
+
+      const value = Number.parseFloat(inputValue);
+      if (!Number.isNaN(value) && value >= 0) {
         setBitcoin(value);
         setLoadingVolumeData(true);
-      } else setBitcoin(0);
+      }
     },
     [setBitcoin, setLoadingVolumeData],
   );
+
+  const handleBlur = useCallback(() => {
+    if (localValue === "") {
+      // Reset to default value of 0 when blurring with empty input
+      setLocalValue("0");
+      setBitcoin(0);
+      setLoadingVolumeData(true);
+      return;
+    }
+
+    // Remove leading zeros and ensure non-negative value
+    const parsedValue = Number.parseFloat(localValue);
+    if (!Number.isNaN(parsedValue)) {
+      const validValue = Math.max(0, parsedValue);
+      const formattedValue = validValue.toString();
+      setLocalValue(formattedValue);
+      setBitcoin(validValue);
+      setLoadingVolumeData(true);
+    }
+  }, [localValue, setBitcoin, setLoadingVolumeData]);
 
   return (
     <Container>
@@ -40,11 +67,12 @@ const BitcoinInput = (): JSX.Element => {
         autoComplete="off"
         id="totalBitcoin"
         min="0"
-        onChange={handleBtc}
+        onBlur={handleBlur}
+        onChange={handleChange}
         onKeyDown={handleEnterKey}
         step=".1"
         type="number"
-        value={bitcoin}
+        value={localValue}
       />
     </Container>
   );
