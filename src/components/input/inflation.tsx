@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
@@ -21,18 +21,43 @@ const Input = styled.input`
 
 const InflationInput = (): JSX.Element => {
   const { inflation, setInflation, setLoadingVolumeData } = useDrawdown();
+  const [localValue, setLocalValue] = useState<string>(inflation.toString());
 
-  const handleInflation: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        const value = Number.parseFloat(event.target.value);
-        if (!Number.isNaN(value)) {
-          setInflation(value);
-          setLoadingVolumeData(true);
-        }
-      },
-      [setInflation, setLoadingVolumeData],
-    );
+  const handleChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      const inputValue = event.target.value;
+      setLocalValue(inputValue);
+
+      // If input is empty, don't update the actual value yet
+      if (inputValue === "") return;
+
+      const value = Number.parseFloat(inputValue);
+      if (!Number.isNaN(value)) {
+        setInflation(value);
+        setLoadingVolumeData(true);
+      }
+    },
+    [setInflation, setLoadingVolumeData],
+  );
+
+  const handleBlur = useCallback(() => {
+    if (localValue === "") {
+      // Reset to default value of 8 when blurring with empty input
+      setLocalValue("8");
+      setInflation(8);
+      setLoadingVolumeData(true);
+      return;
+    }
+
+    // Remove leading zeros and update both local and global state
+    const parsedValue = Number.parseFloat(localValue);
+    if (!Number.isNaN(parsedValue)) {
+      const formattedValue = parsedValue.toString();
+      setLocalValue(formattedValue);
+      setInflation(parsedValue);
+      setLoadingVolumeData(true);
+    }
+  }, [localValue, setInflation, setLoadingVolumeData]);
 
   return (
     <Container>
@@ -40,12 +65,13 @@ const InflationInput = (): JSX.Element => {
       <Input
         autoComplete="off"
         id="inflation"
-        onChange={handleInflation}
+        onBlur={handleBlur}
+        onChange={handleChange}
         onKeyDown={handleEnterKey}
         placeholder="%"
         step="1"
         type="number"
-        value={inflation}
+        value={localValue}
       />
     </Container>
   );
