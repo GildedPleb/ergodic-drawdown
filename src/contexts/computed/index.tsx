@@ -346,6 +346,8 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     ),
   );
 
+  // Tier 2
+
   const chartOptions = useDependency(
     "Chart Options",
     handleChartOptions,
