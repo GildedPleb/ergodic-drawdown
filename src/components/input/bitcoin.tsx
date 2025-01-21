@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
@@ -22,6 +22,10 @@ const Input = styled.input`
 const BitcoinInput = (): JSX.Element => {
   const { bitcoin, setBitcoin, setLoadingVolumeData } = useDrawdown();
   const [localValue, setLocalValue] = useState<string>(bitcoin.toString());
+
+  useEffect(() => {
+    if (bitcoin !== Number(localValue)) setLocalValue(String(bitcoin));
+  }, [bitcoin, localValue]);
 
   const handleChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {

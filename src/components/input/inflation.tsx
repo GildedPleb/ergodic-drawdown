@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
@@ -22,6 +22,10 @@ const Input = styled.input`
 const InflationInput = (): JSX.Element => {
   const { inflation, setInflation, setLoadingVolumeData } = useDrawdown();
   const [localValue, setLocalValue] = useState<string>(inflation.toString());
+
+  useEffect(() => {
+    if (inflation !== Number(localValue)) setLocalValue(String(inflation));
+  }, [inflation, localValue]);
 
   const handleChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
