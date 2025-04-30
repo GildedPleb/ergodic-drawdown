@@ -1,0 +1,1 @@
+const s=e=>{if(e.key!=="Enter")return;const c=e.currentTarget,t=[...document.querySelectorAll("input:not([type='hidden']), select")].filter(r=>r instanceof HTMLInputElement||r instanceof HTMLSelectElement),n=t.indexOf(c);if(n===-1||n>=t.length-1)return;t[n+1].focus(),e.preventDefault()};export{s as h};
