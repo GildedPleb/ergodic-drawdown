@@ -34,7 +34,7 @@ const Slide4: FC = () => (
       Simply having a range is not enough, however. If Bitcoin were to mostly
       trade at the top of the range, or mostly at the bottom, or hit top and
       bottom in some asymmetric way, we could have wildly different projected
-      outcomes, spanning orders of magnitude and quickly becoming unless.
+      outcomes, spanning orders of magnitude and quickly becoming useless.
     </p>
     <p>
       Let's begin to think about solving for this by looking at one potential
