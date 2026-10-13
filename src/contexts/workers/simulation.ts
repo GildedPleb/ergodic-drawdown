@@ -84,8 +84,13 @@ export const handleSimulation = (
       for (let week = 0; week < rawWalk.length; week++) {
         const normalizedPrice = numberAt(rawWalk, week);
         const indexOffset = week + currentLength;
-        const min = numberAt(minSeries, indexOffset);
-        const max = numberAt(maxSeries, indexOffset);
+        // The first epoch begins weeksSince before the bound series. Those weeks are before now.
+        const min = minSeries[indexOffset];
+        const max = maxSeries[indexOffset];
+        if (min === undefined || max === undefined) {
+          rawWalk[week] = Number.NaN;
+          continue;
+        }
 
         let price: number;
         if (normalizedPrice <= 0) {
