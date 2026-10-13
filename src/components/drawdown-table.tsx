@@ -83,7 +83,6 @@ const table = {
   delete: "❌",
 };
 
-// eslint-disable-next-line functional/no-mixed-types
 interface ItemRowProperties {
   item: DrawdownItem;
   onDelete: (id: string) => void;
@@ -91,12 +90,7 @@ interface ItemRowProperties {
   onToggleActive: (id: string) => void;
 }
 
-const ItemRow: React.FC<ItemRowProperties> = ({
-  item,
-  onDelete,
-  onEdit,
-  onToggleActive,
-}) => {
+const ItemRow: React.FC<ItemRowProperties> = ({ item, onDelete, onEdit, onToggleActive }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const additionalInfo = ` "${getItemDescription(item)}"`;
 
@@ -154,7 +148,6 @@ const ItemRow: React.FC<ItemRowProperties> = ({
   );
 };
 
-// eslint-disable-next-line functional/no-mixed-types
 interface SectionProperties<T extends DrawdownItem> {
   items: T[];
   onDelete: (id: string) => void;
@@ -195,16 +188,9 @@ const DrawdownTable: React.FC = () => {
   } = useDrawdown();
 
   const createHandler = useCallback(
-    <T extends DrawdownItem>(
-      items: T[],
-      setItems: React.Dispatch<React.SetStateAction<T[]>>,
-    ) => {
+    <T extends DrawdownItem>(items: T[], setItems: React.Dispatch<React.SetStateAction<T[]>>) => {
       const toggleActive = (id: string): void => {
-        setItems(
-          items.map((item) =>
-            item.id === id ? { ...item, active: !item.active } : item,
-          ),
-        );
+        setItems(items.map((item) => (item.id === id ? { ...item, active: !item.active } : item)));
       };
 
       const deleteItem = (id: string): void => {
@@ -240,15 +226,9 @@ const DrawdownTable: React.FC = () => {
     [],
   );
 
-  const handleReoccurring = createHandler(
-    reoccurringItems,
-    setReoccurringItems,
-  );
+  const handleReoccurring = createHandler(reoccurringItems, setReoccurringItems);
   const handleOneOff = createHandler(oneOffItems, setOneOffItems);
-  const handleVariable = createHandler(
-    oneOffFiatVariables,
-    setOneOffFiatVariables,
-  );
+  const handleVariable = createHandler(oneOffFiatVariables, setOneOffFiatVariables);
 
   return (
     <Table>

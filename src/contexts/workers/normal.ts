@@ -1,3 +1,4 @@
+import { numberAt } from "../../number-at";
 import { type DistributionNormalEvent, type SignalState } from "./types";
 
 // Small number to check for effectively zero variance
@@ -47,7 +48,7 @@ export const handleNormal = (
 
     for (let quantile = 0; quantile < cutoffs.length; quantile++) {
       quantiles[week * cutoffs.length + quantile] = Math.max(
-        Math.exp(mean + cutoffs[quantile] * standardDeviation),
+        Math.exp(mean + numberAt(cutoffs, quantile) * standardDeviation),
         0.01,
       );
     }

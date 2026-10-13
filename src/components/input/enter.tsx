@@ -14,8 +14,7 @@ const handleEnterKey: KeyboardEventHandler<FocusableElement> = (
 
   const elements = [...document.querySelectorAll<HTMLElement>(selector)].filter(
     (element): element is FocusableElement =>
-      element instanceof HTMLInputElement ||
-      element instanceof HTMLSelectElement,
+      element instanceof HTMLInputElement || element instanceof HTMLSelectElement,
   );
 
   const currentIndex = elements.indexOf(target);
@@ -26,6 +25,7 @@ const handleEnterKey: KeyboardEventHandler<FocusableElement> = (
   }
 
   const nextElement = elements[currentIndex + 1];
+  if (nextElement === undefined) return;
   nextElement.focus();
   event.preventDefault();
 };

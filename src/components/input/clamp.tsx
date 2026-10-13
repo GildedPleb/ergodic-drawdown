@@ -18,31 +18,23 @@ const Container = styled.div`
 
 const ClampInput = (): JSX.Element => {
   const { setLoadingVolumeData } = useDrawdown();
-  const {
-    clampBottom,
-    clampTop,
-    setClampBottom,
-    setClampTop,
-    setLoadingPriceData,
-  } = useModel();
+  const { clampBottom, clampTop, setClampBottom, setClampTop, setLoadingPriceData } = useModel();
 
-  const handleClampTop: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setClampTop(event.target.checked);
-        setLoadingPriceData(true);
-        setLoadingVolumeData(true);
-      },
-      [setClampTop, setLoadingPriceData, setLoadingVolumeData],
-    );
+  const handleClampTop: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setClampTop(event.target.checked);
+      setLoadingPriceData(true);
+      setLoadingVolumeData(true);
+    },
+    [setClampTop, setLoadingPriceData, setLoadingVolumeData],
+  );
 
-  const handleClampBottom: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setClampBottom(event.target.checked);
-      },
-      [setClampBottom],
-    );
+  const handleClampBottom: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setClampBottom(event.target.checked);
+    },
+    [setClampBottom],
+  );
 
   return (
     <Container>

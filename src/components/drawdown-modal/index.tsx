@@ -40,14 +40,13 @@ const ReoccurringItemFields: React.FC<FieldProperties<ReoccurringItem>> = ({
   handleInputChange,
 }) => {
   const handleCurrencyChange = useCallback(
-    (isFiat: boolean) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    (isFiat: boolean) => () => {
       handleInputChange({
-        ...event,
         target: {
-          ...event.target,
           checked: isFiat,
           name: "isFiat",
           type: "radio",
+          value: "",
         },
       });
     },
@@ -56,10 +55,7 @@ const ReoccurringItemFields: React.FC<FieldProperties<ReoccurringItem>> = ({
 
   return (
     <>
-      <CurrencyRadioGroup
-        isFiat={formData.isFiat ?? false}
-        onChange={handleCurrencyChange}
-      />
+      <CurrencyRadioGroup isFiat={formData.isFiat ?? false} onChange={handleCurrencyChange} />
       <InputField
         label={labels.annualAmount}
         min={0}
@@ -107,14 +103,13 @@ const OneOffItemFields: React.FC<FieldProperties<OneOffItem>> = ({
   handleInputChange,
 }) => {
   const handleCurrencyChange = useCallback(
-    (isFiat: boolean) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    (isFiat: boolean) => () => {
       handleInputChange({
-        ...event,
         target: {
-          ...event.target,
           checked: isFiat,
           name: "isFiat",
           type: "radio",
+          value: "",
         },
       });
     },
@@ -123,10 +118,7 @@ const OneOffItemFields: React.FC<FieldProperties<OneOffItem>> = ({
 
   return (
     <>
-      <CurrencyRadioGroup
-        isFiat={formData.isFiat ?? false}
-        onChange={handleCurrencyChange}
-      />
+      <CurrencyRadioGroup isFiat={formData.isFiat ?? false} onChange={handleCurrencyChange} />
       <InputField
         label={labels.amountToday}
         name="amountToday"
@@ -152,9 +144,10 @@ const OneOffItemFields: React.FC<FieldProperties<OneOffItem>> = ({
   );
 };
 
-const OneOffFiatVariableFields: React.FC<
-  FieldProperties<OneOffFiatVariable>
-> = ({ formData, handleInputChange }) => (
+const OneOffFiatVariableFields: React.FC<FieldProperties<OneOffFiatVariable>> = ({
+  formData,
+  handleInputChange,
+}) => (
   <>
     <InputField
       label={labels.amountTodayVariable}
@@ -245,10 +238,7 @@ const DrawdownModal = ({
     <Modal heading={title} isOpen={isOpen} onClose={handleClose}>
       <ModalBody>
         {item === undefined && (
-          <DrawdownTypeSelector
-            onChange={handleTypeChange}
-            selectedType={activeType}
-          />
+          <DrawdownTypeSelector onChange={handleTypeChange} selectedType={activeType} />
         )}
         <InputField
           label={labels.input.name}
@@ -267,19 +257,19 @@ const DrawdownModal = ({
         )}
         {activeType === "reoccurringItem" && (
           <ReoccurringItemFields
-            formData={formStates.reoccurringItem as ReoccurringItem}
+            formData={formStates.reoccurringItem}
             handleInputChange={handleInputChange}
           />
         )}
         {activeType === "oneOffItem" && (
           <OneOffItemFields
-            formData={formStates.oneOffItem as OneOffItem}
+            formData={formStates.oneOffItem}
             handleInputChange={handleInputChange}
           />
         )}
         {activeType === "oneOffFiatVariable" && (
           <OneOffFiatVariableFields
-            formData={formStates.oneOffFiatVariable as OneOffFiatVariable}
+            formData={formStates.oneOffFiatVariable}
             handleInputChange={handleInputChange}
           />
         )}

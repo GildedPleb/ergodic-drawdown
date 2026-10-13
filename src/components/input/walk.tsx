@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import { walks, type WalkTypes } from "../../data/walks";
+import { isWalk, walks } from "../../data/walks";
 import handleEnterKey from "./enter";
 
 const Container = styled.div`
@@ -28,8 +28,8 @@ const WalkInput = (): JSX.Element => {
 
   const handleWalk: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
     (event) => {
-      const value = event.target.value as WalkTypes;
-      if (Object.keys(walks).includes(value)) {
+      const value = event.target.value;
+      if (isWalk(value)) {
         setWalk(value);
         setLoadingPriceData(true);
         setLoadingVolumeData(true);
@@ -41,12 +41,7 @@ const WalkInput = (): JSX.Element => {
   return (
     <Container>
       <label htmlFor="walkInput">{inputLabels.walk}</label>
-      <Select
-        id="walkInput"
-        onChange={handleWalk}
-        onKeyDown={handleEnterKey}
-        value={walk}
-      >
+      <Select id="walkInput" onChange={handleWalk} onKeyDown={handleEnterKey} value={walk}>
         {Object.keys(walks).map((item) => (
           <option key={item} value={item}>
             {item}

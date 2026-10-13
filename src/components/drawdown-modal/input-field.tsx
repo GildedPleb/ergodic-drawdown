@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import styled from "styled-components";
 
+import { type FieldChange } from "../../types";
 import handleEnterKey from "../input/enter";
 
 const Row = styled.div`
@@ -17,7 +18,7 @@ const Label = styled.label`
   color: white;
 `;
 
-const Input = styled.input<{ $isPercent?: boolean }>`
+const Input = styled.input<{ $isPercent?: boolean | undefined }>`
   border: 1px solid grey;
   border-radius: 2px;
   background-color: #333;
@@ -33,18 +34,17 @@ const Input = styled.input<{ $isPercent?: boolean }>`
     return 20;
   }}px;
 `;
-// eslint-disable-next-line functional/no-mixed-types
 interface InputFieldProperties {
-  checked?: boolean;
-  isPercent?: boolean;
+  checked?: boolean | undefined;
+  isPercent?: boolean | undefined;
   label: string;
-  max?: number;
-  min?: number;
+  max?: number | undefined;
+  min?: number | undefined;
   name: string;
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean;
-  type?: string;
-  value?: number | string;
+  onChange: (event: FieldChange) => void;
+  required?: boolean | undefined;
+  type?: string | undefined;
+  value?: number | string | undefined;
 }
 
 const InputField: React.FC<InputFieldProperties> = ({
@@ -87,17 +87,13 @@ const InputField: React.FC<InputFieldProperties> = ({
       if (!Number.isNaN(parsed)) {
         const formatted = parsed.toString();
         setLocalValue(formatted);
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const syntheticEvent = {
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        onChange({
           target: {
             name,
             type: "number",
             value: formatted,
-          } as HTMLInputElement,
-        } as React.ChangeEvent<HTMLInputElement>;
-
-        onChange(syntheticEvent);
+          },
+        });
       }
     }
   }, [type, localValue, onChange, name]);
@@ -105,7 +101,7 @@ const InputField: React.FC<InputFieldProperties> = ({
   const overrideEnter = type === "checkbox" ? () => {} : handleEnterKey;
 
   // Display logic: show local value while focused, otherwise show the validated value
-  const displayValue = isFocused ? localValue : value?.toString() ?? "";
+  const displayValue = isFocused ? localValue : (value?.toString() ?? "");
 
   return (
     <Row>

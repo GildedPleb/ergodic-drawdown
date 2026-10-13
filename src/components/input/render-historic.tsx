@@ -18,13 +18,12 @@ const Container = styled.div`
 
 const RenderHistoric = (): JSX.Element => {
   const { setShowHistoric, showHistoric } = useRender();
-  const handleShowHistoric: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setShowHistoric(event.target.checked);
-      },
-      [setShowHistoric],
-    );
+  const handleShowHistoric: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setShowHistoric(event.target.checked);
+    },
+    [setShowHistoric],
+  );
 
   return (
     <Container>

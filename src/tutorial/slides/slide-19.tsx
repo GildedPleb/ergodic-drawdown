@@ -1,8 +1,3 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable react-refresh/only-export-components */
-/* eslint-disable react-native/no-raw-text */
-/* eslint-disable i18next/no-literal-string */
-/* eslint-disable @shopify/jsx-no-hardcoded-content */
 import { type FC } from "react";
 import styled from "styled-components";
 
@@ -17,17 +12,16 @@ const StyledS = styled.strong`
 const Slide19: FC = () => (
   <SlideContent>
     <p>
-      Assuming 8% inflation, what can you do to last till 100? There are many
-      ways to skin this cat. How would you do it?
+      Assuming 8% inflation, what can you do to last till 100? There are many ways to skin this cat.
+      How would you do it?
     </p>
     <p>
-      Solving the above problem is hard. Thankfully, Bitcioners are used to
-      doing things the hard way, and this is why this app defaults inflation to
-      8%.
+      Solving the above problem is hard. Thankfully, Bitcioners are used to doing things the hard
+      way, and this is why this app defaults inflation to 8%.
     </p>
     <p>
-      On a lighter note, there is a way to end this problem for all peoples,
-      forever, <strong>flip tables</strong>:
+      On a lighter note, there is a way to end this problem for all peoples, forever,{" "}
+      <strong>flip tables</strong>:
     </p>
     <p />
     <p />

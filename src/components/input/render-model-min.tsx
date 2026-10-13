@@ -18,13 +18,12 @@ const Container = styled.div`
 
 const RenderModelMinInput = (): JSX.Element => {
   const { renderModelMin, setRenderModelMin } = useRender();
-  const handleRenderModelMin: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setRenderModelMin(event.target.checked);
-      },
-      [setRenderModelMin],
-    );
+  const handleRenderModelMin: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setRenderModelMin(event.target.checked);
+    },
+    [setRenderModelMin],
+  );
 
   return (
     <Container>

@@ -1,6 +1,3 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable security/detect-object-injection */
-
 import GrowableSharedArray from "../../classes/growable-shared-array";
 import VariableDrawdownCache from "../../classes/variable-drawdown-cache";
 import { SIMULATIONS_PER_ARRAY } from "../../constants";
@@ -24,9 +21,7 @@ export const handleDrawdownVariable = (
 
   const data = GrowableSharedArray.fromExportedState(simulationExport);
 
-  const variableDrawdownCache = new VariableDrawdownCache(
-    variableDrawdownBuffer,
-  );
+  const variableDrawdownCache = new VariableDrawdownCache(variableDrawdownBuffer);
 
   const location = arrayIndex * SIMULATIONS_PER_ARRAY;
 
@@ -40,7 +35,6 @@ export const handleDrawdownVariable = (
   // });
 
   for (let sample = startIndex; sample < endIndex; sample++) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (signalState.aborted) {
       return;
     }
@@ -51,7 +45,9 @@ export const handleDrawdownVariable = (
 
     let first;
     for (let week = 0; week < graphLength; week++) {
-      if (priceNeeded * inflationFactors[week] < adjustedGraph[week]) {
+      const inflation = inflationFactors[week];
+      const price = adjustedGraph[week];
+      if (inflation !== undefined && price !== undefined && priceNeeded * inflation < price) {
         first = week;
         break;
       }
@@ -60,7 +56,9 @@ export const handleDrawdownVariable = (
 
     let last;
     for (let week = graphLength - 1; week >= first; week--) {
-      if (priceNeeded * inflationFactors[week] >= adjustedGraph[week]) {
+      const inflation = inflationFactors[week];
+      const price = adjustedGraph[week];
+      if (inflation !== undefined && price !== undefined && priceNeeded * inflation >= price) {
         last = week;
         break;
       }
@@ -80,10 +78,11 @@ export const handleDrawdownVariable = (
       //   inflationFactorsLength: inflationFactors.length,
       //   loc: sample * location,
       // });
+      const inflation = inflationFactors[drawdownWeek];
       variableDrawdownCache.set(
         sample + location,
         drawdownWeek,
-        amountToday * inflationFactors[drawdownWeek],
+        inflation === undefined ? Number.NaN : amountToday * inflation,
       );
     }
   }

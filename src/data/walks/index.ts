@@ -21,3 +21,6 @@ export const walks = {
 } as const;
 
 export type WalkTypes = keyof typeof walks;
+
+export const isWalk = (value: string): value is WalkTypes =>
+  Object.prototype.hasOwnProperty.call(walks, value);

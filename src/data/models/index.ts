@@ -25,3 +25,6 @@ export const modelMap = {
   [stockToFlowModel.modelType]: stockToFlowModel,
   [stockToFlowModelNew.modelType]: stockToFlowModelNew,
 } as const;
+
+export const isModelName = (value: string): value is keyof typeof modelMap =>
+  Object.prototype.hasOwnProperty.call(modelMap, value);

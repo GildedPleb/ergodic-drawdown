@@ -16,7 +16,6 @@ export const handleDataProperties = (
   priceDistribution: DatasetList,
   priceWalks: DatasetList,
   showHistoric: boolean,
-  // eslint-disable-next-line max-params
 ): { datasets: DatasetList } => {
   return {
     datasets: [

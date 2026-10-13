@@ -9,9 +9,11 @@ export const handleMinModel = (
   now: number,
 ): DatasetList => {
   if (!renderModelMin) return [];
+  const series = minArray[0];
+  if (series === undefined) throw new Error("missing min series");
   const minPoints = [];
   let index = 0;
-  for (const price of minArray[0]) {
+  for (const price of series) {
     minPoints.push({
       x: now + index * MS_PER_WEEK,
       y: price,

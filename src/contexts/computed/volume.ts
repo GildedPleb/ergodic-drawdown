@@ -24,7 +24,6 @@ export const handleVolume = async (
   weeksSince: number,
   worker: WorkerContextType,
   showModel: boolean,
-  // eslint-disable-next-line max-params
 ): Promise<string> => {
   const returnHash = volumeCacheHash + samples + epochCount + variableCacheHash;
   if (showModel) return "not shown:" + returnHash;
@@ -42,14 +41,8 @@ export const handleVolume = async (
     ? createTaskQueue(validHeight, worker.count, samples, 0)
     : [];
 
-  const taskQueueSamples = createTaskQueue(
-    samples,
-    worker.count,
-    samples,
-    validHeight,
-  );
+  const taskQueueSamples = createTaskQueue(samples, worker.count, samples, validHeight);
 
-  // eslint-disable-next-line unicorn/prefer-spread
   const taskQueue = taskQueueEpochs.concat(taskQueueSamples);
   if (taskQueue.length === 0) {
     console.log("NO TASKS VOLUME");

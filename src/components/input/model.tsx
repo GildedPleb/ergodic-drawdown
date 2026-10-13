@@ -1,11 +1,10 @@
 import React, { useCallback } from "react";
 
-import { modelMap, models } from "../../data/models";
+import { isModelName, modelMap, models } from "../../data/models";
 import handleEnterKey from "./enter";
 import { useModel } from "../../contexts/model";
 import styled from "styled-components";
 import { useDrawdown } from "../../contexts/drawdown";
-import { ModelNames } from "../../types";
 
 const Container = styled.div`
   display: flex;
@@ -55,56 +54,45 @@ const ModelInput = (): JSX.Element => {
 
   const handleModel: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
     (event) => {
-      const value = event.target.value as ModelNames;
-      if (model !== value) {
-        setLoading();
-        setModel(value);
+      const value = event.target.value;
+      if (!isModelName(value) || model === value) return;
+      setLoading();
+      setModel(value);
 
-        if (modelMap[value].varInput !== "") {
-          setVariable(modelMap[value].default);
-        }
+      if (modelMap[value].varInput !== "") {
+        setVariable(modelMap[value].default);
       }
     },
     [model, setLoading, setModel, setVariable],
   );
 
-  const handleVariable: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        const value = Number.parseFloat(event.target.value);
-        if (
-          value <= modelMap[model].rangeMax &&
-          value >= modelMap[model].rangeMin
-        ) {
-          setVariable(value);
-          setLoading();
-        }
-      },
-      [setLoading, setVariable],
-    );
-
-  const handleMinMaxMultiple: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        const value = Number.parseFloat(event.target.value);
-        if (value < 1.01) setMinMaxMultiple(1.01);
-        else setMinMaxMultiple(value);
+  const handleVariable: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      const value = Number.parseFloat(event.target.value);
+      if (value <= modelMap[model].rangeMax && value >= modelMap[model].rangeMin) {
+        setVariable(value);
         setLoading();
-      },
-      [setLoading, setVariable],
-    );
+      }
+    },
+    [setLoading, setVariable],
+  );
+
+  const handleMinMaxMultiple: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      const value = Number.parseFloat(event.target.value);
+      if (value < 1.01) setMinMaxMultiple(1.01);
+      else setMinMaxMultiple(value);
+      setLoading();
+    },
+    [setLoading, setVariable],
+  );
 
   const hasInput = modelMap[model].varInput !== "";
   const hasRange = modelMap[model].varRange;
 
   return (
     <Container>
-      <Select
-        id="modelInput"
-        onChange={handleModel}
-        onKeyDown={handleEnterKey}
-        value={model}
-      >
+      <Select id="modelInput" onChange={handleModel} onKeyDown={handleEnterKey} value={model}>
         {models.map((item) => (
           <option key={item.modelType} value={item.modelType}>
             {item.modelType}

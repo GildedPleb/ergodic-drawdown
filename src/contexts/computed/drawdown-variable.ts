@@ -25,10 +25,8 @@ export const handleDrawdownVariables = async (
   weeksSince: number,
   variableCacheHash: string,
   showModel: boolean,
-  // eslint-disable-next-line max-params
 ): Promise<string> => {
-  const returnHash =
-    epochCount + samples + variableCacheHash + fullHashInflation;
+  const returnHash = epochCount + samples + variableCacheHash + fullHashInflation;
 
   if (showModel) {
     console.log("NOT RENDERING VARIABLE DRAWDOWN");
@@ -60,18 +58,14 @@ export const handleDrawdownVariables = async (
     if (!variableDrawdownCache.has(oneOffFiatVariable.hash)) {
       // Add the item, since its not there.
       // console.log("adding the item");
-      variableDrawdownCache.set(
-        oneOffFiatVariable.hash,
-        new VariableDrawdownCache(),
-      );
+      variableDrawdownCache.set(oneOffFiatVariable.hash, new VariableDrawdownCache());
     }
     const variableCache = variableDrawdownCache.get(oneOffFiatVariable.hash);
     const taskQueueSamples = [];
     if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
 
     // Get the validity: The valid height that has been computed for so far.
-    const { validHeight, validWidth } =
-      variableCache.getValidity(fullHashInflation);
+    const { validHeight, validWidth } = variableCache.getValidity(fullHashInflation);
     // console.log({ validHeight, validWidth });
     if (validHeight === 0) {
       // If there is no valid height, clear everythign and continue to (samples > validHeight)
@@ -133,11 +127,7 @@ export const handleDrawdownVariables = async (
       variableCache.setValidity(fullHashInflation, samples, epochCount);
       if (variableCache.isFull()) caches.push(variableCache);
     }
-    const finalResults = new VariableDrawdownFinal(
-      caches,
-      activeOneOffVariables.length,
-      samples,
-    );
+    const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
     finalVariableCache.set(variableCacheHash, finalResults);
     return "no tasks:" + returnHash;
   }
@@ -154,11 +144,7 @@ export const handleDrawdownVariables = async (
       variableCache.setValidity(fullHashInflation, samples, epochCount);
       if (variableCache.isFull()) caches.push(variableCache);
     }
-    const finalResults = new VariableDrawdownFinal(
-      caches,
-      activeOneOffVariables.length,
-      samples,
-    );
+    const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
     finalVariableCache.set(variableCacheHash, finalResults);
   }
   return "success:" + returnHash;

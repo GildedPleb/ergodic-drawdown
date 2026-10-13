@@ -13,12 +13,7 @@ export const handleDrawdownWalkDataset = (
   lastHalving: number,
   showModel: boolean,
 ): DatasetList => {
-  if (
-    samplesToRender === undefined ||
-    samplesToRender === 0 ||
-    !renderDrawdownWalks ||
-    showModel
-  ) {
+  if (samplesToRender === undefined || samplesToRender === 0 || !renderDrawdownWalks || showModel) {
     // console.log("drawdown walks returning nothing");
     return [];
   }
@@ -31,9 +26,7 @@ export const handleDrawdownWalkDataset = (
       borderColor: generateColor(index),
       borderWidth: 1,
       data: Array.from(
-        (drawdownData.getRow(index, true) ?? new Float64Array()).subarray(
-          lastHalving,
-        ),
+        (drawdownData.getRow(index, true) ?? new Float64Array()).subarray(lastHalving),
         (point, innerIndex) => ({
           x: now + innerIndex * MS_PER_WEEK,
           y: point,

@@ -19,7 +19,6 @@ export const handleGroup = (
   const data = GrowableSharedArray.fromExportedState(buffer);
   const groupedData = new Float64Array(groupedDataBuffer);
   for (let sample = task.startIndex; sample < task.endIndex; sample++) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (signalState.aborted) {
       return;
     }
@@ -28,7 +27,7 @@ export const handleGroup = (
     for (let week = 0; week < dataLength; week++) {
       const value = row[week + weeksSince];
       groupedData[week * samples + sample] =
-        value <= 0.01 && !getZero ? 0.01 : value;
+        value === undefined ? Number.NaN : value <= 0.01 && !getZero ? 0.01 : value;
     }
   }
 };

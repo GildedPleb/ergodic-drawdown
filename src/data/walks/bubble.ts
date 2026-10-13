@@ -1,5 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { type IWalk } from "../../types";
 
@@ -9,19 +7,12 @@ const maxVelocity = acceleration * weeksPerPhase;
 
 type Phase = "ascent" | "base" | "descent";
 
-export const bubble: IWalk = ({
-  clampBottom = false,
-  clampTop = false,
-  start = 0,
-  startWeek = 0,
-  volatility = 0.07,
-}) => {
+export const bubble: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
   const phase = startWeek / weeksPerPhase;
-  let currentPhase: Phase =
-    phase < 1 ? "ascent" : phase < 3 ? "descent" : "base";
+  let currentPhase: Phase = phase < 1 ? "ascent" : phase < 3 ? "descent" : "base";
 
   let velocity =
     currentPhase === "ascent"

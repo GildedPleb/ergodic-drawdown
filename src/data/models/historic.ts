@@ -1,23 +1,17 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import memoize from "memoizee";
 
 import { MS_PER_WEEK, WEEKS_PER_EPOCH } from "../../constants";
-import {
-  calculateHalvings,
-  loadHalvings,
-  weeksSinceLastHalving,
-} from "../../helpers";
+import { calculateHalvings, loadHalvings, weeksSinceLastHalving } from "../../helpers";
 import { type MinMaxOptions, type PriceModel } from "../../types";
 import marketData from "../datasets/bitcoin_weekly_prices_transformed_2.json";
 
 // Helper to get price at a specific halving
 const getPriceAtHalving = memoize((blockHeight: number): number => {
   const halvingDates = loadHalvings();
-  const halvingTimestamp = halvingDates[blockHeight.toString()] * 1000;
-  const pricePoint = marketData.find(
-    (point) => Math.abs(point.x - halvingTimestamp) < MS_PER_WEEK,
-  );
+  const timestamp = halvingDates[blockHeight.toString()];
+  if (timestamp === undefined) return 0;
+  const halvingTimestamp = timestamp * 1000;
+  const pricePoint = marketData.find((point) => Math.abs(point.x - halvingTimestamp) < MS_PER_WEEK);
   return pricePoint?.y ?? 0;
 });
 
@@ -28,8 +22,8 @@ const getWeeklyPercentageChanges = memoize(
     const changes: number[] = [];
 
     // Sort halvings by timestamp to get them in chronological order
-    const sortedHalvings = Object.entries(halvingDates).sort(
-      (first, second) => Number(second[1]) - Number(first[1]),
+    const sortedHalvings = Object.entries(halvingDates).toSorted(
+      (first, second) => second[1] - first[1],
     );
 
     // Take the specified number of most recent halvings (adding 1 to include the current halving)
@@ -90,16 +84,15 @@ const calculatePrice = (options: MinMaxOptions, useMax: boolean): number => {
   const weekInCycle = targetWeek % WEEKS_PER_EPOCH;
 
   // If we don't have data for this week in the cycle, return last known price
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!cycleRanges[weekInCycle]) return priceAtLastHalving;
 
   // Apply compounded percentage changes across cycles
   let price = priceAtLastHalving;
   for (let index = 0; index <= cycleIndex; index++) {
     const weekToUse = index === cycleIndex ? weekInCycle : WEEKS_PER_EPOCH - 1;
-    price *=
-      1 +
-      (useMax ? cycleRanges[weekToUse].max : cycleRanges[weekToUse].min) / 100;
+    const range = cycleRanges[weekToUse];
+    if (range === undefined) throw new Error(`missing historic range for week ${weekToUse}`);
+    price *= 1 + (useMax ? range.max : range.min) / 100;
   }
 
   return price;

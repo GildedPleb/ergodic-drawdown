@@ -2,11 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { fetchBlockByHeight, getCurrentBlockHeight } from "../../../api";
-import {
-  calculateHalvings,
-  loadHalvings,
-  saveHalvings,
-} from "../../../helpers";
+import { calculateHalvings, loadHalvings, saveHalvings } from "../../../helpers";
 import { type HalvingData, type HalvingFinder } from "../../../types";
 import { useTime } from "../../time";
 
@@ -33,7 +29,7 @@ export const useHalvings = (): HalvingFinder => {
     }
 
     const fetchedHalvings: HalvingData = {};
-    for await (const height of halvingsToFetch) {
+    for (const height of halvingsToFetch) {
       fetchedHalvings[height.toString()] = await fetchBlockByHeight(height);
       const knownHalvings = { ...storedHalvings, ...fetchedHalvings };
       saveHalvings(knownHalvings);

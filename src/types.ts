@@ -1,4 +1,3 @@
-// eslint-disable-next-line spaced-comment, @typescript-eslint/triple-slash-reference
 /// <reference types="vite-plugin-svgr/client" />
 
 import { type ChartDataset, type Point } from "chart.js";
@@ -6,8 +5,6 @@ import { type ChartDataset, type Point } from "chart.js";
 import { distributions } from "./content";
 import { type modelMap } from "./data/models";
 import { type WalkTypes } from "./data/walks";
-
-// eslint-disable-next-line functional/no-mixed-types
 
 export interface ProviderProperties {
   children: React.ReactNode;
@@ -22,7 +19,6 @@ export interface MinMaxOptions {
   week: number;
 }
 
-// eslint-disable-next-line functional/no-mixed-types
 export interface PriceModel<T extends string = string> {
   default: number;
   maxPrice: (options: MinMaxOptions) => number;
@@ -106,7 +102,6 @@ export interface VolumeReturn {
   volumeDataset: VolumeData;
   zero: number;
 }
-// eslint-disable-next-line functional/functional-parameters
 export interface BitcoinDataPoint {
   close: number;
   conversionSymbol: string;
@@ -170,7 +165,7 @@ export interface ReoccurringItem extends BaseDrawdownItem {
   annualAmount: number;
   annualPercentChange: number;
   effective: Date;
-  end?: Date;
+  end?: Date | undefined;
   expense: boolean;
   isFiat: boolean;
   // Consider adding a way to toggle weather or not to account for inflation "todaysValue"
@@ -201,31 +196,34 @@ export type DrawdownItem = OneOffFiatVariable | OneOffItem | ReoccurringItem;
 
 export type DistributionType = (typeof distributions)[number];
 
-export const isValidDistribution = (
-  value: string,
-): value is DistributionType => {
-  return distributions.includes(value as DistributionType);
+export const isValidDistribution = (value: string): value is DistributionType => {
+  for (const distribution of distributions) {
+    if (distribution === value) return true;
+  }
+  return false;
 };
 
-// Placeholder components for type-specific fields
-// eslint-disable-next-line functional/no-mixed-types
-export interface FieldProperties<T extends DrawdownItem> {
-  formData: Partial<T>;
-  handleInputChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => void;
+export interface FieldChange {
+  target: {
+    checked?: boolean | undefined;
+    name: string;
+    type: string;
+    value: string;
+  };
 }
 
-export type DrawdownTypes =
-  | "oneOffFiatVariable"
-  | "oneOffItem"
-  | "reoccurringItem";
+// Placeholder components for type-specific fields
+export interface FieldProperties<T extends DrawdownItem> {
+  formData: Partial<T>;
+  handleInputChange: (event: FieldChange) => void;
+}
+
+export type DrawdownTypes = "oneOffFiatVariable" | "oneOffItem" | "reoccurringItem";
 
 export type FormData =
   | ({ type: "oneOffFiatVariable" } & BaseDrawdownItem & OneOffFiatVariable)
   | ({ type: "oneOffItem" } & BaseDrawdownItem & OneOffItem)
   | ({ type: "reoccurringItem" } & BaseDrawdownItem & ReoccurringItem);
-// eslint-disable-next-line functional/no-mixed-types
 export interface IModal {
   isOpen: boolean;
   item?: DrawdownItem;
@@ -235,6 +233,39 @@ export interface IModal {
 }
 
 export type ModelNames = keyof typeof modelMap;
+
+export interface SavedAppState {
+  bitcoin: number;
+  clampBottom: boolean;
+  clampTop: boolean;
+  epochCount: number;
+  hideResults: boolean;
+  inflation: number;
+  loadingPriceData: boolean;
+  loadingVolumeData: boolean;
+  minMaxMultiple: number;
+  model: ModelNames;
+  oneOffFiatVariables: OneOffFiatVariable[];
+  oneOffItems: OneOffItem[];
+  renderDrawdownDistribution: DistributionType;
+  renderDrawdownWalks: boolean;
+  renderModelMax: boolean;
+  renderModelMin: boolean;
+  renderPriceDistribution: DistributionType;
+  renderPriceWalks: boolean;
+  reoccurringItems: ReoccurringItem[];
+  samples: number;
+  samplesToRender: number | undefined;
+  showDrawdown: boolean;
+  showHistoric: boolean;
+  showModel: boolean;
+  showRender: boolean;
+  showResults: boolean;
+  variable: number;
+  version: 1;
+  volatility: number;
+  walk: WalkTypes;
+}
 
 export interface SlideRequirement {
   bitcoin?: number;

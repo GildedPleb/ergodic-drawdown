@@ -6,13 +6,7 @@ let isKicked = false;
 let leftKickerPosition = 0;
 let rightKickerPosition = 1;
 
-export const ballOnHill: IWalk = ({
-  clampBottom = false,
-  clampTop = false,
-  start = 0.5,
-  startWeek = 0,
-  volatility = 0.1,
-}) => {
+export const ballOnHill: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
   const kickerRange = volatility * 2;
 
   const data = new Float64Array(WEEKS_PER_EPOCH);
@@ -34,17 +28,11 @@ export const ballOnHill: IWalk = ({
     const randomComponent = (Math.random() - 0.5) * volatility;
 
     // Check for kicker hits
-    if (
-      currentValue <= leftKickerPosition ||
-      currentValue >= rightKickerPosition
-    ) {
+    if (currentValue <= leftKickerPosition || currentValue >= rightKickerPosition) {
       isKicked = true;
 
       // Set position to kicker position
-      currentValue =
-        currentValue <= leftKickerPosition
-          ? leftKickerPosition
-          : rightKickerPosition;
+      currentValue = currentValue <= leftKickerPosition ? leftKickerPosition : rightKickerPosition;
 
       // Kick towards 0.5 with velocity proportional to distance from center
       const distanceFromCenter = Math.abs(currentValue - 0.5);
@@ -64,10 +52,7 @@ export const ballOnHill: IWalk = ({
     if (isKicked) {
       // Decay velocity as we approach 0.5
       currentVelocity *= 0.95;
-      if (
-        Math.abs(currentValue - 0.5) < 0.01 &&
-        Math.abs(currentVelocity) < 0.001
-      ) {
+      if (Math.abs(currentValue - 0.5) < 0.01 && Math.abs(currentVelocity) < 0.001) {
         // Reached the top - start falling randomly
         isKicked = false;
         currentVelocity = Math.random() > 0.5 ? 0.001 : -0.001;

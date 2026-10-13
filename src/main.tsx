@@ -16,17 +16,14 @@ interface RootErrorState {
   error: Error | null;
 }
 
-class RootError extends React.Component<
-  React.PropsWithChildren,
-  RootErrorState
-> {
-  state: RootErrorState = { error: null };
+class RootError extends React.Component<React.PropsWithChildren, RootErrorState> {
+  override state: RootErrorState = { error: null };
 
   static getDerivedStateFromError(error: Error): RootErrorState {
     return { error };
   }
 
-  render(): React.ReactNode {
+  override render(): React.ReactNode {
     const { error } = this.state;
     if (error !== null) {
       return (
@@ -55,10 +52,9 @@ if (!crossOriginIsolated) {
         maxWidth: "40rem",
       }}
     >
-      Shared memory is unavailable because this document is not cross-origin
-      isolated. The response needs Cross-Origin-Opener-Policy: same-origin and
-      Cross-Origin-Embedder-Policy: require-corp. Localhost can send both over
-      http.
+      Shared memory is unavailable because this document is not cross-origin isolated. The response
+      needs Cross-Origin-Opener-Policy: same-origin and Cross-Origin-Embedder-Policy: require-corp.
+      Localhost can send both over http.
     </p>,
   );
 } else {

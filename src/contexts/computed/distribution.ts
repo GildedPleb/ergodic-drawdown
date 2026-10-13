@@ -1,10 +1,7 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable unicorn/no-null */
-import { type Point } from "chart.js";
-
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { MS_PER_WEEK } from "../../constants";
 import { createDataSet, createTaskQueue } from "../../helpers";
+import { numberAt } from "../../number-at";
 import { type DatasetList, type DistributionType } from "../../types";
 import { type WorkerContextType } from "../workers";
 import { type DistributionGroupEvent } from "../workers/types";
@@ -21,7 +18,6 @@ export const handleDistribution = async (
   renderDistribution: DistributionType,
   character: "drawdown" | "price",
   showModel: boolean,
-  // eslint-disable-next-line max-params
 ): Promise<DatasetList> => {
   // console.log({
   //   buffer,
@@ -60,20 +56,11 @@ export const handleDistribution = async (
     signal,
   );
 
-  if (
-    !groupStageResults.every((result) => result.status === "completed") ||
-    signal.aborted
-  ) {
-    // @ts-expect-error we set to null to tell compiler to clear this
-    groupedDataBuffer = null;
+  if (!groupStageResults.every((result) => result.status === "completed") || signal.aborted) {
     return [];
   }
 
-  // eslint-disable-next-line unicorn/no-new-array
-  const dates = new Array(dataLength) as number[];
-  for (let index = 0; index < dataLength; index++) {
-    dates[index] = now + index * MS_PER_WEEK;
-  }
+  const dates = Array.from({ length: dataLength }, (_, index) => now + index * MS_PER_WEEK);
   const config =
     character === "price"
       ? renderDistribution === "Quantile"
@@ -121,12 +108,7 @@ export const handleDistribution = async (
     Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length,
   );
 
-  const taskQueueWeeks = createTaskQueue(
-    dataLength,
-    worker.count,
-    dataLength,
-    0,
-  );
+  const taskQueueWeeks = createTaskQueue(dataLength, worker.count, dataLength, 0);
 
   // Step 4: Quantile Calculation (workers)
   const quantileStageResults = await worker.addTasks(
@@ -143,29 +125,25 @@ export const handleDistribution = async (
     signal,
   );
 
-  if (
-    !quantileStageResults.every((result) => result.status === "completed") ||
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    signal.aborted
-  ) {
-    // @ts-expect-error we set to null to tell compiler to clear this
-    groupedDataBuffer = null;
-    // @ts-expect-error we set to null to tell compiler to clear this
-    quantilesBuffer = null;
+  if (!quantileStageResults.every((result) => result.status === "completed") || signal.aborted) {
     return [];
   }
 
   // Step 5: Final Data Creation
   const quantilesData = new Float64Array(quantilesBuffer);
-  // eslint-disable-next-line unicorn/no-new-array
-  const quantiles = cutoffs.map(() => new Array(dataLength) as Point[]);
+  const quantiles = cutoffs.map(() => Array.from({ length: dataLength }, () => ({ x: 0, y: 0 })));
 
   // console.log({ quantilesData });
   for (let week = 0; week < dataLength; week++) {
     const x = dates[week];
+    if (x === undefined) throw new Error(`missing date at week ${week}`);
     for (let index = 0; index < cutoffs.length; index++) {
-      const y = quantilesData[week * cutoffs.length + index];
-      quantiles[index][week] = { x, y };
+      const series = quantiles[index];
+      if (series === undefined) throw new Error(`missing quantile series ${index}`);
+      series[week] = {
+        x,
+        y: numberAt(quantilesData, week * cutoffs.length + index),
+      };
     }
   }
 

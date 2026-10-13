@@ -1,5 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import { LRUCache } from "lru-cache";
 
 import { modelMap } from "../../data/models";
@@ -26,7 +24,7 @@ export const handleMinArray = (
   const logMinArray = new Float64Array(dataLength);
   const minPoints = new Float64Array(dataLength);
   for (let week = 0; week < dataLength; week++) {
-    minPoints[week] = modelMap[model].minPrice({
+    const price = modelMap[model].minPrice({
       currentBlock,
       currentPrice,
       minMaxMultiple,
@@ -34,7 +32,8 @@ export const handleMinArray = (
       variable,
       week,
     });
-    logMinArray[week] = Math.log10(minPoints[week]);
+    minPoints[week] = price;
+    logMinArray[week] = Math.log10(price);
   }
   lruCache.set(hash, [minPoints, logMinArray]);
   return [minPoints, logMinArray];

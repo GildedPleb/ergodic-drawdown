@@ -22,13 +22,11 @@ export const SIMULATIONS_PER_ARRAY = 1000;
 
 export const MAX_WEEKS = MAX_EPOCH_COUNT * WEEKS_PER_EPOCH;
 
-// eslint-disable-next-line functional/functional-parameters
 export const isMobile = (): boolean => {
   if (typeof window !== "undefined" && typeof navigator !== "undefined") {
     return (
-      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-        navigator.userAgent,
-      ) || window.innerWidth <= 800
+      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent) ||
+      window.innerWidth <= 800
     );
   }
   return false;

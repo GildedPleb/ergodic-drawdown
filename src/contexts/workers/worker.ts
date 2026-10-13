@@ -1,6 +1,3 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable functional/functional-parameters */
-
 import { handleDrawdownVariable } from "./drawdown-variable";
 import { handleGroup } from "./group";
 import { handleNormal } from "./normal";
@@ -81,7 +78,6 @@ const processQueue = (): void => {
   }
 
   isProcessing = true;
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const task = taskQueue.shift()!;
 
   try {
@@ -93,8 +89,7 @@ const processQueue = (): void => {
   processQueue();
 };
 
-// eslint-disable-next-line unicorn/prefer-add-event-listener
-self.onmessage = (event: MessageEvent<WorkerEvent>) => {
+self.addEventListener("message", (event: MessageEvent<WorkerEvent>) => {
   if (event.data.data.type === "ABORT") {
     signalState.aborted = true;
   }
@@ -102,4 +97,4 @@ self.onmessage = (event: MessageEvent<WorkerEvent>) => {
   if (!isProcessing) {
     processQueue();
   }
-};
+});

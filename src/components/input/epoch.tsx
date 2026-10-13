@@ -36,10 +36,7 @@ const EpochInput = (): JSX.Element => {
     [setEpochCount, setLoadingPriceData, setLoadingVolumeData],
   );
 
-  const epochLength = useMemo(
-    () => ` (~${epochCount * 4} years)`,
-    [epochCount],
-  );
+  const epochLength = useMemo(() => ` (~${epochCount * 4} years)`, [epochCount]);
 
   return (
     <Container>

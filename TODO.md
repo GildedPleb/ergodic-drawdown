@@ -51,6 +51,11 @@ ADD SLIDER
 
 - Add a slider so i can click on a One Off Event vertical line and drag it left or right, forward in time or backward in time.
 
+Tuesday, October 13, 2026:
+
+- Add multiple sources for latest block. so we find the latest block but we need multiple sources for that.
+- We should also allow it to get the latest block from a local Bitcoin blockchain and get the latest price from a local deployed thing. I don't know how that works. I don't know how you get the latest price or something, but we should investigate that.
+
 ---
 
 PROBABLY REJECTED:

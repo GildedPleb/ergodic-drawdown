@@ -1,18 +1,10 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { MS_PER_DAY } from "../constants";
 import { type ProviderProperties } from "../types";
 
-// eslint-disable-next-line functional/no-mixed-types
 type TimeContextType = number;
 
-// eslint-disable-next-line unicorn/no-null
 const TimeContext = createContext<TimeContextType | null>(null);
 
 export const TimeProvider: React.FC<ProviderProperties> = ({ children }) => {

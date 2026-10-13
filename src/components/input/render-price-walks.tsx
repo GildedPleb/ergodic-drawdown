@@ -19,13 +19,12 @@ const Container = styled.div`
 const RenderPriceWalkInput = (): JSX.Element => {
   const { renderPriceWalks, setRenderPriceWalks } = useRender();
 
-  const handleRenderPriceWalks: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setRenderPriceWalks(event.target.checked);
-      },
-      [setRenderPriceWalks],
-    );
+  const handleRenderPriceWalks: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setRenderPriceWalks(event.target.checked);
+    },
+    [setRenderPriceWalks],
+  );
 
   return (
     <Container>

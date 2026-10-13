@@ -1,18 +1,10 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { type IWalk } from "../../types";
 
 let currentPingPongPhase: "ascent" | "descent" = "descent";
 
 // WARN: There might be a off-by-one error here, in that data[startWeek] = start, and then immediately overwritten.
-export const pingPong: IWalk = ({
-  clampBottom = false,
-  clampTop = false,
-  start = 0,
-  startWeek = 0,
-  volatility = 0.07,
-}) => {
+export const pingPong: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;

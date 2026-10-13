@@ -8,13 +8,7 @@ export class VariableDrawdownFinal {
     sampleCount: number;
     weekCount: number;
   }): VariableDrawdownFinal {
-    return new VariableDrawdownFinal(
-      // eslint-disable-next-line unicorn/no-null
-      null,
-      state.weekCount,
-      state.sampleCount,
-      state.buffer,
-    );
+    return new VariableDrawdownFinal(null, state.weekCount, state.sampleCount, state.buffer);
   }
 
   private readonly buffer: SharedArrayBuffer;
@@ -36,8 +30,7 @@ export class VariableDrawdownFinal {
     this.sampleCount = sampleCount;
 
     if (existingBuffer === undefined) {
-      const bufferSize =
-        this.sampleCount * weekCount * 2 * Float64Array.BYTES_PER_ELEMENT;
+      const bufferSize = this.sampleCount * weekCount * 2 * Float64Array.BYTES_PER_ELEMENT;
       this.buffer = new SharedArrayBuffer(bufferSize);
     } else {
       this.buffer = existingBuffer;
@@ -73,7 +66,6 @@ export class VariableDrawdownFinal {
     return undefined;
   }
 
-  // eslint-disable-next-line functional/functional-parameters
   exportState(): {
     buffer: SharedArrayBuffer;
     sampleCount: number;
@@ -97,8 +89,8 @@ export class VariableDrawdownFinal {
     for (let index = startIndex; index < endIndex; index += 2) {
       const currentWeek = this.view[index];
       if (currentWeek === week) {
-        // Week found, update amount
-        this.view[index + 1] += amount;
+        const currentAmount = this.view[index + 1];
+        this.view[index + 1] = (currentAmount ?? Number.NaN) + amount;
         return;
       }
       if (currentWeek === -1) {

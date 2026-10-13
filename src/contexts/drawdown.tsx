@@ -1,11 +1,5 @@
 import { LRUCache } from "lru-cache";
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useContext, useMemo, useRef, useState } from "react";
 
 import GrowableSharedArray from "../classes/growable-shared-array";
 import type VariableDrawdownCache from "../classes/variable-drawdown-cache";
@@ -22,7 +16,7 @@ import {
   type OneOffItem,
   type ProviderProperties,
   type ReoccurringItem,
-} from "../types"; // eslint-disable-next-line functional/no-mixed-types
+} from "../types";
 export interface DrawdownContextType {
   bitcoin: number;
   drawdownData: GrowableSharedArray;
@@ -35,9 +29,7 @@ export interface DrawdownContextType {
   setBitcoin: React.Dispatch<React.SetStateAction<number>>;
   setInflation: React.Dispatch<React.SetStateAction<number>>;
   setLoadingVolumeData: React.Dispatch<React.SetStateAction<boolean>>;
-  setOneOffFiatVariables: React.Dispatch<
-    React.SetStateAction<OneOffFiatVariable[]>
-  >;
+  setOneOffFiatVariables: React.Dispatch<React.SetStateAction<OneOffFiatVariable[]>>;
   setOneOffItems: React.Dispatch<React.SetStateAction<OneOffItem[]>>;
   setReoccurringItems: React.Dispatch<React.SetStateAction<ReoccurringItem[]>>;
   setShowDrawdown: React.Dispatch<React.SetStateAction<boolean>>;
@@ -45,24 +37,17 @@ export interface DrawdownContextType {
   variableDrawdownCache: LRUCache<string, VariableDrawdownCache>;
 }
 
-// eslint-disable-next-line unicorn/no-null
 const DrawdownContext = createContext<DrawdownContextType | null>(null);
 
 const loadedHalvings = loadHalvings();
 
 const reward = 50 / 2 ** Object.keys(loadedHalvings).length;
 
-export const DrawdownProvider: React.FC<ProviderProperties> = ({
-  children,
-}) => {
+export const DrawdownProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [showDrawdown, setShowDrawdown] = useState<boolean>(true);
   const [loadingVolumeData, setLoadingVolumeData] = useState<boolean>(true);
   const drawdownData = useRef(
-    new GrowableSharedArray(
-      DEFAULT_EPOCH_COUNT,
-      DEFAULT_SIMULATION_COUNT,
-      WEEKS_PER_EPOCH,
-    ),
+    new GrowableSharedArray(DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH),
   );
   const [bitcoin, setBitcoin] = useState<number>(reward);
   const [inflation, setInflation] = useState<number>(8);
@@ -111,9 +96,7 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     // },
   ]);
 
-  const [oneOffFiatVariables, setOneOffFiatVariables] = useState<
-    OneOffFiatVariable[]
-  >([
+  const [oneOffFiatVariables, setOneOffFiatVariables] = useState<OneOffFiatVariable[]>([
     // {
     //   active: true,
     //   amountToday: 250_000,
@@ -196,9 +179,7 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     // },
   ]);
 
-  const innerCacheReference = useRef(
-    new LRUCache<string, VariableDrawdownCache>({ max: 100 }),
-  );
+  const innerCacheReference = useRef(new LRUCache<string, VariableDrawdownCache>({ max: 100 }));
   const finalVariableCacheReference = useRef(
     new LRUCache<string, VariableDrawdownFinal>({ max: 10 }),
   );
@@ -235,11 +216,7 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({
     ],
   );
 
-  return (
-    <DrawdownContext.Provider value={value}>
-      {children}
-    </DrawdownContext.Provider>
-  );
+  return <DrawdownContext.Provider value={value}>{children}</DrawdownContext.Provider>;
 };
 
 export const useDrawdown = (): DrawdownContextType => {

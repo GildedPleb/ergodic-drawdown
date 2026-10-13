@@ -9,9 +9,11 @@ export const handleMaxModel = (
   now: number,
 ): DatasetList => {
   if (!renderModelMax) return [];
+  const series = maxArray[0];
+  if (series === undefined) throw new Error("missing max series");
   const maxPoints = [];
   let index = 0;
-  for (const price of maxArray[0]) {
+  for (const price of series) {
     maxPoints.push({
       x: now + index * MS_PER_WEEK,
       y: price,

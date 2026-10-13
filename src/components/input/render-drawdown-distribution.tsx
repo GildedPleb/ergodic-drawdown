@@ -22,23 +22,19 @@ const Select = styled.select`
 `;
 
 const RenderDrawdownDistribution = (): JSX.Element => {
-  const { renderDrawdownDistribution, setRenderDrawdownDistribution } =
-    useRender();
+  const { renderDrawdownDistribution, setRenderDrawdownDistribution } = useRender();
 
-  const handleDistributionChange: React.ChangeEventHandler<HTMLSelectElement> =
-    useCallback(
-      (event) => {
-        const value = event.target.value;
-        if (isValidDistribution(value)) setRenderDrawdownDistribution(value);
-      },
-      [setRenderDrawdownDistribution],
-    );
+  const handleDistributionChange: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
+    (event) => {
+      const value = event.target.value;
+      if (isValidDistribution(value)) setRenderDrawdownDistribution(value);
+    },
+    [setRenderDrawdownDistribution],
+  );
 
   return (
     <Container>
-      <label htmlFor="drawdownDistributionSelect">
-        {inputLabels.distributions}
-      </label>
+      <label htmlFor="drawdownDistributionSelect">{inputLabels.distributions}</label>
       <Select
         id="drawdownDistributionSelect"
         onChange={handleDistributionChange}

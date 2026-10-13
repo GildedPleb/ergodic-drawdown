@@ -1,15 +1,7 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { type IWalk } from "../../types";
 
-export const sawtooth: IWalk = ({
-  clampBottom = false,
-  clampTop = false,
-  start = 0,
-  startWeek = 0,
-  volatility = 0.07,
-}) => {
+export const sawtooth: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
@@ -22,10 +14,7 @@ export const sawtooth: IWalk = ({
     currentValue += increment;
 
     // Reset at the top and reflect at the bottom to ensure full range coverage
-    if (
-      currentValue >= 1 + volatility * 100 * Math.random() ||
-      (clampTop && currentValue >= 1)
-    ) {
+    if (currentValue >= 1 + volatility * 100 * Math.random() || (clampTop && currentValue >= 1)) {
       currentValue = clampBottom ? 0 : 0 - volatility * 10 * Math.random();
     }
 

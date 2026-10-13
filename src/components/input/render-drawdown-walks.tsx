@@ -19,13 +19,12 @@ const Container = styled.div`
 const RenderDrawdownWalksInput = (): JSX.Element => {
   const { renderDrawdownWalks, setRenderDrawdownWalks } = useRender();
 
-  const handleRenderDrawdown: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setRenderDrawdownWalks(event.target.checked);
-      },
-      [setRenderDrawdownWalks],
-    );
+  const handleRenderDrawdown: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setRenderDrawdownWalks(event.target.checked);
+    },
+    [setRenderDrawdownWalks],
+  );
 
   return (
     <Container>

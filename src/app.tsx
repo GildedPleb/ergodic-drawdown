@@ -34,8 +34,9 @@ const GridApp = styled.div`
   row-gap: 0px;
   column-gap: 10px;
 
-  ${isMobile()
-    ? `
+  ${
+    isMobile()
+      ? `
         grid-template-columns: auto;
         grid-template-rows: auto auto 1fr auto auto;
         grid-template-areas:
@@ -45,7 +46,7 @@ const GridApp = styled.div`
           "drawdown"
           "footer";
       `
-    : `
+      : `
         @media (min-aspect-ratio: 1) {
           grid-template-columns: 1fr 1fr 70px 0fr;
           grid-template-rows: 30px 1fr auto auto;
@@ -66,7 +67,8 @@ const GridApp = styled.div`
             "drawdown drawdown drawdown"
             "footer footer footer";
         }
-      `}
+      `
+  }
 `;
 
 const TutorialWrapper = styled.div<{ $isActive: boolean }>`

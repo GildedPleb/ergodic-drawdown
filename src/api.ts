@@ -1,7 +1,7 @@
 import { LRUCache } from "lru-cache";
 
 import { LAST_SAVED_TIMESTAMP } from "./constants";
-import { type BitcoinDataPoint, type BlockData } from "./types";
+import { type BitcoinDataPoint } from "./types";
 
 const lruCache = new LRUCache<string, BitcoinDataPoint[]>({ max: 1 });
 
@@ -11,13 +11,28 @@ const WEEK_SECONDS = 7 * DAY_SECONDS;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+const isBitcoinPoint = (value: unknown): value is BitcoinDataPoint => {
+  if (!isRecord(value)) return false;
+  const fields: ReadonlyArray<keyof BitcoinDataPoint> = [
+    "close",
+    "high",
+    "low",
+    "open",
+    "time",
+    "volumefrom",
+    "volumeto",
+  ];
+  for (const field of fields) {
+    if (typeof value[field] !== "number") return false;
+  }
+  return (
+    typeof value["conversionSymbol"] === "string" && typeof value["conversionType"] === "string"
+  );
+};
+
 const finiteNumber = (value: unknown): number => {
   const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string"
-        ? Number(value)
-        : Number.NaN;
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
   if (!Number.isFinite(parsed)) {
     throw new Error(`expected a number, received ${String(value)}`);
   }
@@ -88,9 +103,7 @@ const foldWeeks = (days: DailyBar[]): BitcoinDataPoint[] => {
     number,
     { open: number; high: number; low: number; close: number; volume: number }
   >();
-  const sorted = [...days].sort(
-    (first, second) => first[0] - second[0],
-  );
+  const sorted = [...days].toSorted((first, second) => first[0] - second[0]);
   for (const [time, low, high, open, close, volume] of sorted) {
     const week = Math.floor(time / WEEK_SECONDS) * WEEK_SECONDS;
     const existing = buckets.get(week);
@@ -104,44 +117,38 @@ const foldWeeks = (days: DailyBar[]): BitcoinDataPoint[] => {
     existing.volume += volume;
   }
   return [...buckets.entries()]
-    .sort((first, second) => first[0] - second[0])
-    .map(([time, bar]) =>
-      pricePoint(time, bar.open, bar.high, bar.low, bar.close, bar.volume),
-    );
+    .toSorted((first, second) => first[0] - second[0])
+    .map(([time, bar]) => pricePoint(time, bar.open, bar.high, bar.low, bar.close, bar.volume));
 };
 
 const loadCoinbasePrice = async (): Promise<number> => {
-  const body = await readJson(
-    "https://api.coinbase.com/v2/prices/BTC-USD/spot",
-  );
-  if (!isRecord(body) || !isRecord(body.data)) {
-    throw new Error("unexpected Coinbase price payload");
-  }
-  return positiveNumber(body.data.amount);
+  const body = await readJson("https://api.coinbase.com/v2/prices/BTC-USD/spot");
+  if (!isRecord(body)) throw new Error("unexpected Coinbase price payload");
+  const data = body["data"];
+  if (!isRecord(data)) throw new Error("unexpected Coinbase price payload");
+  return positiveNumber(data["amount"]);
 };
 
 const loadCoinGeckoPrice = async (): Promise<number> => {
   const body = await readJson(
     "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
   );
-  if (!isRecord(body) || !isRecord(body.bitcoin)) {
-    throw new Error("unexpected CoinGecko price payload");
-  }
-  return positiveNumber(body.bitcoin.usd);
+  if (!isRecord(body)) throw new Error("unexpected CoinGecko price payload");
+  const bitcoin = body["bitcoin"];
+  if (!isRecord(bitcoin)) throw new Error("unexpected CoinGecko price payload");
+  return positiveNumber(bitcoin["usd"]);
 };
 
 const loadKrakenPrice = async (): Promise<number> => {
-  const body = await readJson(
-    "https://api.kraken.com/0/public/Ticker?pair=XBTUSD",
-  );
-  if (!isRecord(body) || !isRecord(body.result)) {
-    throw new Error("unexpected Kraken price payload");
-  }
-  const pair = body.result.XXBTZUSD;
-  if (!isRecord(pair) || !Array.isArray(pair.c)) {
-    throw new Error("missing Kraken ticker");
-  }
-  return positiveNumber(pair.c[0]);
+  const body = await readJson("https://api.kraken.com/0/public/Ticker?pair=XBTUSD");
+  if (!isRecord(body)) throw new Error("unexpected Kraken price payload");
+  const result = body["result"];
+  if (!isRecord(result)) throw new Error("unexpected Kraken price payload");
+  const pair = result["XXBTZUSD"];
+  if (!isRecord(pair)) throw new Error("missing Kraken ticker");
+  const close = pair["c"];
+  if (!Array.isArray(close)) throw new Error("missing Kraken ticker");
+  return positiveNumber(close[0]);
 };
 
 const loadSpotPrice = (): Promise<number> =>
@@ -151,10 +158,7 @@ const loadSpotPrice = (): Promise<number> =>
     { name: "Kraken", load: loadKrakenPrice },
   ]);
 
-const loadCoinbaseWeeks = async (
-  from: number,
-  to: number,
-): Promise<BitcoinDataPoint[]> => {
+const loadCoinbaseWeeks = async (from: number, to: number): Promise<BitcoinDataPoint[]> => {
   const days: DailyBar[] = [];
   const window = 290 * DAY_SECONDS;
   for (let start = from; start < to; start += window) {
@@ -180,29 +184,19 @@ const loadCoinbaseWeeks = async (
   return weeks;
 };
 
-const loadCoinGeckoWeeks = async (
-  from: number,
-  to: number,
-): Promise<BitcoinDataPoint[]> => {
+const loadCoinGeckoWeeks = async (from: number, to: number): Promise<BitcoinDataPoint[]> => {
   const days = Math.max(2, Math.ceil((to - from) / DAY_SECONDS) + 1);
   const body = await readJson(
     `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`,
   );
-  if (!isRecord(body) || !Array.isArray(body.prices)) {
-    throw new Error("unexpected CoinGecko history");
-  }
+  if (!isRecord(body)) throw new Error("unexpected CoinGecko history");
+  const prices = body["prices"];
+  if (!Array.isArray(prices)) throw new Error("unexpected CoinGecko history");
   const daily: DailyBar[] = [];
-  for (const row of body.prices) {
+  for (const row of prices) {
     if (!Array.isArray(row) || row.length < 2) continue;
     const price = positiveNumber(row[1]);
-    daily.push([
-      Math.floor(finiteNumber(row[0]) / 1000),
-      price,
-      price,
-      price,
-      price,
-      0,
-    ]);
+    daily.push([Math.floor(finiteNumber(row[0]) / 1000), price, price, price, price, 0]);
   }
   const weeks = foldWeeks(daily).filter((point) => point.time > from);
   if (weeks.length === 0) throw new Error("CoinGecko returned no weekly bars");
@@ -210,13 +204,11 @@ const loadCoinGeckoWeeks = async (
 };
 
 const loadKrakenWeeks = async (from: number): Promise<BitcoinDataPoint[]> => {
-  const body = await readJson(
-    "https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=10080",
-  );
-  if (!isRecord(body) || !isRecord(body.result)) {
-    throw new Error("unexpected Kraken history");
-  }
-  const rows = body.result.XXBTZUSD;
+  const body = await readJson("https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=10080");
+  if (!isRecord(body)) throw new Error("unexpected Kraken history");
+  const result = body["result"];
+  if (!isRecord(result)) throw new Error("unexpected Kraken history");
+  const rows = result["XXBTZUSD"];
   if (!Array.isArray(rows)) throw new Error("missing Kraken OHLC");
   const weeks: BitcoinDataPoint[] = [];
   for (const row of rows) {
@@ -238,22 +230,27 @@ const loadKrakenWeeks = async (from: number): Promise<BitcoinDataPoint[]> => {
   return weeks;
 };
 
-// eslint-disable-next-line functional/functional-parameters
 export const getCurrentBlockHeight = async (now: number): Promise<number> => {
   const cacheKey = "currentBlockHeight";
   const cachedData = localStorage.getItem(cacheKey);
 
   if (cachedData !== null) {
-    const { blockHeight, timestamp } = JSON.parse(cachedData) as {
-      blockHeight: number;
-      timestamp: number;
-    };
-    if (timestamp > now - 120 * 60 * 1000) return blockHeight;
+    const parsed: unknown = JSON.parse(cachedData);
+    if (
+      isRecord(parsed) &&
+      typeof parsed["blockHeight"] === "number" &&
+      typeof parsed["timestamp"] === "number" &&
+      parsed["timestamp"] > now - 120 * 60 * 1000
+    ) {
+      return parsed["blockHeight"];
+    }
   }
   console.log("...fetching lastest block height");
   const response = await fetch("https://blockchain.info/q/getblockcount");
   if (!response.ok) throw new Error("Failed to fetch current block height");
-  const blockHeight = (await response.json()) as number;
+  const body: unknown = await response.json();
+  if (typeof body !== "number") throw new Error("Failed to fetch current block height");
+  const blockHeight = body;
   const newData = JSON.stringify({ blockHeight, timestamp: now });
   localStorage.setItem(cacheKey, newData);
 
@@ -262,18 +259,20 @@ export const getCurrentBlockHeight = async (now: number): Promise<number> => {
 
 export const fetchBlockByHeight = async (height: number): Promise<number> => {
   console.log("...fetching block:", height);
-  const response = await fetch(
-    `https://blockchain.info/block-height/${height}?format=json`,
-  );
+  const response = await fetch(`https://blockchain.info/block-height/${height}?format=json`);
   if (!response.ok) throw new Error("Failed to fetch block data");
-  const data = (await response.json()) as { blocks: BlockData[] };
-  return data.blocks[0].time;
+  const body: unknown = await response.json();
+  if (!isRecord(body) || !Array.isArray(body["blocks"])) {
+    throw new Error("Failed to fetch block data");
+  }
+  const block = body["blocks"][0];
+  if (!isRecord(block) || typeof block["time"] !== "number") {
+    throw new Error("Failed to fetch block data");
+  }
+  return block["time"];
 };
 
-// eslint-disable-next-line functional/functional-parameters
-export const getCurrentPrice = async (
-  now: number,
-): Promise<BitcoinDataPoint> => {
+export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> => {
   const cacheKey = "BTC_PRICE_CACHE";
   // 1 hour cache
   const cacheExpiry = 60 * 60;
@@ -282,20 +281,14 @@ export const getCurrentPrice = async (
 
   try {
     if (cachedData !== null) {
-      const cache = JSON.parse(cachedData) as BitcoinDataPoint;
-      if (currentTimestamp - cache.time < cacheExpiry) {
+      const cache: unknown = JSON.parse(cachedData);
+      if (isBitcoinPoint(cache) && currentTimestamp - cache.time < cacheExpiry) {
         return cache;
       }
     }
     console.log("...fetching current price");
     const spot = await loadSpotPrice();
-    const currentPriceData = pricePoint(
-      currentTimestamp,
-      spot,
-      spot,
-      spot,
-      spot,
-    );
+    const currentPriceData = pricePoint(currentTimestamp, spot, spot, spot, spot);
     localStorage.setItem(cacheKey, JSON.stringify(currentPriceData));
 
     return currentPriceData;
@@ -315,18 +308,14 @@ export const getCurrentPrice = async (
   }
 };
 
-// eslint-disable-next-line functional/functional-parameters
-export const getInterimWeeklyData = async (
-  now: number,
-): Promise<BitcoinDataPoint[]> => {
+export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoint[]> => {
   const cache = lruCache.get("interim");
   if (cache !== undefined) {
     return cache;
   }
   const nowDate = new Date(now);
-  let cachedData = JSON.parse(
-    localStorage.getItem("weeklyBTCData") ?? "[]",
-  ) as BitcoinDataPoint[];
+  const storedWeekly: unknown = JSON.parse(localStorage.getItem("weeklyBTCData") ?? "[]");
+  let cachedData = Array.isArray(storedWeekly) ? storedWeekly.filter(isBitcoinPoint) : [];
   if (cachedData.length === 0) {
     cachedData = [
       {
@@ -347,7 +336,6 @@ export const getInterimWeeklyData = async (
   const currentTime = Math.floor(nowDate.getTime() / 1000);
 
   if (lastCachedTimestamp >= currentTime - 604_800) {
-    // eslint-disable-next-line unicorn/prefer-spread
     const interim = cachedData.concat(currentPriceData);
     lruCache.set("interim", interim);
     return interim;
@@ -368,14 +356,11 @@ export const getInterimWeeklyData = async (
         load: () => loadKrakenWeeks(lastCachedTimestamp),
       },
     ]);
-    cachedData = [...cachedData, ...newData].sort(
-      (first, second) => first.time - second.time,
-    );
+    cachedData = [...cachedData, ...newData].toSorted((first, second) => first.time - second.time);
     localStorage.setItem("weeklyBTCData", JSON.stringify(cachedData));
   } catch (error) {
     console.error("Error fetching data:", error);
   }
-  // eslint-disable-next-line unicorn/prefer-spread
   const interim = cachedData.concat(currentPriceData);
   lruCache.set("interim", interim);
   return interim;

@@ -1,10 +1,6 @@
 import memoize from "memoizee";
 
-import {
-  BLOCKS_PER_WEEK,
-  BLOCKS_PER_YEAR,
-  HALVING_INTERVAL,
-} from "../../constants";
+import { BLOCKS_PER_WEEK, BLOCKS_PER_YEAR, HALVING_INTERVAL } from "../../constants";
 import { type PriceModel } from "../../types";
 
 const getRewardForHalving = memoize((halvingIndex: number): number => {

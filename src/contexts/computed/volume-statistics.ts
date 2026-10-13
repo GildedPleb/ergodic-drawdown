@@ -1,4 +1,5 @@
 import { quantile } from "../../helpers";
+import { numberAt } from "../../number-at";
 
 export const calculateVolumeStatistics = (
   _signal: AbortSignal,
@@ -13,7 +14,7 @@ export const calculateVolumeStatistics = (
 
   // Calculate sum
   for (let index = 0; index < length; index++) {
-    sum += finalBalance[index];
+    sum += numberAt(finalBalance, index);
   }
   const average = sum / length;
 
@@ -21,8 +22,7 @@ export const calculateVolumeStatistics = (
   finalBalance.sort((first, second) => first - second);
 
   const middleQuant = quantile(finalBalance, 0.5);
-  const median =
-    middleQuant === 0 && dataLength === 0 ? Number.NaN : middleQuant;
+  const median = middleQuant === 0 && dataLength === 0 ? Number.NaN : middleQuant;
 
   return { average, median };
 };

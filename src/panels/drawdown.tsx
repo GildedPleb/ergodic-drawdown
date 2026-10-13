@@ -1,7 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable @shopify/strict-component-boundaries */
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable unicorn/no-null */
 import hashSum from "hash-sum";
 import { useCallback, useMemo, useState } from "react";
 import styled, { css } from "styled-components";
@@ -14,14 +10,15 @@ import BitcoinInput from "../components/input/bitcoin";
 import InflationInput from "../components/input/inflation";
 import { isMobile } from "../constants";
 import { fieldLabels } from "../content";
-import { type DrawdownContextType, useDrawdown } from "../contexts/drawdown";
-import { type ModelContextType, useModel } from "../contexts/model";
-import { type RenderContextType, useRender } from "../contexts/render";
+import { useDrawdown } from "../contexts/drawdown";
+import { useModel } from "../contexts/model";
+import { useRender } from "../contexts/render";
 import {
   type FormData,
   type OneOffFiatVariable,
   type OneOffItem,
   type ReoccurringItem,
+  type SavedAppState,
 } from "../types";
 
 const buttonText = "➕";
@@ -30,8 +27,7 @@ const buttonLoad = "📂";
 
 const Container = styled.fieldset<{ $guessHeight: number; $isOpen: boolean }>`
   height: calc(${isMobile() ? "50vh" : "39vh"} - 117px);
-  max-height: ${({ $guessHeight, $isOpen }) =>
-    $isOpen ? $guessHeight : "20"}px;
+  max-height: ${({ $guessHeight, $isOpen }) => ($isOpen ? $guessHeight : "20")}px;
 
   display: flex;
   flex-direction: column;
@@ -116,13 +112,6 @@ const Button = styled.button`
   /* border: 1px solid red; */
 `;
 
-export interface AppState
-  extends ModelContextType,
-    DrawdownContextType,
-    RenderContextType {
-  version: number;
-}
-
 const Drawdown = (): JSX.Element => {
   const modelState = useModel();
   const drawdownState = useDrawdown();
@@ -142,18 +131,10 @@ const Drawdown = (): JSX.Element => {
   const { setShowRender } = renderState;
   const { setShowModel } = modelState;
 
-  const fullState = useMemo(
-    () => ({ ...modelState, ...drawdownState, ...renderState }),
-    [drawdownState, modelState, renderState],
-  );
-
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [fileModalMode, setFileModalMode] = useState<"load" | "save" | null>(
-    null,
-  );
+  const [fileModalMode, setFileModalMode] = useState<"load" | "save" | null>(null);
 
-  const length =
-    oneOffFiatVariables.length + oneOffItems.length + reoccurringItems.length;
+  const length = oneOffFiatVariables.length + oneOffItems.length + reoccurringItems.length;
   const guessHeight = length * 55 + 240;
 
   const handleOpenModal = useCallback(() => {
@@ -165,64 +146,53 @@ const Drawdown = (): JSX.Element => {
 
   const handleAdd = useCallback(
     (item: FormData) => {
-      const cleanItem = (object: object, allowedKeys: string[]): object => {
-        return Object.fromEntries(
-          Object.entries(object).filter(([key]) => allowedKeys.includes(key)),
-        );
-      };
-
       const id = hashSum(Date.now());
 
       switch (item.type) {
         case "oneOffFiatVariable": {
-          const cleanedItem = cleanItem(item, [
-            "active",
-            "id",
-            "name",
-            "amountToday",
-            "btcWillingToSpend",
-            "delay",
-            "start",
-          ]) as OneOffFiatVariable;
-
-          cleanedItem.hash = hashSum({
-            amountToday: cleanedItem.amountToday,
-            btcWillingToSpend: cleanedItem.btcWillingToSpend,
-            delay: cleanedItem.delay,
-            start: cleanedItem.start,
-          });
-          cleanedItem.id = id;
-
+          const cleanedItem: OneOffFiatVariable = {
+            active: item.active,
+            amountToday: item.amountToday,
+            btcWillingToSpend: item.btcWillingToSpend,
+            delay: item.delay,
+            hash: hashSum({
+              amountToday: item.amountToday,
+              btcWillingToSpend: item.btcWillingToSpend,
+              delay: item.delay,
+              start: item.start,
+            }),
+            id,
+            name: item.name,
+            start: item.start,
+          };
           setOneOffFiatVariables((previous) => [...previous, cleanedItem]);
           break;
         }
         case "oneOffItem": {
-          const cleanedItem = cleanItem(item, [
-            "active",
-            "id",
-            "name",
-            "amountToday",
-            "effective",
-            "expense",
-            "isFiat",
-          ]) as OneOffItem;
-          cleanedItem.id = id;
+          const cleanedItem: OneOffItem = {
+            active: item.active,
+            amountToday: item.amountToday,
+            effective: item.effective,
+            expense: item.expense,
+            id,
+            isFiat: item.isFiat,
+            name: item.name,
+          };
           setOneOffItems((previous) => [...previous, cleanedItem]);
           break;
         }
         case "reoccurringItem": {
-          const cleanedItem = cleanItem(item, [
-            "active",
-            "id",
-            "name",
-            "annualAmount",
-            "annualPercentChange",
-            "effective",
-            "end",
-            "expense",
-            "isFiat",
-          ]) as ReoccurringItem;
-          cleanedItem.id = id;
+          const cleanedItem: ReoccurringItem = {
+            active: item.active,
+            annualAmount: item.annualAmount,
+            annualPercentChange: item.annualPercentChange,
+            effective: item.effective,
+            end: item.end,
+            expense: item.expense,
+            id,
+            isFiat: item.isFiat,
+            name: item.name,
+          };
           setReoccurringItems((previous) => [...previous, cleanedItem]);
           break;
         }
@@ -247,40 +217,75 @@ const Drawdown = (): JSX.Element => {
   }, []);
 
   const restoreAppState = useCallback(
-    (state: AppState) => {
-      if (state.version === 1) {
-        for (const key of Object.keys(state) as Array<keyof AppState>) {
-          const setterKey =
-            `set${key.charAt(0).toUpperCase() + key.slice(1)}` as
-              | keyof DrawdownContextType
-              | keyof ModelContextType;
-          if (typeof fullState[setterKey] === "function") {
-            (fullState[setterKey] as (value: AppState[typeof key]) => void)(
-              state[key],
-            );
-          }
-        }
-      }
+    (state: SavedAppState) => {
+      drawdownState.setBitcoin(state.bitcoin);
+      drawdownState.setInflation(state.inflation);
+      drawdownState.setLoadingVolumeData(state.loadingVolumeData);
+      drawdownState.setOneOffFiatVariables(state.oneOffFiatVariables);
+      drawdownState.setOneOffItems(state.oneOffItems);
+      drawdownState.setReoccurringItems(state.reoccurringItems);
+      drawdownState.setShowDrawdown(state.showDrawdown);
+      modelState.setClampBottom(state.clampBottom);
+      modelState.setClampTop(state.clampTop);
+      modelState.setEpochCount(state.epochCount);
+      modelState.setLoadingPriceData(state.loadingPriceData);
+      modelState.setMinMaxMultiple(state.minMaxMultiple);
+      modelState.setModel(state.model);
+      modelState.setSamples(state.samples);
+      modelState.setShowModel(state.showModel);
+      modelState.setVariable(state.variable);
+      modelState.setVolatility(state.volatility);
+      modelState.setWalk(state.walk);
+      renderState.setHideResults(state.hideResults);
+      renderState.setRenderDrawdownDistribution(state.renderDrawdownDistribution);
+      renderState.setRenderDrawdownWalks(state.renderDrawdownWalks);
+      renderState.setRenderModelMax(state.renderModelMax);
+      renderState.setRenderModelMin(state.renderModelMin);
+      renderState.setRenderPriceDistribution(state.renderPriceDistribution);
+      renderState.setRenderPriceWalks(state.renderPriceWalks);
+      renderState.setSamplesToRender(state.samplesToRender);
+      renderState.setShowHistoric(state.showHistoric);
+      renderState.setShowRender(state.showRender);
+      renderState.setShowResults(state.showResults);
     },
-    [fullState],
+    [drawdownState, modelState, renderState],
   );
 
-  const appState = useMemo(() => {
-    const {
-      drawdownData,
-      finalVariableCache,
-      simulationData,
-      variableDrawdownCache,
-      ...rest
-    } = fullState;
-
-    return {
-      ...Object.fromEntries(
-        Object.entries(rest).filter(([key]) => !key.startsWith("set")),
-      ),
+  const appState = useMemo(
+    (): SavedAppState => ({
+      bitcoin: drawdownState.bitcoin,
+      clampBottom: modelState.clampBottom,
+      clampTop: modelState.clampTop,
+      epochCount: modelState.epochCount,
+      hideResults: renderState.hideResults,
+      inflation: drawdownState.inflation,
+      loadingPriceData: modelState.loadingPriceData,
+      loadingVolumeData: drawdownState.loadingVolumeData,
+      minMaxMultiple: modelState.minMaxMultiple,
+      model: modelState.model,
+      oneOffFiatVariables: drawdownState.oneOffFiatVariables,
+      oneOffItems: drawdownState.oneOffItems,
+      renderDrawdownDistribution: renderState.renderDrawdownDistribution,
+      renderDrawdownWalks: renderState.renderDrawdownWalks,
+      renderModelMax: renderState.renderModelMax,
+      renderModelMin: renderState.renderModelMin,
+      renderPriceDistribution: renderState.renderPriceDistribution,
+      renderPriceWalks: renderState.renderPriceWalks,
+      reoccurringItems: drawdownState.reoccurringItems,
+      samples: modelState.samples,
+      samplesToRender: renderState.samplesToRender,
+      showDrawdown: drawdownState.showDrawdown,
+      showHistoric: renderState.showHistoric,
+      showModel: modelState.showModel,
+      showRender: renderState.showRender,
+      showResults: renderState.showResults,
+      variable: modelState.variable,
       version: 1,
-    } as unknown as AppState;
-  }, [fullState]);
+      volatility: modelState.volatility,
+      walk: modelState.walk,
+    }),
+    [drawdownState, modelState, renderState],
+  );
 
   const toggleModelExpansion = useCallback(() => {
     if (isMobile() && !showDrawdown) {
@@ -318,14 +323,7 @@ const Drawdown = (): JSX.Element => {
         <Button onClick={handleSave}>{buttonSave}</Button>
         <Button onClick={handleLoad}>{buttonLoad}</Button>
       </SectionRow>
-      {isModalOpen && (
-        <Modal
-          isOpen={isModalOpen}
-          item={undefined}
-          onClose={handleCloseModal}
-          onSave={handleAdd}
-        />
-      )}
+      {isModalOpen && <Modal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleAdd} />}
       <SecureFileOperationsModal
         appState={appState}
         mode={fileModalMode}

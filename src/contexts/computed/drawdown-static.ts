@@ -1,5 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import hashSum from "hash-sum";
 import { LRUCache } from "lru-cache";
 
@@ -23,8 +21,7 @@ export const handleDrawdownStatic = (
   inflationFactors: Float64Array,
   weeklyInflationRate: number,
 ): DrawdownStaticReturn => {
-  const dateToWeek = (date: Date): number =>
-    Math.floor((date.getTime() - now) / MS_PER_WEEK) + 1;
+  const dateToWeek = (date: Date): number => Math.floor((date.getTime() - now) / MS_PER_WEEK) + 1;
 
   // Calculate Weekly reoccurringItems
   const totalWeeklyFiatItems = new Float64Array(dataLength);
@@ -37,33 +34,33 @@ export const handleDrawdownStatic = (
     const { isFiat } = item;
     if (cachedResult === undefined) {
       const toBeCached = new Float64Array(dataLength);
-      const { annualAmount, annualPercentChange, effective, end, expense } =
-        item;
+      const { annualAmount, annualPercentChange, effective, end, expense } = item;
       const startWeek = dateToWeek(effective);
       const endWeek = end === undefined ? dataLength : dateToWeek(end);
-      const weeklyChangeRate =
-        (1 + annualPercentChange / 100) ** (1 / WEEKS_PER_YEAR) - 1;
+      const weeklyChangeRate = (1 + annualPercentChange / 100) ** (1 / WEEKS_PER_YEAR) - 1;
       let weeklyCost = annualAmount / WEEKS_PER_YEAR;
-      if (isFiat && startWeek > 0) weeklyCost *= inflationFactors[startWeek];
+      if (isFiat && startWeek > 0) weeklyCost *= inflationFactors[startWeek] ?? Number.NaN;
       for (let week = startWeek; week < endWeek; week++) {
         if (week !== startWeek) {
-          weeklyCost *=
-            1 + (isFiat ? weeklyInflationRate : 0) + weeklyChangeRate;
+          weeklyCost *= 1 + (isFiat ? weeklyInflationRate : 0) + weeklyChangeRate;
         }
         const final = expense ? -weeklyCost : weeklyCost;
-        if (isFiat) totalWeeklyFiatItems[week] += final;
-        else totalWeeklyBitcoinItems[week] += final;
+        const fiat = totalWeeklyFiatItems[week];
+        const coin = totalWeeklyBitcoinItems[week];
+        if (isFiat) {
+          if (fiat !== undefined) totalWeeklyFiatItems[week] = fiat + final;
+        } else if (coin !== undefined) {
+          totalWeeklyBitcoinItems[week] = coin + final;
+        }
         toBeCached[week] = final;
       }
       reoccurringItemCache.set(cacheKey, toBeCached);
     } else {
-      const targetArray = isFiat
-        ? totalWeeklyFiatItems
-        : totalWeeklyBitcoinItems;
+      const targetArray = isFiat ? totalWeeklyFiatItems : totalWeeklyBitcoinItems;
       for (let week = 0; week < dataLength; week++) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (cachedResult[week] !== undefined)
-          targetArray[week] += cachedResult[week];
+        const cached = cachedResult[week];
+        const current = targetArray[week];
+        if (cached !== undefined && current !== undefined) targetArray[week] = current + cached;
       }
     }
   }
@@ -73,11 +70,16 @@ export const handleDrawdownStatic = (
     if (!oneOffItem.active) continue;
     const { amountToday, effective, expense, isFiat } = oneOffItem;
     const week = dateToWeek(effective);
-    const amount =
-      isFiat && week > 0 ? amountToday * inflationFactors[week] : amountToday;
+    const factor = inflationFactors[week];
+    const amount = isFiat && week > 0 ? amountToday * (factor ?? Number.NaN) : amountToday;
     const final = expense ? -amount : amount;
-    if (isFiat) totalWeeklyFiatItems[week] += final;
-    else totalWeeklyBitcoinItems[week] += final;
+    const fiat = totalWeeklyFiatItems[week];
+    const coin = totalWeeklyBitcoinItems[week];
+    if (isFiat) {
+      if (fiat !== undefined) totalWeeklyFiatItems[week] = fiat + final;
+    } else if (coin !== undefined) {
+      totalWeeklyBitcoinItems[week] = coin + final;
+    }
   }
 
   return { totalWeeklyBitcoinItems, totalWeeklyFiatItems };

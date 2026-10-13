@@ -1,5 +1,6 @@
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { quantile } from "../../helpers";
+import { numberAt } from "../../number-at";
 
 export const handleSimulationStats = (
   _signal: AbortSignal,
@@ -13,7 +14,7 @@ export const handleSimulationStats = (
 
   // Calculate sum
   for (let index = 0; index < length; index++) {
-    sum += finalBalance[index];
+    sum += numberAt(finalBalance, index);
   }
   const average = sum / length;
 

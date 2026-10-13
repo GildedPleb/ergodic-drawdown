@@ -1,9 +1,7 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable security/detect-object-injection */
-
 import GrowableSharedArray from "../../classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { walks } from "../../data/walks";
+import { numberAt } from "../../number-at";
 import { type RunSimulationEvent, type SignalState } from "./types";
 
 const base = 10;
@@ -14,8 +12,8 @@ export const handleSimulation = (
     currentPrice,
     epochCount,
     full: { clampBottom, clampTop, volatility, walk },
-    maxArray: [maxArray, logMaxArray],
-    minArray: [minArray, logMinArray],
+    maxArray,
+    minArray,
     task: { endIndex, startEpoch, startIndex },
     weeksSince,
   }: RunSimulationEvent["payload"],
@@ -25,6 +23,18 @@ export const handleSimulation = (
     return;
   }
   const walking = walks[walk];
+  const maxSeries = maxArray[0];
+  const logMaxSeries = maxArray[1];
+  const minSeries = minArray[0];
+  const logMinSeries = minArray[1];
+  if (
+    maxSeries === undefined ||
+    logMaxSeries === undefined ||
+    minSeries === undefined ||
+    logMinSeries === undefined
+  ) {
+    throw new Error("missing price bounds");
+  }
   const data = GrowableSharedArray.fromExportedState(bufferState);
   // console.log("called with random id:", { epochCount, id, task });
   for (let sample = startIndex; sample < endIndex; sample++) {
@@ -33,7 +43,6 @@ export const handleSimulation = (
     let lastPrice = currentPrice;
 
     for (let epoch = adjustedEpoch; epoch < epochCount; epoch++) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (signalState.aborted) {
         return;
       }
@@ -42,8 +51,7 @@ export const handleSimulation = (
       const segment = data.get(epoch, sample);
       if (segment !== undefined) {
         sampleLength += segment.length;
-        // eslint-disable-next-line unicorn/prefer-at
-        lastPrice = segment[segment.length - 1];
+        lastPrice = numberAt(segment, segment.length - 1);
         continue;
       }
       const currentLength = sampleLength - weeksSince;
@@ -51,17 +59,16 @@ export const handleSimulation = (
       const currentStart = starting ? 0 : currentLength;
 
       let innerStartingPrice;
-      const startingMin = minArray[currentStart];
-      const startingMax = maxArray[currentStart];
-      const logStartingMin = logMinArray[currentStart];
-      const logStartingMax = logMaxArray[currentStart];
+      const startingMin = numberAt(minSeries, currentStart);
+      const startingMax = numberAt(maxSeries, currentStart);
+      const logStartingMin = numberAt(logMinSeries, currentStart);
+      const logStartingMax = numberAt(logMaxSeries, currentStart);
       const logLastPrice = Math.log10(lastPrice);
 
       if (lastPrice <= startingMin) {
         innerStartingPrice = logLastPrice - logStartingMin;
       } else if (lastPrice < startingMax) {
-        innerStartingPrice =
-          (logLastPrice - logStartingMin) / (logStartingMax - logStartingMin);
+        innerStartingPrice = (logLastPrice - logStartingMin) / (logStartingMax - logStartingMin);
       } else {
         innerStartingPrice = logLastPrice - logStartingMax + 1;
       }
@@ -75,26 +82,26 @@ export const handleSimulation = (
       });
 
       for (let week = 0; week < rawWalk.length; week++) {
-        const normalizedPrice = rawWalk[week];
+        const normalizedPrice = numberAt(rawWalk, week);
         const indexOffset = week + currentLength;
-        const min = minArray[indexOffset];
-        const max = maxArray[indexOffset];
+        const min = numberAt(minSeries, indexOffset);
+        const max = numberAt(maxSeries, indexOffset);
 
+        let price: number;
         if (normalizedPrice <= 0) {
-          rawWalk[week] = min * base ** normalizedPrice;
+          price = min * base ** normalizedPrice;
         } else if (normalizedPrice < 1) {
           const logMin = Math.log10(min);
-          rawWalk[week] =
-            base ** (normalizedPrice * (Math.log10(max) - logMin) + logMin);
+          price = base ** (normalizedPrice * (Math.log10(max) - logMin) + logMin);
         } else {
-          rawWalk[week] = max * base ** (normalizedPrice - 1);
+          price = max * base ** (normalizedPrice - 1);
         }
-        if (rawWalk[week] < 0.01) rawWalk[week] = 0.01;
+        if (price < 0.01) price = 0.01;
+        rawWalk[week] = price;
       }
 
       data.set(epoch, sample, rawWalk);
-      // eslint-disable-next-line unicorn/prefer-at
-      lastPrice = rawWalk[rawWalk.length - 1];
+      lastPrice = numberAt(rawWalk, rawWalk.length - 1);
       sampleLength += rawWalk.length;
     }
   }

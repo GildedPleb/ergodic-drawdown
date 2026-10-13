@@ -24,11 +24,7 @@ export const crosshairPlugin: Plugin<"line"> = {
     const { chartArea, ctx, scales } = chart;
     const { bottom, left, right, top } = chartArea;
 
-    if (
-      !chart.drawCrosshair ||
-      chart.crosshairX === null ||
-      chart.crosshairY === null
-    ) {
+    if (!chart.drawCrosshair || chart.crosshairX === null || chart.crosshairY === null) {
       return;
     }
 
@@ -42,16 +38,18 @@ export const crosshairPlugin: Plugin<"line"> = {
     ctx.textBaseline = "middle";
 
     // Get values from scales
-    const xValue = scales.x.getValueForPixel(x);
-    const yValue = scales.y.getValueForPixel(y);
-    const y1Value = scales.y1.getValueForPixel(y);
+    const xScale = scales["x"];
+    const yScale = scales["y"];
+    const y1Scale = scales["y1"];
+    if (xScale === undefined || yScale === undefined || y1Scale === undefined) return;
+    const xValue = xScale.getValueForPixel(x);
+    const yValue = yScale.getValueForPixel(y);
+    const y1Value = y1Scale.getValueForPixel(y);
 
     // Format values
     const xText = typeof xValue === "number" ? xValue : Number(xValue);
-    const yText =
-      typeof yValue === "number" ? yValue.toFixed(0) : String(yValue);
-    const y1Text =
-      typeof y1Value === "number" ? y1Value.toFixed(2) : String(xValue);
+    const yText = typeof yValue === "number" ? yValue.toFixed(0) : String(yValue);
+    const y1Text = typeof y1Value === "number" ? y1Value.toFixed(2) : String(xValue);
 
     // Measure the Y-axis text width
     const formattedYText = `$${Number(yText).toLocaleString()}`;
@@ -64,8 +62,7 @@ export const crosshairPlugin: Plugin<"line"> = {
     const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     const xTextMetrics = ctx.measureText(formattedDate);
     const xTextWidth = xTextMetrics.width;
-    const rotatedTextHeight =
-      xTextWidth * Math.cos(Math.PI / 2) + options.fontSize;
+    const rotatedTextHeight = xTextWidth * Math.cos(Math.PI / 2) + options.fontSize;
 
     // Draw crosshair
     ctx.save();
@@ -108,14 +105,8 @@ export const crosshairPlugin: Plugin<"line"> = {
     const { x, y } = events.event;
 
     // Check if mouse is in chart area
-    const inChartArea = Boolean(
-      x !== null &&
-        y !== null &&
-        x >= left &&
-        x <= right &&
-        y >= top &&
-        y <= bottom,
-    );
+    const inChartArea =
+      x !== null && y !== null && x >= left && x <= right && y >= top && y <= bottom;
 
     // Update crosshair position
     chart.crosshairX = x;

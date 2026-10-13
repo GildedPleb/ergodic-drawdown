@@ -12,21 +12,14 @@ export const handlePriceWalkDataset = (
   samplesToRender: number | undefined,
   lastHalving: number,
 ): DatasetList => {
-  if (
-    samplesToRender === undefined ||
-    samplesToRender === 0 ||
-    !renderPriceWalks
-  )
-    return [];
+  if (samplesToRender === undefined || samplesToRender === 0 || !renderPriceWalks) return [];
   const dataset: DatasetList = [];
   for (let index = 0; index < samplesToRender; index++) {
     dataset.push({
       borderColor: generateColor(index),
       borderWidth: 0.5,
       data: Array.from(
-        (simulationData.getRow(index) ?? new Float64Array()).subarray(
-          lastHalving,
-        ),
+        (simulationData.getRow(index) ?? new Float64Array()).subarray(lastHalving),
         (point, innerIndex) => ({
           x: now + innerIndex * MS_PER_WEEK,
           y: point,

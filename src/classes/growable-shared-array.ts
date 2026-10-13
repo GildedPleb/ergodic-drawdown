@@ -1,16 +1,11 @@
-import {
-  DEFAULT_SIMULATION_COUNT,
-  MAX_EPOCH_COUNT,
-  WEEKS_PER_EPOCH,
-} from "../constants";
+import { DEFAULT_SIMULATION_COUNT, MAX_EPOCH_COUNT, WEEKS_PER_EPOCH } from "../constants";
+import { numberAt } from "../number-at";
 
 // 1GB
 const MAX_BYTE_LENGTH = 1_073_741_824;
 
 // If new size is 1.5x or greater, create new buffer
-const GROWTH_FACTOR_THRESHOLD = /^(?:(?!chrome|android).)*safari/i.test(
-  navigator.userAgent,
-)
+const GROWTH_FACTOR_THRESHOLD = /^(?:(?!chrome|android).)*safari/i.test(navigator.userAgent)
   ? 1
   : 1.5;
 
@@ -88,18 +83,12 @@ export default class GrowableSharedArray {
     if (existingBuffer === undefined) {
       const initialSize = this.width * this.height * this.itemLength;
       const maxSize = Math.min(
-        this.maxWidth *
-          this.maxHeight *
-          this.itemLength *
-          Float64Array.BYTES_PER_ELEMENT,
+        this.maxWidth * this.maxHeight * this.itemLength * Float64Array.BYTES_PER_ELEMENT,
         MAX_BYTE_LENGTH,
       );
-      this.sharedBuffer = new SharedArrayBuffer(
-        initialSize * Float64Array.BYTES_PER_ELEMENT,
-        // @ts-expect-error This is well supported
-        // eslint-disable-next-line es-x/no-resizable-and-growable-arraybuffers
-        { maxByteLength: maxSize },
-      );
+      this.sharedBuffer = new SharedArrayBuffer(initialSize * Float64Array.BYTES_PER_ELEMENT, {
+        maxByteLength: maxSize,
+      });
       this.view = new Float64Array(this.sharedBuffer);
     } else {
       this.sharedBuffer = existingBuffer;
@@ -107,7 +96,6 @@ export default class GrowableSharedArray {
     }
   }
 
-  // eslint-disable-next-line functional/functional-parameters
   exportState(): ExportedState {
     return {
       activeHeight: this.activeHeight,
@@ -123,8 +111,7 @@ export default class GrowableSharedArray {
   }
 
   getValidity(currentHash: string): [validWidth: number, validHeight: number] {
-    if (currentHash === this.cacheHash)
-      return [this.cacheWidth, this.cacheHeight];
+    if (currentHash === this.cacheHash) return [this.cacheWidth, this.cacheHeight];
     return [0, 0];
   }
 
@@ -152,18 +139,14 @@ export default class GrowableSharedArray {
     const start = this.getIndex(0, y);
     const end = start + this.activeWidth * this.itemLength;
     const row = this.view.subarray(start, end);
-    return (row.at(-1) === 0 && !getZero) || row.at(-1) === undefined
-      ? undefined
-      : row;
+    return (row.at(-1) === 0 && !getZero) || row.at(-1) === undefined ? undefined : row;
   }
 
-  // eslint-disable-next-line functional/functional-parameters
   getLastArray(): Float64Array {
     const result = new Float64Array(this.activeHeight);
     for (let y = 0; y < this.activeHeight; y++) {
-      const lastItemIndex =
-        this.getIndex(this.activeWidth - 1, y) + this.itemLength - 1;
-      result[y] = this.view[lastItemIndex];
+      const lastItemIndex = this.getIndex(this.activeWidth - 1, y) + this.itemLength - 1;
+      result[y] = numberAt(this.view, lastItemIndex);
     }
     return result;
   }
@@ -174,7 +157,6 @@ export default class GrowableSharedArray {
     this.view.set(value, start);
   }
 
-  // eslint-disable-next-line functional/functional-parameters
   clear(): void {
     this.view.fill(0);
     this.cacheHeight = 0;
@@ -195,11 +177,7 @@ export default class GrowableSharedArray {
         for (let y = this.height - 1; y >= 0; y--) {
           const oldStart = this.getIndex(0, y);
           const newStart = y * newWidth * this.itemLength;
-          this.view.copyWithin(
-            newStart,
-            oldStart,
-            oldStart + this.width * this.itemLength,
-          );
+          this.view.copyWithin(newStart, oldStart, oldStart + this.width * this.itemLength);
           // We are setting this to 0, but i feel like we shouldn't have to.
           this.view.fill(
             0,
@@ -235,15 +213,10 @@ export default class GrowableSharedArray {
   private ensureCapacity(requiredWidth: number, requiredHeight: number): void {
     const requiredSize = requiredWidth * requiredHeight * this.itemLength;
     if (requiredSize > this.view.length) {
-      const newSize = Math.min(
-        requiredSize,
-        this.maxWidth * this.maxHeight * this.itemLength,
-      );
+      const newSize = Math.min(requiredSize, this.maxWidth * this.maxHeight * this.itemLength);
       const newByteLength = newSize * Float64Array.BYTES_PER_ELEMENT;
       if (newByteLength > MAX_BYTE_LENGTH) {
-        throw new Error(
-          `Requested size exceeds maximum allowed byte length of ${MAX_BYTE_LENGTH}`,
-        );
+        throw new Error(`Requested size exceeds maximum allowed byte length of ${MAX_BYTE_LENGTH}`);
       }
 
       const growthFactor = newByteLength / this.sharedBuffer.byteLength;
@@ -251,21 +224,15 @@ export default class GrowableSharedArray {
       if (growthFactor >= GROWTH_FACTOR_THRESHOLD) {
         console.log("COPY BUFFER");
         // Create new buffer and copy
-        const newBuffer = new SharedArrayBuffer(
-          newByteLength,
-          // @ts-expect-error This is well supported
-          // eslint-disable-next-line es-x/no-resizable-and-growable-arraybuffers
-          { maxByteLength: MAX_BYTE_LENGTH },
-        );
+        const newBuffer = new SharedArrayBuffer(newByteLength, {
+          maxByteLength: MAX_BYTE_LENGTH,
+        });
         const newView = new Float64Array(newBuffer);
         newView.set(this.view);
         this.sharedBuffer = newBuffer;
         this.view = newView;
       } else {
         console.log("GROW BUFFER");
-        // Grow existing buffer
-        // @ts-expect-error this is well supported
-        // eslint-disable-next-line es-x/no-resizable-and-growable-arraybuffers, @typescript-eslint/no-unsafe-call
         this.sharedBuffer.grow(newByteLength);
         this.view = new Float64Array(this.sharedBuffer);
       }
@@ -280,11 +247,7 @@ export default class GrowableSharedArray {
     return x >= 0 && x < this.activeWidth && y >= 0 && y < this.activeHeight;
   }
 
-  private validateSetParameters(
-    x: number,
-    y: number,
-    value: Float64Array,
-  ): void {
+  private validateSetParameters(x: number, y: number, value: Float64Array): void {
     if (x < 0 || y < 0 || value.length !== this.itemLength) {
       throw new Error(
         `Invalid parameters: Ensure that x, y are non-negative and value has length equal to ${this.itemLength}. Got: x "${x}", y "${y}", length "${value.length}"`,
@@ -308,12 +271,9 @@ export default class GrowableSharedArray {
         `Dimensions exceed maximum allowed: got width "${width}", height "${height}". Maximum: width ${this.maxWidth}, height ${this.maxHeight}`,
       );
     }
-    const byteLength =
-      width * height * this.itemLength * Float64Array.BYTES_PER_ELEMENT;
+    const byteLength = width * height * this.itemLength * Float64Array.BYTES_PER_ELEMENT;
     if (byteLength > MAX_BYTE_LENGTH) {
-      throw new Error(
-        `Requested size exceeds maximum allowed byte length of ${MAX_BYTE_LENGTH}`,
-      );
+      throw new Error(`Requested size exceeds maximum allowed byte length of ${MAX_BYTE_LENGTH}`);
     }
   }
 }

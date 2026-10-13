@@ -7,9 +7,7 @@ import { type OneOffItem, type ReoccurringItem } from "../../types";
 
 const annotationColor = "rgba(255, 99, 132, 0.2)";
 const SPACING_PX = 5;
-const HEIGHT =
-  document.querySelector(".chart-canvas")?.getBoundingClientRect().height ??
-  100;
+const HEIGHT = document.querySelector(".chart-canvas")?.getBoundingClientRect().height ?? 100;
 
 const createDateLabel = (date: Date): string => {
   const today = new Date();
@@ -22,7 +20,7 @@ const createDateLabel = (date: Date): string => {
     return "";
   }
 
-  return date.toLocaleString().split(",")[0];
+  return date.toLocaleString().split(",")[0] ?? "";
 };
 
 const createVerticalAnnotation = (
@@ -110,24 +108,9 @@ const generateReoccurringItemAnnotations = (
       const startTime = now + item.effectiveWeek * MS_PER_WEEK;
       const endTime = now + item.endWeek * MS_PER_WEEK;
       return [
-        createVerticalAnnotation(
-          startTime,
-          color,
-          createDateLabel(new Date(startTime)),
-        ),
-        createHorizontalAnnotation(
-          startTime,
-          endTime,
-          color,
-          item.name,
-          index,
-          true,
-        ),
-        createVerticalAnnotation(
-          endTime,
-          color,
-          createDateLabel(new Date(endTime)),
-        ),
+        createVerticalAnnotation(startTime, color, createDateLabel(new Date(startTime))),
+        createHorizontalAnnotation(startTime, endTime, color, item.name, index, true),
+        createVerticalAnnotation(endTime, color, createDateLabel(new Date(endTime))),
       ];
     } else {
       const startTime = item.effective.getTime();
@@ -149,27 +132,12 @@ const generateReoccurringItemAnnotations = (
             ? new Date(Date.now() + dataLength * MS_PER_WEEK).getTime()
             : item.end.getTime();
         const annotations = [
-          createVerticalAnnotation(
-            startTime,
-            color,
-            createDateLabel(new Date(startTime)),
-          ),
-          createHorizontalAnnotation(
-            startTime,
-            endTime,
-            color,
-            item.name,
-            index,
-            false,
-          ),
+          createVerticalAnnotation(startTime, color, createDateLabel(new Date(startTime))),
+          createHorizontalAnnotation(startTime, endTime, color, item.name, index, false),
         ];
         if (item.end !== undefined) {
           annotations.push(
-            createVerticalAnnotation(
-              endTime,
-              color,
-              createDateLabel(new Date(endTime)),
-            ),
+            createVerticalAnnotation(endTime, color, createDateLabel(new Date(endTime))),
           );
         }
         return annotations;
@@ -256,8 +224,7 @@ export const handleChartOptions = (
         ticks: {
           autoSkipPadding: 30,
           callback: (value: number | string) => {
-            const numericValue =
-              typeof value === "string" ? Number.parseFloat(value) : value;
+            const numericValue = typeof value === "string" ? Number.parseFloat(value) : value;
             return `$${numericValue.toLocaleString()}`;
           },
           font,
@@ -273,7 +240,7 @@ export const handleChartOptions = (
       },
       y1: {
         position: "right",
-        ticks: { font, mirror: Boolean(mobile), padding: -3 },
+        ticks: { font, mirror: mobile, padding: -3 },
         title: { display: true, font, text: "BTC Volume" },
         type: "linear",
       },

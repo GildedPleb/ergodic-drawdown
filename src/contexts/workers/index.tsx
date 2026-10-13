@@ -1,31 +1,12 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable unicorn/prefer-add-event-listener */
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef } from "react";
 
 import { type ProviderProperties } from "../../types";
-import {
-  type QueueTask,
-  type TaskResult,
-  type TaskStatus,
-  type WorkerEvent,
-  type WorkerTasks,
-} from "./types";
+import { type QueueTask, type TaskResult, type WorkerEvent, type WorkerTasks } from "./types";
 
-const WORKER_COUNT =
-  navigator.hardwareConcurrency === 0 ? 4 : navigator.hardwareConcurrency;
+const WORKER_COUNT = navigator.hardwareConcurrency === 0 ? 4 : navigator.hardwareConcurrency;
 
-// eslint-disable-next-line functional/no-mixed-types
 export interface WorkerContextType {
-  addTasks: (
-    tasks: WorkerTasks[],
-    signal: AbortSignal,
-  ) => Promise<TaskResult[]>;
+  addTasks: (tasks: WorkerTasks[], signal: AbortSignal) => Promise<TaskResult[]>;
   count: number;
 }
 
@@ -33,28 +14,21 @@ interface WorkerWithId extends Worker {
   workerId: number;
 }
 
-// eslint-disable-next-line unicorn/no-null
 const WorkerContext = createContext<WorkerContextType | null>(null);
 
 const createWorkerPool = (): WorkerWithId[] => {
-  return Array.from({ length: WORKER_COUNT }, (_, index): WorkerWithId => {
-    const worker = new Worker(new URL("worker.ts", import.meta.url), {
-      type: "module",
-    }) as WorkerWithId;
-    worker.workerId = index;
-    return worker;
-  });
+  return Array.from({ length: WORKER_COUNT }, (_, index) =>
+    Object.assign(new Worker(new URL("worker.ts", import.meta.url), { type: "module" }), {
+      workerId: index,
+    }),
+  );
 };
 
 export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
   const workersReference = useRef<WorkerWithId[]>([]);
   const taskQueueReference = useRef<QueueTask[]>([]);
-  const activeWorkersReference = useRef<Map<WorkerWithId, QueueTask>>(
-    new Map(),
-  );
-  const callbackMapReference = useRef<
-    Map<string, (result: TaskResult) => void>
-  >(new Map());
+  const activeWorkersReference = useRef<Map<WorkerWithId, QueueTask>>(new Map());
+  const callbackMapReference = useRef<Map<string, (result: TaskResult) => void>>(new Map());
 
   useEffect(() => {
     workersReference.current = createWorkerPool();
@@ -92,11 +66,18 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
   );
 
   useEffect(() => {
-    for (const worker of workersReference.current) {
-      worker.onmessage = (event: MessageEvent<TaskResult>) => {
+    const bindings = workersReference.current.map((worker) => {
+      const listener = (event: MessageEvent<TaskResult>): void => {
         handleWorkerMessage(worker, event);
       };
-    }
+      worker.addEventListener("message", listener);
+      return { listener, worker };
+    });
+    return () => {
+      for (const { listener, worker } of bindings) {
+        worker.removeEventListener("message", listener);
+      }
+    };
   }, [handleWorkerMessage]);
 
   const addTasks = useCallback(
@@ -109,8 +90,8 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
           return {
             data,
             id,
-            status: "pending" as TaskStatus,
-          };
+            status: "pending",
+          } satisfies QueueTask;
         });
 
         const results: TaskResult[] = [];
@@ -126,16 +107,10 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
         };
 
         const abortTasks = (): void => {
-          console.warn(
-            "Aborting tasks for this specific call to addTasks",
-            tasksData,
-          );
+          console.warn("Aborting tasks for this specific call to addTasks", tasksData);
 
           // Abort active tasks for this specific call
-          for (const [
-            worker,
-            task,
-          ] of activeWorkersReference.current.entries()) {
+          for (const [worker, task] of activeWorkersReference.current.entries()) {
             if (taskIds.has(task.id)) {
               worker.postMessage({
                 data: { type: "ABORT" },
@@ -149,24 +124,22 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
           }
 
           // Mark queued tasks for this call as aborted and remove them
-          taskQueueReference.current = taskQueueReference.current.filter(
-            (task) => {
-              if (taskIds.has(task.id)) {
-                task.status = "aborted";
-                const handler = callbackMapReference.current.get(task.id);
-                if (handler !== undefined) {
-                  handler({
-                    id: task.id,
-                    result: { type: "ABORTED" },
-                    status: "aborted",
-                  });
-                  callbackMapReference.current.delete(task.id);
-                }
-                return false;
+          taskQueueReference.current = taskQueueReference.current.filter((task) => {
+            if (taskIds.has(task.id)) {
+              task.status = "aborted";
+              const handler = callbackMapReference.current.get(task.id);
+              if (handler !== undefined) {
+                handler({
+                  id: task.id,
+                  result: { type: "ABORTED" },
+                  status: "aborted",
+                });
+                callbackMapReference.current.delete(task.id);
               }
-              return true;
-            },
-          );
+              return false;
+            }
+            return true;
+          });
 
           // Resolve remaining tasks as aborted
           for (const id of taskIds) {
@@ -197,8 +170,7 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
         taskQueueReference.current.push(...tasks);
 
         while (
-          activeWorkersReference.current.size <
-            workersReference.current.length &&
+          activeWorkersReference.current.size < workersReference.current.length &&
           taskQueueReference.current.length > 0
         ) {
           const availableWorker = workersReference.current.find(
@@ -219,11 +191,7 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
     count: WORKER_COUNT,
   } satisfies WorkerContextType).current;
 
-  return (
-    <WorkerContext.Provider value={contextValue}>
-      {children}
-    </WorkerContext.Provider>
-  );
+  return <WorkerContext.Provider value={contextValue}>{children}</WorkerContext.Provider>;
 };
 
 export const useWorker = (): WorkerContextType => {

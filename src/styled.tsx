@@ -1,10 +1,7 @@
-import sc, { createGlobalStyle } from "styled-components";
+import { createGlobalStyle } from "styled-components";
 import reset from "styled-reset";
 
-// Needed for intellisense
-const styled = { createGlobalStyle, ...sc };
-
-const GlobalStyle = styled.createGlobalStyle`
+const GlobalStyle = createGlobalStyle`
   ${reset}
 
   html,

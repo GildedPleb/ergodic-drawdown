@@ -50,17 +50,13 @@ interface ComputedContextType {
   zeroCount: { finalBalance: Float64Array; zero: number } | null;
 }
 
-// eslint-disable-next-line unicorn/no-null
 const ComputedContext = createContext<ComputedContextType | null>(null);
 
 const useDep = <T extends unknown[]>(...deps: T): T => {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => deps, deps);
 };
 
-export const ComputedProvider: React.FC<ProviderProperties> = ({
-  children,
-}) => {
+export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => {
   const {
     renderDrawdownDistribution,
     renderDrawdownWalks,
@@ -128,15 +124,13 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
   );
   const activeOneOffVariablesToProcess = useMemo(
     () =>
-      activeOneOffVariables.map(
-        (input): NarrowedOneOffFiat => ({
-          amountToday: input.amountToday,
-          btcWillingToSpend: input.btcWillingToSpend,
-          delay: input.delay,
-          hash: input.hash,
-          start: input.start,
-        }),
-      ),
+      activeOneOffVariables.map((input): NarrowedOneOffFiat => ({
+        amountToday: input.amountToday,
+        btcWillingToSpend: input.btcWillingToSpend,
+        delay: input.delay,
+        hash: input.hash,
+        start: input.start,
+      })),
     [activeOneOffVariables],
   );
 
@@ -145,7 +139,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       hashSum({
         hashes: activeOneOffVariables
           .map(({ hash }) => hash)
-          .sort()
+          .toSorted()
           .join(","),
       }),
     [activeOneOffVariables],
@@ -170,14 +164,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       oneOffItems,
       reoccurringItems,
     });
-  }, [
-    activeOneOffVariablesHash,
-    bitcoin,
-    fullHash,
-    oneOffItems,
-    reoccurringItems,
-    inflation,
-  ]);
+  }, [activeOneOffVariablesHash, bitcoin, fullHash, oneOffItems, reoccurringItems, inflation]);
   const fullHashInflation = useMemo(
     () => hashSum({ fullHash, weeklyInflationRate }),
     [fullHash, weeklyInflationRate],
@@ -205,63 +192,36 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
   const halvingAnnotations = useDependency(
     "Halving Annotations",
     handleHalvingAnnotations,
-    useDep(halvings, currentNotZero),
+    useDep(halvings),
+    useDep(currentNotZero),
   );
 
   const maxArray = useDependency(
     "Max Array",
     handleMaxArray,
-    useDep(
-      currentBlock,
-      minMaxMultiple,
-      model,
-      variable,
-      currentPrice,
-      now,
-      dataLength,
-
-      currentNotZero,
-    ),
+    useDep(currentBlock, minMaxMultiple, model, variable, currentPrice, now, dataLength),
+    useDep(currentNotZero),
   );
 
   const maxDataset = useDependency(
     "Max Dataset",
     handleMaxModel,
-    useDep(
-      renderModelMax,
-      narrow(maxArray),
-      now,
-
-      maxArray,
-    ),
+    useDep(renderModelMax, narrow(maxArray), now),
+    useDep(maxArray),
   );
 
   const minArray = useDependency(
     "Min Array",
     handleMinArray,
-    useDep(
-      currentBlock,
-      minMaxMultiple,
-      model,
-      variable,
-      currentPrice,
-      now,
-      dataLength,
-
-      currentNotZero,
-    ),
+    useDep(currentBlock, minMaxMultiple, model, variable, currentPrice, now, dataLength),
+    useDep(currentNotZero),
   );
 
   const minDataset = useDependency(
     "Min Dataset",
     handleMinModel,
-    useDep(
-      renderModelMin,
-      narrow(minArray),
-      now,
-
-      minArray,
-    ),
+    useDep(renderModelMin, narrow(minArray), now),
+    useDep(minArray),
   );
 
   // Tier 1
@@ -275,9 +235,8 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       reoccurringItems,
       narrow(inflationFactors),
       weeklyInflationRate,
-
-      inflationFactors,
     ),
+    useDep(inflationFactors),
   );
 
   const simulation = useDependency(
@@ -294,21 +253,15 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       weeksSince,
       full,
       fullHash,
-
-      currentNotZero,
-      minArray,
-      maxArray,
     ),
+    useDep(currentNotZero, minArray, maxArray),
   );
 
   const simulationStats = useDependency(
     "Simulation Stats",
     handleSimulationStats,
-    useDep(
-      simulationData,
-
-      simulation,
-    ),
+    useDep(simulationData),
+    useDep(simulation),
   );
 
   const drawdownVariables = useDependency(
@@ -327,23 +280,15 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       weeksSince,
       variableCacheHash,
       showModel,
-
-      inflationFactors,
-      simulation,
     ),
+    useDep(inflationFactors, simulation),
   );
 
   const drawdownVariableLabels = useDependency(
     "Drawdown Variables Labels",
     handleDrawdownVariableLabels,
-    useDep(
-      activeOneOffVariables,
-      variableDrawdownCache,
-      showModel,
-      narrow(drawdownVariables),
-
-      drawdownVariables,
-    ),
+    useDep(activeOneOffVariables, variableDrawdownCache, showModel),
+    useDep(narrow(drawdownVariables), drawdownVariables),
   );
 
   // Tier 2
@@ -360,10 +305,8 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       showModel,
       narrow(drawdownVariableLabels),
       showHistoric,
-
-      halvingAnnotations,
-      drawdownVariableLabels,
     ),
+    useDep(halvingAnnotations, drawdownVariableLabels),
     false,
   );
 
@@ -383,34 +326,22 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       weeksSince,
       worker,
       showModel,
-
-      drawdownVariables,
-      drawdownStatic,
-      simulation,
     ),
+    useDep(drawdownVariables, drawdownStatic, simulation),
   );
 
   const zeroCount = useDependency(
     "Zero Count",
     calculateBalanceAndZero,
-    useDep(
-      drawdownData,
-      showModel,
-
-      volume,
-    ),
+    useDep(drawdownData, showModel),
+    useDep(volume),
   );
 
   const volumeStats = useDependency(
     "Volume Statistics",
     calculateVolumeStatistics,
-    useDep(
-      dataLength,
-      narrow(zeroCount),
-      showModel,
-
-      zeroCount,
-    ),
+    useDep(dataLength, narrow(zeroCount), showModel),
+    useDep(zeroCount),
   );
 
   const priceDistribution = useDependency(
@@ -426,23 +357,15 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       renderPriceDistribution,
       "price" as const,
       false,
-
-      simulation,
     ),
+    useDep(simulation),
   );
 
   const priceWalks = useDependency(
     "Price Walk",
     handlePriceWalkDataset,
-    useDep(
-      now,
-      simulationData,
-      renderPriceWalks,
-      samplesToRender,
-      weeksSince,
-
-      simulation,
-    ),
+    useDep(now, simulationData, renderPriceWalks, samplesToRender, weeksSince),
+    useDep(simulation),
   );
 
   const drawdownDistribution = useDependency(
@@ -458,24 +381,15 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       renderDrawdownDistribution,
       "drawdown" as const,
       showModel,
-
-      volume,
     ),
+    useDep(volume),
   );
 
   const drawdownWalks = useDependency(
     "Drawdown Walk",
     handleDrawdownWalkDataset,
-    useDep(
-      now,
-      drawdownData,
-      renderDrawdownWalks,
-      samplesToRender,
-      weeksSince,
-      showModel,
-
-      volume,
-    ),
+    useDep(now, drawdownData, renderDrawdownWalks, samplesToRender, weeksSince, showModel),
+    useDep(volume),
   );
 
   const dataProperties = useDependency(
@@ -490,7 +404,8 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
       narrow(priceDistribution),
       narrow(priceWalks),
       showHistoric,
-
+    ),
+    useDep(
       drawdownDistribution,
       drawdownWalks,
       interimDataset,
@@ -522,11 +437,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({
     ],
   );
 
-  return (
-    <ComputedContext.Provider value={computedValues}>
-      {children}
-    </ComputedContext.Provider>
-  );
+  return <ComputedContext.Provider value={computedValues}>{children}</ComputedContext.Provider>;
 };
 
 // Custom hooks to access computed values

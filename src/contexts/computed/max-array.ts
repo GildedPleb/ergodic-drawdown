@@ -1,5 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable security/detect-object-injection */
 import { LRUCache } from "lru-cache";
 
 import { modelMap } from "../../data/models";
@@ -26,7 +24,7 @@ export const handleMaxArray = (
   const maxPoints = new Float64Array(dataLength);
   const logMaxArray = new Float64Array(dataLength);
   for (let week = 0; week < dataLength; week++) {
-    maxPoints[week] = modelMap[model].maxPrice({
+    const price = modelMap[model].maxPrice({
       currentBlock,
       currentPrice,
       minMaxMultiple,
@@ -34,7 +32,8 @@ export const handleMaxArray = (
       variable,
       week,
     });
-    logMaxArray[week] = Math.log10(maxPoints[week]);
+    maxPoints[week] = price;
+    logMaxArray[week] = Math.log10(price);
   }
   lruCache.set(hash, [maxPoints, logMaxArray]);
   return [maxPoints, logMaxArray];

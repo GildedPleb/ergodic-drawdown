@@ -142,50 +142,37 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
 
   const applyRequirements = useCallback(
     (requirements: SlideRequirement) => {
-      if (requirements.clampBottom !== undefined)
-        setClampBottom(requirements.clampBottom);
-      if (requirements.clampTop !== undefined)
-        setClampTop(requirements.clampTop);
-      if (requirements.epochCount !== undefined)
-        setEpochCount(requirements.epochCount);
+      if (requirements.clampBottom !== undefined) setClampBottom(requirements.clampBottom);
+      if (requirements.clampTop !== undefined) setClampTop(requirements.clampTop);
+      if (requirements.epochCount !== undefined) setEpochCount(requirements.epochCount);
       if (requirements.model !== undefined) setModel(requirements.model);
       if (requirements.samples !== undefined) setSamples(requirements.samples);
-      if (requirements.showModel !== undefined)
-        setShowModel(requirements.showModel);
-      if (requirements.volatility !== undefined)
-        setVolatility(requirements.volatility);
+      if (requirements.showModel !== undefined) setShowModel(requirements.showModel);
+      if (requirements.volatility !== undefined) setVolatility(requirements.volatility);
       if (requirements.walk !== undefined) setWalk(requirements.walk);
-      if (requirements.hideResults !== undefined)
-        setHideResults(requirements.hideResults);
+      if (requirements.hideResults !== undefined) setHideResults(requirements.hideResults);
       if (requirements.renderDrawdownDistribution !== undefined)
         setRenderDrawdownDistribution(requirements.renderDrawdownDistribution);
       if (requirements.renderDrawdownWalks !== undefined)
         setRenderDrawdownWalks(requirements.renderDrawdownWalks);
-      if (requirements.renderModelMax !== undefined)
-        setRenderModelMax(requirements.renderModelMax);
-      if (requirements.renderModelMin !== undefined)
-        setRenderModelMin(requirements.renderModelMin);
+      if (requirements.renderModelMax !== undefined) setRenderModelMax(requirements.renderModelMax);
+      if (requirements.renderModelMin !== undefined) setRenderModelMin(requirements.renderModelMin);
       if (requirements.renderPriceDistribution !== undefined)
         setRenderPriceDistribution(requirements.renderPriceDistribution);
       if (requirements.renderPriceWalks !== undefined)
         setRenderPriceWalks(requirements.renderPriceWalks);
       if (requirements.samplesToRender !== undefined)
         setSamplesToRender(requirements.samplesToRender);
-      if (requirements.showRender !== undefined)
-        setShowRender(requirements.showRender);
-      if (requirements.showResults !== undefined)
-        setShowResults(requirements.showResults);
+      if (requirements.showRender !== undefined) setShowRender(requirements.showRender);
+      if (requirements.showResults !== undefined) setShowResults(requirements.showResults);
       if (requirements.bitcoin !== undefined) setBitcoin(requirements.bitcoin);
-      if (requirements.inflation !== undefined)
-        setInflation(requirements.inflation);
+      if (requirements.inflation !== undefined) setInflation(requirements.inflation);
       if (requirements.oneOffFiatVariables !== undefined)
         setOneOffFiatVariables(requirements.oneOffFiatVariables);
-      if (requirements.oneOffItems !== undefined)
-        setOneOffItems(requirements.oneOffItems);
+      if (requirements.oneOffItems !== undefined) setOneOffItems(requirements.oneOffItems);
       if (requirements.reoccurringItems !== undefined)
         setReoccurringItems(requirements.reoccurringItems);
-      if (requirements.showDrawdown !== undefined)
-        setShowDrawdown(requirements.showDrawdown);
+      if (requirements.showDrawdown !== undefined) setShowDrawdown(requirements.showDrawdown);
     },
     [
       setBitcoin,
@@ -218,7 +205,9 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
   const nextSlide = useCallback(() => {
     if (currentSlide < slides.length - 1) {
       const nextIndex = currentSlide + 1;
-      applyRequirements(slides[nextIndex].requirements);
+      const next = slides[nextIndex];
+      if (next === undefined) return;
+      applyRequirements(next.requirements);
       setCurrentSlide(nextIndex);
     }
   }, [applyRequirements, currentSlide, slides]);
@@ -226,12 +215,16 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
   const previousSlide = useCallback(() => {
     if (currentSlide > 0) {
       const previousIndex = currentSlide - 1;
-      applyRequirements(slides[previousIndex].requirements);
+      const previous = slides[previousIndex];
+      if (previous === undefined) return;
+      applyRequirements(previous.requirements);
       setCurrentSlide(previousIndex);
     }
   }, [applyRequirements, currentSlide, slides]);
 
-  const CurrentSlideComponent = slides[currentSlide].component;
+  const current = slides[currentSlide];
+  if (current === undefined) throw new Error(`missing slide ${currentSlide}`);
+  const CurrentSlideComponent = current.component;
 
   const previous = "Prev";
   const posIndex = `${currentSlide + 1} / ${slides.length}`;
@@ -245,11 +238,7 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
       </Content>
 
       <Nav>
-        <button
-          disabled={currentSlide === 0}
-          onClick={previousSlide}
-          type="button"
-        >
+        <button disabled={currentSlide === 0} onClick={previousSlide} type="button">
           {previous}
         </button>
         {posIndex}

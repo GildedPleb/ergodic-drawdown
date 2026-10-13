@@ -1,5 +1,3 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable @shopify/strict-component-boundaries */
 import { useCallback } from "react";
 import styled from "styled-components";
 

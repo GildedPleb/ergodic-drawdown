@@ -7,11 +7,7 @@ import Loading from "./loading";
 
 const MemoryUsageSpan = styled.span<{ $memoryUsageMB: number }>`
   color: ${({ $memoryUsageMB }) =>
-    $memoryUsageMB > 1024
-      ? "red"
-      : $memoryUsageMB > 256
-        ? "yellow"
-        : "inherit"};
+    $memoryUsageMB > 1024 ? "red" : $memoryUsageMB > 256 ? "yellow" : "inherit"};
 `;
 
 const DataPointCount = (): JSX.Element => {

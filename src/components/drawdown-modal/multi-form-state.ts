@@ -5,6 +5,7 @@ import { useComputedValues } from "../../contexts/computed";
 import {
   type DrawdownItem,
   type DrawdownTypes,
+  type FieldChange,
   type FormData,
 } from "../../types";
 import { applyConstraints, applyTypeValidation } from "./validation";
@@ -15,14 +16,11 @@ interface FormStates {
   reoccurringItem: FormData;
 }
 
-// eslint-disable-next-line functional/no-mixed-types
 interface UseMultiFormState {
   activeType: DrawdownTypes;
   formStates: FormStates;
   getActiveFormData: () => FormData;
-  handleInputChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => void;
+  handleInputChange: (event: FieldChange) => void;
   handleTypeChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   resetForms: () => void;
 }
@@ -74,20 +72,49 @@ const determineFormType = (item: DrawdownItem): DrawdownTypes => {
   return "oneOffItem";
 };
 
+const isDrawdownType = (value: string): value is DrawdownTypes =>
+  value === "oneOffFiatVariable" || value === "oneOffItem" || value === "reoccurringItem";
+
 const initializeFormStates = (existingItem?: DrawdownItem): FormStates => {
   if (existingItem === undefined) return defaultFormStates;
 
-  const itemType = determineFormType(existingItem);
-  const initialStates = { ...defaultFormStates };
+  if ("annualAmount" in existingItem) {
+    return {
+      ...defaultFormStates,
+      reoccurringItem: { ...existingItem, type: "reoccurringItem" },
+    };
+  }
 
-  // Initialize the appropriate form with the existing item data
-  // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/consistent-type-assertions
-  initialStates[itemType] = {
-    ...existingItem,
-    type: itemType,
-  } as FormData;
+  if ("btcWillingToSpend" in existingItem) {
+    return {
+      ...defaultFormStates,
+      oneOffFiatVariable: { ...existingItem, type: "oneOffFiatVariable" },
+    };
+  }
 
-  return initialStates;
+  return {
+    ...defaultFormStates,
+    oneOffItem: { ...existingItem, type: "oneOffItem" },
+  };
+};
+
+const readFormField = (
+  form: FormData,
+  field: string,
+): Date | boolean | number | string | undefined => {
+  const record: Record<string, Date | boolean | number | string | undefined> = {};
+  for (const [key, entry] of Object.entries(form)) {
+    if (
+      typeof entry === "string" ||
+      typeof entry === "number" ||
+      typeof entry === "boolean" ||
+      entry instanceof Date ||
+      entry === undefined
+    ) {
+      record[key] = entry;
+    }
+  }
+  return record[field];
 };
 
 export const useMultiFormState = (
@@ -98,9 +125,7 @@ export const useMultiFormState = (
   const maxDateUNIX = Date.now() + (dataLength - 2) * MS_PER_WEEK;
 
   const initialType =
-    existingItem === undefined
-      ? "oneOffFiatVariable"
-      : determineFormType(existingItem);
+    existingItem === undefined ? "oneOffFiatVariable" : determineFormType(existingItem);
   const [activeType, setActiveType] = useState<DrawdownTypes>(initialType);
   const [formStates, setFormStates] = useState<FormStates>(() =>
     initializeFormStates(existingItem),
@@ -115,11 +140,11 @@ export const useMultiFormState = (
   }, [existingItem]);
 
   const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    (event: FieldChange) => {
       const { name, type: inputType } = event.target;
       const value =
         inputType === "checkbox" || (inputType === "radio" && name === "isFiat")
-          ? (event.target as HTMLInputElement).checked
+          ? event.target.checked === true
           : event.target.value;
 
       setFormStates((previous) => {
@@ -135,7 +160,7 @@ export const useMultiFormState = (
         // Then, apply type validation to the constrained value
         const validatedValue = applyTypeValidation(
           name,
-          constrainedData[name as keyof FormData],
+          readFormField(constrainedData, name),
           inputType,
         );
 
@@ -153,7 +178,8 @@ export const useMultiFormState = (
 
   const handleTypeChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const newType = event.target.value as DrawdownTypes;
+      const newType = event.target.value;
+      if (!isDrawdownType(newType)) return;
       setActiveType(newType);
       if (onTypeChange !== undefined) {
         onTypeChange(newType);
@@ -181,8 +207,4 @@ export const useMultiFormState = (
   };
 };
 
-export {
-  defaultOneOffFiatFormData,
-  defaultOneOffFormData,
-  defaultReoccuringFormData,
-};
+export { defaultOneOffFiatFormData, defaultOneOffFormData, defaultReoccuringFormData };

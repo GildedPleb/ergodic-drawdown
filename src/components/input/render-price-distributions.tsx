@@ -24,14 +24,13 @@ const Select = styled.select`
 const RenderPriceDistribution = (): JSX.Element => {
   const { renderPriceDistribution, setRenderPriceDistribution } = useRender();
 
-  const handleDistributionChange: React.ChangeEventHandler<HTMLSelectElement> =
-    useCallback(
-      (event) => {
-        const value = event.target.value;
-        if (isValidDistribution(value)) setRenderPriceDistribution(value);
-      },
-      [setRenderPriceDistribution],
-    );
+  const handleDistributionChange: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
+    (event) => {
+      const value = event.target.value;
+      if (isValidDistribution(value)) setRenderPriceDistribution(value);
+    },
+    [setRenderPriceDistribution],
+  );
 
   return (
     <Container>

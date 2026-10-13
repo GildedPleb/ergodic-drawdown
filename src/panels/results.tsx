@@ -79,9 +79,7 @@ const Summary = (): JSX.Element => {
   const now = useTime();
   const { dataLength } = useComputedValues();
 
-  const expired = new Date(now + dataLength * MS_PER_WEEK)
-    .toDateString()
-    .slice(-4);
+  const expired = new Date(now + dataLength * MS_PER_WEEK).toDateString().slice(-4);
 
   const escapeVelocity = useMemo(
     () =>
@@ -94,18 +92,7 @@ const Summary = (): JSX.Element => {
         expecting ${inflation}% inflation per year,
         assuming ${model} modeling and a ${walk} walk strategy.`
       ),
-    [
-      loadingVolumeData,
-      zero,
-      expired,
-      average,
-      bitcoin,
-      median,
-      inflation,
-      model,
-      walk,
-      samples,
-    ],
+    [loadingVolumeData, zero, expired, average, bitcoin, median, inflation, model, walk, samples],
   );
 
   const bitcoinWorth =
@@ -148,7 +135,6 @@ const Summary = (): JSX.Element => {
 
   const handleEnd = useCallback(() => {
     setIsDragging(false);
-    // eslint-disable-next-line unicorn/no-null
     dragReference.current = null;
   }, []);
 
@@ -185,6 +171,7 @@ const Summary = (): JSX.Element => {
     (event: React.TouchEvent) => {
       event.stopPropagation();
       const touch = event.touches[0];
+      if (touch === undefined) return;
       handleStart(touch.clientX, touch.clientY);
     },
     [handleStart],
@@ -193,6 +180,7 @@ const Summary = (): JSX.Element => {
   const handleTouchMove = useCallback(
     (event: React.TouchEvent) => {
       const touch = event.touches[0];
+      if (touch === undefined) return;
       handleMove(touch.clientX, touch.clientY);
     },
     [handleMove],
@@ -222,7 +210,6 @@ const Summary = (): JSX.Element => {
 
   const results = "Results";
 
-  // eslint-disable-next-line unicorn/no-null
   if (hideResults) return <Hidden />;
 
   return (

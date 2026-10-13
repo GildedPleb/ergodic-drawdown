@@ -1,4 +1,5 @@
 import GrowableSharedArray from "../../classes/growable-shared-array";
+import { numberAt } from "../../number-at";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
 import { type RunVolumeEvent, type SignalState } from "./types";
 
@@ -33,11 +34,8 @@ export const handleVolumeCalculation = (
   //   // weeksSince,
   // });
 
-  const variableCache = VariableDrawdownFinal.fromExportedState(
-    exportedVariableCache,
-  );
+  const variableCache = VariableDrawdownFinal.fromExportedState(exportedVariableCache);
   for (let sample = startIndex; sample < endIndex; sample++) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (signalState.aborted) {
       return;
     }
@@ -49,8 +47,7 @@ export const handleVolumeCalculation = (
       const volumeSegment = volumeData.get(epoch, sample);
       if (volumeSegment !== undefined) {
         sampleLength += volumeSegment.length;
-        // eslint-disable-next-line unicorn/prefer-at
-        previous = volumeSegment[volumeSegment.length - 1];
+        previous = numberAt(volumeSegment, volumeSegment.length - 1);
         continue;
       }
 
@@ -64,20 +61,23 @@ export const handleVolumeCalculation = (
       // const currentLength = sampleLength - weeksSince;
 
       for (let week = 0; week < segmentLength; week++) {
-        const price = priceSegment[week];
+        const price = numberAt(priceSegment, week);
 
         if (Number.isNaN(price)) {
           dataArray[week] = Number.NaN;
         } else {
           const absoluteWeek = sampleLength + week;
           const item = variableCache.get(sample, absoluteWeek);
+          const fiat = totalWeeklyFiatItems[absoluteWeek];
+          const coin = totalWeeklyBitcoinItems[absoluteWeek];
           const y =
-            previous +
-            (totalWeeklyFiatItems[absoluteWeek] - (item ?? 0)) / price +
-            totalWeeklyBitcoinItems[absoluteWeek];
+            fiat === undefined || coin === undefined
+              ? Number.NaN
+              : previous + (fiat - (item ?? 0)) / price + coin;
 
-          dataArray[week] = y < 0 ? 0 : y;
-          previous = dataArray[week];
+          const next = y < 0 ? 0 : y;
+          dataArray[week] = next;
+          previous = next;
         }
       }
       volumeData.set(epoch, sample, dataArray);

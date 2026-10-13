@@ -1,5 +1,6 @@
 import quickselect from "quickselect";
 
+import { numberAt } from "../../number-at";
 import { type DistributionQuantileEvent, type SignalState } from "./types";
 
 export const handleQuantile = (
@@ -24,10 +25,11 @@ export const handleQuantile = (
     const right = samples - 1;
 
     for (let quantile = 0; quantile < cutoffs.length; quantile++) {
-      const innerIndex = Math.floor(right * cutoffs[quantile]);
-      // @ts-expect-error dumb
-      quickselect(weekData, innerIndex, left);
-      quantiles[week * cutoffs.length + quantile] = weekData[innerIndex];
+      const innerIndex = Math.floor(right * numberAt(cutoffs, quantile));
+      const values = Array.from(weekData);
+      quickselect(values, innerIndex, left);
+      weekData.set(values);
+      quantiles[week * cutoffs.length + quantile] = numberAt(weekData, innerIndex);
       left = innerIndex + 1;
     }
   }

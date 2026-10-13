@@ -1,6 +1,3 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable es-x/no-resizable-and-growable-arraybuffers */
-/* eslint-disable functional/functional-parameters */
 import { MAX_SAMPLE_COUNT } from "../constants";
 import { findNextGreatest1000 } from "../helpers";
 
@@ -66,7 +63,6 @@ export default class VariableDrawdownCache {
   }
 
   isFull(): boolean {
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let index = 0; index < this.cacheHeight; index += 2) {
       if (this.view[index] === -1) {
         return false;
@@ -104,7 +100,12 @@ export default class VariableDrawdownCache {
       throw new Error("Sample index out of bounds.");
     }
     const index = sample * 2;
-    return [this.view[index], this.view[index + 1]];
+    const week = this.view[index];
+    const amount = this.view[index + 1];
+    if (week === undefined || amount === undefined) {
+      throw new Error("Sample index out of bounds.");
+    }
+    return [week, amount];
   }
 
   getGate(): [effective: number, end: number] {
@@ -112,6 +113,7 @@ export default class VariableDrawdownCache {
     let max = 0;
     for (let index = 0; index < this.cacheHeight * 2; index += 2) {
       const week = this.view[index];
+      if (week === undefined) continue;
       if (week < min) min = week;
       if (week > max) max = week;
     }

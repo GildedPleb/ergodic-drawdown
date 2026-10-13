@@ -1,10 +1,8 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable unicorn/no-null */
 import React, { useCallback, useState } from "react";
 import styled from "styled-components";
 
 import { decryptData, encryptData } from "../helpers";
-import { type AppState } from "../panels/drawdown";
+import { type SavedAppState } from "../types";
 import { ActionButton } from "./buttons/action";
 import { Modal } from "./modal";
 
@@ -36,12 +34,11 @@ const AlertBox = styled.div`
   gap: 10px;
 `;
 
-// eslint-disable-next-line functional/no-mixed-types
 interface ISecureFileOperationsModal {
-  appState: AppState;
+  appState: SavedAppState;
   mode: "load" | "save" | null;
   onClose: () => void;
-  setAppState: (state: AppState) => void;
+  setAppState: (state: SavedAppState) => void;
 }
 
 const load = {
@@ -54,8 +51,7 @@ const alertText = {
   author: "- Lopp",
   message:
     "Your data on this app is sensitive. We do not receive, transmit, read or otherwise have access to any of this data (See Privacy Policy and review the Source Code to confirm). As such, to save your work, it must be saved locally. AES-256 encryption required.",
-  quote:
-    '"It is good to talk about Bitcoin. It is not good to talk about YOUR Bitcoin."',
+  quote: '"It is good to talk about Bitcoin. It is not good to talk about YOUR Bitcoin."',
   strongMessage: "Use a strong password and manage it well.",
   warning: "⚠️",
 };
@@ -83,7 +79,7 @@ export const SecureFileOperationsModal = ({
 
   const handleSave = useCallback(async () => {
     const encryptedData = await encryptData(appState, password ?? "");
-    const blob = new Blob([encryptedData], {
+    const blob = new Blob([new Uint8Array(encryptedData)], {
       type: "application/octet-stream",
     });
     const url = URL.createObjectURL(blob);
@@ -109,25 +105,20 @@ export const SecureFileOperationsModal = ({
       handleClose();
     } catch (error) {
       console.error("Error loading file:", error);
-      // eslint-disable-next-line no-alert
       alert("Failed to load file. Incorrect password or corrupted file.");
     }
   }, [file, password, setAppState, handleClose]);
 
-  const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedFile = event.target.files?.[0];
-      if (selectedFile !== undefined) {
-        setFile(selectedFile);
-      }
-    },
-    [],
-  );
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile !== undefined) {
+      setFile(selectedFile);
+    }
+  }, []);
 
-  const handlePassword: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback((event) => {
-      setPassword(event.target.value);
-    }, []);
+  const handlePassword: React.ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
+    setPassword(event.target.value);
+  }, []);
 
   const action = mode === "save" ? handleSave : handleLoad;
   const currentContent = mode === "save" ? save : load;
@@ -137,11 +128,7 @@ export const SecureFileOperationsModal = ({
   }, [action]);
 
   return (
-    <Modal
-      heading={currentContent.heading}
-      isOpen={Boolean(mode)}
-      onClose={handleClose}
-    >
+    <Modal heading={currentContent.heading} isOpen={Boolean(mode)} onClose={handleClose}>
       {mode === "save" && (
         <AlertBox>
           <Warning>{alertText.warning}</Warning>
@@ -152,9 +139,7 @@ export const SecureFileOperationsModal = ({
         </AlertBox>
       )}
 
-      {mode === "load" && (
-        <Input accept=".edw" onChange={handleFileChange} type="file" />
-      )}
+      {mode === "load" && <Input accept=".edw" onChange={handleFileChange} type="file" />}
 
       <Input
         onChange={handlePassword}
@@ -164,11 +149,7 @@ export const SecureFileOperationsModal = ({
       />
 
       <ActionButton
-        disabled={
-          password === "" ||
-          password === undefined ||
-          (mode === "load" && file === null)
-        }
+        disabled={password === "" || password === undefined || (mode === "load" && file === null)}
         onClick={handleAction}
       >
         {currentContent.buttonText}

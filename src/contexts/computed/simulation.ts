@@ -1,15 +1,8 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable unicorn/prefer-add-event-listener */
-/* eslint-disable security/detect-object-injection */
-
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { createTaskQueue } from "../../helpers";
 import { type Full } from "../../types";
 import { type WorkerContextType } from "../workers";
-import {
-  type RunSimulationEvent,
-  type SupplementedTask,
-} from "../workers/types";
+import { type RunSimulationEvent, type SupplementedTask } from "../workers/types";
 
 export const handleSimulation = async (
   signal: AbortSignal,
@@ -24,7 +17,6 @@ export const handleSimulation = async (
   weeksSince: number,
   full: Full,
   fullHash: string,
-  // eslint-disable-next-line max-params
 ): Promise<string> => {
   const returnHash = fullHash + epochCount + samples;
   const [validWidth, validHeight] = simulationData.getValidity(fullHash);
@@ -39,14 +31,8 @@ export const handleSimulation = async (
       }))
     : [];
 
-  const taskQueueSamples = createTaskQueue(
-    samples,
-    worker.count,
-    samples,
-    validHeight,
-  );
+  const taskQueueSamples = createTaskQueue(samples, worker.count, samples, validHeight);
 
-  // eslint-disable-next-line unicorn/prefer-spread
   const taskQueue = taskQueueEpochs.concat(taskQueueSamples);
   if (taskQueue.length === 0) {
     return "no tasks:" + returnHash;

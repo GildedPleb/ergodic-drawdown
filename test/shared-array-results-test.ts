@@ -3,8 +3,7 @@ import { MAX_FIAT_VARIABLES, MAX_SAMPLE_COUNT } from "./constants";
 
 // Create a growable SharedArrayBuffer
 const initialSize = 1000 * 2 * 3 * Float64Array.BYTES_PER_ELEMENT;
-const maxBufferSize =
-  MAX_SAMPLE_COUNT * MAX_FIAT_VARIABLES * 3 * Float64Array.BYTES_PER_ELEMENT;
+const maxBufferSize = MAX_SAMPLE_COUNT * MAX_FIAT_VARIABLES * 3 * Float64Array.BYTES_PER_ELEMENT;
 const buffer = new SharedArrayBuffer(initialSize, {
   maxByteLength: maxBufferSize,
 });
@@ -24,11 +23,7 @@ try {
   const structure = new SparseWeekDataStructure(buffer);
   structure.set(1, 5, 100);
   const value = structure.get(1, 5);
-  console.log(
-    "Test 2:",
-    value === 100 ? "Passed" : "Failed",
-    `(Expected 100, got ${value})`,
-  );
+  console.log("Test 2:", value === 100 ? "Passed" : "Failed", `(Expected 100, got ${value})`);
 } catch (error) {
   console.error("Test 2 Failed:", error.message);
 }
@@ -91,9 +86,7 @@ try {
 console.log("\nTesting growth functionality:");
 try {
   const structure = new SparseWeekDataStructure(buffer);
-  const initialCapacity = Math.floor(
-    initialSize / (3 * Float64Array.BYTES_PER_ELEMENT),
-  );
+  const initialCapacity = Math.floor(initialSize / (3 * Float64Array.BYTES_PER_ELEMENT));
   const testData = [];
 
   console.log(`Initial capacity: ${initialCapacity} entries`);
@@ -123,9 +116,7 @@ try {
   }
 
   if (allDataAccessible) {
-    console.log(
-      "Test 7 Passed: Structure grew successfully and all data is accessible",
-    );
+    console.log("Test 7 Passed: Structure grew successfully and all data is accessible");
   } else {
     console.log("Test 7 Failed: Not all data is accessible after growth");
   }
@@ -137,13 +128,9 @@ try {
 console.log("\nTesting extreme growth:");
 try {
   const structure = new SparseWeekDataStructure(buffer);
-  const maxEntries = Math.floor(
-    maxBufferSize / (3 * Float64Array.BYTES_PER_ELEMENT),
-  );
+  const maxEntries = Math.floor(maxBufferSize / (3 * Float64Array.BYTES_PER_ELEMENT));
 
-  console.log(
-    `Attempting to insert ${maxEntries} entries (maximum theoretical capacity)`,
-  );
+  console.log(`Attempting to insert ${maxEntries} entries (maximum theoretical capacity)`);
 
   for (let index = 0; index < maxEntries; index++) {
     const sample = index % MAX_SAMPLE_COUNT;
@@ -157,13 +144,9 @@ try {
   const lastValue = structure.get(lastSample, lastWeek);
 
   if (lastValue === maxEntries - 1) {
-    console.log(
-      "Test 8 Passed: Structure grew to maximum capacity and last entry is accessible",
-    );
+    console.log("Test 8 Passed: Structure grew to maximum capacity and last entry is accessible");
   } else {
-    console.log(
-      `Test 8 Failed: Last entry mismatch. Expected ${maxEntries - 1}, got ${lastValue}`,
-    );
+    console.log(`Test 8 Failed: Last entry mismatch. Expected ${maxEntries - 1}, got ${lastValue}`);
   }
 } catch (error) {
   console.error("Test 8 Failed:", error.message);
@@ -173,9 +156,7 @@ try {
 console.log("\nTesting overflow behavior:");
 try {
   const structure = new SparseWeekDataStructure(buffer);
-  const maxEntries = Math.floor(
-    maxBufferSize / (3 * Float64Array.BYTES_PER_ELEMENT),
-  );
+  const maxEntries = Math.floor(maxBufferSize / (3 * Float64Array.BYTES_PER_ELEMENT));
 
   // Fill to maximum capacity
   for (let index = 0; index < maxEntries; index++) {
@@ -190,14 +171,9 @@ try {
     console.log("Test 9 Failed: Structure did not throw an error on overflow");
   } catch (error) {
     if (error.message === "Cannot grow the buffer further.") {
-      console.log(
-        "Test 9 Passed: Structure correctly threw an error on overflow",
-      );
+      console.log("Test 9 Passed: Structure correctly threw an error on overflow");
     } else {
-      console.log(
-        "Test 9 Failed: Unexpected error on overflow:",
-        error.message,
-      );
+      console.log("Test 9 Failed: Unexpected error on overflow:", error.message);
     }
   }
 } catch (error) {

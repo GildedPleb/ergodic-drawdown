@@ -56,10 +56,7 @@ const staticOptions: ChartOptions<"line"> = {
 const Chart = (): JSX.Element => {
   const { chartOptions, dataProperties } = useComputedValues();
 
-  const fullOption = useMemo(
-    () => ({ ...chartOptions, ...staticOptions }),
-    [chartOptions],
-  );
+  const fullOption = useMemo(() => ({ ...chartOptions, ...staticOptions }), [chartOptions]);
 
   return (
     <Container>
@@ -69,12 +66,7 @@ const Chart = (): JSX.Element => {
         while annotations pipe through.
       */}
       {chartOptions !== null && (
-        <Line
-          // eslint-disable-next-line tailwindcss/no-custom-classname
-          className="chart-canvas"
-          data={dataProperties ?? defaultData}
-          options={fullOption}
-        />
+        <Line className="chart-canvas" data={dataProperties ?? defaultData} options={fullOption} />
       )}
     </Container>
   );

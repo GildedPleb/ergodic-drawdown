@@ -18,13 +18,12 @@ const Container = styled.div`
 
 const RenderShowResults = (): JSX.Element => {
   const { hideResults, setHideResults } = useRender();
-  const handleShowResults: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setHideResults(!event.target.checked);
-      },
-      [setHideResults],
-    );
+  const handleShowResults: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setHideResults(!event.target.checked);
+    },
+    [setHideResults],
+  );
 
   return (
     <Container>

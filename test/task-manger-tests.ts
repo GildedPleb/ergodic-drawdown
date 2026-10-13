@@ -8,10 +8,7 @@ interface RuntimeAnalysis {
   totalRuntime: number;
 }
 
-const calculateExpectedRuntime = (
-  tasks: Task[],
-  workerCount: number,
-): RuntimeAnalysis => {
+const calculateExpectedRuntime = (tasks: Task[], workerCount: number): RuntimeAnalysis => {
   const rounds: number[][] = [];
   let currentRound: number[] = [];
 
@@ -36,10 +33,7 @@ const calculateExpectedRuntime = (
     return { round: index + 1, runtime };
   });
 
-  const totalRuntime = roundBreakdown.reduce(
-    (sum, { runtime }) => sum + runtime,
-    0,
-  );
+  const totalRuntime = roundBreakdown.reduce((sum, { runtime }) => sum + runtime, 0);
 
   return {
     roundBreakdown,
@@ -55,12 +49,7 @@ const runTest = (
   startingSample = 0,
   samplesPerArray = 1024,
 ): void => {
-  const result = createTaskQueue(
-    totalSamples,
-    workerCount,
-    samplesPerArray,
-    startingSample,
-  );
+  const result = createTaskQueue(totalSamples, workerCount, samplesPerArray, startingSample);
   let pass = true;
   let failureReason = "";
 
@@ -85,30 +74,19 @@ const runTest = (
   }
 
   const runtimeAnalysis = calculateExpectedRuntime(result, workerCount);
-  const expectedRuntimeAnalysis = calculateExpectedRuntime(
-    expectedResults,
-    workerCount,
-  );
+  const expectedRuntimeAnalysis = calculateExpectedRuntime(expectedResults, workerCount);
 
   console.log(`--> ${pass ? "PASS" : "FAIL"}: Test ${testName}`);
 
   if (!pass) {
-    console.log(
-      "Test:",
-      totalSamples,
-      workerCount,
-      samplesPerArray,
-      startingSample,
-    );
+    console.log("Test:", totalSamples, workerCount, samplesPerArray, startingSample);
     console.log(`Failure reason: ${failureReason}`);
     console.log("Actual result:", result);
     console.log("Expected result:", expectedResults);
     console.log(`\nRuntime Analysis:`);
     console.log(`Total Rounds: ${runtimeAnalysis.totalRounds}`);
 
-    console.log(
-      `Total Expected Runtime: ${runtimeAnalysis.totalRuntime.toFixed(2)}ms`,
-    );
+    console.log(`Total Expected Runtime: ${runtimeAnalysis.totalRuntime.toFixed(2)}ms`);
     console.log(`Round Breakdown:`);
     for (const { round, runtime } of runtimeAnalysis.roundBreakdown) {
       console.log(`  Round ${round}: ${runtime.toFixed(2)}ms`);
@@ -116,9 +94,7 @@ const runTest = (
 
     console.log(`\nExpected Runtime Analysis:`);
     console.log(`Total Rounds: ${expectedRuntimeAnalysis.totalRounds}`);
-    console.log(
-      `Total Expected Runtime: ${expectedRuntimeAnalysis.totalRuntime.toFixed(2)}ms`,
-    );
+    console.log(`Total Expected Runtime: ${expectedRuntimeAnalysis.totalRuntime.toFixed(2)}ms`);
     console.log(`Round Breakdown:`);
     for (const { round, runtime } of expectedRuntimeAnalysis.roundBreakdown) {
       console.log(`  Round ${round}: ${runtime.toFixed(2)}ms`);
@@ -547,13 +523,7 @@ runTest(
   2047,
 );
 
-runTest(
-  2000,
-  8,
-  [{ arrayIndex: 1, endIndex: 1000, startIndex: 999 }],
-  1999,
-  1000,
-);
+runTest(2000, 8, [{ arrayIndex: 1, endIndex: 1000, startIndex: 999 }], 1999, 1000);
 runTest(2048, 8, [{ arrayIndex: 1, endIndex: 1024, startIndex: 1023 }], 2047);
 
 runTest(
@@ -995,8 +965,7 @@ runTest(
   1000,
   Array.from({ length: 1000 }, (_, index) => ({
     arrayIndex: Math.floor((index * 10) / 1000),
-    endIndex:
-      ((index + 1) * 10) % 1000 === 0 ? 1000 : ((index + 1) * 10) % 1000,
+    endIndex: ((index + 1) * 10) % 1000 === 0 ? 1000 : ((index + 1) * 10) % 1000,
     startIndex: (index * 10) % 1000,
   })),
   0,

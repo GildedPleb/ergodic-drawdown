@@ -19,13 +19,12 @@ const Container = styled.div`
 const RenderModelMaxInput = (): JSX.Element => {
   const { renderModelMax, setRenderModelMax } = useRender();
 
-  const handleRenderModelMax: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      (event) => {
-        setRenderModelMax(event.target.checked);
-      },
-      [setRenderModelMax],
-    );
+  const handleRenderModelMax: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setRenderModelMax(event.target.checked);
+    },
+    [setRenderModelMax],
+  );
 
   return (
     <Container>

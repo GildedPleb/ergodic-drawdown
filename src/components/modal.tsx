@@ -47,7 +47,6 @@ const CloseButton = styled.button`
   padding: 0;
 `;
 
-// eslint-disable-next-line functional/no-mixed-types
 export interface IModal {
   children: React.ReactNode;
   heading: string;
@@ -61,12 +60,9 @@ export const Modal: React.FC<IModal> = ({
   isOpen,
   onClose,
 }: IModal): JSX.Element | undefined => {
-  const stopPropagation: React.MouseEventHandler<HTMLDivElement> = useCallback(
-    (event) => {
-      event.stopPropagation();
-    },
-    [],
-  );
+  const stopPropagation: React.MouseEventHandler<HTMLDivElement> = useCallback((event) => {
+    event.stopPropagation();
+  }, []);
 
   if (!isOpen) return undefined;
 

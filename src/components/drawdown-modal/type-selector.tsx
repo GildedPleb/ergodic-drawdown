@@ -25,16 +25,12 @@ const Select = styled.select`
   background-color: hsl(0, 0%, 14%);
 `;
 
-// eslint-disable-next-line functional/no-mixed-types
 interface TypeSelectorProperties {
   onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   selectedType: DrawdownTypes;
 }
 
-const DrawdownTypeSelector: React.FC<TypeSelectorProperties> = ({
-  onChange,
-  selectedType,
-}) => (
+const DrawdownTypeSelector: React.FC<TypeSelectorProperties> = ({ onChange, selectedType }) => (
   <Row>
     <Label htmlFor="type">{labels.input.type}</Label>
     <Select

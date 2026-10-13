@@ -31,12 +31,14 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), mdx(options), svgrPlugin()],
     // Remove the base as Netlify will handle this
     base: isDev ? "/ergodic-drawdown/" : "/",
-    server: isDev
+    ...(isDev
       ? {
-          https: httpsOptions,
-          headers: isolationHeaders,
+          server: {
+            https: httpsOptions,
+            headers: isolationHeaders,
+          },
         }
-      : undefined,
+      : {}),
     preview: {
       headers: isolationHeaders,
     },

@@ -37,9 +37,7 @@ const RadioInput = styled.input`
 
 const CurrencyRadioGroup: React.FC<{
   isFiat: boolean;
-  onChange: (
-    isFiat: boolean,
-  ) => (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (isFiat: boolean) => (event: React.ChangeEvent<HTMLInputElement>) => void;
 }> = ({ isFiat, onChange }) => (
   <Row>
     <Label>{labels.currency}</Label>

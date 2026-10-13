@@ -24,10 +24,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://stackmath.xyz" />
-    <meta
-      property="og:title"
-      content="StackMath.xyz | The Bitcoin Modeling Engine"
-    />
+    <meta property="og:title" content="StackMath.xyz | The Bitcoin Modeling Engine" />
     <meta
       property="og:description"
       content="Professional-grade ergodic Monte Carlo simulation for Bitcoin price and stack planning. Map thousands of possible futures and calculate precise probabilities for financial goals."
@@ -41,10 +38,7 @@
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://stackmath.xyz" />
-    <meta
-      property="twitter:title"
-      content="StackMath.xyz | The Bitcoin Modeling Engine"
-    />
+    <meta property="twitter:title" content="StackMath.xyz | The Bitcoin Modeling Engine" />
     <meta
       property="twitter:description"
       content="Professional-grade ergodic Monte Carlo simulation for Bitcoin price and stack planning. Map thousands of possible futures and calculate precise probabilities for financial goals."
@@ -71,9 +65,8 @@
         pre.style.whiteSpace = "pre-wrap";
         pre.style.margin = "2rem";
         pre.style.fontFamily = "ui-monospace, monospace";
-        pre.textContent = event.error instanceof Error
-          ? event.error.stack ?? event.error.message
-          : event.message;
+        pre.textContent =
+          event.error instanceof Error ? (event.error.stack ?? event.error.message) : event.message;
         root.append(pre);
       });
     </script>

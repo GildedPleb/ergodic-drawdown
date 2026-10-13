@@ -9,61 +9,37 @@ export const validateNumericInput = (
   return Number.isNaN(numb) ? defaultValue : numb;
 };
 
-const validateDateInput = <R extends boolean = false>(
-  value: Date | string | undefined,
-  required: R = false as R,
-): R extends true ? Date : Date | undefined => {
-  // Handle Date instance case
+function validateDateInput(value: Date | string | undefined, required: true): Date;
+function validateDateInput(value: Date | string | undefined, required?: false): Date | undefined;
+function validateDateInput(value: Date | string | undefined, required = false): Date | undefined {
   if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) {
-      if (required) return new Date();
-      return undefined as R extends true ? Date : Date | undefined;
-    }
-    return value as R extends true ? Date : Date | undefined;
+    if (Number.isNaN(value.getTime())) return required ? new Date() : undefined;
+    return value;
   }
 
-  // Handle undefined case
-  if (value === undefined) {
-    if (required) return new Date();
-    return value as R extends true ? Date : Date | undefined;
-  }
+  if (value === undefined || value === "") return required ? new Date() : undefined;
 
-  // Handle string case with original parsing logic
   const [year, month, day] = value.split("-");
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
-
-  // Validate the parsed date
-  if (Number.isNaN(parsedDate.getTime())) {
-    if (required) return new Date();
-    return undefined as R extends true ? Date : Date | undefined;
-  }
-
-  return parsedDate as R extends true ? Date : Date | undefined;
-};
+  if (Number.isNaN(parsedDate.getTime())) return required ? new Date() : undefined;
+  return parsedDate;
+}
 
 export const applyTypeValidation = (
   name: string,
   value: Date | boolean | number | string | undefined,
   inputType: string,
 ): Date | boolean | number | string | undefined => {
-  if (
-    inputType === "checkbox" ||
-    (inputType === "radio" && name === "isFiat")
-  ) {
+  if (inputType === "checkbox" || (inputType === "radio" && name === "isFiat")) {
     return value;
   }
 
   if (inputType === "number") {
-    return typeof value === "string" || typeof value === "number"
-      ? validateNumericInput(value)
-      : 0;
+    return typeof value === "string" || typeof value === "number" ? validateNumericInput(value) : 0;
   }
 
   if (inputType === "date") {
-    if (
-      value === "" ||
-      (typeof value !== "string" && !(value instanceof Date))
-    ) {
+    if (value === "" || (typeof value !== "string" && !(value instanceof Date))) {
       return undefined;
     }
     return validateDateInput(value);
@@ -72,10 +48,7 @@ export const applyTypeValidation = (
   return value;
 };
 
-export const applyConstraints = (
-  formData: FormData,
-  maxDateUNIX: number,
-): FormData => {
+export const applyConstraints = (formData: FormData, maxDateUNIX: number): FormData => {
   const sanitized = { ...formData };
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
@@ -86,9 +59,7 @@ export const applyConstraints = (
       const startValue = validateNumericInput(sanitized.start, 100);
       sanitized.start = startValue < 0 || startValue > 100 ? 100 : startValue;
       sanitized.amountToday = validateNumericInput(sanitized.amountToday);
-      sanitized.btcWillingToSpend = validateNumericInput(
-        sanitized.btcWillingToSpend,
-      );
+      sanitized.btcWillingToSpend = validateNumericInput(sanitized.btcWillingToSpend);
       break;
     }
 
@@ -106,22 +77,20 @@ export const applyConstraints = (
       effectiveDate = effectiveDate < currentDate ? currentDate : effectiveDate;
       effectiveDate = effectiveDate > maxDate ? maxDate : effectiveDate;
       sanitized.effective = effectiveDate;
-      console.log({ end: sanitized.end });
-      // @ts-expect-error end can be "" when the date is invalid or meant to be undefined
-      if (sanitized.end !== undefined && sanitized.end !== "") {
-        let endDate = validateDateInput(sanitized.end, false);
+      const rawEnd: unknown = sanitized.end;
+      if (typeof rawEnd === "string" || rawEnd instanceof Date) {
+        let endDate = validateDateInput(rawEnd, false);
         if (endDate !== undefined) {
-          endDate =
-            endDate < sanitized.effective ? sanitized.effective : endDate;
+          endDate = endDate < sanitized.effective ? sanitized.effective : endDate;
           endDate = endDate > maxDate ? maxDate : endDate;
+          sanitized.end = endDate;
+        } else {
+          sanitized.end = undefined;
         }
-        sanitized.end = endDate;
       }
 
       sanitized.annualAmount = validateNumericInput(sanitized.annualAmount);
-      sanitized.annualPercentChange = validateNumericInput(
-        sanitized.annualPercentChange,
-      );
+      sanitized.annualPercentChange = validateNumericInput(sanitized.annualPercentChange);
       break;
     }
   }
