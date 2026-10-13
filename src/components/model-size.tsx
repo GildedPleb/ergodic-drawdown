@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type JSX, useEffect, useState } from "react";
 import styled from "styled-components";
 
 import { useModel } from "../contexts/model";

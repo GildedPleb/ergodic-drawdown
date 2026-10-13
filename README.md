@@ -1,7 +1,7 @@
 # Stack Math: The Bitcoin Modeling Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-20.19+%20%7C%2022.12+-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-%5E5.2.2-blue)](https://www.typescriptlang.org/)
 
 Stack Math is an open-source Monte Carlo framework that combines ergodic walk strategies with traditional Bitcoin pricing models to generate probabilistic financial planning scenarios. It bridges the gap between theoretical Bitcoin models and practical financial decision-making needs.
@@ -46,7 +46,7 @@ npm run build
 
 ## System Requirements
 
-- Node.js >= 18.0.0
+- Node.js ^20.19.0 or >= 22.12.0
 - Modern browser with ES6 module support
 
 ## Development

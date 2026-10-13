@@ -14,7 +14,7 @@ import {
 } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import zoom from "chartjs-plugin-zoom";
-import { useMemo } from "react";
+import { type JSX, useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import styled from "styled-components";
 
@@ -49,7 +49,8 @@ const staticOptions: ChartOptions<"line"> = {
   animation: false,
   // devicePixelRatio: 1, this produces unfavorable results
   maintainAspectRatio: false,
-  resizeDelay: 1,
+  // Any non-zero delay makes Chart.js draw before layout. The annotation plugin then reads chartArea.left.
+  resizeDelay: 0,
   responsive: true,
 };
 

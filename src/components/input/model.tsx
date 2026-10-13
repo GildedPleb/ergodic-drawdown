@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { type JSX, useCallback } from "react";
 
 import { isModelName, modelMap, models } from "../../data/models";
 import handleEnterKey from "./enter";

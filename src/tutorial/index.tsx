@@ -1,5 +1,5 @@
 // Tutorial.tsx
-import { useCallback, useMemo, useState } from "react";
+import { type JSX, useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import { useDrawdown } from "../contexts/drawdown";

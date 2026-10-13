@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { type JSX, useCallback, useState } from "react";
 import styled from "styled-components";
 
 import { decryptData, encryptData } from "../helpers";

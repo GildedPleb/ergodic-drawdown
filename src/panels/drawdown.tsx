@@ -1,5 +1,5 @@
 import hashSum from "hash-sum";
-import { useCallback, useMemo, useState } from "react";
+import { type JSX, useCallback, useMemo, useState } from "react";
 import styled, { css } from "styled-components";
 
 import CaretSVG from "../components/caret";

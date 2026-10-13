@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { type JSX, useCallback, useState } from "react";
 import styled, { css } from "styled-components";
 
 import { Modal } from "../components/modal";

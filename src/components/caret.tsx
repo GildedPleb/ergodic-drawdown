@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type JSX, useEffect, useRef } from "react";
 
 const CaretSVG = ({ $isOpen }: { $isOpen: boolean }): JSX.Element => {
   const animateReference = useRef<SVGAnimateTransformElement | null>(null);

@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { type JSX, useCallback } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 
