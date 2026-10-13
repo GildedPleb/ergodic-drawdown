@@ -63,6 +63,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      window.addEventListener("error", (event) => {
+        const root = document.querySelector("#root");
+        if (root === null || root.childNodes.length > 0) return;
+        const pre = document.createElement("pre");
+        pre.style.whiteSpace = "pre-wrap";
+        pre.style.margin = "2rem";
+        pre.style.fontFamily = "ui-monospace, monospace";
+        pre.textContent = event.error instanceof Error
+          ? event.error.stack ?? event.error.message
+          : event.message;
+        root.append(pre);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

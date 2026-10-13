@@ -13,6 +13,12 @@ var httpsOptions = {
     key: fs.readFileSync("localhost-key.pem"),
     cert: fs.readFileSync("localhost.pem"),
 };
+// SharedArrayBuffer is enabled only when the document is cross-origin isolated.
+// Localhost is already a secure context, so preview can stay on http.
+var isolationHeaders = {
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Embedder-Policy": "require-corp",
+};
 // Conditional configuration based on environment
 export default defineConfig(function (_a) {
     var mode = _a.mode;
@@ -24,11 +30,11 @@ export default defineConfig(function (_a) {
         server: isDev
             ? {
                 https: httpsOptions,
-                headers: {
-                    "Cross-Origin-Opener-Policy": "same-origin",
-                    "Cross-Origin-Embedder-Policy": "require-corp",
-                },
+                headers: isolationHeaders,
             }
             : undefined,
+        preview: {
+            headers: isolationHeaders,
+        },
     };
 });

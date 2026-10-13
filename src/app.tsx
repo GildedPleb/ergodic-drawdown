@@ -4,6 +4,7 @@ import React, { useCallback } from "react";
 import styled from "styled-components";
 
 import CaretSVG from "./components/caret";
+import Loading from "./components/loading";
 import { isMobile } from "./constants";
 import { useProcessing } from "./data/effects";
 import Notifications from "./components/notification";
@@ -159,43 +160,51 @@ const StochasticGraph = (): React.ReactNode => {
   }, [isTutorialActive]);
 
   return (
-    <Container>
-      <GridApp>
-        <TutorialWrapper $isActive={isTutorialActive}>
-          <ContentContainer>
-            <Tutorial close={handleToggleTutorial} />
-          </ContentContainer>
-        </TutorialWrapper>
+    <React.Suspense
+      fallback={
+        <Container>
+          <Loading />
+        </Container>
+      }
+    >
+      <Container>
+        <GridApp>
+          <TutorialWrapper $isActive={isTutorialActive}>
+            <ContentContainer>
+              <Tutorial close={handleToggleTutorial} />
+            </ContentContainer>
+          </TutorialWrapper>
 
-        <ModelWrapper>
-          <Model />
-        </ModelWrapper>
+          <ModelWrapper>
+            <Model />
+          </ModelWrapper>
 
-        <RenderWrapper>
-          <RenderOptions />
-        </RenderWrapper>
+          <RenderWrapper>
+            <RenderOptions />
+          </RenderWrapper>
 
-        {!isMobile() && (
-          <ActivateButton onClick={handleToggleTutorial}>
-            {`Tutorial`} <CaretSVG $isOpen={isTutorialActive} />
-          </ActivateButton>
-        )}
+          {!isMobile() && (
+            <ActivateButton onClick={handleToggleTutorial}>
+              {`Tutorial`} <CaretSVG $isOpen={isTutorialActive} />
+            </ActivateButton>
+          )}
 
-        <ChartWrapper>
-          <Chart />
-        </ChartWrapper>
+          <ChartWrapper>
+            <Chart />
+          </ChartWrapper>
 
-        <DrawdownWrapper>
-          <Drawdown />
-        </DrawdownWrapper>
+          <DrawdownWrapper>
+            <Drawdown />
+          </DrawdownWrapper>
 
-        <FooterWrapper>
-          <Footer />
-        </FooterWrapper>
-        <Results />
-      </GridApp>
-      <Notifications />
-    </Container>
+          <FooterWrapper>
+            <Footer />
+          </FooterWrapper>
+          <Results />
+        </GridApp>
+        <Notifications />
+      </Container>
+    </React.Suspense>
   );
 };
 

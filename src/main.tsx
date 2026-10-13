@@ -11,24 +11,77 @@ import { RenderProvider } from "./contexts/render";
 import { TimeProvider } from "./contexts/time";
 import { WorkerProvider } from "./contexts/workers";
 import GlobalStyle from "./styled";
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-ReactDOM.createRoot(document.querySelector("#root")!).render(
-  <React.StrictMode>
-    <GlobalStyle />
-    <QueryClientProvider client={queryClient}>
-      <TimeProvider>
-        <ModelProvider>
-          <DrawdownProvider>
-            <RenderProvider>
-              <WorkerProvider>
-                <ComputedProvider>
-                  <App />
-                </ComputedProvider>
-              </WorkerProvider>
-            </RenderProvider>
-          </DrawdownProvider>
-        </ModelProvider>
-      </TimeProvider>
-    </QueryClientProvider>
-  </React.StrictMode>,
-);
+
+interface RootErrorState {
+  error: Error | null;
+}
+
+class RootError extends React.Component<
+  React.PropsWithChildren,
+  RootErrorState
+> {
+  state: RootErrorState = { error: null };
+
+  static getDerivedStateFromError(error: Error): RootErrorState {
+    return { error };
+  }
+
+  render(): React.ReactNode {
+    const { error } = this.state;
+    if (error !== null) {
+      return (
+        <pre style={{ fontFamily: "ui-monospace, monospace", margin: "2rem" }}>
+          {error.name}: {error.message}
+        </pre>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const rootElement = document.querySelector("#root");
+if (rootElement === null) {
+  throw new Error("Missing #root");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+
+if (!crossOriginIsolated) {
+  root.render(
+    <p
+      style={{
+        fontFamily: "system-ui, sans-serif",
+        margin: "2rem",
+        maxWidth: "40rem",
+      }}
+    >
+      Shared memory is unavailable because this document is not cross-origin
+      isolated. The response needs Cross-Origin-Opener-Policy: same-origin and
+      Cross-Origin-Embedder-Policy: require-corp. Localhost can send both over
+      http.
+    </p>,
+  );
+} else {
+  root.render(
+    <React.StrictMode>
+      <RootError>
+        <GlobalStyle />
+        <QueryClientProvider client={queryClient}>
+          <TimeProvider>
+            <ModelProvider>
+              <DrawdownProvider>
+                <RenderProvider>
+                  <WorkerProvider>
+                    <ComputedProvider>
+                      <App />
+                    </ComputedProvider>
+                  </WorkerProvider>
+                </RenderProvider>
+              </DrawdownProvider>
+            </ModelProvider>
+          </TimeProvider>
+        </QueryClientProvider>
+      </RootError>
+    </React.StrictMode>,
+  );
+}

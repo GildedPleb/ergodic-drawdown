@@ -41,16 +41,23 @@ export const calculateHalvings = (currentHeight: number): number[] => {
 };
 
 // eslint-disable-next-line functional/functional-parameters
+const bakedHalvings: HalvingData = {
+  "210000": 1_354_116_278,
+  "420000": 1_468_082_773,
+  "630000": 1_589_225_023,
+  "840000": 1_713_571_767,
+};
+
 export const loadHalvings = (): HalvingData => {
   const halvings = localStorage.getItem("halvings");
-  return halvings === null
-    ? {
-        "210000": 1_354_116_278,
-        "420000": 1_468_082_773,
-        "630000": 1_589_225_023,
-        "840000": 1_713_571_767,
-      }
-    : (JSON.parse(halvings) as HalvingData);
+  if (halvings === null) return bakedHalvings;
+  try {
+    const parsed: unknown = JSON.parse(halvings);
+    if (typeof parsed !== "object" || parsed === null) return bakedHalvings;
+    return parsed as HalvingData;
+  } catch {
+    return bakedHalvings;
+  }
 };
 
 export const saveHalvings = (halvings: HalvingData): void => {
