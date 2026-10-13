@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      run: bun run format
+    lint:
+      run: bun run lint
+    types:
+      run: bun run typecheck
+    test:
+      run: bun run test
+    secrets:
+      run: bun run secrets

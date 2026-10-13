@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+      chartjs:
+        patterns:
+          - chart.js
+          - chartjs-*
+          - react-chartjs-2
+      vite:
+        patterns:
+          - vite
+          - "@vitejs/plugin-react"

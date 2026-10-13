@@ -26,6 +26,7 @@ IMPROVE DRAWDOWN
 
 - Add the ability for a variable drawdown that is tied to % of total. Thus being able to model the 4% rule.
 - Add a one-off drawdown event that is random between two dates. Say, if someone is expected to die and get inheritance. Do the same with a bitcoin amount.
+- Add a new Monte Carlo simulator for inflation itself. the inflation rate could be potentially bound between 0 and 8 or -10 and +15 or something but it should go through the same random walk path and then we decided for that particular month what de-inflation is that month.
 
 IMPROVE AESTHETICS / UX
 
@@ -35,6 +36,10 @@ IMPROVE AESTHETICS / UX
 - when you tab into a drawdown content table cell, you should be able to hit enter to enter the cell, same with any other buttons and tabbing also escape should exit modal.
 - We should be able to see the full setting in a screen shot (so put the full settings in the results.)
 - is it possible to solve for: "When Bitcoin hits $100k, all you would need is 4 BTC to withdraw $10k/mo for the rest of your life. \*Assuming BTC has a CAGR of at least 30% for the rest of your life."
+- When I scroll over the graph, I can zoom in. This is good. But if I zoom out too far, the whole graph gets compressed into a teeny little section in the middle of the screen. This is not good. I shouldn't be able to have the zoom out scroll go shorter than the width of the frame.
+- An entire new UI rewrite is in order. we need much better UI handling across all the different interfaces. Use a library or something.
+- An entire new redesign is in order.
+- We need to do a way better job of communicating how inflation is calculated across everything in the app. For instance, if you have a paycheck of $100,000 a year Does that mean your paycheck is going up 8% per year? or is it not affected or is it going down 80% per year?
 
 BUGS
 
@@ -55,6 +60,8 @@ Tuesday, October 13, 2026:
 
 - Add multiple sources for latest block. so we find the latest block but we need multiple sources for that.
 - We should also allow it to get the latest block from a local Bitcoin blockchain and get the latest price from a local deployed thing. I don't know how that works. I don't know how you get the latest price or something, but we should investigate that.
+- move all the turorial slides to MD (after redesign)
+- Add all the new prices to the backend, so we don't need to fetch them.
 
 ---
 

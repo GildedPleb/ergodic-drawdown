@@ -9,8 +9,11 @@
     "lint": "oxlint -D correctness -D suspicious -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts",
     "format": "oxfmt --check",
     "knip": "knip --treat-config-hints-as-errors",
+    "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then lefthook install; fi",
     "preview": "vite preview",
-    "test": "bun scripts/check-coverage.ts"
+    "secrets": "bun scripts/gitleaks.ts protect --staged --redact --no-banner",
+    "test": "bun scripts/check-coverage.ts",
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.2",
@@ -38,6 +41,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "knip": "^6.41.0",
+    "lefthook": "2.2.1",
     "oxfmt": "*",
     "oxlint": "*",
     "oxlint-tsgolint": "*",

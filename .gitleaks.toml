@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Removed localhost dev certificate"
+paths = ['''(^|/)localhost-key\.pem$''', '''(^|/)localhost\.pem$''']

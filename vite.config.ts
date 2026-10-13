@@ -1,38 +1,18 @@
-import fs from "fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Development-only HTTPS options
-const httpsOptions = {
-  key: fs.readFileSync("localhost-key.pem"),
-  cert: fs.readFileSync("localhost.pem"),
-};
-
-// SharedArrayBuffer is enabled only when the document is cross-origin isolated.
-// Localhost is already a secure context, so preview can stay on http.
+// SharedArrayBuffer needs cross-origin isolation. Localhost is already a secure context.
 const isolationHeaders = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "require-corp",
 };
 
-// Conditional configuration based on environment
-export default defineConfig(({ mode }) => {
-  const isDev = mode === "development";
-
-  return {
-    plugins: [react()],
-    // Remove the base as Netlify will handle this
-    base: isDev ? "/ergodic-drawdown/" : "/",
-    ...(isDev
-      ? {
-          server: {
-            https: httpsOptions,
-            headers: isolationHeaders,
-          },
-        }
-      : {}),
-    preview: {
-      headers: isolationHeaders,
-    },
-  };
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    headers: isolationHeaders,
+  },
+  preview: {
+    headers: isolationHeaders,
+  },
 });
