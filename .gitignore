@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 out.js
-src/dynamic-array-test.ts
+coverage/

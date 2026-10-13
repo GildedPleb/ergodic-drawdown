@@ -1,7 +1,7 @@
 # Stack Math: The Bitcoin Modeling Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-20.19+%20%7C%2022.12+-brightgreen)](https://nodejs.org/)
+[![Bun](https://img.shields.io/badge/bun-1.3.13-black)](https://bun.sh/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-%5E5.2.2-blue)](https://www.typescriptlang.org/)
 
 Stack Math is an open-source Monte Carlo framework that combines ergodic walk strategies with traditional Bitcoin pricing models to generate probabilistic financial planning scenarios. It bridges the gap between theoretical Bitcoin models and practical financial decision-making needs.
@@ -35,31 +35,31 @@ Stack Math is an open-source Monte Carlo framework that combines ergodic walk st
 git clone https://github.com/yourusername/stack-math.git
 
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 ```
 
 ## System Requirements
 
-- Node.js ^20.19.0 or >= 22.12.0
+- Bun 1.3.13
 - Modern browser with ES6 module support
 
 ## Development
 
 ```bash
 # Run tests
-npm test
+bun run test
 
 # Run linter
-npm run lint
+bun run lint
 
 # Preview production build
-npm run preview
+bun run preview
 ```
 
 ## Architecture

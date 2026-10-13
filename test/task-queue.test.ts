@@ -1,109 +1,21 @@
-// Import the function (assuming it's in a file named taskQueue.js)
+import { expect, test } from "bun:test";
+
 import { createTaskQueue } from "../src/helpers";
-import { type Task } from "../src/types";
-
-interface RuntimeAnalysis {
-  roundBreakdown: Array<{ round: number; runtime: number }>;
-  totalRounds: number;
-  totalRuntime: number;
-}
-
-const calculateExpectedRuntime = (tasks: Task[], workerCount: number): RuntimeAnalysis => {
-  const rounds: number[][] = [];
-  let currentRound: number[] = [];
-
-  for (const task of tasks) {
-    const taskSize = task.endIndex - task.startIndex;
-    if (currentRound.length < workerCount) {
-      currentRound.push(taskSize);
-    } else {
-      rounds.push(currentRound);
-      currentRound = [taskSize];
-    }
-  }
-
-  if (currentRound.length > 0) {
-    rounds.push(currentRound);
-  }
-
-  const roundBreakdown = rounds.map((round, index) => {
-    const maxTaskSize = Math.max(...round);
-    // 50ms per 100 samples + 10ms load time
-    const runtime = (maxTaskSize * 50) / 100 + 10;
-    return { round: index + 1, runtime };
-  });
-
-  const totalRuntime = roundBreakdown.reduce((sum, { runtime }) => sum + runtime, 0);
-
-  return {
-    roundBreakdown,
-    totalRounds: rounds.length,
-    totalRuntime,
-  };
-};
 
 const runTest = (
   totalSamples: number,
   workerCount: number,
-  expectedResults: Task[],
+  expectedResults: Array<{ arrayIndex: number; endIndex: number; startIndex: number }>,
   startingSample = 0,
   samplesPerArray = 1024,
 ): void => {
-  const result = createTaskQueue(totalSamples, workerCount, samplesPerArray, startingSample);
-  let pass = true;
-  let failureReason = "";
-
-  const testName = `Samples: ${totalSamples}, Worker Count: ${workerCount}, Starting Sample: ${startingSample}, Samples Per Array: ${samplesPerArray}`;
-
-  if (result.length === expectedResults.length) {
-    for (const [index, actual] of result.entries()) {
-      const expected = expectedResults[index];
-      if (
-        actual.arrayIndex !== expected.arrayIndex ||
-        actual.startIndex !== expected.startIndex ||
-        actual.endIndex !== expected.endIndex
-      ) {
-        pass = false;
-        failureReason = `Mismatch in task ${index}:\nExpected: ${JSON.stringify(expected)}\nActual: ${JSON.stringify(actual)}`;
-        break;
-      }
-    }
-  } else {
-    pass = false;
-    failureReason = `Expected ${expectedResults.length} tasks, got ${result.length}`;
-  }
-
-  const runtimeAnalysis = calculateExpectedRuntime(result, workerCount);
-  const expectedRuntimeAnalysis = calculateExpectedRuntime(expectedResults, workerCount);
-
-  console.log(`--> ${pass ? "PASS" : "FAIL"}: Test ${testName}`);
-
-  if (!pass) {
-    console.log("Test:", totalSamples, workerCount, samplesPerArray, startingSample);
-    console.log(`Failure reason: ${failureReason}`);
-    console.log("Actual result:", result);
-    console.log("Expected result:", expectedResults);
-    console.log(`\nRuntime Analysis:`);
-    console.log(`Total Rounds: ${runtimeAnalysis.totalRounds}`);
-
-    console.log(`Total Expected Runtime: ${runtimeAnalysis.totalRuntime.toFixed(2)}ms`);
-    console.log(`Round Breakdown:`);
-    for (const { round, runtime } of runtimeAnalysis.roundBreakdown) {
-      console.log(`  Round ${round}: ${runtime.toFixed(2)}ms`);
-    }
-
-    console.log(`\nExpected Runtime Analysis:`);
-    console.log(`Total Rounds: ${expectedRuntimeAnalysis.totalRounds}`);
-    console.log(`Total Expected Runtime: ${expectedRuntimeAnalysis.totalRuntime.toFixed(2)}ms`);
-    console.log(`Round Breakdown:`);
-    for (const { round, runtime } of expectedRuntimeAnalysis.roundBreakdown) {
-      console.log(`  Round ${round}: ${runtime.toFixed(2)}ms`);
-    }
-    throw new Error("REKT");
-  }
+  test(`samples ${totalSamples}, workers ${workerCount}, start ${startingSample}, per array ${samplesPerArray}`, () => {
+    expect(createTaskQueue(totalSamples, workerCount, samplesPerArray, startingSample)).toEqual(
+      expectedResults,
+    );
+  });
 };
 
-// All tests assume 1000 samplesPerArray
 // Test 1: Basic functionality
 runTest(1000, 4, [
   { arrayIndex: 0, endIndex: 250, startIndex: 0 },
