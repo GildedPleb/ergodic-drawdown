@@ -87,7 +87,14 @@ export const handleSimulation = (
         // The first epoch begins weeksSince before the bound series. Those weeks are before now.
         const min = minSeries[indexOffset];
         const max = maxSeries[indexOffset];
-        if (min === undefined || max === undefined) {
+        const logMin = logMinSeries[indexOffset];
+        const logMax = logMaxSeries[indexOffset];
+        if (
+          min === undefined ||
+          max === undefined ||
+          logMin === undefined ||
+          logMax === undefined
+        ) {
           rawWalk[week] = Number.NaN;
           continue;
         }
@@ -96,8 +103,7 @@ export const handleSimulation = (
         if (normalizedPrice <= 0) {
           price = min * base ** normalizedPrice;
         } else if (normalizedPrice < 1) {
-          const logMin = Math.log10(min);
-          price = base ** (normalizedPrice * (Math.log10(max) - logMin) + logMin);
+          price = base ** (normalizedPrice * (logMax - logMin) + logMin);
         } else {
           price = max * base ** (normalizedPrice - 1);
         }

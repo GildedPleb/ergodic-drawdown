@@ -22,7 +22,7 @@ const start = performance.now();
 const run = spawnSync(
   process.execPath,
   ["test", "--isolate", "--coverage", "--coverage-reporter=lcov", "--coverage-dir=coverage"],
-  { stdio: "inherit" },
+  { env: { ...process.env, SUITE: "1" }, stdio: "inherit" },
 );
 const wallTimeMs = Math.round(performance.now() - start);
 if (run.status !== 0) {
@@ -70,7 +70,7 @@ if (lineCoverage < previous.lineCoverage - 1) {
     `line coverage ${lineCoverage}% is more than 1 point under ${previous.lineCoverage}%`,
   );
 }
-if (lineCoverage > previous.lineCoverage) {
-  writeFileSync(suitePath, `${JSON.stringify(next, null, 2)}\n`);
-  console.log(`raised ${suitePath} to ${lineCoverage}%`);
-}
+const floor = Math.max(previous.lineCoverage, lineCoverage);
+const record: SuiteRecord = { lineCoverage: floor, wallTimeMs };
+writeFileSync(suitePath, `${JSON.stringify(record, null, 2)}\n`);
+console.log(`${lineCoverage}% in ${wallTimeMs}ms`);
