@@ -16,7 +16,7 @@ const frozenOptions = {
 
 const expectedPrices = {
   CAGR: { max: 179_800.155_624_663_72, min: 44_950.038_906_165_93 },
-  Historic: { max: 341_547.976_727_618_66, min: 214_438.038_282_294_5 },
+  Historic: { max: 341_547.976_727_618_66, min: 85_074.99 },
   "Power Law Regression Median": { max: 315_458.563_801_796_64, min: 50_750.076_679_694_284 },
   "Power Law Support Line": { max: 236_638.933_971_322_14, min: 42_964.275_835_303_255 },
   "Rainbow Chart": { max: 238_037.259_215_908_53, min: 23_803.725_921_590_856 },

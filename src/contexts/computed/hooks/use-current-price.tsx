@@ -14,6 +14,7 @@ export const useCurrentPrice = (): number => {
     },
     queryKey: ["currentPrice", now],
     staleTime: Infinity,
+    throwOnError: true,
   });
 
   return currentPrice;

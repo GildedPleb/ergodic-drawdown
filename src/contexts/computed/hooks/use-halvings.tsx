@@ -44,6 +44,7 @@ export const useHalvings = (): HalvingFinder => {
     queryFn: halvingFinder,
     queryKey: ["halving", now],
     staleTime: Infinity,
+    throwOnError: true,
   });
 
   return data;

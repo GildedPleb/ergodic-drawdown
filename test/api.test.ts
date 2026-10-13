@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 
-import { fetchBlockByHeight, getCurrentBlockHeight, getCurrentPrice } from "../src/api";
+import {
+  fetchBlockByHeight,
+  getCurrentBlockHeight,
+  getCurrentPrice,
+  getInterimWeeklyData,
+} from "../src/api";
+import marketData from "../src/data/datasets/bitcoin_weekly_prices_transformed_2.json";
 
 const now = 1_713_571_767_000;
 
@@ -35,6 +41,14 @@ const requestUrl = (input: RequestInfo | URL): string => {
 
 const failed = (): Response => jsonResponse({ error: "down" }, 503);
 
+const captureWarnings = (): string[] => {
+  const lines: string[] = [];
+  console.warn = (message?: unknown) => {
+    lines.push(String(message));
+  };
+  return lines;
+};
+
 let restoreConsole: (() => void) | undefined;
 
 beforeEach(() => {
@@ -59,8 +73,50 @@ afterEach(() => {
 test("a failed block-height response throws", async () => {
   globalThis.fetch = () => Promise.resolve(failed());
 
-  await expect(getCurrentBlockHeight(now)).rejects.toThrow("Failed to fetch current block height");
+  await expect(getCurrentBlockHeight(now)).rejects.toThrow("Blockchain.com: 503");
   await expect(fetchBlockByHeight(840_000)).rejects.toThrow("Failed to fetch block data");
+});
+
+test("a zero block height cycles to the next source", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.endsWith("/q/getblockcount")) return Promise.resolve(jsonResponse(0));
+    if (url.endsWith("/blocks/tip/height") && url.includes("blockstream.info")) {
+      return Promise.resolve(jsonResponse(840_000));
+    }
+    return Promise.resolve(failed());
+  };
+
+  expect(await getCurrentBlockHeight(now)).toBe(840_000);
+  expect(warnings).toEqual([
+    "block height: Blockchain.com failed: expected a block height, received 0",
+  ]);
+});
+
+test("a failed block height cycles to the next source", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.includes("blockstream.info")) return Promise.resolve(jsonResponse(840_000));
+    return Promise.resolve(failed());
+  };
+
+  expect(await getCurrentBlockHeight(now)).toBe(840_000);
+  expect(warnings).toEqual([
+    "block height: Blockchain.com failed: 503 Service Unavailable for https://blockchain.info/q/getblockcount",
+  ]);
+});
+
+test("a stored zero block height is not used", async () => {
+  localStorage.setItem("currentBlockHeight", JSON.stringify({ blockHeight: 0, timestamp: now }));
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.endsWith("/q/getblockcount")) return Promise.resolve(jsonResponse(840_000));
+    return Promise.resolve(failed());
+  };
+
+  expect(await getCurrentBlockHeight(now)).toBe(840_000);
 });
 
 test("a block-height response returns the height and the block time", async () => {
@@ -77,23 +133,76 @@ test("a block-height response returns the height and the block time", async () =
   expect(await fetchBlockByHeight(840_000)).toBe(1_713_571_767);
 });
 
-test("a failed price response returns a zero point", async () => {
+test("a recent baked week does not request weekly history", async () => {
+  const last = marketData.at(-1);
+  if (last === undefined) throw new Error("weekly price history is empty");
+  const bakedEnd = Math.floor(last.x / 1000);
+  const urls: string[] = [];
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    urls.push(url);
+    if (url.includes("api.coinbase.com/v2/prices")) {
+      return Promise.resolve(jsonResponse({ data: { amount: "61000" } }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  const points = await getInterimWeeklyData((bakedEnd + 3 * 86_400) * 1000);
+
+  expect(points.length).toBe(1);
+  expect(points[0]?.close).toBe(61_000);
+  expect(
+    urls.some(
+      (url) => url.includes("/candles") || url.includes("market_chart") || url.includes("/OHLC"),
+    ),
+  ).toBe(false);
+});
+
+test("a failed price response throws", async () => {
   globalThis.fetch = () => Promise.resolve(failed());
 
-  expect(await getCurrentPrice(now)).toEqual({
-    close: 0,
-    conversionSymbol: "",
-    conversionType: "direct",
-    high: 0,
-    low: 0,
-    open: 0,
-    time: 0,
-    volumefrom: 0,
-    volumeto: 0,
-  });
+  await expect(getCurrentPrice(now)).rejects.toThrow("Coinbase: 503");
+});
+
+test("a stored zero price is not used", async () => {
+  localStorage.setItem(
+    "BTC_PRICE_CACHE",
+    JSON.stringify({
+      close: 0,
+      conversionSymbol: "",
+      conversionType: "direct",
+      high: 0,
+      low: 0,
+      open: 0,
+      time: Math.floor(now / 1000),
+      volumefrom: 0,
+      volumeto: 0,
+    }),
+  );
+  globalThis.fetch = () => Promise.resolve(jsonResponse({ data: { amount: "61000" } }));
+
+  expect((await getCurrentPrice(now)).close).toBe(61_000);
+});
+
+test("a zero price cycles to the next source", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.includes("api.coinbase.com")) {
+      return Promise.resolve(jsonResponse({ data: { amount: "0" } }));
+    }
+    if (url.includes("api.coingecko.com")) {
+      return Promise.resolve(jsonResponse({ bitcoin: { usd: 61_000 } }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  expect((await getCurrentPrice(now)).close).toBe(61_000);
+  expect(warnings).toEqual(["spot price: Coinbase failed: expected a positive price, received 0"]);
 });
 
 test("the first working price source supplies the spot", async () => {
+  const warnings = captureWarnings();
   globalThis.fetch = (input: RequestInfo | URL) => {
     const url = requestUrl(input);
     if (url.includes("api.coinbase.com")) return Promise.resolve(failed());
@@ -110,4 +219,7 @@ test("the first working price source supplies the spot", async () => {
   expect(point.high).toBe(61_000);
   expect(point.low).toBe(61_000);
   expect(point.time).toBe(Math.floor(now / 1000));
+  expect(warnings).toEqual([
+    "spot price: Coinbase failed: 503 Service Unavailable for https://api.coinbase.com/v2/prices/BTC-USD/spot",
+  ]);
 });

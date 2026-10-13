@@ -1,7 +1,11 @@
 import { LRUCache } from "lru-cache";
 
-import { LAST_SAVED_TIMESTAMP } from "./constants";
+import marketData from "./data/datasets/bitcoin_weekly_prices_transformed_2.json";
 import { type BitcoinDataPoint } from "./types";
+
+const lastBakedWeek = marketData.at(-1);
+if (lastBakedWeek === undefined) throw new Error("weekly price history is empty");
+const bakedWeeklyEnd = Math.floor(lastBakedWeek.x / 1000);
 
 const lruCache = new LRUCache<string, BitcoinDataPoint[]>({ max: 1 });
 
@@ -11,20 +15,22 @@ const WEEK_SECONDS = 7 * DAY_SECONDS;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+const isPositive = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+const isBlockHeight = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value > 0;
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
 const isBitcoinPoint = (value: unknown): value is BitcoinDataPoint => {
   if (!isRecord(value)) return false;
-  const fields: ReadonlyArray<keyof BitcoinDataPoint> = [
-    "close",
-    "high",
-    "low",
-    "open",
-    "time",
-    "volumefrom",
-    "volumeto",
-  ];
-  for (const field of fields) {
-    if (typeof value[field] !== "number") return false;
-  }
+  const prices = [value["close"], value["high"], value["low"], value["open"]];
+  if (!prices.every(isPositive)) return false;
+  if (!isFiniteNumber(value["time"])) return false;
+  if (!isFiniteNumber(value["volumefrom"]) || value["volumefrom"] < 0) return false;
+  if (!isFiniteNumber(value["volumeto"]) || value["volumeto"] < 0) return false;
   return (
     typeof value["conversionSymbol"] === "string" && typeof value["conversionType"] === "string"
   );
@@ -69,7 +75,8 @@ const readJson = async (url: string): Promise<unknown> => {
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText} for ${url}`);
   }
-  return response.json() as Promise<unknown>;
+  const body: unknown = await response.json();
+  return body;
 };
 
 const firstWorking = async <T>(
@@ -230,30 +237,57 @@ const loadKrakenWeeks = async (from: number): Promise<BitcoinDataPoint[]> => {
   return weeks;
 };
 
+const loadTipHeight = async (url: string): Promise<number> => {
+  const body = await readJson(url);
+  if (!isBlockHeight(body)) {
+    throw new Error(`expected a block height, received ${String(body)}`);
+  }
+  return body;
+};
+
+const loadBlockHeight = (): Promise<number> =>
+  firstWorking("block height", [
+    {
+      name: "Blockchain.com",
+      load: () => loadTipHeight("https://blockchain.info/q/getblockcount"),
+    },
+    {
+      name: "Blockstream",
+      load: () => loadTipHeight("https://blockstream.info/api/blocks/tip/height"),
+    },
+    {
+      name: "Mempool",
+      load: () => loadTipHeight("https://mempool.space/api/blocks/tip/height"),
+    },
+  ]);
+
 export const getCurrentBlockHeight = async (now: number): Promise<number> => {
   const cacheKey = "currentBlockHeight";
   const cachedData = localStorage.getItem(cacheKey);
 
   if (cachedData !== null) {
-    const parsed: unknown = JSON.parse(cachedData);
-    if (
-      isRecord(parsed) &&
-      typeof parsed["blockHeight"] === "number" &&
-      typeof parsed["timestamp"] === "number" &&
-      parsed["timestamp"] > now - 120 * 60 * 1000
-    ) {
-      return parsed["blockHeight"];
+    let cache: unknown;
+    try {
+      cache = JSON.parse(cachedData);
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error;
+      cache = undefined;
+    }
+    if (isRecord(cache)) {
+      const blockHeight = cache["blockHeight"];
+      const timestamp = cache["timestamp"];
+      if (
+        isBlockHeight(blockHeight) &&
+        typeof timestamp === "number" &&
+        timestamp > now - 120 * 60 * 1000
+      ) {
+        return blockHeight;
+      }
     }
   }
   console.log("...fetching lastest block height");
-  const response = await fetch("https://blockchain.info/q/getblockcount");
-  if (!response.ok) throw new Error("Failed to fetch current block height");
-  const body: unknown = await response.json();
-  if (typeof body !== "number") throw new Error("Failed to fetch current block height");
-  const blockHeight = body;
-  const newData = JSON.stringify({ blockHeight, timestamp: now });
-  localStorage.setItem(cacheKey, newData);
-
+  const blockHeight = await loadBlockHeight();
+  localStorage.setItem(cacheKey, JSON.stringify({ blockHeight, timestamp: now }));
   return blockHeight;
 };
 
@@ -279,33 +313,23 @@ export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> =>
   const currentTimestamp = Math.floor(now / 1000);
   const cachedData = localStorage.getItem(cacheKey);
 
-  try {
-    if (cachedData !== null) {
-      const cache: unknown = JSON.parse(cachedData);
-      if (isBitcoinPoint(cache) && currentTimestamp - cache.time < cacheExpiry) {
-        return cache;
-      }
+  if (cachedData !== null) {
+    let cache: unknown;
+    try {
+      cache = JSON.parse(cachedData);
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error;
+      cache = undefined;
     }
-    console.log("...fetching current price");
-    const spot = await loadSpotPrice();
-    const currentPriceData = pricePoint(currentTimestamp, spot, spot, spot, spot);
-    localStorage.setItem(cacheKey, JSON.stringify(currentPriceData));
-
-    return currentPriceData;
-  } catch (error) {
-    console.error("Error fetching current price:", error);
-    return {
-      close: 0,
-      conversionSymbol: "",
-      conversionType: "direct",
-      high: 0,
-      low: 0,
-      open: 0,
-      time: 0,
-      volumefrom: 0,
-      volumeto: 0,
-    };
+    if (isBitcoinPoint(cache) && currentTimestamp - cache.time < cacheExpiry) {
+      return cache;
+    }
   }
+  console.log("...fetching current price");
+  const spot = await loadSpotPrice();
+  const currentPriceData = pricePoint(currentTimestamp, spot, spot, spot, spot);
+  localStorage.setItem(cacheKey, JSON.stringify(currentPriceData));
+  return currentPriceData;
 };
 
 export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoint[]> => {
@@ -315,23 +339,10 @@ export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoin
   }
   const nowDate = new Date(now);
   const storedWeekly: unknown = JSON.parse(localStorage.getItem("weeklyBTCData") ?? "[]");
-  let cachedData = Array.isArray(storedWeekly) ? storedWeekly.filter(isBitcoinPoint) : [];
-  if (cachedData.length === 0) {
-    cachedData = [
-      {
-        close: 60_940.64,
-        conversionSymbol: "",
-        conversionType: "direct",
-        high: 64_119.34,
-        low: 60_827.83,
-        open: 64_119.34,
-        time: 1_719_014_400,
-        volumefrom: 16_592.24,
-        volumeto: 1_020_916_335.92,
-      },
-    ];
-  }
-  const lastCachedTimestamp = cachedData.at(-1)?.time ?? LAST_SAVED_TIMESTAMP;
+  let cachedData = (Array.isArray(storedWeekly) ? storedWeekly.filter(isBitcoinPoint) : [])
+    .filter((point) => point.time > bakedWeeklyEnd)
+    .toSorted((first, second) => first.time - second.time);
+  const lastCachedTimestamp = cachedData.at(-1)?.time ?? bakedWeeklyEnd;
   const currentPriceData = await getCurrentPrice(now);
   const currentTime = Math.floor(nowDate.getTime() / 1000);
 
