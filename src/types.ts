@@ -1,8 +1,8 @@
 import { type ChartDataset, type Point } from "chart.js";
 
 import { distributions } from "./content";
-import { type modelMap } from "./data/models";
-import { type WalkTypes } from "./data/walks";
+import type { modelMap } from "./data/models";
+import type { WalkTypes } from "./data/walks";
 
 export interface ProviderProperties {
   children: React.ReactNode;

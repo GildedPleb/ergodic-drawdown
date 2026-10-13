@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
 
 import { handleQuantile } from "../src/contexts/workers/quantile";
-import { type SignalState, type Task } from "../src/contexts/workers/types";
+import { type SignalState } from "../src/contexts/workers/types";
+import { type Task } from "../src/helpers";
 
 const samples = 5;
 const cutoffs = [0, 0.25, 0.5, 1];

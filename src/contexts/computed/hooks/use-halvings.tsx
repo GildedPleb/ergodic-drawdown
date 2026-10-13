@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { fetchBlockByHeight, getCurrentBlockHeight } from "../../../api";
-import { calculateHalvings, loadHalvings, saveHalvings } from "../../../helpers";
+import { calculateHalvings, loadHalvings, saveHalvings } from "../../../halvings";
 import { type HalvingData, type HalvingFinder } from "../../../types";
 import { useTime } from "../../time";
 

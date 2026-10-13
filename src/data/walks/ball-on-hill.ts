@@ -1,5 +1,5 @@
 import { WEEKS_PER_EPOCH } from "../../constants";
-import { type IWalk } from "../../types";
+import type { IWalk } from "../../types";
 
 let currentVelocity = 0;
 let isKicked = false;

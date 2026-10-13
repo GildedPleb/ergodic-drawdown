@@ -1,13 +1,8 @@
 import { type ExportedState } from "../../classes/growable-shared-array";
+import type { Task } from "../../helpers";
 import { type Full, type NarrowedOneOffFiat } from "../../types";
 
 type TaskStatus = "aborted" | "completed" | "pending";
-
-export interface Task {
-  arrayIndex: number;
-  endIndex: number;
-  startIndex: number;
-}
 
 export interface SupplementedTask extends Task {
   startEpoch?: number;

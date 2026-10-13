@@ -1,5 +1,5 @@
 import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../../constants";
-import { type IWalk } from "../../types";
+import type { IWalk } from "../../types";
 
 export const fourYearCycle: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);

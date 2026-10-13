@@ -10,7 +10,7 @@ import {
   MS_PER_YEAR,
   WEEKS_PER_EPOCH,
 } from "../constants";
-import { loadHalvings } from "../helpers";
+import { loadHalvings } from "../halvings";
 import {
   type OneOffFiatVariable,
   type OneOffItem,

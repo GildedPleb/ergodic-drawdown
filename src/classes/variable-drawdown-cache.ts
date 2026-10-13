@@ -1,5 +1,12 @@
 import { MAX_SAMPLE_COUNT } from "../constants";
-import { findNextGreatest1000 } from "../helpers";
+
+const findNextGreatest1000 = (x: number, y: number): number => {
+  if (x > y) return x;
+  if (x <= 0) return Math.min(1000, y);
+  let nextThousand = Math.ceil(x / 1000) * 1000;
+  if (x % 1000 === 0) nextThousand += 1000;
+  return Math.min(nextThousand, y);
+};
 
 export default class VariableDrawdownCache {
   private readonly buffer: SharedArrayBuffer;

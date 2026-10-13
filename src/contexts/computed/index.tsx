@@ -3,7 +3,7 @@ import hashSum from "hash-sum";
 import React, { createContext, useContext, useMemo } from "react";
 
 import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../../constants";
-import { weeksSinceLastHalving } from "../../helpers";
+import { weeksSinceLastHalving } from "../../halvings";
 import {
   type DatasetList,
   type Full,

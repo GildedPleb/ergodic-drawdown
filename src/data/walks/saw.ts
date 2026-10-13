@@ -1,5 +1,5 @@
 import { WEEKS_PER_EPOCH } from "../../constants";
-import { type IWalk } from "../../types";
+import type { IWalk } from "../../types";
 
 export const sawtooth: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);

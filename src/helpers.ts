@@ -1,6 +1,4 @@
-import { HALVING_INTERVAL, MS_PER_WEEK } from "./constants";
 import { numberAt } from "./number-at";
-import { type Task } from "./contexts/workers/types";
 import { isModelName } from "./data/models";
 import { isWalk } from "./data/walks";
 import {
@@ -8,7 +6,6 @@ import {
   type DatasetList,
   type DataSetParameters,
   type DrawdownItem,
-  type HalvingData,
   isValidDistribution,
   type OneOffFiatVariable,
   type OneOffItem,
@@ -18,55 +15,11 @@ import {
   type SavedAppState,
 } from "./types";
 
-export const weeksSinceLastHalving = (dates: Record<number, number>): number => {
-  const currentDate = new Date();
-  let mostRecentHalvingDate = new Date(0);
-
-  for (const [, timestamp] of Object.entries(dates)) {
-    const halvingDate = new Date(timestamp * 1000);
-    if (halvingDate <= currentDate && halvingDate > mostRecentHalvingDate) {
-      mostRecentHalvingDate = halvingDate;
-    }
-  }
-
-  const timeDifference = currentDate.getTime() - mostRecentHalvingDate.getTime();
-  return Math.floor(timeDifference / MS_PER_WEEK);
-};
-
-export const calculateHalvings = (currentHeight: number): number[] => {
-  const count = Math.floor(currentHeight / HALVING_INTERVAL);
-  return Array.from({ length: count }, (_, index) => (index + 1) * HALVING_INTERVAL);
-};
-
-const bakedHalvings: HalvingData = {
-  "210000": 1_354_116_278,
-  "420000": 1_468_082_773,
-  "630000": 1_589_225_023,
-  "840000": 1_713_571_767,
-};
-
-const isHalvingData = (value: unknown): value is HalvingData => {
-  if (typeof value !== "object" || value === null) return false;
-  for (const entry of Object.values(value)) {
-    if (typeof entry !== "number") return false;
-  }
-  return true;
-};
-
-export const loadHalvings = (): HalvingData => {
-  const halvings = localStorage.getItem("halvings");
-  if (halvings === null) return bakedHalvings;
-  try {
-    const parsed: unknown = JSON.parse(halvings);
-    return isHalvingData(parsed) ? parsed : bakedHalvings;
-  } catch {
-    return bakedHalvings;
-  }
-};
-
-export const saveHalvings = (halvings: HalvingData): void => {
-  localStorage.setItem("halvings", JSON.stringify(halvings));
-};
+export interface Task {
+  arrayIndex: number;
+  endIndex: number;
+  startIndex: number;
+}
 
 const seededRandom = (seed: number): number => {
   let t = seed + 0x6d_2b_79_f5;
@@ -260,14 +213,6 @@ export const createTaskQueue = (
     addTask(currentArray, 0, remainingWork, batchSize);
   }
   return tasks;
-};
-
-export const findNextGreatest1000 = (x: number, y: number): number => {
-  if (x > y) return x;
-  if (x <= 0) return Math.min(1000, y);
-  let nextThousand = Math.ceil(x / 1000) * 1000;
-  if (x % 1000 === 0) nextThousand += 1000;
-  return Math.min(nextThousand, y);
 };
 
 export const getItemDescription = (item: DrawdownItem): string => {

@@ -1,7 +1,7 @@
 import memoize from "memoizee";
 
 import { MS_PER_WEEK, WEEKS_PER_EPOCH } from "../../constants";
-import { calculateHalvings, loadHalvings, weeksSinceLastHalving } from "../../helpers";
+import { calculateHalvings, loadHalvings, weeksSinceLastHalving } from "../../halvings";
 import { type MinMaxOptions, type PriceModel } from "../../types";
 import marketData from "../datasets/bitcoin_weekly_prices_transformed_2.json";
 

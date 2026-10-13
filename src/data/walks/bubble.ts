@@ -1,5 +1,5 @@
 import { WEEKS_PER_EPOCH } from "../../constants";
-import { type IWalk } from "../../types";
+import type { IWalk } from "../../types";
 
 const weeksPerPhase = WEEKS_PER_EPOCH / 4;
 const acceleration = 0.0005;
