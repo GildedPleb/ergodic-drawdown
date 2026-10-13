@@ -1,5 +1,3 @@
-/// <reference types="vite-plugin-svgr/client" />
-
 import { type ChartDataset, type Point } from "chart.js";
 
 import { distributions } from "./content";
@@ -30,11 +28,6 @@ export interface PriceModel<T extends string = string> {
   varRange: boolean;
 }
 
-export interface BlockData {
-  height: number;
-  time: number;
-}
-
 export type HalvingData = Record<string, number>;
 
 export interface HalvingFinder {
@@ -42,28 +35,9 @@ export interface HalvingFinder {
   halvings: HalvingData;
 }
 
-export interface NormalizePrice {
-  maxArray: Float64Array;
-  minArray: Float64Array;
-  priceToNormalize: number;
-  week: number;
-}
-
-export interface ApplyModel {
-  maxArray: Float64Array;
-  minArray: Float64Array;
-  normalizedPrices: Float64Array;
-  offset: number;
-  week: number;
-}
-
 export type Dataset = ChartDataset<"line", Point[]>;
 
 export type DatasetList = Dataset[];
-
-export type PriceData = Float64Array[];
-
-export type VolumeData = Float64Array[];
 
 export interface Full {
   clampBottom: boolean;
@@ -75,33 +49,6 @@ export interface Full {
   walk: WalkTypes;
 }
 
-export interface Part {
-  currentPrice: number;
-  epochCount: number;
-  logMaxArray: Float64Array;
-  logMinArray: Float64Array;
-  maxArray: Float64Array;
-  minArray: Float64Array;
-  samples: number;
-  weeksSince: number;
-}
-
-export interface VolumeWorker {
-  bitcoin: number;
-  data: PriceData;
-  inflation: number;
-  now: number;
-  oneOffFiatVariables: OneOffFiatVariable[];
-  oneOffItems: OneOffItem[];
-  reoccurringItems: ReoccurringItem[];
-}
-
-export interface VolumeReturn {
-  average: number;
-  median: number;
-  volumeDataset: VolumeData;
-  zero: number;
-}
 export interface BitcoinDataPoint {
   close: number;
   conversionSymbol: string;
@@ -113,23 +60,6 @@ export interface BitcoinDataPoint {
   volumefrom: number;
   volumeto: number;
 }
-
-export type DataProperties = () => {
-  datasets: Array<
-    | {
-        borderColor: string;
-        borderWidth: number;
-        data: Array<{
-          x: number;
-          y: number;
-        }>;
-        label: string;
-        pointRadius: number;
-        tension: number;
-      }
-    | Dataset
-  >;
-};
 
 export interface RGBA {
   alpha?: number;
@@ -155,7 +85,7 @@ export interface DataSetParameters {
   yAxisID: "y" | "y1";
 }
 
-export interface BaseDrawdownItem {
+interface BaseDrawdownItem {
   active: boolean;
   id: string;
   name: string;

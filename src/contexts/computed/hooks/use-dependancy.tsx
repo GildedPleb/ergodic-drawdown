@@ -73,11 +73,11 @@ interface DependencyObjectBase {
   waitingOn: string[];
 }
 
-export interface DependencyObjectLoading extends DependencyObjectBase {
+interface DependencyObjectLoading extends DependencyObjectBase {
   result: null;
 }
 
-export interface DependencyObjectLoaded<R> extends DependencyObjectBase {
+interface DependencyObjectLoaded<R> extends DependencyObjectBase {
   result: R;
 }
 

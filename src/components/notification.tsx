@@ -22,7 +22,7 @@ const StyledToastContainer = styled(ToastContainer)`
 
 const MOBILE_WELCOME_KEY = "mobile-welcome-shown";
 
-export const Notifications: React.FC = () => {
+const Notifications: React.FC = () => {
   const [, setHasShownWelcome] = useState(false);
 
   useEffect(() => {

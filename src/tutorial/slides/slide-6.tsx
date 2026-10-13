@@ -24,8 +24,6 @@ const Slide6: FC = () => (
   </SlideContent>
 );
 
-export default Slide6;
-
 export const slide6 = {
   component: Slide6,
   requirements: {

@@ -4,14 +4,12 @@ import { type Task } from "./contexts/workers/types";
 import { isModelName } from "./data/models";
 import { isWalk } from "./data/walks";
 import {
-  type ApplyModel,
   type BaseColor,
   type DatasetList,
   type DataSetParameters,
   type DrawdownItem,
   type HalvingData,
   isValidDistribution,
-  type NormalizePrice,
   type OneOffFiatVariable,
   type OneOffItem,
   type Pallet,
@@ -70,56 +68,7 @@ export const saveHalvings = (halvings: HalvingData): void => {
   localStorage.setItem("halvings", JSON.stringify(halvings));
 };
 
-const base = 10;
-
-export const normalizePrice = ({
-  maxArray,
-  minArray,
-  priceToNormalize,
-  week,
-}: NormalizePrice): number => {
-  const min = numberAt(minArray, week);
-  const max = numberAt(maxArray, week);
-
-  if (priceToNormalize <= min) {
-    return Math.log10(priceToNormalize / min);
-  }
-  if (priceToNormalize < max) {
-    const logMin = Math.log10(min);
-    return (Math.log10(priceToNormalize) - logMin) / (Math.log10(max) - logMin);
-  }
-  return Math.log10(priceToNormalize / max) + 1;
-};
-
-export const applyModel = ({
-  maxArray,
-  minArray,
-  normalizedPrices,
-  offset,
-  week,
-}: ApplyModel): Float64Array => {
-  const final = new Float64Array(normalizedPrices.length);
-  let index = 0;
-  for (const normalized of normalizedPrices) {
-    const min = numberAt(minArray, index + week - offset);
-    const max = numberAt(maxArray, index + week - offset);
-    let price: number;
-    if (normalized <= 0) {
-      price = min * base ** normalized;
-    } else if (normalized < 1) {
-      const logMin = Math.log10(min);
-      price = base ** (normalized * (Math.log10(max) - logMin) + logMin);
-    } else {
-      price = max * base ** (normalized - 1);
-    }
-    if (price < 0.01) price = 0.01;
-    final[index] = price;
-    index++;
-  }
-  return final;
-};
-
-export const seededRandom = (seed: number): number => {
+const seededRandom = (seed: number): number => {
   let t = seed + 0x6d_2b_79_f5;
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -146,9 +95,7 @@ export const quantile = (array: Float64Array | number[], percent: number): numbe
   return numberAt(array, Math.ceil(id));
 };
 
-export const timeout = async (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
-
-export const getOrdinalSuffix = (amount: number): string => {
+const getOrdinalSuffix = (amount: number): string => {
   const lastDigit = amount % 10;
   const lastTwoDigits = amount % 100;
 

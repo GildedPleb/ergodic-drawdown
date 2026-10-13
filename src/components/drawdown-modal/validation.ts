@@ -1,9 +1,6 @@
 import { type FormData } from "../../types";
 
-export const validateNumericInput = (
-  value: number | string | undefined,
-  defaultValue = 0,
-): number => {
+const validateNumericInput = (value: number | string | undefined, defaultValue = 0): number => {
   if (value === "" || value === undefined) return defaultValue;
   const numb = typeof value === "string" ? Number.parseFloat(value) : value;
   return Number.isNaN(numb) ? defaultValue : numb;

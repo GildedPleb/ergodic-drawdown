@@ -1,7 +1,7 @@
 import { type ExportedState } from "../../classes/growable-shared-array";
 import { type Full, type NarrowedOneOffFiat } from "../../types";
 
-export type TaskStatus = "aborted" | "completed" | "pending";
+type TaskStatus = "aborted" | "completed" | "pending";
 
 export interface Task {
   arrayIndex: number;
