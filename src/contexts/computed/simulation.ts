@@ -19,7 +19,9 @@ export const handleSimulation = async (
   fullHash: string,
 ): Promise<string> => {
   const returnHash = fullHash + epochCount + samples;
-  const [validWidth, validHeight] = simulationData.getValidity(fullHash);
+  // The leading NaN prefix is weeksSince long. The model hash does not cover it.
+  const gridHash = `${fullHash}:${weeksSince}`;
+  const [validWidth, validHeight] = simulationData.getValidity(gridHash);
   simulationData.resize(epochCount, samples);
   if (validHeight === 0) simulationData.clear();
   const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
@@ -63,6 +65,6 @@ export const handleSimulation = async (
   }
 
   console.log("simulation success");
-  simulationData.setValidity(fullHash);
+  simulationData.setValidity(gridHash);
   return "success:" + returnHash;
 };

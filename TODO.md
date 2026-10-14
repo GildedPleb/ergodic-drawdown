@@ -41,6 +41,10 @@ IMPROVE AESTHETICS / UX
 - An entire new redesign is in order.
 - We need to do a way better job of communicating how inflation is calculated across everything in the app. For instance, if you have a paycheck of $100,000 a year Does that mean your paycheck is going up 8% per year? or is it not affected or is it going down 80% per year?
 
+KNOWN
+
+- One-off fiat variable-date, Start at 100: the spend is the last week that path is under the item's inflated dollar cost, and only when every later week on the chart stays above that cost. Inflation compounds on the item. A bitcoin path can be higher than it was and still fall back under the line, because the item's dollar cost rises faster than the path. A date that looks settled on a short epoch is the last unaffordable week for that chart only. A longer epoch moves that week, or drops the spend when the path is still under the line at the new right edge. Slide 17 says inflation can outrun bitcoin and the event may never show. The FAQ says 100 means spend on the last unaffordable day. Neither says a path can clear the cost and then fall back under it. Leave the search as it is. Remember this when explaining inflation or writing tutorial copy.
+
 BUGS
 
 - swiping the results box around can force a refresh of the page. Results box can be dragged out of frame on mobile

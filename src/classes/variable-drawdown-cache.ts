@@ -56,7 +56,8 @@ export default class VariableDrawdownCache {
   setValidity(currentHash: string, newHeight: number, newWidth: number): void {
     this.cacheHash = currentHash;
     this.cacheHeight = findNextGreatest1000(newHeight, this.cacheHeight);
-    this.cacheWidth = Math.max(newWidth, this.cacheWidth);
+    // Width is the series length these weeks were measured against.
+    this.cacheWidth = newWidth;
 
     // why not?:
     // if (this.cacheHash === currentHash) {
@@ -76,21 +77,23 @@ export default class VariableDrawdownCache {
     return true;
   }
 
-  *getEmpty(): Iterable<[number, number]> {
-    let start = -1;
-    for (let index = 0; index < this.cacheHeight * 2; index += 2) {
-      if (this.view[index] === -1) {
-        if (start === -1) {
-          start = index / 2;
-        }
-      } else if (start !== -1) {
-        yield [start, index / 2];
-        start = -1;
+  // Every sample has a spend. A missing amount is not a spend.
+  everySampleResolved(): boolean {
+    if (this.cacheHeight === 0) return false;
+    for (let sample = 0; sample < this.cacheHeight; sample++) {
+      const week = this.view[sample * 2];
+      const amount = this.view[sample * 2 + 1];
+      if (
+        week === undefined ||
+        amount === undefined ||
+        !Number.isFinite(week) ||
+        week < 0 ||
+        !Number.isFinite(amount)
+      ) {
+        return false;
       }
     }
-    if (start !== -1) {
-      yield [start, this.cacheHeight];
-    }
+    return true;
   }
 
   clear(): void {
@@ -114,14 +117,25 @@ export default class VariableDrawdownCache {
   }
 
   getGate(): [effective: number, end: number] {
-    let min = Number.MAX_SAFE_INTEGER;
-    let max = 0;
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
     for (let index = 0; index < this.cacheHeight * 2; index += 2) {
       const week = this.view[index];
-      if (week === undefined) continue;
+      const amount = this.view[index + 1];
+      // A label week is a spend. The amount has to be there too.
+      if (
+        week === undefined ||
+        amount === undefined ||
+        !Number.isFinite(week) ||
+        week < 0 ||
+        !Number.isFinite(amount)
+      ) {
+        continue;
+      }
       if (week < min) min = week;
       if (week > max) max = week;
     }
+    if (!Number.isFinite(min)) return [Number.NaN, Number.NaN];
     return [min, max];
   }
 

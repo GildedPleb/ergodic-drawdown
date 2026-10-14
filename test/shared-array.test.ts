@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 
 import GrowableSharedArray from "../src/classes/growable-shared-array";
 import VariableDrawdownCache from "../src/classes/variable-drawdown-cache";
+import { VariableDrawdownFinal } from "../src/classes/variable-drawdown-final";
 import { MAX_SAMPLE_COUNT } from "../src/constants";
 
 const cell = (last: number): Float64Array => new Float64Array([1, 2, 3, last]);
@@ -150,4 +151,19 @@ test("a drawdown cache stays open until every valid sample is set", () => {
   cache.set(3, 1, 1);
 
   expect(cache.isFull()).toBe(true);
+});
+
+test("a searched sample with no week counts as finished", () => {
+  const cache = new VariableDrawdownCache();
+  cache.setValidity("same", 2, 1);
+  cache.set(0, 4, 25);
+  cache.set(1, Number.NaN, Number.NaN);
+
+  expect(cache.isFull()).toBe(true);
+  expect(cache.getGate()).toEqual([4, 4]);
+
+  const final = new VariableDrawdownFinal([cache], 1, 2);
+
+  expect(final.get(0, 4)).toBe(25);
+  expect(final.get(1, 4)).toBe(undefined);
 });

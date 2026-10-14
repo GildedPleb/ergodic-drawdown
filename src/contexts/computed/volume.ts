@@ -30,7 +30,9 @@ export const handleVolume = async (
   if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
   const exportedVariableCache = variableCache.exportState();
 
-  const [validWidth, validHeight] = drawdownData.getValidity(volumeCacheHash);
+  // A new variable result moves spend weeks inside epochs that were already walked.
+  const gridHash = `${volumeCacheHash}:${variableCacheHash}:${weeksSince}`;
+  const [validWidth, validHeight] = drawdownData.getValidity(gridHash);
   if (validHeight === 0) drawdownData.clear();
   drawdownData.resize(epochCount, samples);
   const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
@@ -72,6 +74,6 @@ export const handleVolume = async (
     console.log("VOLUME TASKS ABORTED");
     return "failed:" + returnHash;
   }
-  drawdownData.setValidity(volumeCacheHash);
+  drawdownData.setValidity(gridHash);
   return "success:" + returnHash;
 };

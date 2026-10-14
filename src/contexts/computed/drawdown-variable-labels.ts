@@ -3,13 +3,20 @@ import { type OneOffFiatVariable } from "../../types";
 
 const NO_CACHE_ERROR = "No cache for variable drawdown stats";
 
+// endWeek is the last path that spent. While any path has no spend, the bracket stays open.
+export type FiatVariableLabel = {
+  effectiveWeek: number;
+  endWeek?: number;
+  name: string;
+};
+
 export const handleDrawdownVariableLabels = (
   _signal: AbortSignal,
   _hash: string,
   activeOneOffVariables: OneOffFiatVariable[],
   variableDrawdownCache: Map<string, VariableDrawdownCache>,
   showModel: boolean,
-): Array<{ effectiveWeek: number; endWeek: number; name: string }> => {
+): FiatVariableLabel[] => {
   console.log("HIT");
   if (showModel) {
     console.log("NOT RENDERING VARIABLE DRAWDOWN");
@@ -23,6 +30,8 @@ export const handleDrawdownVariableLabels = (
       return [];
     }
     const [effectiveWeek, endWeek] = variableCache.getGate();
-    return { effectiveWeek, endWeek, name };
+    if (!Number.isFinite(effectiveWeek) || !Number.isFinite(endWeek)) return [];
+    if (variableCache.everySampleResolved()) return { effectiveWeek, endWeek, name };
+    return { effectiveWeek, name };
   });
 };

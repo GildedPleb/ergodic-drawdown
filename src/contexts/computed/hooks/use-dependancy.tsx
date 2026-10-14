@@ -19,6 +19,7 @@ import {
 import { type WorkerContextType } from "../../workers";
 import { type TaskResult, type WorkerTasks } from "../../workers/types";
 import { type DrawdownStaticReturn } from "../drawdown-static";
+import { type FiatVariableLabel } from "../drawdown-variable-labels";
 
 const dependencyObjectSymbol = Symbol("DependencyObject");
 
@@ -29,11 +30,7 @@ type PrimitiveDependency =
       finalBalance: Float64Array;
       zero: number;
     }
-  | Array<{
-      effectiveWeek: number;
-      endWeek: number;
-      name: string;
-    }>
+  | FiatVariableLabel[]
   | BitcoinDataPoint[]
   | ChartOptions<"line">
   | Dataset

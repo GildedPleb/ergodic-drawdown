@@ -24,6 +24,10 @@ export const handleDrawdownVariable = (
   const variableDrawdownCache = new VariableDrawdownCache(variableDrawdownBuffer);
 
   const location = arrayIndex * SIMULATIONS_PER_ARRAY;
+  // -1 stays uncomputed. A searched path with no spend stores NaN for the week and the amount.
+  const markSearched = (sample: number): void => {
+    variableDrawdownCache.set(sample + location, Number.NaN, Number.NaN);
+  };
 
   const priceNeeded = amountToday / btcWillingToSpend;
   const effectiveRatio = start / 100;
@@ -39,7 +43,10 @@ export const handleDrawdownVariable = (
       return;
     }
     const graph = data.getRow(sample);
-    if (graph === undefined) continue;
+    if (graph === undefined) {
+      markSearched(sample);
+      continue;
+    }
     const graphLength = graph.length - weeksSince;
     const adjustedGraph = graph.slice(weeksSince);
 
@@ -52,7 +59,10 @@ export const handleDrawdownVariable = (
         break;
       }
     }
-    if (first === undefined) continue;
+    if (first === undefined) {
+      markSearched(sample);
+      continue;
+    }
 
     let last;
     for (let week = graphLength - 1; week >= first; week--) {
@@ -63,7 +73,11 @@ export const handleDrawdownVariable = (
         break;
       }
     }
-    if (last === graphLength - 1 && effectiveRatio !== 0) continue;
+    if (last === graphLength - 1 && effectiveRatio !== 0) {
+      // The series ended unaffordable, so the spend week is not known.
+      markSearched(sample);
+      continue;
+    }
 
     const drawdownWeek =
       first +
@@ -72,18 +86,14 @@ export const handleDrawdownVariable = (
       // I'm not sure where the off-by-one error arises, but this "+ 1" seems to fix it.
       1;
     if (drawdownWeek < graphLength) {
-      // console.log({
-      //   amount: amountToday * inflationFactors[drawdownWeek],
-      //   drawdownWeek,
-      //   inflationFactorsLength: inflationFactors.length,
-      //   loc: sample * location,
-      // });
       const inflation = inflationFactors[drawdownWeek];
-      variableDrawdownCache.set(
-        sample + location,
-        drawdownWeek,
-        inflation === undefined ? Number.NaN : amountToday * inflation,
-      );
+      if (inflation === undefined) {
+        markSearched(sample);
+      } else {
+        variableDrawdownCache.set(sample + location, drawdownWeek, amountToday * inflation);
+      }
+    } else {
+      markSearched(sample);
     }
   }
 };

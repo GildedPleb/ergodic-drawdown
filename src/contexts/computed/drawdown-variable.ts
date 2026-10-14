@@ -70,39 +70,17 @@ export const handleDrawdownVariables = async (
 
     // Get the validity: The valid height that has been computed for so far.
     const { validHeight, validWidth } = variableCache.getValidity(validityHash);
-    // console.log({ validHeight, validWidth });
-    if (validHeight === 0) {
-      // If there is no valid height, clear everythign and continue to (samples > validHeight)
-      // console.log("valid height 0, clearing cache");
-      variableCache.clear();
-    } else if (variableCache.isFull()) {
-      // If the variable cache is full, meaning there are no samples that return -1,
-      // then we should not need to compute anything w/r/t samples OR epochs.
-      // console.log("variableCache is full", variableCache);
-    } else if (epochCount > validWidth) {
-      // This should only be run when the epoch count is extended.
-      // console.log("variableCache is not full", variableCache);
-      for (const spread of variableCache.getEmpty()) {
-        const newTasks = createTaskQueue(
-          spread[1],
-          Math.ceil(worker.count / activeOneOffVariables.length),
-          samples,
-          spread[0],
-        );
-        // console.log("iterable", { newTasks, spread });
-        taskQueueSamples.push(...newTasks);
-      }
-    } else {
-      // However, if the epochCount is shorter... should we do anything? I don't thing so???
-      // console.log({ epochCount, validWidth });
-    }
-    if (samples > validHeight)
+    // The spend week is the last unaffordable week inside this series. Another length is another answer.
+    const seriesChanged = validHeight !== 0 && epochCount !== validWidth;
+    if (validHeight === 0 || seriesChanged) variableCache.clear();
+    const searchedSamples = validHeight === 0 || seriesChanged ? 0 : validHeight;
+    if (samples > searchedSamples)
       taskQueueSamples.push(
         ...createTaskQueue(
           samples,
           Math.ceil(worker.count / activeOneOffVariables.length),
           samples,
-          validHeight,
+          searchedSamples,
         ),
       );
     // console.log({ buffer: sharedBuffers[task.arrayIndex] });
@@ -122,8 +100,7 @@ export const handleDrawdownVariables = async (
     );
   });
   // console.log({ taskQueue });
-  if (taskQueue.length === 0) {
-    // console.log("NO TASKS", { activeOneOffVariables });
+  const publishFinal = (): void => {
     const caches = [];
     for (const { hash } of activeOneOffVariables) {
       const variableCache = variableDrawdownCache.get(hash);
@@ -132,8 +109,14 @@ export const handleDrawdownVariables = async (
       if (variableCache.isFull()) caches.push(variableCache);
     }
     const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
-    finalVariableCache.clear();
     finalVariableCache.set(variableCacheHash, finalResults);
+    for (const key of finalVariableCache.keys()) {
+      if (key !== variableCacheHash) finalVariableCache.delete(key);
+    }
+  };
+
+  if (taskQueue.length === 0) {
+    publishFinal();
     return "no tasks:" + returnHash;
   }
 
@@ -142,16 +125,7 @@ export const handleDrawdownVariables = async (
   if (results.some((result) => result.status === "aborted")) {
     console.log("aborted");
   } else {
-    const caches = [];
-    for (const { hash } of activeOneOffVariables) {
-      const variableCache = variableDrawdownCache.get(hash);
-      if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
-      variableCache.setValidity(validityHash, samples, epochCount);
-      if (variableCache.isFull()) caches.push(variableCache);
-    }
-    const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
-    finalVariableCache.clear();
-    finalVariableCache.set(variableCacheHash, finalResults);
+    publishFinal();
   }
   return "success:" + returnHash;
 };

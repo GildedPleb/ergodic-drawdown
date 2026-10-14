@@ -4,10 +4,14 @@ import { type LineAnnotationOptions } from "chartjs-plugin-annotation";
 import { isMobile, MS_PER_WEEK, MS_PER_YEAR } from "../../constants";
 import { generateColor } from "../../helpers";
 import { type OneOffItem, type ReoccurringItem } from "../../types";
+import { type FiatVariableLabel } from "./drawdown-variable-labels";
 
 const annotationColor = "rgba(255, 99, 132, 0.2)";
 const SPACING_PX = 5;
-const HEIGHT = document.querySelector(".chart-canvas")?.getBoundingClientRect().height ?? 100;
+const HEIGHT =
+  typeof document === "undefined"
+    ? 100
+    : (document.querySelector(".chart-canvas")?.getBoundingClientRect().height ?? 100);
 
 const createDateLabel = (date: Date): string => {
   const today = new Date();
@@ -95,7 +99,7 @@ const generateReoccurringItemAnnotations = (
   reoccurringItems: ReoccurringItem[],
   oneOffItems: OneOffItem[],
   dataLength: number,
-  fiatVariable: Array<{ effectiveWeek: number; endWeek: number; name: string }>,
+  fiatVariable: FiatVariableLabel[],
   now: number,
 ): LineAnnotationOptions[] => {
   const allItems = [...reoccurringItems, ...fiatVariable, ...oneOffItems];
@@ -106,12 +110,21 @@ const generateReoccurringItemAnnotations = (
     const color = generateColor(index, 0.5);
     if ("effectiveWeek" in item) {
       const startTime = now + item.effectiveWeek * MS_PER_WEEK;
-      const endTime = now + item.endWeek * MS_PER_WEEK;
-      return [
+      // A missing end week has not happened on every path. The bar runs to the end of the series.
+      const endTime =
+        item.endWeek === undefined
+          ? now + dataLength * MS_PER_WEEK
+          : now + item.endWeek * MS_PER_WEEK;
+      const annotations = [
         createVerticalAnnotation(startTime, color, createDateLabel(new Date(startTime))),
         createHorizontalAnnotation(startTime, endTime, color, item.name, index, true),
-        createVerticalAnnotation(endTime, color, createDateLabel(new Date(endTime))),
       ];
+      if (item.endWeek !== undefined) {
+        annotations.push(
+          createVerticalAnnotation(endTime, color, createDateLabel(new Date(endTime))),
+        );
+      }
+      return annotations;
     } else {
       const startTime = item.effective.getTime();
       if ("amountToday" in item) {
@@ -155,7 +168,7 @@ export const handleChartOptions = (
   dataLength: number,
   oneOffItems: OneOffItem[],
   showModel: boolean,
-  fiatVariable: Array<{ effectiveWeek: number; endWeek: number; name: string }>,
+  fiatVariable: FiatVariableLabel[],
   showHistoric: boolean,
 ): ChartOptions<"line"> => {
   const mobile = isMobile();

@@ -108,7 +108,7 @@ export class VariableDrawdownFinal {
     for (let sample = 0; sample < this.sampleCount; sample++) {
       for (const cache of caches) {
         const [week, amount] = cache.get(sample);
-        if (week !== -1) {
+        if (week !== -1 && Number.isFinite(week) && Number.isFinite(amount)) {
           this.set(sample, week, amount);
         }
       }

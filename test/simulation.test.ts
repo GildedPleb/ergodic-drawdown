@@ -2,6 +2,9 @@ import { expect, test } from "bun:test";
 
 import GrowableSharedArray from "../src/classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../src/constants";
+import { handleSimulation as scheduleSimulation } from "../src/contexts/computed/simulation";
+import type { WorkerContextType } from "../src/contexts/workers";
+import type { TaskResult } from "../src/contexts/workers/types";
 import { handleSimulation } from "../src/contexts/workers/simulation";
 
 const weeks = WEEKS_PER_EPOCH;
@@ -171,4 +174,49 @@ test("a simulation asked to start at epoch 0 writes that epoch", () => {
   if (row === undefined) throw new Error("missing first epoch");
   expect(row[0]).toBe(spot);
   expect(row[weeks - 1]).toBe(spot);
+});
+
+test("a new weeksSince rebuilds a finished price grid", async () => {
+  let writes = 0;
+  const worker: WorkerContextType = {
+    addTasks: (tasks) => {
+      writes += tasks.length;
+      return Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "completed" })));
+    },
+    count: 1,
+  };
+  const data = new GrowableSharedArray(1, 1);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const run = (weeksSince: number): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      spot,
+      minArray,
+      maxArray,
+      1,
+      data,
+      1,
+      worker,
+      weeksSince,
+      full,
+      "model",
+    );
+
+  await run(4);
+  await run(4);
+  expect(writes).toBe(1);
+
+  await run(9);
+
+  expect(writes).toBe(2);
 });
