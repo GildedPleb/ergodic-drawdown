@@ -298,6 +298,31 @@ test("a zero price cycles to the next source", async () => {
   expect(warnings).toEqual(["spot price: Coinbase failed: expected a positive price, received 0"]);
 });
 
+test("the quote and the weekly series share one spot request", async () => {
+  const last = marketData.at(-1);
+  if (last === undefined) throw new Error("weekly price history is empty");
+  const bakedEnd = Math.floor(last.x / 1000);
+  const moment = (bakedEnd + 3 * 86_400) * 1000;
+  let spotCalls = 0;
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.includes("api.coinbase.com/v2/prices")) {
+      spotCalls += 1;
+      return Promise.resolve(jsonResponse({ data: { amount: "61000" } }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  const [point, series] = await Promise.all([
+    getCurrentPrice(moment),
+    getInterimWeeklyData(moment),
+  ]);
+
+  expect(point.close).toBe(61_000);
+  expect(series[0]?.close).toBe(61_000);
+  expect(spotCalls).toBe(1);
+});
+
 test("the first working price source supplies the spot", async () => {
   const warnings = captureWarnings();
   globalThis.fetch = (input: RequestInfo | URL) => {

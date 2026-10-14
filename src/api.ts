@@ -349,6 +349,9 @@ export const fetchBlockByHeight = async (height: number): Promise<number> => {
   return loadBlockTime(height);
 };
 
+// The quote and the weekly series ask together. One flight fills the hour cache.
+let spotFlight: { second: number; promise: Promise<BitcoinDataPoint> } | undefined;
+
 export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> => {
   const cacheKey = "BTC_PRICE_CACHE";
   // 1 hour cache
@@ -368,11 +371,19 @@ export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> =>
       return cache;
     }
   }
-  console.log("...fetching current price");
-  const spot = await loadSpotPrice();
-  const currentPriceData = pricePoint(currentTimestamp, spot, spot, spot, spot);
-  localStorage.setItem(cacheKey, JSON.stringify(currentPriceData));
-  return currentPriceData;
+  if (spotFlight?.second === currentTimestamp) return spotFlight.promise;
+
+  const promise = (async (): Promise<BitcoinDataPoint> => {
+    console.log("...fetching current price");
+    const spot = await loadSpotPrice();
+    const currentPriceData = pricePoint(currentTimestamp, spot, spot, spot, spot);
+    localStorage.setItem(cacheKey, JSON.stringify(currentPriceData));
+    return currentPriceData;
+  })().finally(() => {
+    if (spotFlight?.promise === promise) spotFlight = undefined;
+  });
+  spotFlight = { promise, second: currentTimestamp };
+  return promise;
 };
 
 export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoint[]> => {

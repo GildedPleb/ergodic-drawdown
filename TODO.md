@@ -61,7 +61,6 @@ ADD SLIDER
 
 Tuesday, October 13, 2026:
 
-- Add multiple sources for latest block. so we find the latest block but we need multiple sources for that.
 - We should also allow it to get the latest block from a local Bitcoin blockchain and get the latest price from a local deployed thing. I don't know how that works. I don't know how you get the latest price or something, but we should investigate that.
 - move all the turorial slides to MD (after redesign)
 - Add all the new prices to the backend, so we don't need to fetch them.
