@@ -28,22 +28,26 @@ const bakedHalvings: HalvingData = {
   "840000": 1_713_571_767,
 };
 
-const isHalvingData = (value: unknown): value is HalvingData => {
-  if (typeof value !== "object" || value === null) return false;
-  for (const entry of Object.values(value)) {
-    if (typeof entry !== "number") return false;
+const storedHalvingTimes = (value: unknown): HalvingData => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const times: HalvingData = {};
+  for (const [height, time] of Object.entries(value)) {
+    if (!/^[1-9]\d*$/.test(height)) continue;
+    if (typeof time !== "number" || !Number.isFinite(time) || time <= 0) continue;
+    times[height] = time;
   }
-  return true;
+  return times;
 };
 
 export const loadHalvings = (): HalvingData => {
   const halvings = localStorage.getItem("halvings");
-  if (halvings === null) return bakedHalvings;
+  if (halvings === null) return { ...bakedHalvings };
   try {
     const parsed: unknown = JSON.parse(halvings);
-    return isHalvingData(parsed) ? parsed : bakedHalvings;
+    // Baked times win. Storage only adds a halving this build does not know yet.
+    return { ...storedHalvingTimes(parsed), ...bakedHalvings };
   } catch {
-    return bakedHalvings;
+    return { ...bakedHalvings };
   }
 };
 

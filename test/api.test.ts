@@ -33,6 +33,15 @@ const memoryStorage = (): Storage => {
 const jsonResponse = (body: unknown, status = 200): Response =>
   Response.json(body, { status, statusText: status === 200 ? "OK" : "Service Unavailable" });
 
+const textResponse = (body: string, status = 200): Response =>
+  new Response(body, {
+    status,
+    statusText: status === 200 ? "OK" : "Service Unavailable",
+    headers: { "content-type": "text/plain" },
+  });
+
+const blockHash = "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5";
+
 const requestUrl = (input: RequestInfo | URL): string => {
   if (typeof input === "string") return input;
   if (input instanceof URL) return input.href;
@@ -74,7 +83,9 @@ test("a failed block-height response throws", async () => {
   globalThis.fetch = () => Promise.resolve(failed());
 
   await expect(getCurrentBlockHeight(now)).rejects.toThrow("Blockchain.com: 503");
-  await expect(fetchBlockByHeight(840_000)).rejects.toThrow("Failed to fetch block data");
+  await expect(fetchBlockByHeight(840_000)).rejects.toThrow(
+    "mempool.space/api/block-height/840000",
+  );
 });
 
 test("a zero block height cycles to the next source", async () => {
@@ -131,6 +142,87 @@ test("a block-height response returns the height and the block time", async () =
 
   expect(await getCurrentBlockHeight(now)).toBe(840_000);
   expect(await fetchBlockByHeight(840_000)).toBe(1_713_571_767);
+});
+
+test("a failed block time cycles to the next source", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url === `https://blockstream.info/api/block-height/840000`) {
+      return Promise.resolve(textResponse(blockHash));
+    }
+    if (url === `https://blockstream.info/api/block/${blockHash}`) {
+      return Promise.resolve(jsonResponse({ timestamp: 1_713_571_767 }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  expect(await fetchBlockByHeight(840_000)).toBe(1_713_571_767);
+  expect(warnings).toEqual([
+    "block time: Blockchain.com failed: 503 Service Unavailable for https://blockchain.info/block-height/840000?format=json",
+  ]);
+});
+
+test("a zero block time cycles to the next source", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.includes("blockchain.info/block-height/")) {
+      return Promise.resolve(jsonResponse({ blocks: [{ time: 0 }] }));
+    }
+    if (url === `https://blockstream.info/api/block-height/840000`) {
+      return Promise.resolve(textResponse(blockHash));
+    }
+    if (url === `https://blockstream.info/api/block/${blockHash}`) {
+      return Promise.resolve(jsonResponse({ timestamp: 1_713_571_767 }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  expect(await fetchBlockByHeight(840_000)).toBe(1_713_571_767);
+  expect(warnings).toEqual([
+    "block time: Blockchain.com failed: expected a block time, received 0",
+  ]);
+});
+
+test("block time uses mempool when the earlier sources fail", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url === `https://mempool.space/api/block-height/840000`) {
+      return Promise.resolve(textResponse(blockHash));
+    }
+    if (url === `https://mempool.space/api/block/${blockHash}`) {
+      return Promise.resolve(jsonResponse({ timestamp: 1_713_571_767 }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  expect(await fetchBlockByHeight(840_000)).toBe(1_713_571_767);
+  expect(warnings).toEqual([
+    "block time: Blockchain.com failed: 503 Service Unavailable for https://blockchain.info/block-height/840000?format=json",
+    "block time: Blockstream failed: 503 Service Unavailable for https://blockstream.info/api/block-height/840000",
+  ]);
+});
+
+test("a block hash that is not hex cycles to the next source", async () => {
+  const warnings = captureWarnings();
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = requestUrl(input);
+    if (url.includes("blockstream.info/api/block-height/")) {
+      return Promise.resolve(textResponse("nope"));
+    }
+    if (url === `https://mempool.space/api/block-height/840000`) {
+      return Promise.resolve(textResponse(blockHash));
+    }
+    if (url === `https://mempool.space/api/block/${blockHash}`) {
+      return Promise.resolve(jsonResponse({ timestamp: 1_713_571_767 }));
+    }
+    return Promise.resolve(failed());
+  };
+
+  expect(await fetchBlockByHeight(840_000)).toBe(1_713_571_767);
+  expect(warnings[1]).toBe("block time: Blockstream failed: expected a block hash, received nope");
 });
 
 test("a recent baked week does not request weekly history", async () => {

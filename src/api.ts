@@ -66,13 +66,23 @@ const pricePoint = (
   volumeto: 0,
 });
 
-const readJson = async (url: string): Promise<unknown> => {
+const readResponse = async (url: string): Promise<Response> => {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText} for ${url}`);
   }
+  return response;
+};
+
+const readJson = async (url: string): Promise<unknown> => {
+  const response = await readResponse(url);
   const body: unknown = await response.json();
   return body;
+};
+
+const readText = async (url: string): Promise<string> => {
+  const response = await readResponse(url);
+  return response.text();
 };
 
 const firstWorking = async <T>(
@@ -287,19 +297,56 @@ export const getCurrentBlockHeight = async (now: number): Promise<number> => {
   return blockHeight;
 };
 
-export const fetchBlockByHeight = async (height: number): Promise<number> => {
-  console.log("...fetching block:", height);
-  const response = await fetch(`https://blockchain.info/block-height/${height}?format=json`);
-  if (!response.ok) throw new Error("Failed to fetch block data");
-  const body: unknown = await response.json();
+const blockTime = (value: unknown): number => {
+  if (!isPositive(value)) {
+    throw new Error(`expected a block time, received ${String(value)}`);
+  }
+  return value;
+};
+
+const loadBlockchainBlockTime = async (height: number): Promise<number> => {
+  const url = `https://blockchain.info/block-height/${height}?format=json`;
+  const body = await readJson(url);
   if (!isRecord(body) || !Array.isArray(body["blocks"])) {
-    throw new Error("Failed to fetch block data");
+    throw new Error(`expected block data from ${url}`);
   }
   const block = body["blocks"][0];
-  if (!isRecord(block) || typeof block["time"] !== "number") {
-    throw new Error("Failed to fetch block data");
+  if (!isRecord(block)) throw new Error(`expected block data from ${url}`);
+  return blockTime(block["time"]);
+};
+
+const isBlockHash = (value: string): boolean => /^[0-9a-f]{64}$/i.test(value);
+
+const loadEsploraBlockTime = async (origin: string, height: number): Promise<number> => {
+  const hashUrl = `${origin}/api/block-height/${height}`;
+  const hash = (await readText(hashUrl)).trim();
+  if (!isBlockHash(hash)) {
+    throw new Error(`expected a block hash, received ${hash}`);
   }
-  return block["time"];
+  const block = await readJson(`${origin}/api/block/${hash}`);
+  if (!isRecord(block)) throw new Error(`expected block data from ${origin}`);
+  return blockTime(block["timestamp"]);
+};
+
+const loadBlockTime = (height: number): Promise<number> =>
+  firstWorking("block time", [
+    {
+      name: "Blockchain.com",
+      load: () => loadBlockchainBlockTime(height),
+    },
+    {
+      name: "Blockstream",
+      load: () => loadEsploraBlockTime("https://blockstream.info", height),
+    },
+    {
+      name: "Mempool",
+      load: () => loadEsploraBlockTime("https://mempool.space", height),
+    },
+  ]);
+
+export const fetchBlockByHeight = async (height: number): Promise<number> => {
+  console.log("...fetching block:", height);
+  return loadBlockTime(height);
 };
 
 export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> => {
