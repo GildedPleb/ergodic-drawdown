@@ -9,6 +9,7 @@ const cutoffs = [0, 0.25, 0.5, 1];
 const weeks = [
   [10, 30, 20, 50, 40],
   [5, 1, 4, 2, 3],
+  [7, 7, 7, 4, 4],
 ];
 
 const ranks = (values: readonly number[]): number[] => {
@@ -47,8 +48,11 @@ test("a known sample vector produces the order statistic at each cutoff", () => 
   );
 
   const result = [...new Float64Array(quantiles)];
-  expect(result.slice(0, cutoffs.length)).toEqual(ranks(weeks[0] ?? []));
-  expect(result.slice(cutoffs.length)).toEqual(ranks(weeks[1] ?? []));
+  for (let week = 0; week < weeks.length; week++) {
+    const prices = weeks[week];
+    if (prices === undefined) throw new Error("missing week");
+    expect(result.slice(week * cutoffs.length, (week + 1) * cutoffs.length)).toEqual(ranks(prices));
+  }
 });
 
 test("an aborted quantile pass leaves the result buffer empty", () => {

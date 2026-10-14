@@ -21,15 +21,15 @@ export const handleQuantile = (
       return;
     }
     const weekData = groupedData.subarray(week * samples, (week + 1) * samples);
+    // One list for the week. The nine slices share it. quickselect does not accept the typed array.
+    const values = Array.from(weekData);
     let left = 0;
     const right = samples - 1;
 
     for (let quantile = 0; quantile < cutoffs.length; quantile++) {
       const innerIndex = Math.floor(right * numberAt(cutoffs, quantile));
-      const values = Array.from(weekData);
       quickselect(values, innerIndex, left);
-      weekData.set(values);
-      quantiles[week * cutoffs.length + quantile] = numberAt(weekData, innerIndex);
+      quantiles[week * cutoffs.length + quantile] = numberAt(values, innerIndex);
       left = innerIndex + 1;
     }
   }
