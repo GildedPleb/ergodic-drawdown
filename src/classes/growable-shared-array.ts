@@ -144,6 +144,11 @@ export default class GrowableSharedArray {
 
   getLastArray(): Float64Array {
     const result = new Float64Array(this.activeHeight);
+    // There is no last column. Zero would look like a real final balance.
+    if (this.activeWidth === 0 || this.itemLength === 0) {
+      result.fill(Number.NaN);
+      return result;
+    }
     for (let y = 0; y < this.activeHeight; y++) {
       const lastItemIndex = this.getIndex(this.activeWidth - 1, y) + this.itemLength - 1;
       result[y] = numberAt(this.view, lastItemIndex);
@@ -199,12 +204,11 @@ export default class GrowableSharedArray {
   coalesce(lastHalving: number, getZero = false): Float64Array[] {
     const result: Float64Array[] = [];
 
-    for (let y = 0; y < this.height; y++) {
-      const row = new Float64Array(this.width * this.itemLength);
-      const newRow = this.getRow(y, getZero);
-      if (newRow === undefined) continue;
-      row.set(newRow);
-      result.push(row.subarray(lastHalving));
+    for (let y = 0; y < this.activeHeight; y++) {
+      const row = this.getRow(y, getZero);
+      if (row === undefined) continue;
+      // Copy the active weeks only. Allocated slack past activeWidth is not data.
+      result.push(new Float64Array(row.subarray(lastHalving)));
     }
 
     return result;

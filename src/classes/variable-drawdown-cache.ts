@@ -70,10 +70,8 @@ export default class VariableDrawdownCache {
   }
 
   isFull(): boolean {
-    for (let index = 0; index < this.cacheHeight; index += 2) {
-      if (this.view[index] === -1) {
-        return false;
-      }
+    for (let sample = 0; sample < this.cacheHeight; sample++) {
+      if (this.view[sample * 2] === -1) return false;
     }
     return true;
   }

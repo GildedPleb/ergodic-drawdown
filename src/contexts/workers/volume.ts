@@ -1,5 +1,5 @@
 import GrowableSharedArray from "../../classes/growable-shared-array";
-import { numberAt } from "../../number-at";
+import { lastFinite, numberAt } from "../../number-at";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
 import { type RunVolumeEvent, type SignalState } from "./types";
 
@@ -47,7 +47,9 @@ export const handleVolumeCalculation = (
       const volumeSegment = volumeData.get(epoch, sample);
       if (volumeSegment !== undefined) {
         sampleLength += volumeSegment.length;
-        previous = numberAt(volumeSegment, volumeSegment.length - 1);
+        // A cached epoch can end in NaN. That tail is not the running balance.
+        const carried = lastFinite(volumeSegment);
+        if (carried !== undefined) previous = carried;
         continue;
       }
 
@@ -77,7 +79,8 @@ export const handleVolumeCalculation = (
 
           const next = y < 0 ? 0 : y;
           dataArray[week] = next;
-          previous = next;
+          // A missing cashflow week is not a balance. Keep the last real one.
+          if (!Number.isNaN(next)) previous = next;
         }
       }
       volumeData.set(epoch, sample, dataArray);

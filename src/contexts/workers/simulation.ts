@@ -1,7 +1,7 @@
 import GrowableSharedArray from "../../classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { walks } from "../../data/walks";
-import { numberAt } from "../../number-at";
+import { lastFinite, numberAt } from "../../number-at";
 import { type RunSimulationEvent, type SignalState } from "./types";
 
 const base = 10;
@@ -38,7 +38,8 @@ export const handleSimulation = (
   const data = GrowableSharedArray.fromExportedState(bufferState);
   // console.log("called with random id:", { epochCount, id, task });
   for (let sample = startIndex; sample < endIndex; sample++) {
-    const adjustedEpoch = (startEpoch ?? 1) - 1;
+    // startEpoch 0 means nothing is cached yet. Subtracting 1 would read epoch -1.
+    const adjustedEpoch = Math.max((startEpoch ?? 1) - 1, 0);
     let sampleLength = adjustedEpoch * WEEKS_PER_EPOCH;
     let lastPrice = currentPrice;
 
@@ -51,13 +52,23 @@ export const handleSimulation = (
       const segment = data.get(epoch, sample);
       if (segment !== undefined) {
         sampleLength += segment.length;
-        lastPrice = numberAt(segment, segment.length - 1);
+        const carried = lastFinite(segment);
+        if (carried !== undefined) lastPrice = carried;
         continue;
       }
-      const currentLength = sampleLength - weeksSince;
-      const starting = sampleLength === 0;
-      const currentStart = starting ? 0 : currentLength;
+      // Local week 0 of this epoch is `epochStart` weeks into the bound series.
+      const epochStart = sampleLength - weeksSince;
+      const firstPresent = epochStart < 0 ? -epochStart : 0;
+      if (firstPresent >= WEEKS_PER_EPOCH) {
+        // The epoch ends before the price series. Its tail is NaN, not a price.
+        const blank = new Float64Array(WEEKS_PER_EPOCH);
+        blank.fill(Number.NaN);
+        data.set(epoch, sample, blank);
+        sampleLength += WEEKS_PER_EPOCH;
+        continue;
+      }
 
+      const currentStart = epochStart < 0 ? 0 : epochStart;
       let innerStartingPrice;
       const startingMin = numberAt(minSeries, currentStart);
       const startingMax = numberAt(maxSeries, currentStart);
@@ -77,14 +88,14 @@ export const handleSimulation = (
         clampBottom,
         clampTop,
         start: innerStartingPrice,
-        startWeek: starting ? weeksSince : 0,
+        startWeek: firstPresent,
         volatility,
       });
 
       for (let week = 0; week < rawWalk.length; week++) {
         const normalizedPrice = numberAt(rawWalk, week);
-        const indexOffset = week + currentLength;
-        // The first epoch begins weeksSince before the bound series. Those weeks are before now.
+        const indexOffset = week + epochStart;
+        // Weeks before the bound series have no price. They stay NaN.
         const min = minSeries[indexOffset];
         const max = maxSeries[indexOffset];
         const logMin = logMinSeries[indexOffset];
@@ -112,7 +123,8 @@ export const handleSimulation = (
       }
 
       data.set(epoch, sample, rawWalk);
-      lastPrice = numberAt(rawWalk, rawWalk.length - 1);
+      const carried = lastFinite(rawWalk);
+      if (carried !== undefined) lastPrice = carried;
       sampleLength += rawWalk.length;
     }
   }
