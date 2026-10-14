@@ -1,13 +1,9 @@
-import { LRUCache } from "lru-cache";
-
 import marketData from "./data/datasets/bitcoin_weekly_prices_transformed_2.json";
 import { type BitcoinDataPoint } from "./types";
 
 const lastBakedWeek = marketData.at(-1);
 if (lastBakedWeek === undefined) throw new Error("weekly price history is empty");
 const bakedWeeklyEnd = Math.floor(lastBakedWeek.x / 1000);
-
-const lruCache = new LRUCache<string, BitcoinDataPoint[]>({ max: 1 });
 
 const DAY_SECONDS = 86_400;
 const WEEK_SECONDS = 7 * DAY_SECONDS;
@@ -333,10 +329,6 @@ export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> =>
 };
 
 export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoint[]> => {
-  const cache = lruCache.get("interim");
-  if (cache !== undefined) {
-    return cache;
-  }
   const nowDate = new Date(now);
   const storedWeekly: unknown = JSON.parse(localStorage.getItem("weeklyBTCData") ?? "[]");
   let cachedData = (Array.isArray(storedWeekly) ? storedWeekly.filter(isBitcoinPoint) : [])
@@ -347,9 +339,7 @@ export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoin
   const currentTime = Math.floor(nowDate.getTime() / 1000);
 
   if (lastCachedTimestamp >= currentTime - 604_800) {
-    const interim = cachedData.concat(currentPriceData);
-    lruCache.set("interim", interim);
-    return interim;
+    return cachedData.concat(currentPriceData);
   }
   try {
     console.log("...fetching weekly interim price action");
@@ -372,7 +362,5 @@ export const getInterimWeeklyData = async (now: number): Promise<BitcoinDataPoin
   } catch (error) {
     console.error("Error fetching data:", error);
   }
-  const interim = cachedData.concat(currentPriceData);
-  lruCache.set("interim", interim);
-  return interim;
+  return cachedData.concat(currentPriceData);
 };

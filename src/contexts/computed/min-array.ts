@@ -1,13 +1,9 @@
-import { LRUCache } from "lru-cache";
-
 import { modelMap } from "../../data/models";
 import { type ModelNames } from "../../types";
 
-const lruCache = new LRUCache<string, Float64Array[]>({ max: 5 });
-
 export const handleMinArray = (
   _signal: AbortSignal,
-  hash: string,
+  _hash: string,
   currentBlock: number,
   minMaxMultiple: number,
   model: ModelNames,
@@ -16,11 +12,6 @@ export const handleMinArray = (
   now: number,
   dataLength: number,
 ): Float64Array[] => {
-  const previous = lruCache.get(hash);
-  if (previous !== undefined) {
-    return previous;
-  }
-
   const logMinArray = new Float64Array(dataLength);
   const minPoints = new Float64Array(dataLength);
   for (let week = 0; week < dataLength; week++) {
@@ -35,6 +26,5 @@ export const handleMinArray = (
     minPoints[week] = price;
     logMinArray[week] = Math.log10(price);
   }
-  lruCache.set(hash, [minPoints, logMinArray]);
   return [minPoints, logMinArray];
 };

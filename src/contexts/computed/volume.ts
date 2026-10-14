@@ -1,5 +1,3 @@
-import { type LRUCache } from "lru-cache";
-
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { type VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
 import { createTaskQueue } from "../../helpers";
@@ -14,7 +12,7 @@ export const handleVolume = async (
   _hash: string,
   bitcoin: number,
   { totalWeeklyBitcoinItems, totalWeeklyFiatItems }: DrawdownStaticReturn,
-  variableDrawdownCache: LRUCache<string, VariableDrawdownFinal>,
+  variableDrawdownCache: Map<string, VariableDrawdownFinal>,
   samples: number,
   epochCount: number,
   simulationData: GrowableSharedArray,

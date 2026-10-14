@@ -1,5 +1,3 @@
-import { type LRUCache } from "lru-cache";
-
 import type VariableDrawdownCache from "../../classes/variable-drawdown-cache";
 import { type OneOffFiatVariable } from "../../types";
 
@@ -9,7 +7,7 @@ export const handleDrawdownVariableLabels = (
   _signal: AbortSignal,
   _hash: string,
   activeOneOffVariables: OneOffFiatVariable[],
-  variableDrawdownCache: LRUCache<string, VariableDrawdownCache>,
+  variableDrawdownCache: Map<string, VariableDrawdownCache>,
   showModel: boolean,
 ): Array<{ effectiveWeek: number; endWeek: number; name: string }> => {
   console.log("HIT");

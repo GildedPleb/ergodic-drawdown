@@ -1,13 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
+import { decideSuiteRecord, type SuiteRecord } from "./suite-record";
+
 const suitePath = "test-suite.json";
 const lcovPath = "coverage/lcov.info";
-
-interface SuiteRecord {
-  lineCoverage: number;
-  wallTimeMs: number;
-}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -64,13 +61,9 @@ const parsed: unknown = JSON.parse(readFileSync(suitePath, "utf8"));
 if (!isSuiteRecord(parsed)) {
   throw new Error(`${suitePath} is not a suite record`);
 }
-const previous = parsed;
-if (lineCoverage < previous.lineCoverage - 1) {
-  throw new Error(
-    `line coverage ${lineCoverage}% is more than 1 point under ${previous.lineCoverage}%`,
-  );
+const decision = decideSuiteRecord(parsed, { lineCoverage, wallTimeMs });
+if (decision.kind === "fail") throw new Error(decision.reason);
+if (decision.kind === "write") {
+  writeFileSync(suitePath, `${JSON.stringify(decision.record, null, 2)}\n`);
 }
-const floor = Math.max(previous.lineCoverage, lineCoverage);
-const record: SuiteRecord = { lineCoverage: floor, wallTimeMs };
-writeFileSync(suitePath, `${JSON.stringify(record, null, 2)}\n`);
 console.log(`${lineCoverage}% in ${wallTimeMs}ms`);

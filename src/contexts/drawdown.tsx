@@ -1,4 +1,3 @@
-import { LRUCache } from "lru-cache";
 import React, { createContext, useContext, useMemo, useRef, useState } from "react";
 
 import GrowableSharedArray from "../classes/growable-shared-array";
@@ -20,7 +19,7 @@ import {
 export interface DrawdownContextType {
   bitcoin: number;
   drawdownData: GrowableSharedArray;
-  finalVariableCache: LRUCache<string, VariableDrawdownFinal>;
+  finalVariableCache: Map<string, VariableDrawdownFinal>;
   inflation: number;
   loadingVolumeData: boolean;
   oneOffFiatVariables: OneOffFiatVariable[];
@@ -34,7 +33,7 @@ export interface DrawdownContextType {
   setReoccurringItems: React.Dispatch<React.SetStateAction<ReoccurringItem[]>>;
   setShowDrawdown: React.Dispatch<React.SetStateAction<boolean>>;
   showDrawdown: boolean;
-  variableDrawdownCache: LRUCache<string, VariableDrawdownCache>;
+  variableDrawdownCache: Map<string, VariableDrawdownCache>;
 }
 
 const DrawdownContext = createContext<DrawdownContextType | null>(null);
@@ -179,10 +178,8 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({ children }) => 
     // },
   ]);
 
-  const innerCacheReference = useRef(new LRUCache<string, VariableDrawdownCache>({ max: 100 }));
-  const finalVariableCacheReference = useRef(
-    new LRUCache<string, VariableDrawdownFinal>({ max: 10 }),
-  );
+  const innerCacheReference = useRef(new Map<string, VariableDrawdownCache>());
+  const finalVariableCacheReference = useRef(new Map<string, VariableDrawdownFinal>());
 
   const value = useMemo(
     () =>

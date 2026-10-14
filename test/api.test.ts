@@ -151,6 +151,11 @@ test("a recent baked week does not request weekly history", async () => {
 
   expect(points.length).toBe(1);
   expect(points[0]?.close).toBe(61_000);
+  expect(points[0]?.time).toBe(bakedEnd + 3 * 86_400);
+
+  const later = await getInterimWeeklyData((bakedEnd + 4 * 86_400) * 1000);
+
+  expect(later[0]?.time).toBe(bakedEnd + 4 * 86_400);
   expect(
     urls.some(
       (url) => url.includes("/candles") || url.includes("market_chart") || url.includes("/OHLC"),

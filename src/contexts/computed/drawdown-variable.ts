@@ -1,5 +1,3 @@
-import { type LRUCache } from "lru-cache";
-
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import VariableDrawdownCache from "../../classes/variable-drawdown-cache";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
@@ -17,9 +15,9 @@ export const handleDrawdownVariables = async (
   samples: number,
   fullHashInflation: string,
   simulationData: GrowableSharedArray,
-  finalVariableCache: LRUCache<string, VariableDrawdownFinal>,
+  finalVariableCache: Map<string, VariableDrawdownFinal>,
   activeOneOffVariables: NarrowedOneOffFiat[],
-  variableDrawdownCache: LRUCache<string, VariableDrawdownCache>,
+  variableDrawdownCache: Map<string, VariableDrawdownCache>,
   worker: WorkerContextType,
   inflationFactors: Float64Array,
   weeksSince: number,
@@ -50,6 +48,12 @@ export const handleDrawdownVariables = async (
   //   return variableCacheHash;
   // }
   const simulationExport = simulationData.exportState();
+  const activeHashes = new Set(activeOneOffVariables.map((item) => item.hash));
+  for (const key of variableDrawdownCache.keys()) {
+    if (!activeHashes.has(key)) variableDrawdownCache.delete(key);
+  }
+  // The stored week index is sliced by weeksSince. A matching model hash is not enough.
+  const validityHash = `${fullHashInflation}:${weeksSince}`;
 
   const taskQueue = [
     ...new Map(activeOneOffVariables.map((item) => [item.hash, item])).values(),
@@ -65,7 +69,7 @@ export const handleDrawdownVariables = async (
     if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
 
     // Get the validity: The valid height that has been computed for so far.
-    const { validHeight, validWidth } = variableCache.getValidity(fullHashInflation);
+    const { validHeight, validWidth } = variableCache.getValidity(validityHash);
     // console.log({ validHeight, validWidth });
     if (validHeight === 0) {
       // If there is no valid height, clear everythign and continue to (samples > validHeight)
@@ -124,10 +128,11 @@ export const handleDrawdownVariables = async (
     for (const { hash } of activeOneOffVariables) {
       const variableCache = variableDrawdownCache.get(hash);
       if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
-      variableCache.setValidity(fullHashInflation, samples, epochCount);
+      variableCache.setValidity(validityHash, samples, epochCount);
       if (variableCache.isFull()) caches.push(variableCache);
     }
     const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
+    finalVariableCache.clear();
     finalVariableCache.set(variableCacheHash, finalResults);
     return "no tasks:" + returnHash;
   }
@@ -141,10 +146,11 @@ export const handleDrawdownVariables = async (
     for (const { hash } of activeOneOffVariables) {
       const variableCache = variableDrawdownCache.get(hash);
       if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
-      variableCache.setValidity(fullHashInflation, samples, epochCount);
+      variableCache.setValidity(validityHash, samples, epochCount);
       if (variableCache.isFull()) caches.push(variableCache);
     }
     const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
+    finalVariableCache.clear();
     finalVariableCache.set(variableCacheHash, finalResults);
   }
   return "success:" + returnHash;

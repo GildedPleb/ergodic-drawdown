@@ -152,8 +152,9 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
         fullHash,
         inflation,
         samples,
+        weeksSince,
       }),
-    [epochCount, fullHash, activeOneOffVariablesHash, inflation, samples],
+    [epochCount, fullHash, activeOneOffVariablesHash, inflation, samples, weeksSince],
   );
   const volumeCacheHash = useMemo(() => {
     return hashSum({

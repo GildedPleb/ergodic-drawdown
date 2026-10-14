@@ -1,7 +1,6 @@
 import { type ChartOptions, type Point } from "chart.js";
 import { type LineAnnotationOptions } from "chartjs-plugin-annotation";
 import hashSum from "hash-sum";
-import { LRUCache } from "lru-cache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import GrowableSharedArray from "../../../classes/growable-shared-array";
@@ -45,8 +44,8 @@ type PrimitiveDependency =
   | Full
   | GrowableSharedArray
   | HalvingData
-  | LRUCache<string, VariableDrawdownCache>
-  | LRUCache<string, VariableDrawdownFinal>
+  | Map<string, VariableDrawdownCache>
+  | Map<string, VariableDrawdownFinal>
   | LineAnnotationOptions[]
   | NarrowedOneOffFiat[]
   | OneOffItem[]
@@ -179,8 +178,8 @@ const fastCustomHashSum = (dependencies: readonly Dependency<unknown>[]): string
       parts[index] = "Float64Array";
     } else if (Array.isArray(dep) && dep.some((item) => item instanceof Float64Array)) {
       parts[index] = "Float64Array[]";
-    } else if (dep instanceof LRUCache) {
-      parts[index] = "LRUCache";
+    } else if (dep instanceof Map) {
+      parts[index] = "Map";
     } else if (isDependencyObject(dep)) {
       parts[index] = dep.currentHash;
     } else if (typeof dep === "function") {
