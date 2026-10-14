@@ -14,14 +14,11 @@ export const handleDrawdownWalkDataset = (
   showModel: boolean,
 ): DatasetList => {
   if (samplesToRender === undefined || samplesToRender === 0 || !renderDrawdownWalks || showModel) {
-    // console.log("drawdown walks returning nothing");
     return [];
   }
-  // console.log("getting some walks", samplesToRender);
 
   const dataset: DatasetList = [];
   for (let index = 0; index < samplesToRender; index++) {
-    console.log({ data: drawdownData.getRow(index), drawdownData });
     dataset.push({
       borderColor: generateColor(index),
       borderWidth: 1,
@@ -39,6 +36,5 @@ export const handleDrawdownWalkDataset = (
       yAxisID: "y1",
     });
   }
-  // console.log({ dataset });
   return dataset;
 };

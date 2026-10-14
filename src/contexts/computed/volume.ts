@@ -44,10 +44,7 @@ export const handleVolume = async (
   const taskQueueSamples = createTaskQueue(samples, worker.count, samples, validHeight);
 
   const taskQueue = taskQueueEpochs.concat(taskQueueSamples);
-  if (taskQueue.length === 0) {
-    console.log("NO TASKS VOLUME");
-    return "no tasks:" + returnHash;
-  }
+  if (taskQueue.length === 0) return "no tasks:" + returnHash;
   const drawdownExport = drawdownData.exportState();
   const simulationExport = simulationData.exportState();
 

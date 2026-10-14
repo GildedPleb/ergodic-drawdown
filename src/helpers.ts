@@ -72,7 +72,6 @@ const getOrdinalSuffix = (amount: number): string => {
   }
 };
 
-// Function to convert a color code or rgb components to rgba string
 const colorToRGBA = ({ alpha = 1, blue, green, red }: RGBA): string =>
   `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 
@@ -143,18 +142,12 @@ const createTask = (arrayIndex: number, startIndex: number, endIndex: number): T
 
 const MAX_SAMPLES = 10 * 1024;
 
-// Function to create a task queue for distributing work among workers
 export const createTaskQueue = (
-  // Total number of samples required
   totalSamplesNeeded: number,
-  // Number of available workers
   workerCount: number,
-  // Number of samples per array (default: 1024)
   samplesPerArray = 1024,
-  // Starting sample index (default: 0)
   startingSample = 0,
 ): Task[] => {
-  // Input validation
   if (totalSamplesNeeded <= startingSample || workerCount === 0) return [];
   if (totalSamplesNeeded > MAX_SAMPLES)
     throw new Error(`Too many samples needed. Maximum allowed: ${MAX_SAMPLES}`);
@@ -171,7 +164,6 @@ export const createTaskQueue = (
     }
   };
 
-  // 1. Handle the starting array if we're not starting from the beginning
   if (startingSample !== 0) {
     const startingArray = Math.floor(startingSample / samplesPerArray);
     const startSample = startingSample % samplesPerArray;
@@ -182,7 +174,6 @@ export const createTaskQueue = (
     if (tasks.length < workerCount) saved = workerCount - tasks.length;
   }
 
-  // 2. Handle full arrays
   let currentArray = Math.floor(currentSample / samplesPerArray);
   const remainingWorkMidway = totalSamplesNeeded - currentSample;
   const fullArraysNeeded = Math.floor(remainingWorkMidway / samplesPerArray);
@@ -205,7 +196,6 @@ export const createTaskQueue = (
     }
   }
 
-  // 3. Handle leftovers (always 1 array)
   const remainingWork = totalSamplesNeeded - currentSample;
   if (remainingWork !== 0) {
     const workers = saved !== 0 && remainingWork < 45 ? saved : workerCount;
@@ -255,7 +245,7 @@ const generateKey = async (
   return { key, salt: saltBuffer };
 };
 
-// Custom replacer function for JSON.stringify
+// Identity. Dates stay ISO strings so customReviver can restore them.
 const customReplacer = (_key: string, value: unknown): unknown => {
   return value;
 };
@@ -263,13 +253,7 @@ const customReplacer = (_key: string, value: unknown): unknown => {
 const isSerializedDate = (value: string): boolean => {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value);
 };
-// Custom reviver function for JSON.parse
-/**
- *
- * @param _key - stuff
- * @param value - stuff
- * @returns marshaled data
- */
+// Stored ISO timestamps parse back into Date.
 function customReviver<T>(_key: string, value: T): Date | T {
   if (typeof value === "string" && isSerializedDate(value)) {
     return new Date(value);

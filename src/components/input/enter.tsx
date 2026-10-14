@@ -19,7 +19,6 @@ const handleEnterKey: KeyboardEventHandler<FocusableElement> = (
 
   const currentIndex = elements.indexOf(target);
 
-  // Ensure we have a valid index and there is a next element
   if (currentIndex === -1 || currentIndex >= elements.length - 1) {
     return;
   }

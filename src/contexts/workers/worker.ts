@@ -10,13 +10,7 @@ const taskQueue: WorkerEvent[] = [];
 let isProcessing = false;
 const signalState = { aborted: false };
 
-const processTask = ({ data, id /* workerId */ }: WorkerEvent): void => {
-  // const taskId = hashSum(Math.random());
-  // const fullId = ` Worker ${workerId} on ${id} @ ${Date.now()}`;
-
-  // if (workerId === 0)
-  // console.time(data.type + fullId);
-
+const processTask = ({ data, id }: WorkerEvent): void => {
   if (data.type === "RUN_PRICE_SIMULATION") {
     handleSimulation(data.payload, signalState);
     self.postMessage({
@@ -67,8 +61,6 @@ const processTask = ({ data, id /* workerId */ }: WorkerEvent): void => {
       status: "aborted",
     } satisfies TaskResult);
   }
-  // if (workerId === 0)
-  // console.timeEnd(data.type + fullId);
 };
 
 const processQueue = (): void => {

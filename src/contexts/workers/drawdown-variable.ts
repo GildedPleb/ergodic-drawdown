@@ -31,12 +31,6 @@ export const handleDrawdownVariable = (
 
   const priceNeeded = amountToday / btcWillingToSpend;
   const effectiveRatio = start / 100;
-  // console.log({
-  // amount: amountToday * inflationFactors[drawdownWeek],
-  // drawdownWeek,
-  // inflationFactorsLength: inflationFactors,
-  // loc: sample * location,
-  // });
 
   for (let sample = startIndex; sample < endIndex; sample++) {
     if (signalState.aborted) {

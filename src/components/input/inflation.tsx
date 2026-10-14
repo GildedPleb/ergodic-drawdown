@@ -32,7 +32,6 @@ const InflationInput = (): JSX.Element => {
       const inputValue = event.target.value;
       setLocalValue(inputValue);
 
-      // If input is empty, don't update the actual value yet
       if (inputValue === "") return;
 
       const value = Number.parseFloat(inputValue);
@@ -46,14 +45,12 @@ const InflationInput = (): JSX.Element => {
 
   const handleBlur = useCallback(() => {
     if (localValue === "") {
-      // Reset to default value of 8 when blurring with empty input
       setLocalValue("8");
       setInflation(8);
       setLoadingVolumeData(true);
       return;
     }
 
-    // Remove leading zeros and update both local and global state
     const parsedValue = Number.parseFloat(localValue);
     if (!Number.isNaN(parsedValue)) {
       const formattedValue = parsedValue.toString();

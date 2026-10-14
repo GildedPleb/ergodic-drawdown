@@ -109,7 +109,6 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
         const abortTasks = (): void => {
           console.warn("Aborting tasks for this specific call to addTasks", tasksData);
 
-          // Abort active tasks for this specific call
           for (const [worker, task] of activeWorkersReference.current.entries()) {
             if (taskIds.has(task.id)) {
               worker.postMessage({
@@ -123,7 +122,6 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
             }
           }
 
-          // Mark queued tasks for this call as aborted and remove them
           taskQueueReference.current = taskQueueReference.current.filter((task) => {
             if (taskIds.has(task.id)) {
               task.status = "aborted";
@@ -141,7 +139,6 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
             return true;
           });
 
-          // Resolve remaining tasks as aborted
           for (const id of taskIds) {
             const handler = callbackMapReference.current.get(id);
             if (handler !== undefined) {

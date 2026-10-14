@@ -18,7 +18,6 @@ export const handleDrawdownStatic = (
 ): DrawdownStaticReturn => {
   const dateToWeek = (date: Date): number => Math.floor((date.getTime() - now) / MS_PER_WEEK) + 1;
 
-  // Calculate Weekly reoccurringItems
   const totalWeeklyFiatItems = new Float64Array(dataLength);
   const totalWeeklyBitcoinItems = new Float64Array(dataLength);
 
@@ -42,7 +41,6 @@ export const handleDrawdownStatic = (
     }
   }
 
-  // Calculate Weekly oneOffItems
   for (const oneOffItem of oneOffItems) {
     if (!oneOffItem.active) continue;
     const { amountToday, effective, expense, isFiat } = oneOffItem;

@@ -23,7 +23,6 @@ export default class VariableDrawdownCache {
     const maxBufferSize = MAX_SAMPLE_COUNT * 2 * Float64Array.BYTES_PER_ELEMENT;
 
     if (buffer === undefined) {
-      // Create a new SharedArrayBuffer if not provided
       this.buffer = new SharedArrayBuffer(maxBufferSize);
       this.view = new Float64Array(this.buffer).fill(-1);
     } else {
@@ -58,16 +57,6 @@ export default class VariableDrawdownCache {
     this.cacheHeight = findNextGreatest1000(newHeight, this.cacheHeight);
     // Width is the series length these weeks were measured against.
     this.cacheWidth = newWidth;
-
-    // why not?:
-    // if (this.cacheHash === currentHash) {
-    //   this.cacheHeight = Math.max(newHeight, this.cacheHeight);
-    //   this.cacheWidth = Math.max(newWidth, this.cacheWidth);
-    // } else {
-    //   this.cacheHash = currentHash;
-    //   this.cacheHeight = newHeight;
-    //   this.cacheWidth = newWidth;
-    // }
   }
 
   isFull(): boolean {

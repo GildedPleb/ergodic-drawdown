@@ -148,7 +148,6 @@ export const useMultiFormState = (
           : event.target.value;
 
       setFormStates((previous) => {
-        //  First, apply business logic constraints
         const constrainedData = applyConstraints(
           {
             ...previous[activeType],
@@ -157,7 +156,6 @@ export const useMultiFormState = (
           maxDateUNIX,
         );
 
-        // Then, apply type validation to the constrained value
         const validatedValue = applyTypeValidation(
           name,
           readFormField(constrainedData, name),

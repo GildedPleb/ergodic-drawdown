@@ -202,15 +202,6 @@ runTest(
 runTest(
   4500,
   3,
-  // Should actually be:
-  // [
-  //   { arrayIndex: 0, endIndex: 1000, startIndex: 0 },
-  //   { arrayIndex: 1, endIndex: 1000, startIndex: 0 },
-  //   { arrayIndex: 2, endIndex: 1000, startIndex: 0 },
-  //   { arrayIndex: 3, endIndex: 500, startIndex: 0 },
-  //   { arrayIndex: 3, endIndex: 1000, startIndex: 500 },
-  //   { arrayIndex: 4, endIndex: 500, startIndex: 0 },
-  // ],
   [
     { arrayIndex: 0, endIndex: 1000, startIndex: 0 },
     { arrayIndex: 1, endIndex: 1000, startIndex: 0 },
@@ -1540,29 +1531,3 @@ runTest(
   950,
   1000,
 );
-// const base = 20;
-// const multiple = 1;
-// runTest(
-//   1000 + multiple * base - 1,
-//   16,
-//   [
-//     { arrayIndex: 0, endIndex: 954, startIndex: 950 },
-//     { arrayIndex: 0, endIndex: 958, startIndex: 954 },
-//     { arrayIndex: 0, endIndex: 962, startIndex: 958 },
-//     { arrayIndex: 0, endIndex: 966, startIndex: 962 },
-//     { arrayIndex: 0, endIndex: 970, startIndex: 966 },
-//     { arrayIndex: 0, endIndex: 974, startIndex: 970 },
-//     { arrayIndex: 0, endIndex: 978, startIndex: 974 },
-//     { arrayIndex: 0, endIndex: 982, startIndex: 978 },
-//     { arrayIndex: 0, endIndex: 986, startIndex: 982 },
-//     { arrayIndex: 0, endIndex: 990, startIndex: 986 },
-//     { arrayIndex: 0, endIndex: 994, startIndex: 990 },
-//     { arrayIndex: 0, endIndex: 998, startIndex: 994 },
-//     { arrayIndex: 0, endIndex: 1000, startIndex: 998 },
-//     { arrayIndex: 1, endIndex: 15, startIndex: 0 },
-//     { arrayIndex: 1, endIndex: 30, startIndex: 15 },
-//     { arrayIndex: 1, endIndex: 44, startIndex: 30 },
-//   ],
-//   1000 - multiple * base + 1,
-//   1000,
-// );

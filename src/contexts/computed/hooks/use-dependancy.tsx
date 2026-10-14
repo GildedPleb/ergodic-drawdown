@@ -23,6 +23,28 @@ import { type FiatVariableLabel } from "../drawdown-variable-labels";
 
 const dependencyObjectSymbol = Symbol("DependencyObject");
 
+const WAVE_QUIET_MS = 100;
+const waveSteps: { ms: number; name: string }[] = [];
+let waveTimer: ReturnType<typeof setTimeout> | undefined;
+
+const tenth = (ms: number): string => (Math.round(ms * 10) / 10).toFixed(1);
+
+const flushWave = (): void => {
+  waveTimer = undefined;
+  const steps = waveSteps.splice(0);
+  const slow = steps.filter((step) => step.ms >= 0.1).toSorted((left, right) => right.ms - left.ms);
+  const quiet = steps.length - slow.length;
+  const parts = slow.map((step) => `${step.name} ${tenth(step.ms)}ms`);
+  if (quiet > 0) parts.push(`${quiet} under 0.1ms`);
+  if (parts.length > 0) console.log(parts.join(" · "));
+};
+
+const recordStep = (name: string, ms: number): void => {
+  waveSteps.push({ ms, name });
+  if (waveTimer !== undefined) clearTimeout(waveTimer);
+  waveTimer = setTimeout(flushWave, WAVE_QUIET_MS);
+};
+
 type PrimitiveDependency =
   | ((abortId: string) => void)
   | ((tasks: WorkerTasks[]) => Promise<TaskResult[]>)
@@ -79,44 +101,25 @@ interface DependencyObjectLoaded<R> extends DependencyObjectBase {
 
 export type DependencyObject<R> = DependencyObjectLoaded<R> | DependencyObjectLoading;
 
-/**
- *
- * @param dep -dep
- */
 function assertDependencyLoaded<R>(
   dep: DependencyObject<R>,
 ): asserts dep is DependencyObjectLoaded<R> {
   if (dep.result === null) {
-    // do nothing
+    return;
   }
 }
 
-/**
- *
- * @param dep - deps
- * @returns not a null dep
- */
 export function narrow<R>(dep: DependencyObject<R>): R {
   assertDependencyLoaded(dep);
   return dep.result;
 }
-/**
- *
- * @param dep - A Dependency
- * @returns typecast
- */
+
 function isDependencyObject<R>(dep: unknown): dep is DependencyObject<R> {
   return Boolean(dep) && typeof dep === "object" && dep !== null && dependencyObjectSymbol in dep;
 }
 
-/**
- *
- * @param object - object to test
- * @returns status
- */
 function isDatasetOrDatasetList(object: unknown): boolean {
   if (Array.isArray(object)) {
-    // Check if it's potentially a DatasetList
     if (object.length > 0 && isDataset(object[0])) {
       return true;
     }
@@ -126,11 +129,6 @@ function isDatasetOrDatasetList(object: unknown): boolean {
   return false;
 }
 
-/**
- *
- * @param object - object to test
- * @returns status
- */
 function isDataset(object: unknown): object is Dataset {
   return (
     typeof object === "object" &&
@@ -147,11 +145,6 @@ function isDataset(object: unknown): object is Dataset {
   );
 }
 
-/**
- *
- * @param point - object to test
- * @returns status
- */
 function isPoint(point: unknown): point is Point {
   return (
     typeof point === "object" &&
@@ -185,7 +178,6 @@ const fastCustomHashSum = (dependencies: readonly Dependency<unknown>[]): string
       if (isDatasetOrDatasetList(dep)) {
         parts[index] = "Dataset";
       } else {
-        // New handling for objects that may contain Float64Array values
         const objectParts: string[] = [];
         for (const [key, value] of Object.entries(dep)) {
           if (value instanceof Float64Array) {
@@ -224,37 +216,7 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
   const abortControllerReference = useRef<AbortController | null>(null);
   const computingHashReference = useRef<null | string>(null);
   const latestComputeRequestReference = useRef<null | symbol>(null);
-  const timerRunningReference = useRef<boolean>(false);
-  const individualTimerRunningReference = useRef<boolean>(false);
   const waitingOn = useRef<string[]>([]);
-
-  const startTimer = useCallback(() => {
-    if (!timerRunningReference.current) {
-      console.time(name + " Finished around");
-      timerRunningReference.current = true;
-    }
-  }, [name]);
-
-  const endTimer = useCallback(() => {
-    if (timerRunningReference.current) {
-      console.timeEnd(name + " Finished around");
-      timerRunningReference.current = false;
-    }
-  }, [name]);
-
-  const innerStartTimer = useCallback(() => {
-    if (!individualTimerRunningReference.current) {
-      console.time(name + " Took");
-      individualTimerRunningReference.current = true;
-    }
-  }, [name]);
-
-  const innerEndTimer = useCallback(() => {
-    if (individualTimerRunningReference.current) {
-      console.timeEnd(name + " Took");
-      individualTimerRunningReference.current = false;
-    }
-  }, [name]);
 
   const dependencies = useMemo(() => [...inputs, ...watched], [inputs, watched]);
   const currentHash = fastCustomHashSum(dependencies);
@@ -269,13 +231,11 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
       const isLatestRequest = (): boolean =>
         latestComputeRequestReference.current === computeRequest;
 
+      const started = performance.now();
       try {
-        // console.log(name, `Attempting Compute for ${hash}`);
-        innerStartTimer();
         const computedResult = await computeFunction(signal, hash, ...inputs);
 
         if (!signal.aborted && isLatestRequest()) {
-          // console.log(name, `Completed Compute for ${hash}`);
           setPublished({ lastComputed: currentHash, result: computedResult });
         } else {
           console.log(
@@ -300,25 +260,15 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
           }
           abortControllerReference.current = null;
         }
-        innerEndTimer();
-        endTimer();
+        recordStep(name, performance.now() - started);
       }
     },
-    [inputs, computeFunction, innerStartTimer, name, currentHash, endTimer, innerEndTimer],
+    [inputs, computeFunction, name, currentHash],
   );
 
   useEffect(() => {
-    startTimer();
-    // console.log(name, {
-    //   currentHash,
-    //   dependencies,
-    //   last: published.lastComputed,
-    //   waitingOn: waitingOn.current,
-    // });
-
     // A restored input must not let the abandoned compute publish over it.
     if (computingHashReference.current !== null && computingHashReference.current !== currentHash) {
-      // console.log(name, "Dependencies changed, aborting current compute");
       if (abortControllerReference.current !== null) {
         abortControllerReference.current.abort();
         abortControllerReference.current = null;
@@ -328,19 +278,13 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
 
     // Clearing keeps lastComputed so the wait stays visible. That hash is finished only while its result is still present.
     if (published.lastComputed === currentHash && published.result !== null) {
-      // console.log(name, `Already computed ${currentHash}. Should not compute.`);
       return;
     }
 
-    // Check if we are currently computing this hash, if we are, we don't need to do anything.
     if (computingHashReference.current === currentHash) {
-      // console.log(name, `already computing ${currentHash} skipping`);
       return;
     }
 
-    // So, we have a new hash we have not completed.
-    // console.log(name, `Incomplete Compute Detected`);
-    // Now, we need to see if we can complete it yet, or if we should wait on our dependencies to complete first.
     const newWaitingOn = dependencies
       .filter(
         (dep): dep is DependencyObject<unknown> =>
@@ -348,9 +292,7 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
       )
       .map((dep) => dep.name);
 
-    // if they are a dependency obj, if even 1 of their current DOES NOT match their last, then they have NOT completed and we are waiting on them.
     if (newWaitingOn.length > 0) {
-      // console.log(name, `waiting on [${newWaitingOn.join(",")}]`);
       if (published.result !== null && clearResults) {
         setPublished({ lastComputed: published.lastComputed, result: null });
       }
@@ -358,11 +300,9 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
       return;
     }
 
-    // Otherwise, --> ALL their current hashes match their last computed hash, then they have all completed, and we are not waiting on them
     computingHashReference.current = currentHash;
     void compute(currentHash);
-    // console.log(name, `Started Compute for ${currentHash}`);
-  }, [dependencies, compute, waitingOn, name, currentHash, published, startTimer, clearResults]);
+  }, [dependencies, compute, waitingOn, name, currentHash, published, clearResults]);
 
   const memoizedBase = useMemo(
     () => ({

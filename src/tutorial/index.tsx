@@ -1,4 +1,3 @@
-// Tutorial.tsx
 import { type JSX, useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -27,7 +26,6 @@ import { slide18 } from "./slides/slide-18";
 import { slide19 } from "./slides/slide-19";
 import { slide20 } from "./slides/slide-20";
 import { slide21 } from "./slides/slide-21";
-// Import other slides
 
 const Container = styled.div`
   display: flex;
@@ -46,11 +44,6 @@ const Container = styled.div`
   @media (min-aspect-ratio: 1) {
     align-items: center;
   }
-  @media (max-aspect-ratio: 1) {
-    /* align-items: flex-end; */
-  }
-
-  /* border: 1px solid red; */
 `;
 
 const Nav = styled.div`
@@ -72,7 +65,6 @@ const Content = styled.div`
   justify-content: center;
   overflow: hidden;
   padding: 10px;
-  /* border: 1px solid royalblue; */
 `;
 
 const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
@@ -134,8 +126,6 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
       slide19,
       slide20,
       slide21,
-
-      // Add other slides
     ],
     [],
   );

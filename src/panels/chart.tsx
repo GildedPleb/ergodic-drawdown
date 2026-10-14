@@ -47,7 +47,6 @@ const defaultData: ChartData<"line", Point[]> = { datasets: [] };
 
 const staticOptions: ChartOptions<"line"> = {
   animation: false,
-  // devicePixelRatio: 1, this produces unfavorable results
   maintainAspectRatio: false,
   // Any non-zero delay makes Chart.js draw before layout. The annotation plugin then reads chartArea.left.
   resizeDelay: 0,

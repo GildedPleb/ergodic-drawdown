@@ -59,9 +59,8 @@ const InputField: React.FC<InputFieldProperties> = ({
   type,
   value,
 }) => {
-  // Track if input is focused to allow empty state
+  // Focused fields keep an empty string. Blur is what writes the validated value.
   const [isFocused, setIsFocused] = useState(false);
-  // Track local input value
   const [localValue, setLocalValue] = useState(value?.toString() ?? "");
 
   const handleChange = useCallback(
@@ -75,14 +74,12 @@ const InputField: React.FC<InputFieldProperties> = ({
 
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-    // When focusing, show the actual input value without defaults
     setLocalValue(value?.toString() ?? "");
   }, [value]);
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
     if (type === "number" && localValue !== "") {
-      // Remove leading zeros and format number
       const parsed = Number.parseFloat(localValue);
       if (!Number.isNaN(parsed)) {
         const formatted = parsed.toString();
@@ -100,7 +97,6 @@ const InputField: React.FC<InputFieldProperties> = ({
 
   const overrideEnter = type === "checkbox" ? () => {} : handleEnterKey;
 
-  // Display logic: show local value while focused, otherwise show the validated value
   const displayValue = isFocused ? localValue : (value?.toString() ?? "");
 
   return (

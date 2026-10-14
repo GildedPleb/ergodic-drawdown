@@ -17,11 +17,7 @@ export const handleDrawdownVariableLabels = (
   variableDrawdownCache: Map<string, VariableDrawdownCache>,
   showModel: boolean,
 ): FiatVariableLabel[] => {
-  console.log("HIT");
-  if (showModel) {
-    console.log("NOT RENDERING VARIABLE DRAWDOWN");
-    return [];
-  }
+  if (showModel) return [];
   return activeOneOffVariables.flatMap(({ hash, name }) => {
     const variableCache = variableDrawdownCache.get(hash);
     if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);

@@ -142,7 +142,6 @@ export interface FieldChange {
   };
 }
 
-// Placeholder components for type-specific fields
 export interface FieldProperties<T extends DrawdownItem> {
   formData: Partial<T>;
   handleInputChange: (event: FieldChange) => void;

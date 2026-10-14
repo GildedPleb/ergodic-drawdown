@@ -19,25 +19,12 @@ export const handleDistribution = async (
   character: "drawdown" | "price",
   showModel: boolean,
 ): Promise<DatasetList> => {
-  // console.log({
-  //   buffer,
-  //   character,
-  //   dataLength,
-  //   epochCount,
-  //   now,
-  //   renderDistribution,
-  //   samples,
-  //   weeksSince,
-  //   worker,
-  // });
   if (renderDistribution === "None" || showModel) return [];
-  // Step 1: Data Preparation
   let groupedDataBuffer: SharedArrayBuffer = new SharedArrayBuffer(
     Float64Array.BYTES_PER_ELEMENT * dataLength * samples,
   );
   const taskQueueSamples = createTaskQueue(samples, worker.count, samples, 0);
 
-  // Step 2: Grouping Data (workers)
   const groupStageResults = await worker.addTasks(
     taskQueueSamples.map((task) => {
       return {
@@ -100,8 +87,6 @@ export const handleDistribution = async (
 
   const { color, cutoffs, midLabel, type, workerEventType, yAxisID } = config;
 
-  // if (renderPriceDistribution === "Quantile") {
-  // Step 3: Data Preparation 2
   cutoffs.sort((first, second) => first - second);
   if (cutoffs.length % 2 !== 1) throw new Error("cutoffs must be odd");
   let quantilesBuffer: SharedArrayBuffer = new SharedArrayBuffer(
@@ -110,7 +95,6 @@ export const handleDistribution = async (
 
   const taskQueueWeeks = createTaskQueue(dataLength, worker.count, dataLength, 0);
 
-  // Step 4: Quantile Calculation (workers)
   const quantileStageResults = await worker.addTasks(
     taskQueueWeeks.map((task) => ({
       payload: {
@@ -129,11 +113,9 @@ export const handleDistribution = async (
     return [];
   }
 
-  // Step 5: Final Data Creation
   const quantilesData = new Float64Array(quantilesBuffer);
   const quantiles = cutoffs.map(() => Array.from({ length: dataLength }, () => ({ x: 0, y: 0 })));
 
-  // console.log({ quantilesData });
   for (let week = 0; week < dataLength; week++) {
     const x = dates[week];
     if (x === undefined) throw new Error(`missing date at week ${week}`);

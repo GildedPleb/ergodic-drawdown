@@ -32,7 +32,6 @@ const BitcoinInput = (): JSX.Element => {
       const inputValue = event.target.value;
       setLocalValue(inputValue);
 
-      // If input is empty, don't update the actual value yet
       if (inputValue === "") return;
 
       const value = Number.parseFloat(inputValue);
@@ -46,14 +45,12 @@ const BitcoinInput = (): JSX.Element => {
 
   const handleBlur = useCallback(() => {
     if (localValue === "") {
-      // Reset to default value of 0 when blurring with empty input
       setLocalValue("0");
       setBitcoin(0);
       setLoadingVolumeData(true);
       return;
     }
 
-    // Remove leading zeros and ensure non-negative value
     const parsedValue = Number.parseFloat(localValue);
     if (!Number.isNaN(parsedValue)) {
       const validValue = Math.max(0, parsedValue);

@@ -22,17 +22,6 @@ export const handleVolumeCalculation = (
   }
   const priceData = GrowableSharedArray.fromExportedState(simulationExport);
   const volumeData = GrowableSharedArray.fromExportedState(drawdownExport);
-  // console.log("VOLUME WORKER", {
-  //   bitcoin,
-  //   epochCount,
-  //   exportedVariableCache,
-  //   priceData,
-  //   task: { endIndex, startIndex },
-  //   totalWeeklyBitcoinItems,
-  //   totalWeeklyFiatItems,
-  //   volumeData,
-  //   // weeksSince,
-  // });
 
   const variableCache = VariableDrawdownFinal.fromExportedState(exportedVariableCache);
   for (let sample = startIndex; sample < endIndex; sample++) {
@@ -60,7 +49,6 @@ export const handleVolumeCalculation = (
 
       const segmentLength = priceSegment.length;
       const dataArray = new Float64Array(segmentLength);
-      // const currentLength = sampleLength - weeksSince;
 
       for (let week = 0; week < segmentLength; week++) {
         const price = numberAt(priceSegment, week);

@@ -5,7 +5,6 @@ import { calculateHalvings, loadHalvings, weeksSinceLastHalving } from "../../ha
 import { type MinMaxOptions, type PriceModel } from "../../types";
 import marketData from "../datasets/bitcoin_weekly_prices_transformed_2.json";
 
-// Helper to get price at a specific halving
 const getPriceAtHalving = memoize((blockHeight: number): number => {
   const halvingDates = loadHalvings();
   const timestamp = halvingDates[blockHeight.toString()];
@@ -15,13 +14,11 @@ const getPriceAtHalving = memoize((blockHeight: number): number => {
   return pricePoint?.y ?? 0;
 });
 
-// Calculate percentage changes for all historical cycles at a specific week within a cycle
 const getWeeklyPercentageChanges = memoize(
   (weekInCycle: number, previousHalvings: number): number[] => {
     const halvingDates = loadHalvings();
     const changes: number[] = [];
 
-    // Sort halvings by timestamp to get them in chronological order
     const sortedHalvings = Object.entries(halvingDates).toSorted(
       (first, second) => second[1] - first[1],
     );
@@ -50,7 +47,6 @@ const getWeeklyPercentageChanges = memoize(
   },
 );
 
-// Get the historical min/max percentage changes for an entire cycle
 const getCyclePercentageRanges = memoize((previousHalvings: number) => {
   const ranges: Array<{ max: number; min: number }> = [];
 
@@ -67,7 +63,6 @@ const getCyclePercentageRanges = memoize((previousHalvings: number) => {
   return ranges;
 });
 
-// Shared price calculation logic
 const calculatePrice = (options: MinMaxOptions, useMax: boolean): number => {
   const halvings = calculateHalvings(options.currentBlock);
   const lastHalving = halvings.at(-1) ?? 0;
@@ -79,7 +74,6 @@ const calculatePrice = (options: MinMaxOptions, useMax: boolean): number => {
   const targetWeek = weeksSinceHalving + options.week;
   const cycleRanges = getCyclePercentageRanges(options.variable);
 
-  // Calculate which cycle and week within cycle we're targeting
   const cycleIndex = Math.floor(targetWeek / WEEKS_PER_EPOCH);
   const weekInCycle = targetWeek % WEEKS_PER_EPOCH;
 

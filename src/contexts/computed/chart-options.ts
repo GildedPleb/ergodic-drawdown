@@ -232,8 +232,6 @@ export const handleChartOptions = (
         type: "time",
       },
       y: {
-        // max: 100_000_000,
-        // min: 0.1,
         ticks: {
           autoSkipPadding: 30,
           callback: (value: number | string) => {
@@ -257,7 +255,7 @@ export const handleChartOptions = (
         title: { display: true, font, text: "BTC Volume" },
         type: "linear",
       },
-      // This is for the label locations for draw downs
+      // Hidden axis. Drawdown labels are placed in this pixel space.
       y2: {
         display: false,
         max: HEIGHT,

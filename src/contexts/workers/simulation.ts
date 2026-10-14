@@ -36,7 +36,6 @@ export const handleSimulation = (
     throw new Error("missing price bounds");
   }
   const data = GrowableSharedArray.fromExportedState(bufferState);
-  // console.log("called with random id:", { epochCount, id, task });
   for (let sample = startIndex; sample < endIndex; sample++) {
     // startEpoch 0 means nothing is cached yet. Subtracting 1 would read epoch -1.
     const adjustedEpoch = Math.max((startEpoch ?? 1) - 1, 0);
@@ -47,8 +46,6 @@ export const handleSimulation = (
       if (signalState.aborted) {
         return;
       }
-      // this can be done without the indirection simply by getting the last cached item,
-      // which we now have the location of (bufferState.cacheWidth)
       const segment = data.get(epoch, sample);
       if (segment !== undefined) {
         sampleLength += segment.length;

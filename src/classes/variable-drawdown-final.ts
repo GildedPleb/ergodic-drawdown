@@ -2,7 +2,6 @@ import { MAX_FIAT_VARIABLES } from "../constants";
 import type VariableDrawdownCache from "./variable-drawdown-cache";
 
 export class VariableDrawdownFinal {
-  // New static method to create an instance from exported state
   static fromExportedState(state: {
     buffer: SharedArrayBuffer;
     sampleCount: number;
@@ -94,13 +93,11 @@ export class VariableDrawdownFinal {
         return;
       }
       if (currentWeek === -1) {
-        // Empty slot found, add new week-amount pair
         this.view[index] = week;
         this.view[index + 1] = amount;
         return;
       }
     }
-    // If we reach here, there's no space for a new week
     throw new Error(`No space available for new week in sample ${sample}`);
   }
 
@@ -114,6 +111,4 @@ export class VariableDrawdownFinal {
       }
     }
   }
-
-  // New method to export internal details
 }

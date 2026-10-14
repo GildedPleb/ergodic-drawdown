@@ -354,7 +354,6 @@ let spotFlight: { second: number; promise: Promise<BitcoinDataPoint> } | undefin
 
 export const getCurrentPrice = async (now: number): Promise<BitcoinDataPoint> => {
   const cacheKey = "BTC_PRICE_CACHE";
-  // 1 hour cache
   const cacheExpiry = 60 * 60;
   const currentTimestamp = Math.floor(now / 1000);
   const cachedData = localStorage.getItem(cacheKey);

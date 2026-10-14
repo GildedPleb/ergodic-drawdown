@@ -4,7 +4,6 @@ import styled from "styled-components";
 
 import { isMobile } from "../constants";
 
-// Styled components
 const StyledToastContainer = styled(ToastContainer)`
   .Toastify__toast {
     background-color: hsl(0, 0%, 14%);

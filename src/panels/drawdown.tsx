@@ -109,7 +109,6 @@ const Button = styled.button`
   justify-content: center;
   align-items: center;
   padding: 0px;
-  /* border: 1px solid red; */
 `;
 
 const Drawdown = (): JSX.Element => {

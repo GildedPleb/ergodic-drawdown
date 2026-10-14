@@ -60,11 +60,9 @@ export const handleSimulation = async (
 
   const results = await worker.addTasks(processedTasks, signal);
   if (results.some((result) => result.status !== "completed")) {
-    // console.log("Results failed");
     return "failed:" + returnHash;
   }
 
-  console.log("simulation success");
   simulationData.setValidity(gridHash);
   return "success:" + returnHash;
 };

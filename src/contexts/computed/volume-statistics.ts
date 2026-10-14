@@ -12,7 +12,6 @@ export const calculateVolumeStatistics = (
   let sum = 0;
   const length = finalBalance.length;
 
-  // Calculate sum
   for (let index = 0; index < length; index++) {
     sum += numberAt(finalBalance, index);
   }

@@ -168,19 +168,17 @@ export default class GrowableSharedArray {
   resize(newActiveWidth: number, newActiveHeight: number): void {
     this.validateDimensions(newActiveWidth, newActiveHeight);
 
-    // Grow the total dimensions if necessary
     if (newActiveWidth > this.width || newActiveHeight > this.height) {
       const newWidth = Math.max(this.width, newActiveWidth);
       const newHeight = Math.max(this.height, newActiveHeight);
       this.ensureCapacity(newWidth, newHeight);
 
       if (newWidth > this.width) {
-        // If growing width, we need to move existing rows to their new positions
         for (let y = this.height - 1; y >= 0; y--) {
           const oldStart = this.getIndex(0, y);
           const newStart = y * newWidth * this.itemLength;
           this.view.copyWithin(newStart, oldStart, oldStart + this.width * this.itemLength);
-          // We are setting this to 0, but i feel like we shouldn't have to.
+          // New columns overlap the next row's old bytes until that row is moved.
           this.view.fill(
             0,
             newStart + this.width * this.itemLength,
@@ -193,7 +191,6 @@ export default class GrowableSharedArray {
       this.height = newHeight;
     }
 
-    // Update active dimensions
     this.activeWidth = newActiveWidth;
     this.activeHeight = newActiveHeight;
   }
@@ -224,7 +221,6 @@ export default class GrowableSharedArray {
       const copy = !this.sharedBuffer.growable || growthFactor >= GROWTH_FACTOR_THRESHOLD;
 
       if (copy) {
-        console.log("COPY BUFFER");
         const newBuffer = this.sharedBuffer.growable
           ? new SharedArrayBuffer(newByteLength, { maxByteLength: this.bufferCeiling() })
           : new SharedArrayBuffer(newByteLength);
@@ -233,7 +229,6 @@ export default class GrowableSharedArray {
         this.sharedBuffer = newBuffer;
         this.view = newView;
       } else {
-        console.log("GROW BUFFER");
         this.sharedBuffer.grow(newByteLength);
         this.view = new Float64Array(this.sharedBuffer);
       }

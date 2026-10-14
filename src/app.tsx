@@ -79,12 +79,10 @@ const TutorialWrapper = styled.div<{ $isActive: boolean }>`
   align-items: flex-end;
   overflow: hidden;
 
-  /* Base transition properties */
   transition-property: width, height;
   transition-duration: 0.3s;
   transition-timing-function: ease;
 
-  /* Panoramic layout */
   @media (min-aspect-ratio: 1) {
     width: ${({ $isActive }) => ($isActive ? "250px" : "0px")};
     height: 100%;
@@ -92,7 +90,6 @@ const TutorialWrapper = styled.div<{ $isActive: boolean }>`
     transition-property: width;
   }
 
-  /* Vertical layout */
   @media (max-aspect-ratio: 1) {
     width: 100%;
     height: ${({ $isActive }) => ($isActive ? "300px" : "0px")};

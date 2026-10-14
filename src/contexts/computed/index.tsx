@@ -441,7 +441,6 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
   return <ComputedContext.Provider value={computedValues}>{children}</ComputedContext.Provider>;
 };
 
-// Custom hooks to access computed values
 export const useComputedValues = (): ComputedContextType => {
   const context = useContext(ComputedContext);
   if (context === null) {
