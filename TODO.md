@@ -32,7 +32,6 @@ IMPROVE AESTHETICS / UX
 
 - Add info buttons where appropriate. Model, Walks,
 - full performance audit
-- Firefox allocs max-array upfront and does not memory clear it. It might be better to force firefox to use set-size arrays. (i believe this is done, but review it)
 - when you tab into a drawdown content table cell, you should be able to hit enter to enter the cell, same with any other buttons and tabbing also escape should exit modal.
 - We should be able to see the full setting in a screen shot (so put the full settings in the results.)
 - is it possible to solve for: "When Bitcoin hits $100k, all you would need is 4 BTC to withdraw $10k/mo for the rest of your life. \*Assuming BTC has a CAGR of at least 30% for the rest of your life."

@@ -7,6 +7,52 @@ import { MAX_SAMPLE_COUNT } from "../src/constants";
 
 const cell = (last: number): Float64Array => new Float64Array([1, 2, 3, last]);
 
+const withAgent = (agent: string, run: () => void): void => {
+  const previous = navigator.userAgent;
+  Object.defineProperty(navigator, "userAgent", {
+    configurable: true,
+    enumerable: true,
+    value: agent,
+    writable: true,
+  });
+  try {
+    run();
+  } finally {
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      enumerable: true,
+      value: previous,
+      writable: true,
+    });
+  }
+};
+
+const liveBytes = (width: number, height: number, itemLength: number): number =>
+  width * height * itemLength * Float64Array.BYTES_PER_ELEMENT;
+
+const ceilingBytes = (itemLength: number): number =>
+  30 * 10_000 * itemLength * Float64Array.BYTES_PER_ELEMENT;
+
+const expectExactGrid = (agent: string): void => {
+  withAgent(agent, () => {
+    const array = new GrowableSharedArray(10, 10, 4);
+    const stored = cell(4);
+    array.set(0, 0, stored);
+    const buffer = array.exportState().sharedBuffer;
+
+    expect(buffer.growable).toBe(false);
+    expect(buffer.byteLength).toBe(liveBytes(10, 10, 4));
+
+    array.resize(11, 10);
+    const grown = array.exportState().sharedBuffer;
+
+    expect(grown.growable).toBe(false);
+    expect(grown.byteLength).toBe(liveBytes(11, 10, 4));
+    expect(grown === buffer).toBe(false);
+    expect(array.get(0, 0)).toEqual(stored);
+  });
+};
+
 test("a growable array reads a stored sample and misses an empty cell", () => {
   const array = new GrowableSharedArray(1, 2, 4);
   const stored = cell(4);
@@ -39,6 +85,51 @@ test("clearing a growable array drops stored samples", () => {
   array.clear();
 
   expect(array.get(0, 0)).toBeUndefined();
+});
+
+test("firefox keeps a grid at its live size", () => {
+  expectExactGrid(
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:131.0) Gecko/20100101 Firefox/131.0",
+  );
+});
+
+test("safari keeps a grid at its live size", () => {
+  expectExactGrid(
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+  );
+});
+
+test("chrome grows a small grid in place and copies a large one under the same ceiling", () => {
+  withAgent(
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+    () => {
+      const array = new GrowableSharedArray(10, 10, 4);
+      const stored = cell(4);
+      array.set(0, 0, stored);
+      const buffer = array.exportState().sharedBuffer;
+
+      expect(buffer.growable).toBe(true);
+      expect(buffer.byteLength).toBe(liveBytes(10, 10, 4));
+      expect(buffer.maxByteLength).toBe(ceilingBytes(4));
+
+      array.resize(11, 10);
+      const grown = array.exportState().sharedBuffer;
+
+      expect(grown).toBe(buffer);
+      expect(grown.byteLength).toBe(liveBytes(11, 10, 4));
+      expect(grown.maxByteLength).toBe(ceilingBytes(4));
+      expect(array.get(0, 0)).toEqual(stored);
+
+      array.resize(20, 20);
+      const copied = array.exportState().sharedBuffer;
+
+      expect(copied.growable).toBe(true);
+      expect(copied === buffer).toBe(false);
+      expect(copied.byteLength).toBe(liveBytes(20, 20, 4));
+      expect(copied.maxByteLength).toBe(ceilingBytes(4));
+      expect(array.get(0, 0)).toEqual(stored);
+    },
+  );
 });
 
 test("a growable array keeps a stored sample after the grid grows", () => {

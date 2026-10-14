@@ -114,6 +114,8 @@ A cell whose last float is `0` is empty. `get` returns undefined. `getRow` retur
 
 `resize` grows capacity, then walks rows from the bottom and `copyWithin`s each old row to the new stride. The fill of the new columns is required: those slots overlap the next row's old bytes. After a width grow, the previous last column is intact and the new column reads empty. Shrinking the active size leaves the old bytes. Growing back inside the same allocation shows them again. That is the validity cache, and `setValidity` keeps the max width and height for a matching hash.
 
+Firefox and Safari commit a growable ceiling as resident memory. Their price and balance grids are the exact live size and copy onto a new exact buffer when they grow. Chrome keeps a growable buffer, calls `grow()` while the next size is under 1.5×, and a copied buffer keeps the same ceiling. The one-off spend buffers stay a fixed 160KB.
+
 `getLastArray` reads the last float of the last active column. A zero-width grid has no column and returns NaN per row. Callers sort that array. `handleSimulationStats` sorts the array it returns, and that array is the published `finalBalance`.
 
 `coalesce` copies the active row from `lastHalving` to the active end. Allocated slack past `activeWidth` is not data.

@@ -4,10 +4,8 @@ import { numberAt } from "../number-at";
 // 1GB
 const MAX_BYTE_LENGTH = 1_073_741_824;
 
-// If new size is 1.5x or greater, create new buffer
-const GROWTH_FACTOR_THRESHOLD = /^(?:(?!chrome|android).)*safari/i.test(navigator.userAgent)
-  ? 1
-  : 1.5;
+// A growable ceiling is resident memory in Firefox and Safari. Those grids stay the exact live size.
+const GROWTH_FACTOR_THRESHOLD = 1.5;
 
 export interface ExportedState {
   activeHeight: number;
@@ -82,13 +80,12 @@ export default class GrowableSharedArray {
 
     if (existingBuffer === undefined) {
       const initialSize = this.width * this.height * this.itemLength;
-      const maxSize = Math.min(
-        this.maxWidth * this.maxHeight * this.itemLength * Float64Array.BYTES_PER_ELEMENT,
-        MAX_BYTE_LENGTH,
-      );
-      this.sharedBuffer = new SharedArrayBuffer(initialSize * Float64Array.BYTES_PER_ELEMENT, {
-        maxByteLength: maxSize,
-      });
+      const byteLength = initialSize * Float64Array.BYTES_PER_ELEMENT;
+      const agent = navigator.userAgent;
+      const exactSize = /firefox/i.test(agent) || /^(?:(?!chrome|android).)*safari/i.test(agent);
+      this.sharedBuffer = exactSize
+        ? new SharedArrayBuffer(byteLength)
+        : new SharedArrayBuffer(byteLength, { maxByteLength: this.bufferCeiling() });
       this.view = new Float64Array(this.sharedBuffer);
     } else {
       this.sharedBuffer = existingBuffer;
@@ -224,13 +221,13 @@ export default class GrowableSharedArray {
       }
 
       const growthFactor = newByteLength / this.sharedBuffer.byteLength;
+      const copy = !this.sharedBuffer.growable || growthFactor >= GROWTH_FACTOR_THRESHOLD;
 
-      if (growthFactor >= GROWTH_FACTOR_THRESHOLD) {
+      if (copy) {
         console.log("COPY BUFFER");
-        // Create new buffer and copy
-        const newBuffer = new SharedArrayBuffer(newByteLength, {
-          maxByteLength: MAX_BYTE_LENGTH,
-        });
+        const newBuffer = this.sharedBuffer.growable
+          ? new SharedArrayBuffer(newByteLength, { maxByteLength: this.bufferCeiling() })
+          : new SharedArrayBuffer(newByteLength);
         const newView = new Float64Array(newBuffer);
         newView.set(this.view);
         this.sharedBuffer = newBuffer;
@@ -241,6 +238,13 @@ export default class GrowableSharedArray {
         this.view = new Float64Array(this.sharedBuffer);
       }
     }
+  }
+
+  private bufferCeiling(): number {
+    return Math.min(
+      this.maxWidth * this.maxHeight * this.itemLength * Float64Array.BYTES_PER_ELEMENT,
+      MAX_BYTE_LENGTH,
+    );
   }
 
   private getIndex(x: number, y: number): number {
