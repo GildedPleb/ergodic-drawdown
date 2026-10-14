@@ -89,10 +89,12 @@ export const handleSimulation = (
         volatility,
       });
 
-      for (let week = 0; week < rawWalk.length; week++) {
+      // Weeks before the bound series have no price. They stay NaN.
+      if (firstPresent > 0) rawWalk.fill(Number.NaN, 0, firstPresent);
+      for (let week = firstPresent; week < rawWalk.length; week++) {
         const normalizedPrice = numberAt(rawWalk, week);
         const indexOffset = week + epochStart;
-        // Weeks before the bound series have no price. They stay NaN.
+        // A week past the end of the bound series has no price.
         const min = minSeries[indexOffset];
         const max = maxSeries[indexOffset];
         const logMin = logMinSeries[indexOffset];
