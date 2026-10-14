@@ -218,14 +218,18 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
   watched: readonly Dependency<unknown>[] = [],
   clearResults = true,
 ): DependencyObject<R> => {
-  const [result, setResult] = useState<R | null>(null);
+  // A repeated result is Object.is-equal, so completion has to be its own state.
+  // A ref would update lastComputed without a render, and the next layer would wait forever.
+  const [published, setPublished] = useState<{ lastComputed: string; result: R | null }>({
+    lastComputed: "",
+    result: null,
+  });
 
   const abortControllerReference = useRef<AbortController | null>(null);
   const computingHashReference = useRef<null | string>(null);
   const latestComputeRequestReference = useRef<null | symbol>(null);
   const timerRunningReference = useRef<boolean>(false);
   const individualTimerRunningReference = useRef<boolean>(false);
-  const lastComputed = useRef<string>("");
   const waitingOn = useRef<string[]>([]);
 
   const startTimer = useCallback(() => {
@@ -276,8 +280,7 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
 
         if (!signal.aborted && isLatestRequest()) {
           // console.log(name, `Completed Compute for ${hash}`);
-          setResult(computedResult);
-          lastComputed.current = currentHash;
+          setPublished({ lastComputed: currentHash, result: computedResult });
         } else {
           console.log(
             name,
@@ -313,12 +316,22 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
     // console.log(name, {
     //   currentHash,
     //   dependencies,
-    //   last: lastComputed.current,
+    //   last: published.lastComputed,
     //   waitingOn: waitingOn.current,
     // });
 
-    // Check if we have already computed this hash, if we have, we don't need to compute it again.
-    if (lastComputed.current === currentHash) {
+    // A restored input must not let the abandoned compute publish over it.
+    if (computingHashReference.current !== null && computingHashReference.current !== currentHash) {
+      // console.log(name, "Dependencies changed, aborting current compute");
+      if (abortControllerReference.current !== null) {
+        abortControllerReference.current.abort();
+        abortControllerReference.current = null;
+      }
+      computingHashReference.current = null;
+    }
+
+    // Clearing keeps lastComputed so the wait stays visible. That hash is finished only while its result is still present.
+    if (published.lastComputed === currentHash && published.result !== null) {
       // console.log(name, `Already computed ${currentHash}. Should not compute.`);
       return;
     }
@@ -327,17 +340,6 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
     if (computingHashReference.current === currentHash) {
       // console.log(name, `already computing ${currentHash} skipping`);
       return;
-    }
-
-    // Check if we are currently computing a different hash
-    if (computingHashReference.current !== null && computingHashReference.current !== currentHash) {
-      // console.log(name, "Dependencies changed, aborting current compute");
-      // If we are, and we are currently computing a hash that isn't the current hash, we should abort it.
-      if (abortControllerReference.current !== null) {
-        abortControllerReference.current.abort();
-        abortControllerReference.current = null;
-      }
-      computingHashReference.current = null;
     }
 
     // So, we have a new hash we have not completed.
@@ -353,7 +355,9 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
     // if they are a dependency obj, if even 1 of their current DOES NOT match their last, then they have NOT completed and we are waiting on them.
     if (newWaitingOn.length > 0) {
       // console.log(name, `waiting on [${newWaitingOn.join(",")}]`);
-      if (result !== null && clearResults) setResult(null);
+      if (published.result !== null && clearResults) {
+        setPublished({ lastComputed: published.lastComputed, result: null });
+      }
       waitingOn.current = newWaitingOn;
       return;
     }
@@ -362,7 +366,7 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
     computingHashReference.current = currentHash;
     void compute(currentHash);
     // console.log(name, `Started Compute for ${currentHash}`);
-  }, [dependencies, compute, waitingOn, name, currentHash, result, startTimer, clearResults]);
+  }, [dependencies, compute, waitingOn, name, currentHash, published, startTimer, clearResults]);
 
   const memoizedBase = useMemo(
     () => ({
@@ -376,13 +380,15 @@ export const useDependency = <T extends PrimitiveDependency[], R>(
   return useMemo(() => {
     const fullBase: DependencyObjectBase = {
       ...memoizedBase,
-      lastComputed: lastComputed.current,
+      lastComputed: published.lastComputed,
       waitingOn: waitingOn.current,
     };
 
-    if (result === undefined)
+    if (published.result === undefined)
       throw new Error(`Result can not be undefined: change the ${name} call`);
 
-    return result === null ? { ...fullBase, result: null } : { ...fullBase, result };
-  }, [memoizedBase, name, result]);
+    return published.result === null
+      ? { ...fullBase, result: null }
+      : { ...fullBase, result: published.result };
+  }, [memoizedBase, name, published]);
 };
