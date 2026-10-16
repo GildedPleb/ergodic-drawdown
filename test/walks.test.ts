@@ -2,17 +2,31 @@ import { expect, test } from "bun:test";
 
 import { WEEKS_PER_EPOCH } from "../src/constants";
 import { walks, type WalkTypes } from "../src/data/walks";
+import { epochSeed, nextMulberry, WALK_STATE_LENGTH, walkKey } from "../src/data/walks/prng";
+import { numberAt } from "../src/number-at";
 
 const start = 0.4;
 
-const insideClamp = (name: WalkTypes, volatility: number): void => {
-  const data = walks[name]({
+const callWalk = (
+  name: WalkTypes,
+  volatility: number,
+  state = new Float64Array(WALK_STATE_LENGTH),
+  seed = 1,
+): Float64Array => {
+  const rng = new Uint32Array([seed]);
+  return walks[name]({
     clampBottom: true,
     clampTop: true,
+    random: () => nextMulberry(rng),
     start,
     startWeek: 0,
+    state,
     volatility,
   });
+};
+
+const insideClamp = (name: WalkTypes, volatility: number): void => {
+  const data = callWalk(name, volatility);
 
   expect(data.length).toBe(WEEKS_PER_EPOCH);
   expect(data[0]).toBe(start);
@@ -57,13 +71,7 @@ const deterministic: Array<{
 
 for (const expected of deterministic) {
   test(`${expected.name} lands on a fixed path when volatility is 0`, () => {
-    const data = walks[expected.name]({
-      clampBottom: true,
-      clampTop: true,
-      start,
-      startWeek: 0,
-      volatility: 0,
-    });
+    const data = callWalk(expected.name, 0);
 
     expect(data[1]).toBe(expected.week1);
     expect(data[52]).toBe(expected.week52);
@@ -75,5 +83,67 @@ for (const expected of deterministic) {
 for (const name of ["Momentum", "Pong", "Random", "Shark"] as const) {
   test(`${name} stays inside the clamp`, () => {
     insideClamp(name, 100);
+  });
+}
+
+const stream = (name: WalkTypes, seed: number, epoch: number): (() => number) => {
+  const rng = new Uint32Array([epochSeed(seed, walkKey(name), 0, epoch)]);
+  return () => nextMulberry(rng);
+};
+
+const secondEpoch = (
+  name: WalkTypes,
+  volatility: number,
+  carried: Float64Array,
+  seed: number,
+): Float64Array => {
+  const first = walks[name]({
+    clampBottom: false,
+    clampTop: false,
+    random: stream(name, seed, 0),
+    start: 0.5,
+    startWeek: 0,
+    state: carried,
+    volatility,
+  });
+  // The worker marks the cell occupied. The walk leaves that flag alone.
+  carried[2] = 1;
+  return walks[name]({
+    clampBottom: false,
+    clampTop: false,
+    random: stream(name, seed, 1),
+    start: numberAt(first, WEEKS_PER_EPOCH - 1),
+    startWeek: 0,
+    state: carried,
+    volatility,
+  });
+};
+
+for (const name of ["Momentum", "Pong", "Shark"] as const) {
+  test(`${name} carries its cycle into the next epoch`, () => {
+    const seed = name === "Shark" ? 3 : 1;
+    const volatility = name === "Pong" ? 0 : 0.1;
+    const carried = new Float64Array(WALK_STATE_LENGTH);
+    const again = new Float64Array(WALK_STATE_LENGTH);
+    const continued = secondEpoch(name, volatility, carried, seed);
+    const restarted = secondEpoch(name, volatility, again, seed);
+    const dropped = walks[name]({
+      clampBottom: false,
+      clampTop: false,
+      random: stream(name, seed, 1),
+      start: numberAt(continued, 0),
+      startWeek: 0,
+      state: new Float64Array(WALK_STATE_LENGTH),
+      volatility,
+    });
+    let differs = false;
+    for (let week = 0; week < WEEKS_PER_EPOCH; week++) {
+      expect(numberAt(continued, week)).toBe(numberAt(restarted, week));
+      if (!Object.is(numberAt(continued, week), numberAt(dropped, week))) differs = true;
+    }
+    expect(differs).toBe(true);
+    for (let slot = 0; slot < WALK_STATE_LENGTH; slot++) {
+      expect(numberAt(carried, slot)).toBe(numberAt(again, slot));
+    }
   });
 }

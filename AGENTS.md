@@ -56,7 +56,7 @@ Vitest is only a fallback if a test needs the Vite transform. Mounting `Computed
 ## Where the code lives
 
 - `src/main.tsx` boots React, the error boundary, and strict mode.
-- `src/contexts/model.tsx` holds the price model, epoch count, sample count, and the simulation `GrowableSharedArray`.
+- `src/contexts/model.tsx` holds the price model, epoch count, sample count, and the simulation `GrowableSharedArray`. `simulationSeed` is a constant there. The model panel does not edit it.
 - `src/contexts/drawdown.tsx` holds drawdown settings and the drawdown buffer.
 - `src/contexts/computed/index.tsx` is the compute graph. One component calls `useDependency` for every node.
 - `src/contexts/computed/hooks/use-dependancy.tsx` is the scheduler. The filename is spelled that way.
@@ -98,6 +98,8 @@ Min, max, inflation, and the reoccurring-item series do not keep an LRU. The gra
 
 The variable drawdown buffers live in a `Map` on `src/contexts/drawdown.tsx`, one `VariableDrawdownCache` per active variable hash. A hash that is no longer active is deleted. The stored week index depends on `weeksSince`, so the validity hash is `fullHashInflation` plus that count, and a miss `clear()`s the buffer before reuse. `variableCacheHash` includes `weeksSince` too.
 
+The walk-state grid sits beside the price grid and uses the same validity hash, `fullHash` plus `weeksSince`. It is not an LRU. Slot 2 is an occupied flag so a real zero in the cycle is not read as an empty cell. A cycle continues across epochs of one sample and starts fresh on the next sample.
+
 `finalVariableCache` keeps the one `VariableDrawdownFinal` volume just read. A new final replaces the previous entry. Volume throws `"No cache for variable drawdown"` when that entry is missing.
 
 The dependency matrix is `useDependency`. It is not an auxiliary cache. Do not replace it with Redux or another store. Redux cannot abort a worker, wait on an upstream node, or see an in-place `SharedArrayBuffer` write.
@@ -131,6 +133,8 @@ Firefox and Safari commit a growable ceiling as resident memory. Their price and
 The pool size is `navigator.hardwareConcurrency`, or 4 when that is 0. Tasks are `postMessage`d with the shared buffer in the payload. The second argument of `Worker.postMessage` is a transfer list. The oxlint rule `unicorn/require-post-message-target-origin` stays allowed for that reason.
 
 `createTaskQueue` splits sample ranges across workers. Width extension and new samples are separate task lists. A width task's `startEpoch` is the already-valid epoch count so the worker rereads the previous epoch's tail and then fills the new epochs.
+
+A walk call is one epoch. Pong, Shark, and Momentum keep the cycle that crosses that boundary in the walk-state grid, three floats per epoch and sample. Draws come from mulberry32 seeded by `simulationSeed`, the walk, the sample, and the epoch, so a cached epoch does not have to be replayed.
 
 An aborted worker run can still post `completed`. The handlers return early on `signalState.aborted`, and `worker.ts` posts completed after a normal return. A thrown handler is logged and posts nothing, so the main thread waits. Do not paper over that by catching inside the handler and returning success.
 

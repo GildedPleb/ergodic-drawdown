@@ -12,6 +12,7 @@ export const handleSimulation = async (
   maxArray: Float64Array[],
   epochCount: number,
   simulationData: GrowableSharedArray,
+  walkState: GrowableSharedArray,
   samples: number,
   worker: WorkerContextType,
   weeksSince: number,
@@ -21,9 +22,20 @@ export const handleSimulation = async (
   const returnHash = fullHash + epochCount + samples;
   // The leading NaN prefix is weeksSince long. The model hash does not cover it.
   const gridHash = `${fullHash}:${weeksSince}`;
-  const [validWidth, validHeight] = simulationData.getValidity(gridHash);
+  const [priceWidth, priceHeight] = simulationData.getValidity(gridHash);
+  const [stateWidth, stateHeight] = walkState.getValidity(gridHash);
+  let validWidth = priceWidth;
+  let validHeight = priceHeight;
+  if (priceWidth !== stateWidth || priceHeight !== stateHeight) {
+    validWidth = 0;
+    validHeight = 0;
+  }
   simulationData.resize(epochCount, samples);
-  if (validHeight === 0) simulationData.clear();
+  walkState.resize(epochCount, samples);
+  if (validHeight === 0) {
+    simulationData.clear();
+    walkState.clear();
+  }
   const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
 
   const taskQueueEpochs: SupplementedTask[] = needTasksForWidth
@@ -51,6 +63,7 @@ export const handleSimulation = async (
         maxArray,
         minArray,
         samples,
+        stateBuffer: walkState.exportState(),
         task,
         weeksSince,
       },
@@ -64,5 +77,6 @@ export const handleSimulation = async (
   }
 
   simulationData.setValidity(gridHash);
+  walkState.setValidity(gridHash);
   return "success:" + returnHash;
 };

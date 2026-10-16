@@ -4,7 +4,11 @@ import GrowableSharedArray from "../classes/growable-shared-array";
 import { DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH } from "../constants";
 import { models } from "../data/models";
 import { type WalkTypes } from "../data/walks";
+import { WALK_STATE_LENGTH } from "../data/walks/prng";
 import { type ModelNames, type ProviderProperties } from "../types";
+
+// Fixed until the redesign. The model panel does not edit this.
+export const simulationSeed = 1;
 
 const initialModel = models[0];
 if (initialModel === undefined) throw new Error("missing price model");
@@ -33,6 +37,7 @@ export interface ModelContextType {
   variable: number;
   volatility: number;
   walk: WalkTypes;
+  walkState: GrowableSharedArray;
 }
 
 const ModelContext = createContext<ModelContextType | null>(null);
@@ -51,6 +56,9 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [epochCount, setEpochCount] = useState<number>(DEFAULT_EPOCH_COUNT);
   const simulationData = useRef<GrowableSharedArray>(
     new GrowableSharedArray(DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH),
+  );
+  const walkState = useRef<GrowableSharedArray>(
+    new GrowableSharedArray(DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WALK_STATE_LENGTH),
   );
 
   const value = useMemo(
@@ -79,6 +87,7 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
         variable,
         volatility,
         walk,
+        walkState: walkState.current,
       }) satisfies ModelContextType,
     [
       showModel,

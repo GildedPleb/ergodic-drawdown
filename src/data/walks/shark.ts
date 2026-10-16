@@ -1,20 +1,29 @@
 import { WEEKS_PER_EPOCH } from "../../constants";
+import { numberAt } from "../../number-at";
 import type { IWalk } from "../../types";
 
-let expoState = 1.025;
-
-export const shark: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
+export const shark: IWalk = ({
+  clampBottom,
+  clampTop,
+  random,
+  start,
+  startWeek,
+  state,
+  volatility,
+}) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
+  if (numberAt(state, 2) === 0) state[0] = 1.025;
+  let expoState = numberAt(state, 0);
 
   for (let week = startWeek + 1; week < WEEKS_PER_EPOCH; week++) {
-    const randomComponent = (Math.random() - 0.5) * volatility;
+    const randomComponent = (random() - 0.5) * volatility;
 
     currentValue *= expoState;
     currentValue += randomComponent;
 
-    if (currentValue >= 1 + volatility * 10 * Math.random() || (clampTop && currentValue > 1)) {
+    if (currentValue >= 1 + volatility * 10 * random() || (clampTop && currentValue > 1)) {
       expoState = 0.975;
     } else if (currentValue <= 0.001) {
       currentValue = -currentValue;
@@ -26,5 +35,6 @@ export const shark: IWalk = ({ clampBottom, clampTop, start, startWeek, volatili
 
     data[week] = currentValue;
   }
+  state[0] = expoState;
   return data;
 };

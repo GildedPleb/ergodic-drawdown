@@ -1,6 +1,7 @@
 import GrowableSharedArray from "../../classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { walks } from "../../data/walks";
+import { epochSeed, nextMulberry, WALK_STATE_LENGTH, walkKey } from "../../data/walks/prng";
 import { lastFinite, numberAt } from "../../number-at";
 import { type RunSimulationEvent, type SignalState } from "./types";
 
@@ -11,9 +12,10 @@ export const handleSimulation = (
     bufferState,
     currentPrice,
     epochCount,
-    full: { clampBottom, clampTop, volatility, walk },
+    full: { clampBottom, clampTop, seed, volatility, walk },
     maxArray,
     minArray,
+    stateBuffer,
     task: { endIndex, startEpoch, startIndex },
     weeksSince,
   }: RunSimulationEvent["payload"],
@@ -23,6 +25,10 @@ export const handleSimulation = (
     return;
   }
   const walking = walks[walk];
+  const key = walkKey(walk);
+  const rngState = new Uint32Array(1);
+  const random = (): number => nextMulberry(rngState);
+  const state = new Float64Array(WALK_STATE_LENGTH);
   const maxSeries = maxArray[0];
   const logMaxSeries = maxArray[1];
   const minSeries = minArray[0];
@@ -36,11 +42,13 @@ export const handleSimulation = (
     throw new Error("missing price bounds");
   }
   const data = GrowableSharedArray.fromExportedState(bufferState);
+  const walkState = GrowableSharedArray.fromExportedState(stateBuffer);
   for (let sample = startIndex; sample < endIndex; sample++) {
     // startEpoch 0 means nothing is cached yet. Subtracting 1 would read epoch -1.
     const adjustedEpoch = Math.max((startEpoch ?? 1) - 1, 0);
     let sampleLength = adjustedEpoch * WEEKS_PER_EPOCH;
     let lastPrice = currentPrice;
+    state.fill(0);
 
     for (let epoch = adjustedEpoch; epoch < epochCount; epoch++) {
       if (signalState.aborted) {
@@ -51,6 +59,16 @@ export const handleSimulation = (
         sampleLength += segment.length;
         const carried = lastFinite(segment);
         if (carried !== undefined) lastPrice = carried;
+        const saved = walkState.get(epoch, sample);
+        if (saved === undefined) {
+          // A blank epoch never ran the walk. A priced epoch without a cycle is a broken cache.
+          if (carried !== undefined) throw new Error("missing walk state");
+          state.fill(0);
+        } else {
+          state[0] = numberAt(saved, 0);
+          state[1] = numberAt(saved, 1);
+          state[2] = numberAt(saved, 2);
+        }
         continue;
       }
       // Local week 0 of this epoch is `epochStart` weeks into the bound series.
@@ -81,11 +99,14 @@ export const handleSimulation = (
         innerStartingPrice = logLastPrice - logStartingMax + 1;
       }
 
+      rngState[0] = epochSeed(seed, key, sample, epoch);
       const rawWalk = walking({
         clampBottom,
         clampTop,
+        random,
         start: innerStartingPrice,
         startWeek: firstPresent,
+        state,
         volatility,
       });
 
@@ -122,6 +143,8 @@ export const handleSimulation = (
       }
 
       data.set(epoch, sample, rawWalk);
+      state[2] = 1;
+      walkState.set(epoch, sample, state);
       const carried = lastFinite(rawWalk);
       if (carried !== undefined) lastPrice = carried;
       sampleLength += rawWalk.length;

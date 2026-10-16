@@ -1,13 +1,17 @@
+# The suite wall budget is the test process clock. Run that clock after the other checks.
 pre-commit:
-  parallel: true
-  commands:
-    format:
-      run: bun run format
-    lint:
-      run: bun run lint
-    types:
-      run: bun run typecheck
-    test:
+  jobs:
+    - name: static
+      group:
+        parallel: true
+        jobs:
+          - name: format
+            run: bun run format
+          - name: lint
+            run: bun run lint
+          - name: types
+            run: bun run typecheck
+          - name: secrets
+            run: bun run secrets
+    - name: test
       run: bun run test
-    secrets:
-      run: bun run secrets

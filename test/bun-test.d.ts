@@ -1,3 +1,17 @@
+interface ImportMeta {
+  readonly dir: string;
+}
+
+declare module "bun" {
+  export class Glob {
+    constructor(pattern: string);
+    scanSync(options: { absolute?: boolean; cwd?: string }): Iterable<string>;
+  }
+  export function file(path: string): {
+    text(): Promise<string>;
+  };
+}
+
 interface Rejection {
   toThrow(expected?: string): Promise<void>;
 }

@@ -7,7 +7,7 @@ const maxVelocity = acceleration * weeksPerPhase;
 
 type Phase = "ascent" | "base" | "descent";
 
-export const bubble: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
+export const bubble: IWalk = ({ clampBottom, clampTop, random, start, startWeek, volatility }) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
@@ -22,7 +22,7 @@ export const bubble: IWalk = ({ clampBottom, clampTop, start, startWeek, volatil
         : 0;
 
   for (let week = startWeek + 1; week < WEEKS_PER_EPOCH; week++) {
-    const randomComponent = (Math.random() - 0.5) * volatility;
+    const randomComponent = (random() - 0.5) * volatility;
 
     switch (currentPhase) {
       case "base": {

@@ -1,14 +1,21 @@
 import { WEEKS_PER_EPOCH } from "../../constants";
 import type { IWalk } from "../../types";
 
-export const USElections: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
+export const USElections: IWalk = ({
+  clampBottom,
+  clampTop,
+  random,
+  start,
+  startWeek,
+  volatility,
+}) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
   const decrement = 0.003;
 
   for (let week = startWeek + 1; week < WEEKS_PER_EPOCH; week++) {
-    const randomComponent = (Math.random() - 0.5) * volatility;
+    const randomComponent = (random() - 0.5) * volatility;
 
     currentValue -= randomComponent + decrement;
 

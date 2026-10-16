@@ -6,6 +6,10 @@ import { handleSimulation as scheduleSimulation } from "../src/contexts/computed
 import type { WorkerContextType } from "../src/contexts/workers";
 import type { TaskResult } from "../src/contexts/workers/types";
 import { handleSimulation } from "../src/contexts/workers/simulation";
+import { WALK_STATE_LENGTH } from "../src/data/walks/prng";
+
+const walkGrid = (epochs: number, samples = 1): GrowableSharedArray =>
+  new GrowableSharedArray(epochs, samples, WALK_STATE_LENGTH);
 
 const weeks = WEEKS_PER_EPOCH;
 const minPrice = 100;
@@ -32,6 +36,7 @@ const sample = (currentPrice: number, weeksSince: number): Float64Array => {
         clampTop: false,
         minMaxMultiple: 1,
         model: "CAGR",
+        seed: 1,
         variable: 1,
         volatility: 0,
         walk: "Random",
@@ -39,6 +44,7 @@ const sample = (currentPrice: number, weeksSince: number): Float64Array => {
       maxArray,
       minArray,
       samples: 1,
+      stateBuffer: walkGrid(1).exportState(),
       task: { arrayIndex: 0, endIndex: 1, startIndex: 0 },
       weeksSince,
     },
@@ -98,6 +104,7 @@ const runEpochs = (
         clampTop: false,
         minMaxMultiple: 1,
         model: "CAGR",
+        seed: 1,
         variable: 1,
         volatility: 0,
         walk: "Random",
@@ -105,6 +112,7 @@ const runEpochs = (
       maxArray: bounds(length, maxPrice),
       minArray: bounds(length, minPrice),
       samples: 1,
+      stateBuffer: walkGrid(epochCount).exportState(),
       task:
         startEpoch === undefined
           ? { arrayIndex: 0, endIndex: 1, startIndex: 0 }
@@ -149,6 +157,7 @@ test("a cached epoch that ends in NaN does not replace the spot price", () => {
         clampTop: false,
         minMaxMultiple: 1,
         model: "CAGR",
+        seed: 1,
         variable: 1,
         volatility: 0,
         walk: "Random",
@@ -156,6 +165,7 @@ test("a cached epoch that ends in NaN does not replace the spot price", () => {
       maxArray: bounds(weeks * 2, maxPrice),
       minArray: bounds(weeks * 2, minPrice),
       samples: 1,
+      stateBuffer: walkGrid(2).exportState(),
       task: { arrayIndex: 0, endIndex: 1, startEpoch: 1, startIndex: 0 },
       weeksSince: 0,
     },
@@ -186,11 +196,13 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
     count: 1,
   };
   const data = new GrowableSharedArray(1, 1);
+  const state = walkGrid(1);
   const full = {
     clampBottom: false,
     clampTop: false,
     minMaxMultiple: 1,
     model: "CAGR",
+    seed: 1,
     variable: 1,
     volatility: 0,
     walk: "Random" as const,
@@ -205,6 +217,7 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
       maxArray,
       1,
       data,
+      state,
       1,
       worker,
       weeksSince,
@@ -219,4 +232,41 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
   await run(9);
 
   expect(writes).toBe(2);
+
+  state.setValidity("other");
+  await run(9);
+  expect(writes).toBe(3);
+});
+
+test("a priced epoch without a cycle is a broken cache", () => {
+  const data = new GrowableSharedArray(2, 1, weeks);
+  const row = new Float64Array(weeks);
+  row.fill(spot);
+  data.set(0, 0, row);
+  expect(() => {
+    handleSimulation(
+      {
+        bufferState: data.exportState(),
+        currentPrice: spot,
+        epochCount: 2,
+        full: {
+          clampBottom: false,
+          clampTop: false,
+          minMaxMultiple: 1,
+          model: "CAGR",
+          seed: 1,
+          variable: 1,
+          volatility: 0,
+          walk: "Random",
+        },
+        maxArray: bounds(weeks * 2, maxPrice),
+        minArray: bounds(weeks * 2, minPrice),
+        samples: 1,
+        stateBuffer: walkGrid(2).exportState(),
+        task: { arrayIndex: 0, endIndex: 1, startEpoch: 1, startIndex: 0 },
+        weeksSince: 0,
+      },
+      { aborted: false },
+    );
+  }).toThrow("missing walk state");
 });

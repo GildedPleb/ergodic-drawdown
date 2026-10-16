@@ -1,7 +1,14 @@
 import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../../constants";
 import type { IWalk } from "../../types";
 
-export const fourYearCycle: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
+export const fourYearCycle: IWalk = ({
+  clampBottom,
+  clampTop,
+  random,
+  start,
+  startWeek,
+  volatility,
+}) => {
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
@@ -30,7 +37,7 @@ export const fourYearCycle: IWalk = ({ clampBottom, clampTop, start, startWeek, 
     if (rate > 0 && currentValue > 1) rate = 0;
     if (rate < 0 && currentValue < 0) rate = 0;
 
-    currentValue += rate + (Math.random() - 0.5) * volatility;
+    currentValue += rate + (random() - 0.5) * volatility;
 
     if (clampTop && currentValue > 1) currentValue = 1;
     if (clampBottom && currentValue < 0) currentValue = 0;

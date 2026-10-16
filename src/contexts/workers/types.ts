@@ -20,6 +20,7 @@ export interface RunSimulationEvent {
     maxArray: Float64Array[];
     minArray: Float64Array[];
     samples: number;
+    stateBuffer: ExportedState;
     task: SupplementedTask;
     weeksSince: number;
   };

@@ -26,6 +26,7 @@ const createWorkerPool = (): WorkerWithId[] => {
 
 export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
   const workersReference = useRef<WorkerWithId[]>([]);
+  const taskSerial = useRef(0);
   const taskQueueReference = useRef<QueueTask[]>([]);
   const activeWorkersReference = useRef<Map<WorkerWithId, QueueTask>>(new Map());
   const callbackMapReference = useRef<Map<string, (result: TaskResult) => void>>(new Map());
@@ -85,7 +86,8 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
       return new Promise<TaskResult[]>((resolve) => {
         const taskIds = new Set<string>();
         const tasks = tasksData.map((data) => {
-          const id = Date.now() + Math.random().toString(36).slice(2, 9);
+          const id = `${Date.now().toString(36)}-${taskSerial.current.toString(36)}`;
+          taskSerial.current += 1;
           taskIds.add(id);
           return {
             data,

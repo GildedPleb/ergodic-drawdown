@@ -1,74 +1,72 @@
 import { WEEKS_PER_EPOCH } from "../../constants";
+import { numberAt } from "../../number-at";
 import type { IWalk } from "../../types";
 
-let currentVelocity = 0;
-let isKicked = false;
-let leftKickerPosition = 0;
-let rightKickerPosition = 1;
-
-export const ballOnHill: IWalk = ({ clampBottom, clampTop, start, startWeek, volatility }) => {
+export const ballOnHill: IWalk = ({
+  clampBottom,
+  clampTop,
+  random,
+  start,
+  startWeek,
+  state,
+  volatility,
+}) => {
   const kickerRange = volatility * 2;
 
   const data = new Float64Array(WEEKS_PER_EPOCH);
   data[startWeek] = start;
   let currentValue = start;
+  if (numberAt(state, 2) === 0) {
+    state[0] = 0;
+    state[1] = 0;
+  }
+  let currentVelocity = numberAt(state, 0);
+  let isKicked = numberAt(state, 1) !== 0;
 
-  // Set kicker positions based on clamping
-  leftKickerPosition = clampBottom
-    ? (leftKickerPosition = 0)
-    : (leftKickerPosition = -Math.random() * kickerRange);
-  rightKickerPosition = clampTop
-    ? (rightKickerPosition = 1)
-    : (rightKickerPosition = 1 + Math.random() * kickerRange);
+  let leftKicker = clampBottom ? 0 : -random() * kickerRange;
+  let rightKicker = clampTop ? 1 : 1 + random() * kickerRange;
   if (!isKicked) {
     currentVelocity = (currentValue - 0.5) * 0.01;
   }
 
   for (let week = startWeek + 1; week < WEEKS_PER_EPOCH; week++) {
-    const randomComponent = (Math.random() - 0.5) * volatility;
+    const randomComponent = (random() - 0.5) * volatility;
 
-    // Check for kicker hits
-    if (currentValue <= leftKickerPosition || currentValue >= rightKickerPosition) {
+    if (currentValue <= leftKicker || currentValue >= rightKicker) {
       isKicked = true;
 
-      // Set position to kicker position
-      currentValue = currentValue <= leftKickerPosition ? leftKickerPosition : rightKickerPosition;
+      currentValue = currentValue <= leftKicker ? leftKicker : rightKicker;
 
-      // Kick towards 0.5 with velocity proportional to distance from center
       const distanceFromCenter = Math.abs(currentValue - 0.5);
-      // Stronger kick when further out
       const kickStrength = 0.02 * (1 + distanceFromCenter);
       currentVelocity = currentValue < 0.5 ? kickStrength : -kickStrength;
 
-      // Set new kicker positions for next time (if not clamped)
       if (!clampBottom) {
-        leftKickerPosition = -Math.random() * kickerRange;
+        leftKicker = -random() * kickerRange;
       }
       if (!clampTop) {
-        rightKickerPosition = 1 + Math.random() * kickerRange;
+        rightKicker = 1 + random() * kickerRange;
       }
     }
 
     if (isKicked) {
-      // Decay velocity as we approach 0.5
       currentVelocity *= 0.95;
       if (Math.abs(currentValue - 0.5) < 0.01 && Math.abs(currentVelocity) < 0.001) {
-        // Reached the top - start falling randomly
         isKicked = false;
-        currentVelocity = Math.random() > 0.5 ? 0.001 : -0.001;
+        currentVelocity = random() > 0.5 ? 0.001 : -0.001;
       }
     } else {
-      // Natural acceleration down the hill
       currentVelocity += (currentValue - 0.5) * 0.01;
     }
 
     currentValue += currentVelocity + randomComponent;
 
-    // Apply clamps if specified
     if (clampTop && currentValue > 1) currentValue = 1;
     if (clampBottom && currentValue < 0) currentValue = 0;
 
     data[week] = currentValue;
   }
+  state[0] = currentVelocity;
+  state[1] = isKicked ? 1 : 0;
   return data;
 };

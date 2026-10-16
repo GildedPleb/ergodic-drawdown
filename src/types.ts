@@ -44,6 +44,7 @@ export interface Full {
   clampTop: boolean;
   minMaxMultiple: number;
   model: string;
+  seed: number;
   variable: number;
   volatility: number;
   walk: WalkTypes;
@@ -226,8 +227,10 @@ export interface SlideRequirement {
 interface WalkOptions {
   clampBottom: boolean;
   clampTop: boolean;
+  random: () => number;
   start: number;
   startWeek: number;
+  state: Float64Array;
   volatility: number;
 }
-export type IWalk = (Options: WalkOptions) => Float64Array;
+export type IWalk = (options: WalkOptions) => Float64Array;

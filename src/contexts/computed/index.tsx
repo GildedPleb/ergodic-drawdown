@@ -11,7 +11,7 @@ import {
   type ProviderProperties,
 } from "../../types";
 import { useDrawdown } from "../drawdown";
-import { useModel } from "../model";
+import { simulationSeed, useModel } from "../model";
 import { useRender } from "../render";
 import { useTime } from "../time";
 import { useWorker } from "../workers";
@@ -81,6 +81,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
     variable,
     volatility,
     walk,
+    walkState,
   } = useModel();
   const currentPrice = useCurrentPrice();
   const now = useTime();
@@ -111,6 +112,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
       clampTop,
       minMaxMultiple,
       model,
+      seed: simulationSeed,
       variable,
       volatility,
       walk,
@@ -249,6 +251,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
       narrow(maxArray),
       epochCount,
       simulationData,
+      walkState,
       samples,
       worker,
       weeksSince,
