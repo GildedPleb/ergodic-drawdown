@@ -59,10 +59,6 @@ ADD SLIDER
 
 - Add a slider so i can click on a One Off Event vertical line and drag it left or right, forward in time or backward in time.
 
-MEASURE
-
-- Reuse one 208-length Float64Array per simulation task. The walks write into it, then data.set copies it into the grid. Keep `10 **`. The default run currently allocates that array 10,000 times. Judge it only by a preview volatility-change Simulation line clearly under 24.4ms, on more than one reload. Do not bring Math.exp back. Do not write each week straight into the shared grid.
-
 Tuesday, October 13, 2026:
 
 - We should also allow it to get the latest block from a local Bitcoin blockchain and get the latest price from a local deployed thing. I don't know how that works. I don't know how you get the latest price or something, but we should investigate that.
