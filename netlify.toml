@@ -4,6 +4,7 @@ publish = "dist"
 
 [build.environment]
 BUN_VERSION = "1.3.13"
+NODE_VERSION = "24"
 
 [[headers]]
 for = "/*"
