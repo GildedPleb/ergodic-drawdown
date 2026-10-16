@@ -1,66 +1,47 @@
+import { cancelSignal } from "./cancel";
 import { handleDrawdownVariable } from "./drawdown-variable";
 import { handleGroup } from "./group";
 import { handleNormal } from "./normal";
 import { handleQuantile } from "./quantile";
 import { handleSimulation } from "./simulation";
-import { type TaskResult, type WorkerEvent } from "./types";
+import { type SignalState, type TaskResult, type WorkerEvent } from "./types";
 import { handleVolumeCalculation } from "./volume";
 
 const taskQueue: WorkerEvent[] = [];
 let isProcessing = false;
-const signalState = { aborted: false };
 
-const processTask = ({ data, id }: WorkerEvent): void => {
-  if (data.type === "RUN_PRICE_SIMULATION") {
-    handleSimulation(data.payload, signalState);
-    self.postMessage({
-      id,
-      status: "completed",
-    } satisfies TaskResult);
+const processTask = ({ board, data, generation, id, workerId }: WorkerEvent): void => {
+  const signalState: SignalState = cancelSignal(new Uint32Array(board), workerId, generation);
+
+  switch (data.type) {
+    case "RUN_PRICE_SIMULATION":
+      handleSimulation(data.payload, signalState);
+      break;
+    case "RUN_DRAWDOWN_VARIABLE":
+      handleDrawdownVariable(data.payload, signalState);
+      break;
+    case "RUN_VOLUME":
+      handleVolumeCalculation(data.payload, signalState);
+      break;
+    case "RUN_DISTRIBUTION_GROUP":
+      handleGroup(data.payload, signalState);
+      break;
+    case "RUN_DISTRIBUTION_QUANTILE":
+      handleQuantile(data.payload, signalState);
+      break;
+    case "RUN_DISTRIBUTION_NORMAL":
+      handleNormal(data.payload, signalState);
+      break;
+    default: {
+      const unexpected: never = data;
+      throw new Error(`unknown task ${JSON.stringify(unexpected)}`);
+    }
   }
-  if (data.type === "RUN_DRAWDOWN_VARIABLE") {
-    handleDrawdownVariable(data.payload, signalState);
-    self.postMessage({
-      id,
-      status: "completed",
-    } satisfies TaskResult);
-  }
-  if (data.type === "RUN_VOLUME") {
-    handleVolumeCalculation(data.payload, signalState);
-    self.postMessage({
-      id,
-      status: "completed",
-    } satisfies TaskResult);
-  }
-  if (data.type === "RUN_DISTRIBUTION_GROUP") {
-    handleGroup(data.payload, signalState);
-    self.postMessage({
-      id,
-      status: "completed",
-    } satisfies TaskResult);
-  }
-  if (data.type === "RUN_DISTRIBUTION_QUANTILE") {
-    handleQuantile(data.payload, signalState);
-    self.postMessage({
-      id,
-      status: "completed",
-    } satisfies TaskResult);
-  }
-  if (data.type === "RUN_DISTRIBUTION_NORMAL") {
-    handleNormal(data.payload, signalState);
-    self.postMessage({
-      id,
-      status: "completed",
-    } satisfies TaskResult);
-  }
-  if (data.type === "ABORT") {
-    isProcessing = false;
-    signalState.aborted = false;
-    self.postMessage({
-      id,
-      status: "aborted",
-    } satisfies TaskResult);
-  }
+
+  self.postMessage({
+    id,
+    status: signalState.aborted ? "aborted" : "completed",
+  } satisfies TaskResult);
 };
 
 const processQueue = (): void => {
@@ -70,7 +51,11 @@ const processQueue = (): void => {
   }
 
   isProcessing = true;
-  const task = taskQueue.shift()!;
+  const task = taskQueue.shift();
+  if (task === undefined) {
+    isProcessing = false;
+    return;
+  }
 
   try {
     processTask(task);
@@ -82,11 +67,6 @@ const processQueue = (): void => {
 };
 
 self.addEventListener("message", (event: MessageEvent<WorkerEvent>) => {
-  if (event.data.data.type === "ABORT") {
-    signalState.aborted = true;
-  }
   taskQueue.push(event.data);
-  if (!isProcessing) {
-    processQueue();
-  }
+  if (!isProcessing) processQueue();
 });

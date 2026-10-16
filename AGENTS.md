@@ -23,7 +23,7 @@ Bun 1.3.13 is the install, the script runner, and the test runner. Vite bundles.
 | `bun run test`      | The only test command. Full suite, coverage, and the suite record.     |
 | `bun run secrets`   | Gitleaks on the staged diff.                                           |
 
-Lefthook pre-commit runs format, lint, typecheck, test, and secrets in parallel. CI job `check` runs those plus Knip. `check` is not required on `main`. A push to `main` starts the Netlify deploy immediately. Netlify builds with `bun run build`, `BUN_VERSION` 1.3.13, and publishes `dist/`.
+Lefthook pre-commit runs format, lint, typecheck, test, and secrets in parallel. CI job `check` runs those plus Knip. `check` is not required on `main`. A push to `main` starts the Netlify deploy immediately. Netlify builds with `bun run build`, `BUN_VERSION` 1.3.13, and `NODE_VERSION` 24, and publishes `dist/`. Vite's binary runs on Node. Rolldown needs Node `^20.19` or `>=22.12` because it imports `styleText` from `node:util`. The site stays on Node 18 until `NODE_VERSION` is set, and a failed build does not replace the live `dist`. Do not remove `NODE_VERSION`.
 
 A red gate is unfinished work. Do not add a file-level lint disable, `@ts-ignore`, or `@ts-expect-error` to get green.
 
@@ -60,7 +60,7 @@ Vitest is only a fallback if a test needs the Vite transform. Mounting `Computed
 - `src/contexts/drawdown.tsx` holds drawdown settings and the drawdown buffer.
 - `src/contexts/computed/index.tsx` is the compute graph. One component calls `useDependency` for every node.
 - `src/contexts/computed/hooks/use-dependancy.tsx` is the scheduler. The filename is spelled that way.
-- `src/contexts/workers/worker.ts` is the worker entry and the Knip entry. `src/contexts/workers/index.tsx` is the pool on the main thread.
+- `src/contexts/workers/worker.ts` is the worker entry and the Knip entry. `src/contexts/workers/index.tsx` owns the pool. `scheduler.ts` assigns tasks. `cancel.ts` is the shared generation board.
 - `src/contexts/workers/simulation.ts` turns a walk into prices. `volume.ts` turns those prices into a balance. `drawdown-variable.ts`, `group.ts`, `quantile.ts`, and `normal.ts` are the other tasks.
 - `src/classes/growable-shared-array.ts` is the epoch-by-sample grid. `variable-drawdown-cache.ts` is one week and amount per sample. `variable-drawdown-final.ts` merges those into the volume worker.
 - `src/data/models/` are the price bounds. `src/data/walks/` are the ergodic walks. Walks must not import a value from `src/types.ts`; a type import is fine. A value import pulls the model table into the worker.
@@ -136,7 +136,9 @@ The pool size is `navigator.hardwareConcurrency`, or 4 when that is 0. Tasks are
 
 A walk call is one epoch. Pong, Shark, and Momentum keep the cycle that crosses that boundary in the walk-state grid, three floats per epoch and sample. Draws come from mulberry32 seeded by `simulationSeed`, the walk, the sample, and the epoch, so a cached epoch does not have to be replayed.
 
-An aborted worker run can still post `completed`. The handlers return early on `signalState.aborted`, and `worker.ts` posts completed after a normal return. A thrown handler is logged and posts nothing, so the main thread waits. Do not paper over that by catching inside the handler and returning success.
+Each worker runs one posted task. The main thread keeps that worker busy until the reply id is the task it currently owns. A reply for any other id is ignored. Abort stores a new generation on that worker's slot in the shared cancel board and does not post a second message. The kernel sees the generation on its next `signalState.aborted` check and returns. The worker then posts one result, `aborted` or `completed`. A thrown handler is logged and posts nothing, so the main thread waits. Do not paper over that by catching inside the handler and returning success.
+
+A call that arrives before the pool exists waits until the pool is created. If that signal aborts, or the provider unmounts first, the call resolves one aborted result per task and posts nothing. Unmount calls `dispose`, which settles every outstanding call the same way.
 
 Price-to-walk conversion lives only in `handleSimulation`. The week loop reads the log bounds stored beside the price bounds. Weeks before the bound series stay NaN. The 0.01 floor stays.
 
@@ -180,7 +182,7 @@ Campaign: (meanings live in the beautify skill)
 
 - gates: done — 2026-10-13 — Lefthook pre-commit runs format, lint, typecheck, the coverage ratchet, and gitleaks 8.30.1. CI job `check` repeats that on `bun install --frozen-lockfile`, plus Knip. Dependabot groups React, Chart.js, and Vite. Main is unprotected until branch protection requires `check`. The dev base path is gone. Local dev and preview serve `/` with COOP/COEP. `*.pem` is ignored. The historical localhost key stays allowlisted. Do not rewrite history.
 - hygiene: done — 2026-10-13 — Oxfmt, Oxlint, and TypeScript 7 with both strict index flags. `unicorn/require-post-message-target-origin` stays allowed: Worker.postMessage's second argument is a transfer list. Lint scope is `src`, `test`, `scripts`, and `vite.config.ts`.
-- deps: done — 2026-10-13 — Vite 8.3.4 and React 19.3.0 are in. Styled-components stays. Removed c8, @vitejs/plugin-basic-ssl, and @svgr/core. Bun 1.3.13 is the install and the script runner. `bun.lock` is the lockfile. Netlify runs `bun run build` with `BUN_VERSION` 1.3.13. Do not add @rolldown/plugin-babel.
+- deps: done — 2026-10-13 — Vite 8.3.4 and React 19.3.0 are in. Styled-components stays. Removed c8, @vitejs/plugin-basic-ssl, and @svgr/core. Bun 1.3.13 is the install and the script runner. `bun.lock` is the lockfile. Netlify runs `bun run build` with `BUN_VERSION` 1.3.13 and `NODE_VERSION` 24. Vite runs on that Node. Do not remove `NODE_VERSION`. Do not add @rolldown/plugin-babel.
 - shape: done — 2026-10-13 — Knip is clean. Vite supplies src/main.tsx and vite.config.ts; the worker is the only explicit entry. test/ stays outside the Knip project. Removed the unused lightning SVG, vite-plugin-svgr, and the MDX toolchain.
 - tests: done — 2026-10-13 — The test command is `bun run test`. It runs every test and times the whole run. `lineCoverage` in `test-suite.json` is a floor: a drop of more than one point fails and leaves the file alone, and a higher coverage writes the new floor. `wallTimeMs` is a budget: a run more than 10% over it fails and leaves the file alone, and a faster run does not rewrite it. `bun test` by itself stops. The checker starts the tests through `process.execPath` because a literal `bun test` string is this package script. `validateNumericInput` stays private. Historic time is frozen in `test/freeze-clock.js`. `test/` stays outside Knip.
 - system: done — 2026-10-13 — The worker bundle is the walks and the sample buffers, 15.62 kB. Price models stay on the main thread. Halving dates live in `src/halvings.ts`. Historic still reads the clock and localStorage inside the price function. `contexts/computed` was left as it is.

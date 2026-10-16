@@ -181,3 +181,39 @@ test("a new variable result walks a finished balance from the start", async () =
   expect(walks).toBe(walksAfterFirst + 1);
   expect(epochZeroPresent).toBe(false);
 });
+
+test("an aborted volume wave does not mark the balance grid valid", async () => {
+  const worker: WorkerContextType = {
+    addTasks: (tasks) =>
+      Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "aborted" }))),
+    count: 1,
+  };
+  const prices = new GrowableSharedArray(1, 1);
+  const balances = new GrowableSharedArray(1, 1);
+  const finals = new Map<string, VariableDrawdownFinal>([
+    ["variables", new VariableDrawdownFinal([], 1, 1)],
+  ]);
+
+  const outcome = await scheduleVolume(
+    new AbortController().signal,
+    "node",
+    1,
+    {
+      totalWeeklyBitcoinItems: new Float64Array(1),
+      totalWeeklyFiatItems: new Float64Array(1),
+    },
+    finals,
+    1,
+    1,
+    prices,
+    balances,
+    "volume",
+    "variables",
+    0,
+    worker,
+    false,
+  );
+
+  expect(outcome).toBe("failed:volume11variables");
+  expect(balances.getValidity("volume:variables:0")).toEqual([0, 0]);
+});

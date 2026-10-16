@@ -8,9 +8,6 @@ export interface SupplementedTask extends Task {
   startEpoch?: number;
 }
 
-interface AbortEvent {
-  type: "ABORT";
-}
 export interface RunSimulationEvent {
   payload: {
     bufferState: ExportedState;
@@ -102,12 +99,14 @@ export type WorkerTasks =
   | RunVolumeEvent;
 
 export interface QueueTask {
-  data: AbortEvent | WorkerTasks;
+  data: WorkerTasks;
   id: string;
   status: TaskStatus;
 }
 
 export interface WorkerEvent extends QueueTask {
+  board: SharedArrayBuffer;
+  generation: number;
   workerId: number;
 }
 
@@ -118,5 +117,5 @@ export interface TaskResult {
 }
 
 export interface SignalState {
-  aborted: boolean;
+  readonly aborted: boolean;
 }

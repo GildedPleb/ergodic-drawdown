@@ -4,8 +4,9 @@ import GrowableSharedArray from "../src/classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../src/constants";
 import { handleSimulation as scheduleSimulation } from "../src/contexts/computed/simulation";
 import type { WorkerContextType } from "../src/contexts/workers";
-import type { TaskResult } from "../src/contexts/workers/types";
+import { cancelBoard, cancelSignal } from "../src/contexts/workers/cancel";
 import { handleSimulation } from "../src/contexts/workers/simulation";
+import type { SignalState, TaskResult } from "../src/contexts/workers/types";
 import { WALK_STATE_LENGTH } from "../src/data/walks/prng";
 
 const walkGrid = (epochs: number, samples = 1): GrowableSharedArray =>
@@ -269,4 +270,91 @@ test("a priced epoch without a cycle is a broken cache", () => {
       { aborted: false },
     );
   }).toThrow("missing walk state");
+});
+
+test("a cancel flag stops the simulation on the next epoch", () => {
+  const board = cancelBoard(1);
+  const generation = 1;
+  Atomics.store(board, 0, generation);
+  const inner = cancelSignal(board, 0, generation);
+  let reads = 0;
+  const signal: SignalState = {
+    get aborted() {
+      reads += 1;
+      if (reads > 2) Atomics.store(board, 0, generation + 1);
+      return inner.aborted;
+    },
+  };
+  const data = new GrowableSharedArray(2, 1, weeks);
+
+  handleSimulation(
+    {
+      bufferState: data.exportState(),
+      currentPrice: spot,
+      epochCount: 2,
+      full: {
+        clampBottom: false,
+        clampTop: false,
+        minMaxMultiple: 1,
+        model: "CAGR",
+        seed: 1,
+        variable: 1,
+        volatility: 0,
+        walk: "Random",
+      },
+      maxArray: bounds(weeks * 2, maxPrice),
+      minArray: bounds(weeks * 2, minPrice),
+      samples: 1,
+      stateBuffer: walkGrid(2).exportState(),
+      task: { arrayIndex: 0, endIndex: 1, startIndex: 0 },
+      weeksSince: 0,
+    },
+    signal,
+  );
+
+  const first = data.get(0, 0);
+  if (first === undefined) throw new Error("missing first epoch");
+  expect(first[0]).toBe(spot);
+  expect(first[weeks - 1]).toBe(spot);
+  expect(data.get(1, 0)).toBe(undefined);
+});
+
+test("an aborted simulation wave does not mark the price grid valid", async () => {
+  const worker: WorkerContextType = {
+    addTasks: (tasks) =>
+      Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "aborted" }))),
+    count: 1,
+  };
+  const data = new GrowableSharedArray(1, 1);
+  const state = walkGrid(1);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+
+  const outcome = await scheduleSimulation(
+    new AbortController().signal,
+    "node",
+    spot,
+    minArray,
+    maxArray,
+    1,
+    data,
+    state,
+    1,
+    worker,
+    0,
+    full,
+    "model",
+  );
+
+  expect(outcome).toBe("failed:model11");
+  expect(data.getValidity("model:0")).toEqual([0, 0]);
+  expect(state.getValidity("model:0")).toEqual([0, 0]);
 });

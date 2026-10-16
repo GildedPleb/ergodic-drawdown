@@ -1,7 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef } from "react";
 
 import { type ProviderProperties } from "../../types";
-import { type QueueTask, type TaskResult, type WorkerEvent, type WorkerTasks } from "./types";
+import { cancelBoard } from "./cancel";
+import { createScheduler, type Scheduler } from "./scheduler";
+import { type TaskResult, type WorkerTasks } from "./types";
 
 const WORKER_COUNT = navigator.hardwareConcurrency === 0 ? 4 : navigator.hardwareConcurrency;
 
@@ -24,166 +26,91 @@ const createWorkerPool = (): WorkerWithId[] => {
   );
 };
 
+interface HeldTasks {
+  onAbort: () => void;
+  resolve: (results: TaskResult[]) => void;
+  signal: AbortSignal;
+  tasks: WorkerTasks[];
+}
+
+const abortedNow = (tasks: readonly WorkerTasks[]): TaskResult[] =>
+  tasks.map((_, index) => ({
+    id: `unready-${index.toString(36)}`,
+    result: { type: "ABORTED" },
+    status: "aborted",
+  }));
+
 export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
-  const workersReference = useRef<WorkerWithId[]>([]);
-  const taskSerial = useRef(0);
-  const taskQueueReference = useRef<QueueTask[]>([]);
-  const activeWorkersReference = useRef<Map<WorkerWithId, QueueTask>>(new Map());
-  const callbackMapReference = useRef<Map<string, (result: TaskResult) => void>>(new Map());
+  const schedulerReference = useRef<Scheduler | null>(null);
+  const heldReference = useRef<HeldTasks[]>([]);
 
-  useEffect(() => {
-    workersReference.current = createWorkerPool();
+  const addTasks = useCallback((tasks: WorkerTasks[], signal: AbortSignal) => {
+    const scheduler = schedulerReference.current;
+    if (scheduler !== null) return scheduler.addTasks(tasks, signal);
 
-    return () => {
-      for (const worker of workersReference.current) worker.terminate();
-    };
-  }, []);
+    return new Promise<TaskResult[]>((resolve) => {
+      if (signal.aborted) {
+        console.warn("Aborting tasks for this specific call to addTasks", tasks);
+        resolve(abortedNow(tasks));
+        return;
+      }
 
-  const runTask = useCallback((worker: WorkerWithId, task: QueueTask) => {
-    activeWorkersReference.current.set(worker, task);
-    worker.postMessage({
-      ...task,
-      workerId: worker.workerId,
+      const held: HeldTasks = {
+        onAbort: () => undefined,
+        resolve,
+        signal,
+        tasks,
+      };
+      held.onAbort = () => {
+        const pending = heldReference.current;
+        const index = pending.indexOf(held);
+        if (index < 0) return;
+        pending.splice(index, 1);
+        console.warn("Aborting tasks for this specific call to addTasks", tasks);
+        resolve(abortedNow(tasks));
+      };
+      signal.addEventListener("abort", held.onAbort, { once: true });
+      heldReference.current.push(held);
     });
   }, []);
 
-  const handleWorkerMessage = useCallback(
-    (worker: WorkerWithId, event: MessageEvent<TaskResult>) => {
-      const { id, result, status } = event.data;
-      activeWorkersReference.current.delete(worker);
-
-      const completeTask = callbackMapReference.current.get(id);
-      if (completeTask !== undefined) {
-        completeTask({ id, result, status });
-        callbackMapReference.current.delete(id);
-      }
-
-      if (taskQueueReference.current.length > 0) {
-        const nextTask = taskQueueReference.current.shift();
-        if (nextTask !== undefined) runTask(worker, nextTask);
-      }
-    },
-    [runTask],
-  );
-
   useEffect(() => {
-    const bindings = workersReference.current.map((worker) => {
+    const workers = createWorkerPool();
+    const scheduler = createScheduler(workers, cancelBoard(workers.length));
+    schedulerReference.current = scheduler;
+
+    const waiting = heldReference.current.splice(0);
+    for (const held of waiting) {
+      held.signal.removeEventListener("abort", held.onAbort);
+      if (held.signal.aborted) {
+        held.resolve(abortedNow(held.tasks));
+        continue;
+      }
+      void scheduler.addTasks(held.tasks, held.signal).then(held.resolve);
+    }
+
+    const bindings = workers.map((worker) => {
       const listener = (event: MessageEvent<TaskResult>): void => {
-        handleWorkerMessage(worker, event);
+        scheduler.handleMessage(worker, event.data);
       };
       worker.addEventListener("message", listener);
       return { listener, worker };
     });
+
     return () => {
+      schedulerReference.current = null;
+      const abandoned = heldReference.current.splice(0);
+      for (const held of abandoned) {
+        held.signal.removeEventListener("abort", held.onAbort);
+        held.resolve(abortedNow(held.tasks));
+      }
+      scheduler.dispose();
       for (const { listener, worker } of bindings) {
         worker.removeEventListener("message", listener);
       }
+      for (const worker of workers) worker.terminate();
     };
-  }, [handleWorkerMessage]);
-
-  const addTasks = useCallback(
-    async (tasksData: WorkerTasks[], signal: AbortSignal) => {
-      return new Promise<TaskResult[]>((resolve) => {
-        const taskIds = new Set<string>();
-        const tasks = tasksData.map((data) => {
-          const id = `${Date.now().toString(36)}-${taskSerial.current.toString(36)}`;
-          taskSerial.current += 1;
-          taskIds.add(id);
-          return {
-            data,
-            id,
-            status: "pending",
-          } satisfies QueueTask;
-        });
-
-        const results: TaskResult[] = [];
-        let completedCount = 0;
-
-        const handleTaskCompletion = (result: TaskResult): void => {
-          results.push(result);
-          completedCount++;
-          taskIds.delete(result.id);
-          if (completedCount === tasks.length) {
-            resolve(results);
-          }
-        };
-
-        const abortTasks = (): void => {
-          console.warn("Aborting tasks for this specific call to addTasks", tasksData);
-
-          for (const [worker, task] of activeWorkersReference.current.entries()) {
-            if (taskIds.has(task.id)) {
-              worker.postMessage({
-                data: { type: "ABORT" },
-                id: task.id,
-                status: "pending",
-                workerId: worker.workerId,
-              } satisfies WorkerEvent);
-              task.status = "aborted";
-              activeWorkersReference.current.delete(worker);
-            }
-          }
-
-          taskQueueReference.current = taskQueueReference.current.filter((task) => {
-            if (taskIds.has(task.id)) {
-              task.status = "aborted";
-              const handler = callbackMapReference.current.get(task.id);
-              if (handler !== undefined) {
-                handler({
-                  id: task.id,
-                  result: { type: "ABORTED" },
-                  status: "aborted",
-                });
-                callbackMapReference.current.delete(task.id);
-              }
-              return false;
-            }
-            return true;
-          });
-
-          for (const id of taskIds) {
-            const handler = callbackMapReference.current.get(id);
-            if (handler !== undefined) {
-              handler({
-                id,
-                result: { type: "ABORTED" },
-                status: "aborted",
-              });
-              callbackMapReference.current.delete(id);
-            }
-          }
-          resolve(results);
-        };
-
-        if (signal.aborted) {
-          abortTasks();
-          return;
-        }
-
-        signal.addEventListener("abort", abortTasks);
-
-        for (const task of tasks) {
-          callbackMapReference.current.set(task.id, handleTaskCompletion);
-        }
-
-        taskQueueReference.current.push(...tasks);
-
-        while (
-          activeWorkersReference.current.size < workersReference.current.length &&
-          taskQueueReference.current.length > 0
-        ) {
-          const availableWorker = workersReference.current.find(
-            (worker) => !activeWorkersReference.current.has(worker),
-          );
-          if (availableWorker !== undefined) {
-            const task = taskQueueReference.current.shift();
-            if (task !== undefined) runTask(availableWorker, task);
-          }
-        }
-      });
-    },
-    [runTask],
-  );
+  }, []);
 
   const contextValue = useRef({
     addTasks,
