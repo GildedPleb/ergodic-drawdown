@@ -3,6 +3,10 @@ import quickselect from "quickselect";
 import { numberAt } from "../../number-at";
 import { type DistributionQuantileEvent, type SignalState } from "./types";
 
+// One list for this sample count. quickselect mutates it. The published types
+// reject a Float64Array, and a cast is banned. NaN compares equal: a < b ? -1 : a > b ? 1 : 0.
+let scratch: number[] = [];
+
 export const handleQuantile = (
   {
     cutoffs,
@@ -15,21 +19,24 @@ export const handleQuantile = (
 ): void => {
   const groupedData = new Float64Array(groupedDataBuffer);
   const quantiles = new Float64Array(quantilesBuffer);
+  if (scratch.length !== samples) scratch.length = samples;
 
   for (let week = task.startIndex; week < task.endIndex; week++) {
     if (signalState.aborted) {
       return;
     }
     const weekData = groupedData.subarray(week * samples, (week + 1) * samples);
-    // One list for the week. The nine slices share it. quickselect does not accept the typed array.
-    const values = Array.from(weekData);
+    for (let index = 0; index < samples; index++) {
+      const value = weekData[index];
+      scratch[index] = value === undefined ? Number.NaN : value;
+    }
     let left = 0;
     const right = samples - 1;
 
     for (let quantile = 0; quantile < cutoffs.length; quantile++) {
       const innerIndex = Math.floor(right * numberAt(cutoffs, quantile));
-      quickselect(values, innerIndex, left);
-      quantiles[week * cutoffs.length + quantile] = numberAt(values, innerIndex);
+      quickselect(scratch, innerIndex, left, right);
+      quantiles[week * cutoffs.length + quantile] = numberAt(scratch, innerIndex);
       left = innerIndex + 1;
     }
   }

@@ -1,9 +1,9 @@
-import React, { type JSX, useCallback, useEffect, useState } from "react";
+import { type JSX, useCallback } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
-import handleEnterKey from "./enter";
+import { useSettledNumber } from "./settled-number";
 
 const Container = styled.div`
   display: flex;
@@ -21,45 +21,20 @@ const Input = styled.input`
 
 const BitcoinInput = (): JSX.Element => {
   const { bitcoin, setBitcoin, setLoadingVolumeData } = useDrawdown();
-  const [localValue, setLocalValue] = useState<string>(bitcoin.toString());
-
-  useEffect(() => {
-    if (bitcoin !== Number(localValue)) setLocalValue(String(bitcoin));
-  }, [bitcoin, localValue]);
-
-  const handleChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      const inputValue = event.target.value;
-      setLocalValue(inputValue);
-
-      if (inputValue === "") return;
-
-      const value = Number.parseFloat(inputValue);
-      if (!Number.isNaN(value) && value >= 0) {
-        setBitcoin(value);
-        setLoadingVolumeData(true);
-      }
+  const commitBitcoin = useCallback(
+    (next: number) => {
+      setBitcoin(next);
+      setLoadingVolumeData(true);
     },
     [setBitcoin, setLoadingVolumeData],
   );
-
-  const handleBlur = useCallback(() => {
-    if (localValue === "") {
-      setLocalValue("0");
-      setBitcoin(0);
-      setLoadingVolumeData(true);
-      return;
-    }
-
-    const parsedValue = Number.parseFloat(localValue);
-    if (!Number.isNaN(parsedValue)) {
-      const validValue = Math.max(0, parsedValue);
-      const formattedValue = validValue.toString();
-      setLocalValue(formattedValue);
-      setBitcoin(validValue);
-      setLoadingVolumeData(true);
-    }
-  }, [localValue, setBitcoin, setLoadingVolumeData]);
+  const field = useSettledNumber({
+    accept: (next) => next >= 0,
+    commit: commitBitcoin,
+    emptyValue: 0,
+    parse: Number.parseFloat,
+    value: bitcoin,
+  });
 
   return (
     <Container>
@@ -68,12 +43,12 @@ const BitcoinInput = (): JSX.Element => {
         autoComplete="off"
         id="totalBitcoin"
         min="0"
-        onBlur={handleBlur}
-        onChange={handleChange}
-        onKeyDown={handleEnterKey}
+        onBlur={field.onBlur}
+        onChange={field.onChange}
+        onKeyDown={field.onKeyDown}
         step=".1"
         type="number"
-        value={localValue}
+        value={field.draft}
       />
     </Container>
   );

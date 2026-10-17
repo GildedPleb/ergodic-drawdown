@@ -1,11 +1,11 @@
-import React, { type JSX, useCallback } from "react";
+import { type JSX, useCallback } from "react";
 import styled from "styled-components";
 
 import { MAX_SAMPLE_COUNT } from "../../constants";
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import handleEnterKey from "./enter";
+import { parseCanonicalInteger, useSettledNumber } from "./settled-number";
 
 const Container = styled.div`
   display: flex;
@@ -26,21 +26,21 @@ const SampleInput = (): JSX.Element => {
   const { setLoadingVolumeData } = useDrawdown();
   const { samples, setLoadingPriceData, setSamples } = useModel();
 
-  const handleSamples: React.ChangeEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      if (event.target.value === "") {
-        setSamples(1000);
-        return;
-      }
-      const value = Number.parseInt(event.target.value, 10);
-      if (value >= 0 && value <= MAX_SAMPLE_COUNT) {
-        setLoadingPriceData(true);
-        setLoadingVolumeData(true);
-        setSamples(value);
-      }
+  const commitSamples = useCallback(
+    (next: number) => {
+      setLoadingPriceData(true);
+      setLoadingVolumeData(true);
+      setSamples(next);
     },
     [setLoadingPriceData, setLoadingVolumeData, setSamples],
   );
+  const field = useSettledNumber({
+    accept: (next) => next >= 0 && next <= MAX_SAMPLE_COUNT,
+    commit: commitSamples,
+    emptyValue: 1000,
+    parse: parseCanonicalInteger,
+    value: samples,
+  });
 
   return (
     <Container>
@@ -50,10 +50,11 @@ const SampleInput = (): JSX.Element => {
         id="sampleInput"
         max={MAX_SAMPLE_COUNT}
         min="1"
-        onChange={handleSamples}
-        onKeyDown={handleEnterKey}
+        onBlur={field.onBlur}
+        onChange={field.onChange}
+        onKeyDown={field.onKeyDown}
         type="number"
-        value={samples}
+        value={field.draft}
       />
     </Container>
   );

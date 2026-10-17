@@ -8,7 +8,11 @@ import { type TaskResult, type WorkerTasks } from "./types";
 const WORKER_COUNT = navigator.hardwareConcurrency === 0 ? 4 : navigator.hardwareConcurrency;
 
 export interface WorkerContextType {
-  addTasks: (tasks: WorkerTasks[], signal: AbortSignal) => Promise<TaskResult[]>;
+  addTasks: (
+    tasks: WorkerTasks[],
+    signal: AbortSignal,
+    onKernelSettled?: () => void,
+  ) => Promise<TaskResult[]>;
   count: number;
 }
 
@@ -28,6 +32,7 @@ const createWorkerPool = (): WorkerWithId[] => {
 
 interface HeldTasks {
   onAbort: () => void;
+  onKernelSettled?: () => void;
   resolve: (results: TaskResult[]) => void;
   signal: AbortSignal;
   tasks: WorkerTasks[];
@@ -44,35 +49,41 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
   const schedulerReference = useRef<Scheduler | null>(null);
   const heldReference = useRef<HeldTasks[]>([]);
 
-  const addTasks = useCallback((tasks: WorkerTasks[], signal: AbortSignal) => {
-    const scheduler = schedulerReference.current;
-    if (scheduler !== null) return scheduler.addTasks(tasks, signal);
+  const addTasks = useCallback(
+    (tasks: WorkerTasks[], signal: AbortSignal, onKernelSettled?: () => void) => {
+      const scheduler = schedulerReference.current;
+      if (scheduler !== null) return scheduler.addTasks(tasks, signal, onKernelSettled);
 
-    return new Promise<TaskResult[]>((resolve) => {
-      if (signal.aborted) {
-        console.warn("Aborting tasks for this specific call to addTasks", tasks);
-        resolve(abortedNow(tasks));
-        return;
-      }
+      return new Promise<TaskResult[]>((resolve) => {
+        if (signal.aborted) {
+          console.warn("Aborting tasks for this specific call to addTasks", tasks);
+          onKernelSettled?.();
+          resolve(abortedNow(tasks));
+          return;
+        }
 
-      const held: HeldTasks = {
-        onAbort: () => undefined,
-        resolve,
-        signal,
-        tasks,
-      };
-      held.onAbort = () => {
-        const pending = heldReference.current;
-        const index = pending.indexOf(held);
-        if (index < 0) return;
-        pending.splice(index, 1);
-        console.warn("Aborting tasks for this specific call to addTasks", tasks);
-        resolve(abortedNow(tasks));
-      };
-      signal.addEventListener("abort", held.onAbort, { once: true });
-      heldReference.current.push(held);
-    });
-  }, []);
+        const held: HeldTasks = {
+          onAbort: () => undefined,
+          resolve,
+          signal,
+          tasks,
+        };
+        if (onKernelSettled !== undefined) held.onKernelSettled = onKernelSettled;
+        held.onAbort = () => {
+          const pending = heldReference.current;
+          const index = pending.indexOf(held);
+          if (index < 0) return;
+          pending.splice(index, 1);
+          console.warn("Aborting tasks for this specific call to addTasks", tasks);
+          held.onKernelSettled?.();
+          resolve(abortedNow(tasks));
+        };
+        signal.addEventListener("abort", held.onAbort, { once: true });
+        heldReference.current.push(held);
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     const workers = createWorkerPool();
@@ -83,10 +94,11 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
     for (const held of waiting) {
       held.signal.removeEventListener("abort", held.onAbort);
       if (held.signal.aborted) {
+        held.onKernelSettled?.();
         held.resolve(abortedNow(held.tasks));
         continue;
       }
-      void scheduler.addTasks(held.tasks, held.signal).then(held.resolve);
+      void scheduler.addTasks(held.tasks, held.signal, held.onKernelSettled).then(held.resolve);
     }
 
     const bindings = workers.map((worker) => {
@@ -102,6 +114,7 @@ export const WorkerProvider: React.FC<ProviderProperties> = ({ children }) => {
       const abandoned = heldReference.current.splice(0);
       for (const held of abandoned) {
         held.signal.removeEventListener("abort", held.onAbort);
+        held.onKernelSettled?.();
         held.resolve(abortedNow(held.tasks));
       }
       scheduler.dispose();

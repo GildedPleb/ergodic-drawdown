@@ -61,6 +61,10 @@ const processQueue = (): void => {
     processTask(task);
   } catch (error) {
     console.error("Error processing task:", error);
+    self.postMessage({
+      id: task.id,
+      status: "aborted",
+    } satisfies TaskResult);
   }
 
   processQueue();

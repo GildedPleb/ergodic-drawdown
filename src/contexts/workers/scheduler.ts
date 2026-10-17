@@ -6,7 +6,11 @@ interface PoolWorker {
 }
 
 export interface Scheduler {
-  addTasks(tasks: WorkerTasks[], signal: AbortSignal): Promise<TaskResult[]>;
+  addTasks(
+    tasks: WorkerTasks[],
+    signal: AbortSignal,
+    onKernelSettled?: () => void,
+  ): Promise<TaskResult[]>;
   dispose(): void;
   handleMessage(worker: PoolWorker, message: TaskResult): void;
 }
@@ -25,6 +29,7 @@ export const createScheduler = (workers: readonly PoolWorker[], board: Uint32Arr
 
   const active = new Map<PoolWorker, QueueTask>();
   const callbacks = new Map<string, (result: TaskResult) => void>();
+  const kernelNote = new Map<string, () => void>();
   const taskQueue: QueueTask[] = [];
   let closed = false;
   let serial = 0;
@@ -54,6 +59,30 @@ export const createScheduler = (workers: readonly PoolWorker[], board: Uint32Arr
     handler(abortedResult(id));
   };
 
+  // Abort resolves the caller while the kernel is still writing. This fires once
+  // every task has replied, or was dropped before postMessage.
+  const noteKernel = (id: string): void => {
+    const note = kernelNote.get(id);
+    if (note === undefined) return;
+    kernelNote.delete(id);
+    note();
+  };
+
+  const watchKernels = (ids: readonly string[], onKernelSettled?: () => void): void => {
+    if (onKernelSettled === undefined) return;
+    if (ids.length === 0) {
+      onKernelSettled();
+      return;
+    }
+    let remaining = ids.length;
+    for (const id of ids) {
+      kernelNote.set(id, () => {
+        remaining -= 1;
+        if (remaining === 0) onKernelSettled();
+      });
+    }
+  };
+
   const dispatch = (): void => {
     if (closed) return;
     while (active.size < workers.length && taskQueue.length > 0) {
@@ -76,14 +105,20 @@ export const createScheduler = (workers: readonly PoolWorker[], board: Uint32Arr
       callbacks.delete(message.id);
       callback(message);
     }
+    noteKernel(message.id);
 
     const next = taskQueue.shift();
     if (next !== undefined) runTask(worker, next);
   };
 
-  const addTasks = (tasksData: WorkerTasks[], signal: AbortSignal): Promise<TaskResult[]> => {
+  const addTasks = (
+    tasksData: WorkerTasks[],
+    signal: AbortSignal,
+    onKernelSettled?: () => void,
+  ): Promise<TaskResult[]> => {
     if (closed) {
       console.warn("Aborting tasks for this specific call to addTasks", tasksData);
+      onKernelSettled?.();
       return Promise.resolve(
         tasksData.map(() => {
           const id = `${Date.now().toString(36)}-${serial.toString(36)}`;
@@ -130,6 +165,7 @@ export const createScheduler = (workers: readonly PoolWorker[], board: Uint32Arr
             if (!taskIds.has(task.id)) return true;
             task.status = "aborted";
             settleAborted(task.id);
+            noteKernel(task.id);
             return false;
           }),
         );
@@ -148,10 +184,15 @@ export const createScheduler = (workers: readonly PoolWorker[], board: Uint32Arr
 
       if (signal.aborted) {
         console.warn("Aborting tasks for this specific call to addTasks", tasksData);
+        onKernelSettled?.();
         resolve(tasks.map((task) => abortedResult(task.id)));
         return;
       }
 
+      watchKernels(
+        tasks.map((task) => task.id),
+        onKernelSettled,
+      );
       for (const task of tasks) callbacks.set(task.id, handleTaskCompletion);
       signal.addEventListener("abort", abortTasks, { once: true });
       taskQueue.push(...tasks);
@@ -167,12 +208,15 @@ export const createScheduler = (workers: readonly PoolWorker[], board: Uint32Arr
     for (const task of queued) {
       task.status = "aborted";
       settleAborted(task.id);
+      noteKernel(task.id);
     }
 
     for (const [worker, task] of active) {
       task.status = "aborted";
       publish(worker.workerId);
       settleAborted(task.id);
+      // handleMessage ignores replies once closed, so the kernel will not get another note.
+      noteKernel(task.id);
     }
     active.clear();
   };

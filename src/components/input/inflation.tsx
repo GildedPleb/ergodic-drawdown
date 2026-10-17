@@ -1,9 +1,9 @@
-import React, { type JSX, useCallback, useEffect, useState } from "react";
+import { type JSX, useCallback } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
-import handleEnterKey from "./enter";
+import { useSettledNumber } from "./settled-number";
 
 const Container = styled.div`
   display: flex;
@@ -21,44 +21,20 @@ const Input = styled.input`
 
 const InflationInput = (): JSX.Element => {
   const { inflation, setInflation, setLoadingVolumeData } = useDrawdown();
-  const [localValue, setLocalValue] = useState<string>(inflation.toString());
-
-  useEffect(() => {
-    if (inflation !== Number(localValue)) setLocalValue(String(inflation));
-  }, [inflation, localValue]);
-
-  const handleChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      const inputValue = event.target.value;
-      setLocalValue(inputValue);
-
-      if (inputValue === "") return;
-
-      const value = Number.parseFloat(inputValue);
-      if (!Number.isNaN(value)) {
-        setInflation(value);
-        setLoadingVolumeData(true);
-      }
+  const commitInflation = useCallback(
+    (next: number) => {
+      setInflation(next);
+      setLoadingVolumeData(true);
     },
     [setInflation, setLoadingVolumeData],
   );
-
-  const handleBlur = useCallback(() => {
-    if (localValue === "") {
-      setLocalValue("8");
-      setInflation(8);
-      setLoadingVolumeData(true);
-      return;
-    }
-
-    const parsedValue = Number.parseFloat(localValue);
-    if (!Number.isNaN(parsedValue)) {
-      const formattedValue = parsedValue.toString();
-      setLocalValue(formattedValue);
-      setInflation(parsedValue);
-      setLoadingVolumeData(true);
-    }
-  }, [localValue, setInflation, setLoadingVolumeData]);
+  const field = useSettledNumber({
+    accept: (next) => !Number.isNaN(next),
+    commit: commitInflation,
+    emptyValue: 8,
+    parse: Number.parseFloat,
+    value: inflation,
+  });
 
   return (
     <Container>
@@ -66,13 +42,13 @@ const InflationInput = (): JSX.Element => {
       <Input
         autoComplete="off"
         id="inflation"
-        onBlur={handleBlur}
-        onChange={handleChange}
-        onKeyDown={handleEnterKey}
+        onBlur={field.onBlur}
+        onChange={field.onChange}
+        onKeyDown={field.onKeyDown}
         placeholder="%"
         step="1"
         type="number"
-        value={localValue}
+        value={field.draft}
       />
     </Container>
   );

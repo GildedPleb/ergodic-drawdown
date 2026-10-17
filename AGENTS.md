@@ -102,6 +102,8 @@ The walk-state grid sits beside the price grid and uses the same validity hash, 
 
 `finalVariableCache` keeps the one `VariableDrawdownFinal` volume just read. A new final replaces the previous entry. Volume throws `"No cache for variable drawdown"` when that entry is missing.
 
+Price and drawdown bands keep four y-value slots: each chart, quantile and normal. The key is the source hash, sample count, week count, `weeksSince`, and the band kind. Price uses the simulation hash. Drawdown uses the volume hash. `now` is not in the key. A new day rebuilds the chart dates and does not rerun the workers. Render type None, and drawdown while the model is shown, return no bands and leave the stored slot in place.
+
 The dependency matrix is `useDependency`. It is not an auxiliary cache. Do not replace it with Redux or another store. Redux cannot abort a worker, wait on an upstream node, or see an in-place `SharedArrayBuffer` write.
 
 A `Map` hashes as the string `"Map"`. Replacing a buffer does not wake dependents by itself. Volume and the labels watch the drawdown-variables node.
@@ -117,6 +119,8 @@ A cell whose last float is `0` is empty. `get` returns undefined. `getRow` retur
 `resize` grows capacity, then walks rows from the bottom and `copyWithin`s each old row to the new stride. The fill of the new columns is required: those slots overlap the next row's old bytes. After a width grow, the previous last column is intact and the new column reads empty. Shrinking the active size leaves the old bytes. Growing back inside the same allocation shows them again. That is the validity cache, and `setValidity` keeps the max width and height for a matching hash.
 
 Firefox and Safari commit a growable ceiling as resident memory. Their price and balance grids are the exact live size and copy onto a new exact buffer when they grow. Chrome keeps a growable buffer, calls `grow()` while the next size is under 1.5×, and a copied buffer keeps the same ceiling. The one-off spend buffers stay a fixed 160KB.
+
+Distribution grouped and quantile buffers are exact `SharedArrayBuffer`s, one high-water buffer per chart and per role. A wave checks its buffer out and returns it when that wave's kernels have replied, including after abort. If the stat queue throws before those tasks are posted, both loans return on that throw: the group kernels have already replied and nothing is writing. A second wave that starts while the first is still writing allocates a spare. A spare of the same size is dropped. A larger spare becomes the high-water buffer. Reload is what frees them. There is no `maxByteLength`.
 
 `getLastArray` reads the last float of the last active column. A zero-width grid has no column and returns NaN per row. Callers sort that array. `handleSimulationStats` sorts the array it returns, and that array is the published `finalBalance`.
 
@@ -136,7 +140,7 @@ The pool size is `navigator.hardwareConcurrency`, or 4 when that is 0. Tasks are
 
 A walk call is one epoch. Pong, Shark, and Momentum keep the cycle that crosses that boundary in the walk-state grid, three floats per epoch and sample. Draws come from mulberry32 seeded by `simulationSeed`, the walk, the sample, and the epoch, so a cached epoch does not have to be replayed.
 
-Each worker runs one posted task. The main thread keeps that worker busy until the reply id is the task it currently owns. A reply for any other id is ignored. Abort stores a new generation on that worker's slot in the shared cancel board and does not post a second message. The kernel sees the generation on its next `signalState.aborted` check and returns. The worker then posts one result, `aborted` or `completed`. A thrown handler is logged and posts nothing, so the main thread waits. Do not paper over that by catching inside the handler and returning success.
+Each worker runs one posted task. The main thread keeps that worker busy until the reply id is the task it currently owns. A reply for any other id is ignored. Abort stores a new generation on that worker's slot in the shared cancel board and does not post a second message. The kernel sees the generation on its next `signalState.aborted` check and returns. The worker then posts one result, `aborted` or `completed`. A thrown handler is logged and posts one `aborted` result, so the kernel note still runs. Do not catch inside the handler and report success.
 
 A call that arrives before the pool exists waits until the pool is created. If that signal aborts, or the provider unmounts first, the call resolves one aborted result per task and posts nothing. Unmount calls `dispose`, which settles every outstanding call the same way.
 

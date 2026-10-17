@@ -269,6 +269,93 @@ test("dispose settles a running wave and posts nothing more", async () => {
   expect(workers.flatMap((worker) => worker.posted).length).toBe(2);
 });
 
+test("the kernel note waits for the reply and ignores the abort promise", async () => {
+  const { scheduler, workers } = createPool(1);
+  const only = workerAt(workers, 0);
+  let settled = 0;
+  const controller = new AbortController();
+  const pending = scheduler.addTasks(wave(2), controller.signal, () => {
+    settled += 1;
+  });
+
+  controller.abort();
+  const aborted = await pending;
+  expect(statuses(aborted)).toEqual(["aborted", "aborted"]);
+  expect(settled).toBe(0);
+
+  expect(reply(scheduler, only).status).toBe("aborted");
+  expect(settled).toBe(1);
+  expect(lengths(workers)).toEqual([0]);
+});
+
+test("a task dropped before post settles without its own reply", async () => {
+  const { scheduler, workers } = createPool(2);
+  let settled = 0;
+  const controller = new AbortController();
+  const pending = scheduler.addTasks(wave(3), controller.signal, () => {
+    settled += 1;
+  });
+  const posted = new Set(workers.flatMap((worker) => worker.posted));
+
+  controller.abort();
+  const aborted = await pending;
+  expect(settled).toBe(0);
+  const tail = aborted.filter((result) => !posted.has(result.id));
+  expect(tail.length).toBe(1);
+  const dropped = tail[0];
+  if (dropped === undefined) throw new Error("missing tail");
+  expect(postedCount(workers, dropped.id)).toBe(0);
+
+  reply(scheduler, workerAt(workers, 0));
+  expect(settled).toBe(0);
+  reply(scheduler, workerAt(workers, 1));
+  expect(settled).toBe(1);
+  expect(lengths(workers)).toEqual([0, 0]);
+});
+
+test("an already aborted call and a closed scheduler each settle the kernel once", async () => {
+  const { scheduler, workers } = createPool(2);
+  const controller = new AbortController();
+  controller.abort();
+  let settled = 0;
+  const aborted = await scheduler.addTasks(wave(3), controller.signal, () => {
+    settled += 1;
+  });
+  expect(statuses(aborted)).toEqual(["aborted", "aborted", "aborted"]);
+  expect(settled).toBe(1);
+  expect(lengths(workers)).toEqual([0, 0]);
+
+  scheduler.dispose();
+  let closedSettled = 0;
+  const closed = await scheduler.addTasks(wave(2), new AbortController().signal, () => {
+    closedSettled += 1;
+  });
+  expect(statuses(closed)).toEqual(["aborted", "aborted"]);
+  expect(closedSettled).toBe(1);
+  expect(lengths(workers)).toEqual([0, 0]);
+});
+
+test("dispose settles the kernel note without a reply", async () => {
+  const { scheduler, workers } = createPool(2);
+  let settled = 0;
+  const pending = scheduler.addTasks(wave(3), new AbortController().signal, () => {
+    settled += 1;
+  });
+  expect(lengths(workers)).toEqual([1, 1]);
+  expect(settled).toBe(0);
+
+  scheduler.dispose();
+  const aborted = await pending;
+  expect(statuses(aborted)).toEqual(["aborted", "aborted", "aborted"]);
+  expect(settled).toBe(1);
+
+  for (const worker of workers) {
+    if (worker.inbox.length > 0) reply(scheduler, worker);
+  }
+  expect(settled).toBe(1);
+  expect(workers.flatMap((worker) => worker.posted).length).toBe(2);
+});
+
 test("one worker never holds two tasks across an abort and a new wave", async () => {
   const { scheduler, workers } = createPool(1);
   const only = workerAt(workers, 0);

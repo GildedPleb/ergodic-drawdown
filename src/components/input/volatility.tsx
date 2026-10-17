@@ -1,10 +1,10 @@
-import React, { type JSX, useCallback, useMemo } from "react";
+import { type JSX, useCallback, useMemo } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import handleEnterKey from "./enter";
+import { useSettledNumber } from "./settled-number";
 
 const Container = styled.div`
   display: flex;
@@ -25,17 +25,20 @@ const VolInput = (): JSX.Element => {
   const { setLoadingVolumeData } = useDrawdown();
   const { setLoadingPriceData, setVolatility, volatility, walk } = useModel();
 
-  const handleVol: React.ChangeEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      const value = Number.parseFloat(event.target.value);
-      if (value >= 0 && value <= 1) {
-        setLoadingPriceData(true);
-        setLoadingVolumeData(true);
-        setVolatility(value);
-      }
+  const commitVol = useCallback(
+    (next: number) => {
+      setLoadingPriceData(true);
+      setLoadingVolumeData(true);
+      setVolatility(next);
     },
     [setLoadingPriceData, setLoadingVolumeData, setVolatility],
   );
+  const field = useSettledNumber({
+    accept: (next) => next >= 0 && next <= 1,
+    commit: commitVol,
+    parse: Number.parseFloat,
+    value: volatility,
+  });
 
   const volStep = useMemo(() => (walk === "Bubble" ? 0.005 : 0.001), [walk]);
 
@@ -47,11 +50,12 @@ const VolInput = (): JSX.Element => {
         id="volInput"
         max="1"
         min="0"
-        onChange={handleVol}
-        onKeyDown={handleEnterKey}
+        onBlur={field.onBlur}
+        onChange={field.onChange}
+        onKeyDown={field.onKeyDown}
         step={volStep}
         type="number"
-        value={volatility}
+        value={field.draft}
       />
     </Container>
   );

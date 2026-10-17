@@ -1,10 +1,10 @@
-import React, { type JSX, useCallback, useMemo } from "react";
+import { type JSX, useCallback, useMemo } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
-import handleEnterKey from "./enter";
+import { parseCanonicalInteger, useSettledNumber } from "./settled-number";
 
 const Container = styled.div`
   display: flex;
@@ -24,17 +24,20 @@ const Input = styled.input`
 const EpochInput = (): JSX.Element => {
   const { setLoadingVolumeData } = useDrawdown();
   const { epochCount, setEpochCount, setLoadingPriceData } = useModel();
-  const handleEpoch: React.ChangeEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      const value = Number.parseInt(event.target.value, 10);
-      if (value >= 1 && value <= 100) {
-        setEpochCount(value);
-        setLoadingPriceData(true);
-        setLoadingVolumeData(true);
-      }
+  const commitEpoch = useCallback(
+    (next: number) => {
+      setEpochCount(next);
+      setLoadingPriceData(true);
+      setLoadingVolumeData(true);
     },
     [setEpochCount, setLoadingPriceData, setLoadingVolumeData],
   );
+  const field = useSettledNumber({
+    accept: (next) => next >= 1 && next <= 100,
+    commit: commitEpoch,
+    parse: parseCanonicalInteger,
+    value: epochCount,
+  });
 
   const epochLength = useMemo(() => ` (~${epochCount * 4} years)`, [epochCount]);
 
@@ -46,10 +49,11 @@ const EpochInput = (): JSX.Element => {
         id="numberInput"
         max="30"
         min="1"
-        onChange={handleEpoch}
-        onKeyDown={handleEnterKey}
+        onBlur={field.onBlur}
+        onChange={field.onChange}
+        onKeyDown={field.onKeyDown}
         type="number"
-        value={epochCount}
+        value={field.draft}
       />
       {epochLength}
     </Container>

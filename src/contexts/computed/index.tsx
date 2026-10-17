@@ -361,6 +361,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
       renderPriceDistribution,
       "price" as const,
       false,
+      simulation.currentHash,
     ),
     useDep(simulation),
   );
@@ -385,6 +386,7 @@ export const ComputedProvider: React.FC<ProviderProperties> = ({ children }) => 
       renderDrawdownDistribution,
       "drawdown" as const,
       showModel,
+      volume.currentHash,
     ),
     useDep(volume),
   );
