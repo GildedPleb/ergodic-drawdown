@@ -13,5 +13,8 @@ pre-commit:
             run: bun run typecheck
           - name: secrets
             run: bun run secrets
+    # The hook owns the 10% wall budget. CI sets SUITE_WALL=0.
     - name: test
       run: bun run test
+      env:
+        SUITE_WALL: "1"

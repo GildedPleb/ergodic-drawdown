@@ -23,7 +23,10 @@ jobs:
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run knip
+      # The same suite measured 234ms and 658ms on this runner. The hook enforces the 10% budget.
       - run: bun run test
+        env:
+          SUITE_WALL: "0"
       - name: secrets
         run: |
           set -euo pipefail
