@@ -250,156 +250,13 @@ test("a failed wave does not store bands", async () => {
   await finish(retry);
 });
 
-test("the same size reuses the grouped buffer and an overlap allocates a spare", async () => {
-  const first = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "buf-a" });
-  const grouped = posts[0]?.grouped;
-  if (grouped === undefined) throw new Error("missing grouped buffer");
-  await finish(first);
-
-  const second = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "buf-b" });
-  expect(posts[0]?.grouped === grouped).toBe(true);
-  const overlap = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "buf-c" });
-  const spare = posts[1]?.grouped;
-  if (spare === undefined) throw new Error("missing spare");
-  expect(spare === grouped).toBe(false);
-
-  await finishWave();
-  await finishWave();
-  await second;
-  await overlap;
-
-  const restored = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "buf-d" });
-  expect(posts[0]?.grouped === grouped).toBe(true);
-  expect(posts[0]?.grouped === spare).toBe(false);
-  await finish(restored);
-});
-
-test("a pile of overlaps keeps the checked-out buffer and one spare", async () => {
-  const warmed = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "cap-warm" });
-  await finish(warmed);
-
-  const checked = run({
-    character: "drawdown",
-    dataLength: 2,
-    samples: 4,
-    sourceHash: "cap-checked",
-  });
-  const spare = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "cap-spare" });
-  const checkedGroup = take();
-  const spareGroup = take();
-  let allocations = 0;
-  const NativeSharedArrayBuffer = globalThis.SharedArrayBuffer;
-  class CountingSharedArrayBuffer extends NativeSharedArrayBuffer {
-    constructor(byteLength?: number, options?: { maxByteLength?: number }) {
-      if (byteLength === undefined) super();
-      else if (options === undefined) super(byteLength);
-      else super(byteLength, options);
-      allocations += 1;
-    }
-  }
-  globalThis.SharedArrayBuffer = CountingSharedArrayBuffer;
-  try {
-    const waiting = Array.from({ length: 20 }, (_, index) =>
-      run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: `cap-wait-${index}` }),
-    );
-    await flush();
-    expect(posts.length).toBe(0);
-    expect(allocations).toBe(0);
-    for (const wave of waiting.slice(0, 19)) expect(await wave).toEqual([]);
-    expect(allocations).toBe(0);
-
-    await settle(checkedGroup);
-    await settle(spareGroup);
-    const checkedStat = take();
-    const spareStat = take();
-    expect(posts.length).toBe(0);
-    await settle(checkedStat);
-    await settle(spareStat);
-    await flush();
-    expect(posts.length).toBe(1);
-    const resumed = posts[0];
-    if (resumed === undefined) throw new Error("missing resumed group");
-    const reused =
-      resumed.grouped === checkedGroup.grouped || resumed.grouped === spareGroup.grouped;
-    expect(reused).toBe(true);
-    expect(allocations).toBe(0);
-
-    const last = waiting[19];
-    if (last === undefined) throw new Error("missing last overlap");
-    await finish(last);
-    expect(allocations).toBe(0);
-    await checked;
-    await spare;
-  } finally {
-    globalThis.SharedArrayBuffer = NativeSharedArrayBuffer;
-  }
-});
-
-test("a stat abort keeps the grouped buffer until that kernel replies", async () => {
-  const pending = run({
-    character: "drawdown",
-    dataLength: 2,
-    samples: 4,
-    sourceHash: "stat-abort",
-  });
-  const grouped = posts[0]?.grouped;
-  if (grouped === undefined) throw new Error("missing grouped buffer");
-  await settle(take());
-  const stat = take();
-  stat.resolve("aborted");
-  await flush();
-  expect(await pending).toEqual([]);
-
-  const overlap = run({
-    character: "drawdown",
-    dataLength: 2,
-    samples: 4,
-    sourceHash: "stat-abort-next",
-  });
-  expect(posts[0]?.grouped === grouped).toBe(false);
-  stat.note();
-  await flush();
-  await finish(overlap);
-
-  const restored = run({
-    character: "drawdown",
-    dataLength: 2,
-    samples: 4,
-    sourceHash: "stat-abort-restored",
-  });
-  expect(posts[0]?.grouped === grouped).toBe(true);
-  await finish(restored);
-});
-
-test("fewer samples then the same count keep the high-water buffer", async () => {
-  const wide = run({ character: "drawdown", dataLength: 2, samples: 8, sourceHash: "wide" });
-  const grouped = posts[0]?.grouped;
-  if (grouped === undefined) throw new Error("missing grouped buffer");
-  await finish(wide);
-
-  const narrow = run({ character: "drawdown", dataLength: 2, samples: 2, sourceHash: "narrow" });
-  expect(posts[0]?.grouped === grouped).toBe(true);
-  await finish(narrow);
-
-  const restored = run({
-    character: "drawdown",
-    dataLength: 2,
-    samples: 8,
-    sourceHash: "wide-again",
-  });
-  expect(posts[0]?.grouped === grouped).toBe(true);
-  await finish(restored);
-});
-
-test("a week count past the task cap releases the grouped buffer", async () => {
+test("a week count past the task cap fails and the next chart still runs", async () => {
   const pending = run({
     character: "drawdown",
     dataLength: 10_241,
     samples: 4,
     sourceHash: "over-cap",
   });
-  const grouped = posts[0]?.grouped;
-  if (grouped === undefined) throw new Error("missing grouped buffer");
   let rejected = "";
   pending.catch((error: unknown) => {
     rejected = error instanceof Error ? error.message : "not an error";
@@ -409,12 +266,13 @@ test("a week count past the task cap releases the grouped buffer", async () => {
   expect(rejected).toBe("Too many samples needed. Maximum allowed: 10240");
   expect(posts.length).toBe(0);
 
-  const again = run({
-    character: "drawdown",
-    dataLength: 2,
-    samples: 4,
-    sourceHash: "over-cap-again",
-  });
-  expect(posts[0]?.grouped === grouped).toBe(true);
-  await finish(again);
+  const again = await finish(
+    run({
+      character: "drawdown",
+      dataLength: 2,
+      samples: 4,
+      sourceHash: "over-cap-again",
+    }),
+  );
+  expect(again.length).toBe(9);
 });

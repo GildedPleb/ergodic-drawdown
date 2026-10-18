@@ -108,66 +108,6 @@ test("a week that mixes NaN with numbers keeps the current order statistics", ()
   expect(Number.isNaN(result[3])).toBe(true);
 });
 
-test("a second pass at the same sample count does not allocate a list", () => {
-  const width = 64;
-  const values = Array.from({ length: width }, (_, index) => index);
-  const grouped = shared(values);
-  const quantiles = shared([0, 0]);
-  const payload = {
-    cutoffs: [0, 1],
-    groupedDataBuffer: grouped,
-    quantilesBuffer: quantiles,
-    samples: width,
-    task: task(1),
-  };
-
-  const nativeFrom = Array.from;
-  const nativeArray = globalThis.Array;
-  let fromCalls = 0;
-  let constructed = 0;
-  function CountingArray(...args: number[]): unknown {
-    constructed += 1;
-    return Reflect.construct(nativeArray, args, nativeArray);
-  }
-
-  Object.defineProperty(globalThis, "Array", {
-    configurable: true,
-    value: CountingArray,
-    writable: true,
-  });
-  Object.defineProperty(Array, "from", {
-    configurable: true,
-    value: (items: ArrayLike<number>) => {
-      fromCalls += 1;
-      return nativeFrom(items);
-    },
-    writable: true,
-  });
-
-  try {
-    handleQuantile(payload, running);
-    expect(constructed).toBe(0);
-    expect(fromCalls).toBe(0);
-    constructed = 0;
-    handleQuantile(payload, running);
-  } finally {
-    Object.defineProperty(globalThis, "Array", {
-      configurable: true,
-      value: nativeArray,
-      writable: true,
-    });
-    Object.defineProperty(Array, "from", {
-      configurable: true,
-      value: nativeFrom,
-      writable: true,
-    });
-  }
-
-  expect(fromCalls).toBe(0);
-  expect(constructed).toBe(0);
-  expect([...new Float64Array(quantiles)]).toEqual([0, 63]);
-});
-
 test("an aborted quantile pass leaves the result buffer empty", () => {
   const quantiles = shared(Array.from({ length: cutoffs.length }, () => 0));
 

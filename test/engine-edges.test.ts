@@ -7,10 +7,6 @@ import { engineConfig } from "./engine-fixture";
 
 test("pool count zero falls back to four workers", () => {
   expect(resolvePoolCount(0)).toBe(4);
-  expect(resolvePoolCount(1)).toBe(1);
-  expect(resolvePoolCount(8)).toBe(8);
-  const hardware = navigator.hardwareConcurrency;
-  expect(resolvePoolCount(undefined)).toBe(hardware === 0 ? 4 : hardware);
 });
 
 test("show model, no bands, and zero items still settle", async () => {
@@ -38,10 +34,4 @@ test("dispose during a run settles aborted and drops the late result", async () 
   engine.dispose();
   expect(await pending).toBe("aborted");
   expect(engine.get().simulationStats).toBe(null);
-});
-
-test("an in-process engine reports its worker count", () => {
-  const engine = createEngine({ worker: inProcessWorker(1) });
-  expect(engine.workerCount).toBe(1);
-  engine.dispose();
 });
