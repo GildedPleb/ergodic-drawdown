@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun scripts/update-weekly-prices.ts && tsc -b && vite build",
     "dev": "bun scripts/update-weekly-prices.ts && vite",
-    "lint": "oxlint -D correctness -D suspicious -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts",
+    "lint": "oxlint -D correctness -D suspicious -D typescript/no-misused-promises -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts",
     "format": "oxfmt --check",
     "knip": "knip --treat-config-hints-as-errors",
     "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then lefthook install; fi",

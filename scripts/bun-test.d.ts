@@ -3,5 +3,5 @@ declare module "bun:test" {
     toBe(expected: unknown): void;
     toEqual(expected: unknown): void;
   };
-  export function test(name: string, fn: () => void): void;
+  export function test(name: string, fn: () => Promise<void> | void): void;
 }

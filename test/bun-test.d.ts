@@ -28,10 +28,10 @@ interface Expectation {
 }
 
 declare module "bun:test" {
-  export function afterAll(fn: () => void): void;
-  export function afterEach(fn: () => void): void;
-  export function beforeAll(fn: () => void): void;
-  export function beforeEach(fn: () => void): void;
+  export function afterAll(fn: () => Promise<void> | void): void;
+  export function afterEach(fn: () => Promise<void> | void): void;
+  export function beforeAll(fn: () => Promise<void> | void): void;
+  export function beforeEach(fn: () => Promise<void> | void): void;
   export function expect(actual: unknown): Expectation;
   export function test(name: string, fn: () => Promise<void> | void): void;
 }
