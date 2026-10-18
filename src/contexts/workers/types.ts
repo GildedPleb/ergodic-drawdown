@@ -119,3 +119,12 @@ export interface TaskResult {
 export interface SignalState {
   readonly aborted: boolean;
 }
+
+export interface WorkerContextType {
+  addTasks: (
+    tasks: WorkerTasks[],
+    signal: AbortSignal,
+    onKernelSettled?: () => void,
+  ) => Promise<TaskResult[]>;
+  count: number;
+}

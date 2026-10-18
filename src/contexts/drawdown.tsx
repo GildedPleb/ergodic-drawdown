@@ -1,14 +1,6 @@
-import React, { createContext, useContext, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 
-import GrowableSharedArray from "../classes/growable-shared-array";
-import type VariableDrawdownCache from "../classes/variable-drawdown-cache";
-import { type VariableDrawdownFinal } from "../classes/variable-drawdown-final";
-import {
-  DEFAULT_EPOCH_COUNT,
-  DEFAULT_SIMULATION_COUNT,
-  MS_PER_YEAR,
-  WEEKS_PER_EPOCH,
-} from "../constants";
+import { MS_PER_YEAR } from "../constants";
 import { loadHalvings } from "../halvings";
 import {
   type OneOffFiatVariable,
@@ -18,8 +10,6 @@ import {
 } from "../types";
 export interface DrawdownContextType {
   bitcoin: number;
-  drawdownData: GrowableSharedArray;
-  finalVariableCache: Map<string, VariableDrawdownFinal>;
   inflation: number;
   loadingVolumeData: boolean;
   oneOffFiatVariables: OneOffFiatVariable[];
@@ -33,7 +23,6 @@ export interface DrawdownContextType {
   setReoccurringItems: React.Dispatch<React.SetStateAction<ReoccurringItem[]>>;
   setShowDrawdown: React.Dispatch<React.SetStateAction<boolean>>;
   showDrawdown: boolean;
-  variableDrawdownCache: Map<string, VariableDrawdownCache>;
 }
 
 const DrawdownContext = createContext<DrawdownContextType | null>(null);
@@ -45,9 +34,6 @@ const reward = 50 / 2 ** Object.keys(loadedHalvings).length;
 export const DrawdownProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [showDrawdown, setShowDrawdown] = useState<boolean>(true);
   const [loadingVolumeData, setLoadingVolumeData] = useState<boolean>(true);
-  const drawdownData = useRef(
-    new GrowableSharedArray(DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH),
-  );
   const [bitcoin, setBitcoin] = useState<number>(reward);
   const [inflation, setInflation] = useState<number>(8);
   const [reoccurringItems, setReoccurringItems] = useState<ReoccurringItem[]>([
@@ -67,15 +53,10 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({ children }) => 
 
   const [oneOffFiatVariables, setOneOffFiatVariables] = useState<OneOffFiatVariable[]>([]);
 
-  const innerCacheReference = useRef(new Map<string, VariableDrawdownCache>());
-  const finalVariableCacheReference = useRef(new Map<string, VariableDrawdownFinal>());
-
   const value = useMemo(
     () =>
       ({
         bitcoin,
-        drawdownData: drawdownData.current,
-        finalVariableCache: finalVariableCacheReference.current,
         inflation,
         loadingVolumeData,
         oneOffFiatVariables,
@@ -89,7 +70,6 @@ export const DrawdownProvider: React.FC<ProviderProperties> = ({ children }) => 
         setReoccurringItems,
         setShowDrawdown,
         showDrawdown,
-        variableDrawdownCache: innerCacheReference.current,
       }) satisfies DrawdownContextType,
     [
       bitcoin,

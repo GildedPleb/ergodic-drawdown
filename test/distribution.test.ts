@@ -3,7 +3,7 @@ import { afterEach, expect, test } from "bun:test";
 import GrowableSharedArray from "../src/classes/growable-shared-array";
 import { MS_PER_WEEK } from "../src/constants";
 import { handleDistribution } from "../src/contexts/computed/distribution";
-import { type WorkerContextType } from "../src/contexts/workers";
+import { type WorkerContextType } from "../src/contexts/workers/types";
 import {
   type DistributionGroupEvent,
   type DistributionNormalEvent,

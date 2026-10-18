@@ -10,18 +10,20 @@ Fix the layer that owns the bug. Prove a buffer or scheduler change with a faili
 
 Bun 1.3.13 is the install, the script runner, and the test runner. Vite bundles. `bun.lock` is the lockfile.
 
-| Command             | What it does                                                           |
-| ------------------- | ---------------------------------------------------------------------- |
-| `bun install`       | Install from the lockfile. CI uses `--frozen-lockfile`.                |
-| `bun run dev`       | Refresh weekly prices, then Vite at `http://localhost:5173/`.          |
-| `bun run build`     | Refresh weekly prices, `tsc -b`, then Vite build to `dist/`.           |
-| `bun run preview`   | Serve `dist/`. Isolation headers are on here too.                      |
-| `bun run format`    | `oxfmt --check`.                                                       |
-| `bun run lint`      | Oxlint, type-aware, on `src`, `test`, `scripts`, and `vite.config.ts`. |
-| `bun run typecheck` | `tsc -b` for the app project and the node project.                     |
-| `bun run knip`      | Unused exports in `src`. `test/` is outside the Knip project.          |
-| `bun run test`      | The only test command. Full suite, coverage, and the suite record.     |
-| `bun run secrets`   | Gitleaks on the staged diff.                                           |
+| Command                | What it does                                                           |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `bun install`          | Install from the lockfile. CI uses `--frozen-lockfile`.                |
+| `bun run dev`          | Refresh weekly prices, then Vite at `http://localhost:5173/`.          |
+| `bun run build`        | Refresh weekly prices, `tsc -b`, then Vite build to `dist/`.           |
+| `bun run preview`      | Serve `dist/`. Isolation headers are on here too.                      |
+| `bun run format`       | `oxfmt --check`.                                                       |
+| `bun run lint`         | Oxlint, type-aware, on `src`, `test`, `scripts`, and `vite.config.ts`. |
+| `bun run typecheck`    | `tsc -b` for the app project and the node project.                     |
+| `bun run knip`         | Unused exports in `src`. `test/` is outside the Knip project.          |
+| `bun run test`         | The only test command. Full suite, coverage, and the suite record.     |
+| `bun run golden`       | Re-measure kernels and capture fixtures. Print `golden/MEASURED.md`.   |
+| `bun run golden:check` | Compare a fresh capture to `golden/bun` and `golden/node`.             |
+| `bun run secrets`      | Gitleaks on the staged diff.                                           |
 
 Lefthook pre-commit runs format, lint, typecheck, test, and secrets in parallel. CI job `check` runs those plus Knip. `check` is not required on `main`. A push to `main` starts the Netlify deploy immediately. Netlify builds with `bun run build`, `BUN_VERSION` 1.3.13, and `NODE_VERSION` 24, and publishes `dist/`. Vite's binary runs on Node. Rolldown needs Node `^20.19` or `>=22.12` because it imports `styleText` from `node:util`. The site stays on Node 18 until `NODE_VERSION` is set, and a failed build does not replace the live `dist`. Do not remove `NODE_VERSION`.
 
@@ -51,16 +53,15 @@ Oxlint `no-unsafe-type-assertion` rejects `as unknown as`. A DOM stand-in for a 
 
 `validateNumericInput` stays private. Tests call `applyTypeValidation` and `applyConstraints`.
 
-Vitest is only a fallback if a test needs the Vite transform. Mounting `ComputedProvider` to see whether a worker restarted is slow. Prefer calling the handler with a buffer.
+Vitest is only a fallback if a test needs the Vite transform. Mounting the app to see whether a worker restarted is slow. Prefer calling the handler with a buffer.
 
 ## Where the code lives
 
-- `src/main.tsx` boots React, the error boundary, and strict mode.
-- `src/contexts/model.tsx` holds the price model, epoch count, sample count, and the simulation `GrowableSharedArray`. `simulationSeed` is a constant there. The model panel does not edit it.
-- `src/contexts/drawdown.tsx` holds drawdown settings and the drawdown buffer.
-- `src/contexts/computed/index.tsx` is the compute graph. One component calls `useDependency` for every node.
-- `src/contexts/computed/hooks/use-dependancy.tsx` is the scheduler. The filename is spelled that way.
-- `src/contexts/workers/worker.ts` is the worker entry and the Knip entry. `src/contexts/workers/index.tsx` owns the pool. `scheduler.ts` assigns tasks. `cancel.ts` is the shared generation board.
+- `src/main.tsx` boots React, the error boundary, and strict mode. When the document is cross-origin isolated it creates one engine beside `createRoot` and passes it through `EngineProvider`.
+- `src/contexts/model.tsx` holds the price model, epoch count, and sample count. `simulationSeed` is a constant there. The model panel does not edit it.
+- `src/contexts/drawdown.tsx` holds drawdown settings. Loading flags stay there and on the model.
+- `src/engine/` is the compute graph: config keys, the price and balance grids, the scheduler, and the worker pool. `src/engine-bridge.tsx` copies React state into `engine.set` from `useLayoutEffect`.
+- `src/contexts/workers/worker.ts` is the worker entry and the Knip entry. `src/engine/pool/scheduler.ts` assigns tasks. `src/engine/pool/cancel.ts` is the shared generation board.
 - `src/contexts/workers/simulation.ts` turns a walk into prices. `volume.ts` turns those prices into a balance. `drawdown-variable.ts`, `group.ts`, `quantile.ts`, and `normal.ts` are the other tasks.
 - `src/classes/growable-shared-array.ts` is the epoch-by-sample grid. `variable-drawdown-cache.ts` is one week and amount per sample. `variable-drawdown-final.ts` merges those into the volume worker.
 - `src/data/models/` are the price bounds. `src/data/walks/` are the ergodic walks. Walks must not import a value from `src/types.ts`; a type import is fine. A value import pulls the model table into the worker.
@@ -68,17 +69,15 @@ Vitest is only a fallback if a test needs the Vite transform. Mounting `Computed
 - `src/halvings.ts` loads and saves halving times. `src/api.ts` fetches spot, weekly gap, and block height.
 - `src/number-at.ts` is `numberAt` and `lastFinite`.
 - `src/panels/chart.tsx` is Chart.js. `resizeDelay` stays `0`.
-- `scripts/update-weekly-prices.ts` appends completed Saturday closes. `scripts/check-coverage.ts` and `scripts/suite-record.ts` own the suite record. `scripts/gitleaks.ts` downloads the pinned gitleaks binary.
+- `scripts/update-weekly-prices.ts` appends completed Saturday closes. `scripts/check-coverage.ts` and `scripts/suite-record.ts` own the suite record. `scripts/gitleaks.ts` downloads the pinned gitleaks binary. `scripts/capture-golden.ts` prints `golden/MEASURED.md`. `bun run golden -- --update` writes `golden/bun` and `golden/node`. Those directories are gitignored. `bun run golden:check` compares a fresh capture to the local copies. `.oxfmtrc.json` ignores `golden/`. The check compares those bytes.
 
 ## Compute graph
 
-`useDependency` hashes inputs, waits until every watched upstream node has `currentHash === lastComputed`, runs the handler, and aborts the previous run when the hash changes.
+`createGraph` in `src/engine/graph-scheduler.ts` hashes inputs, waits until every watched upstream node has published the current hash, runs the handler, and aborts the previous run when the hash changes. One engine is created beside `createRoot`. `EngineBridge` calls `set` from `useLayoutEffect`. An identical config does not start another pass.
 
-The readiness pair lives in one React state object, `{ lastComputed, result }`. Completion always replaces that object. A repeated result such as `"Success"` from the price and block gate is `Object.is`-equal, so a `setState` of the string alone does not render, `lastComputed` never publishes, and the next layer waits forever. Do not store `lastComputed` only in a ref.
+A repeated result such as `"Success"` from the price and block gate still commits. The next layer runs because publication is a new record, even when the result is `Object.is`-equal to the previous one. Do not store the published hash only in a ref.
 
-`narrow()` passes a dependency through and does not throw when `result` is null. A node that must see fresh data lists that upstream in the watched list, not only inside `narrow()`.
-
-`chartOptions` and `dataProperties` pass `clearResults: false`. Clearing sets `result` to null and leaves `lastComputed` in place.
+A node that must see fresh data lists that upstream in the watched list. `Chart Options` and `Data Properties` pass `clear: false`. Clearing sets the slot to null and leaves the published hash in place.
 
 `fastCustomHashSum` hashes a `GrowableSharedArray`, a `Float64Array`, a `Float64Array[]`, and a `Map` as the type name. In-place buffer writes do not change the hash. The handlers must see those writes on the object they already hold. Do not "fix" the hash to include buffer bytes without a design for workers and aborts.
 
@@ -96,15 +95,15 @@ Min, max, inflation, and the reoccurring-item series do not keep an LRU. The gra
 
 `memoizee` stays on the price models. Historic's memoize closes over `loadHalvings()` and `new Date()`, so the cached value depends on call order. Leave that in place.
 
-The variable drawdown buffers live in a `Map` on `src/contexts/drawdown.tsx`, one `VariableDrawdownCache` per active variable hash. A hash that is no longer active is deleted. The stored week index depends on `weeksSince`, so the validity hash is `fullHashInflation` plus that count, and a miss `clear()`s the buffer before reuse. `variableCacheHash` includes `weeksSince` too.
+The variable drawdown buffers live on `EngineMemory` in `src/engine/memory.ts`, one `VariableDrawdownCache` per active variable hash. A hash that is no longer active is deleted. The stored week index depends on `weeksSince`, so the validity hash is `fullHashInflation` plus that count, and a miss `clear()`s the buffer before reuse. `variableCacheHash` includes `weeksSince` too.
 
-The walk-state grid sits beside the price grid and uses the same validity hash, `fullHash` plus `weeksSince`. It is not an LRU. Slot 2 is an occupied flag so a real zero in the cycle is not read as an empty cell. A cycle continues across epochs of one sample and starts fresh on the next sample.
+The walk-state grid sits beside the price grid on that same memory and uses the same validity hash, `fullHash` plus `weeksSince`. It is not an LRU. Slot 2 is an occupied flag so a real zero in the cycle is not read as an empty cell. A cycle continues across epochs of one sample and starts fresh on the next sample.
 
-`finalVariableCache` keeps the one `VariableDrawdownFinal` volume just read. A new final replaces the previous entry. Volume throws `"No cache for variable drawdown"` when that entry is missing.
+`finalVariableCache` on that memory keeps the one `VariableDrawdownFinal` volume just read. A new final replaces the previous entry. Volume throws `"No cache for variable drawdown"` when that entry is missing.
 
-Price and drawdown bands keep four y-value slots: each chart, quantile and normal. The key is the source hash, sample count, week count, `weeksSince`, and the band kind. Price uses the simulation hash. Drawdown uses the volume hash. `now` is not in the key. A new day rebuilds the chart dates and does not rerun the workers. Render type None, and drawdown while the model is shown, return no bands and leave the stored slot in place.
+Price and drawdown bands keep four y-value slots in `src/engine/memory.ts`: each chart, quantile and normal. The key is the source hash, sample count, week count, `weeksSince`, and the band kind. Price uses the simulation hash. Drawdown uses the volume hash. `now` is not in the key. A new day rebuilds the chart dates and does not rerun the workers. Render type None, and drawdown while the model is shown, return no bands and leave the stored slot in place.
 
-The dependency matrix is `useDependency`. It is not an auxiliary cache. Do not replace it with Redux or another store. Redux cannot abort a worker, wait on an upstream node, or see an in-place `SharedArrayBuffer` write.
+The dependency graph lives in `src/engine/`. It must abort workers, wait on upstream nodes, and treat in-place `SharedArrayBuffer` writes as changes. Do not swap it for Redux or a generic state library.
 
 A `Map` hashes as the string `"Map"`. Replacing a buffer does not wake dependents by itself. Volume and the labels watch the drawdown-variables node.
 
@@ -120,7 +119,7 @@ A cell whose last float is `0` is empty. `get` returns undefined. `getRow` retur
 
 Firefox and Safari commit a growable ceiling as resident memory. Their price and balance grids are the exact live size and copy onto a new exact buffer when they grow. Chrome keeps a growable buffer, calls `grow()` while the next size is under 1.5×, and a copied buffer keeps the same ceiling. The one-off spend buffers stay a fixed 160KB.
 
-Distribution grouped and quantile buffers are exact `SharedArrayBuffer`s, one high-water buffer per chart and per role. A wave checks its buffer out and returns it when that wave's kernels have replied, including after abort. If the stat queue throws before those tasks are posted, both loans return on that throw: the group kernels have already replied and nothing is writing. A second wave that starts while the first is still writing allocates a spare. A spare of the same size is dropped. A larger spare becomes the high-water buffer. Reload is what frees them. There is no `maxByteLength`.
+Distribution grouped and quantile buffers live in `src/engine/memory.ts`. They are exact `SharedArrayBuffer`s, one high-water buffer per chart and per role. A wave checks its buffer out and returns it when that wave's kernels have replied, including after abort. If the stat queue throws before those tasks are posted, both loans return on that throw: the group kernels have already replied and nothing is writing. A second wave that starts while the first is still writing allocates a spare. A spare of the same size is dropped. A larger spare becomes the high-water buffer. Reload is what frees them. There is no `maxByteLength`.
 
 `getLastArray` reads the last float of the last active column. A zero-width grid has no column and returns NaN per row. Callers sort that array. `handleSimulationStats` sorts the array it returns, and that array is the published `finalBalance`.
 
@@ -134,7 +133,7 @@ Distribution grouped and quantile buffers are exact `SharedArrayBuffer`s, one hi
 
 ## Workers
 
-The pool size is `navigator.hardwareConcurrency`, or 4 when that is 0. Tasks are `postMessage`d with the shared buffer in the payload. The second argument of `Worker.postMessage` is a transfer list. The oxlint rule `unicorn/require-post-message-target-origin` stays allowed for that reason.
+The pool lives in `src/engine/pool/worker-pool.ts`. Its size is `navigator.hardwareConcurrency`, or 4 when that is 0. A requested count of 0 also falls back to 4. Tasks are `postMessage`d with the shared buffer in the payload. The second argument of `Worker.postMessage` is a transfer list. The oxlint rule `unicorn/require-post-message-target-origin` stays allowed for that reason.
 
 `createTaskQueue` splits sample ranges across workers. Width extension and new samples are separate task lists. A width task's `startEpoch` is the already-valid epoch count so the worker rereads the previous epoch's tail and then fills the new epochs.
 
@@ -142,7 +141,7 @@ A walk call is one epoch. Pong, Shark, and Momentum keep the cycle that crosses 
 
 Each worker runs one posted task. The main thread keeps that worker busy until the reply id is the task it currently owns. A reply for any other id is ignored. Abort stores a new generation on that worker's slot in the shared cancel board and does not post a second message. The kernel sees the generation on its next `signalState.aborted` check and returns. The worker then posts one result, `aborted` or `completed`. A thrown handler is logged and posts one `aborted` result, so the kernel note still runs. Do not catch inside the handler and report success.
 
-A call that arrives before the pool exists waits until the pool is created. If that signal aborts, or the provider unmounts first, the call resolves one aborted result per task and posts nothing. Unmount calls `dispose`, which settles every outstanding call the same way.
+The pool is open before `createEngine` returns it. `dispose` settles every outstanding call with one aborted result per task and posts nothing further.
 
 Price-to-walk conversion lives only in `handleSimulation`. The week loop reads the log bounds stored beside the price bounds. Weeks before the bound series stay NaN. The 0.01 floor stays.
 

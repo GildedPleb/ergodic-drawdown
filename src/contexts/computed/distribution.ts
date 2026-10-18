@@ -3,26 +3,12 @@ import { MS_PER_WEEK } from "../../constants";
 import { createDataSet, createTaskQueue } from "../../helpers";
 import { numberAt } from "../../number-at";
 import { type DatasetList, type DistributionType } from "../../types";
-import { type WorkerContextType } from "../workers";
+import { acquire, bufferSlots, ySlots } from "../../engine/memory";
+import { type WorkerContextType } from "../workers/types";
 import { type DistributionGroupEvent, type TaskResult, type WorkerTasks } from "../workers/types";
 
 type Character = "drawdown" | "price";
 type BandKind = "quantile" | "sd";
-
-interface BufferSlot {
-  checkedOut: SharedArrayBuffer | null;
-  held: SharedArrayBuffer | null;
-}
-
-interface Loan {
-  buffer: SharedArrayBuffer;
-  release: () => void;
-}
-
-interface YSlot {
-  key: string;
-  values: Float64Array | null;
-}
 
 interface BandConfig {
   color: { blue: number; green: number; red: number };
@@ -32,55 +18,6 @@ interface BandConfig {
   workerEventType: "RUN_DISTRIBUTION_NORMAL" | "RUN_DISTRIBUTION_QUANTILE";
   yAxisID: "y" | "y1";
 }
-
-const emptySlot = (): BufferSlot => ({ checkedOut: null, held: null });
-
-const emptyY = (): YSlot => ({ key: "", values: null });
-
-// One high-water buffer per chart per role. A wave that is still being written
-// keeps it checked out so the next wave allocates a spare instead of sharing it.
-const bufferSlots: Record<Character, { grouped: BufferSlot; values: BufferSlot }> = {
-  drawdown: { grouped: emptySlot(), values: emptySlot() },
-  price: { grouped: emptySlot(), values: emptySlot() },
-};
-
-// Last y-values only. Quantile and normal each keep a slot, so toggling back
-// does not rerun workers. A new source hash overwrites that slot.
-const ySlots: Record<Character, Record<BandKind, YSlot>> = {
-  drawdown: { quantile: emptyY(), sd: emptyY() },
-  price: { quantile: emptyY(), sd: emptyY() },
-};
-
-const acquire = (slot: BufferSlot, bytes: number): Loan => {
-  if (slot.checkedOut === null && slot.held !== null && slot.held.byteLength >= bytes) {
-    const buffer = slot.held;
-    slot.checkedOut = buffer;
-    let released = false;
-    return {
-      buffer,
-      release: () => {
-        if (released) return;
-        released = true;
-        if (slot.checkedOut === buffer) slot.checkedOut = null;
-      },
-    };
-  }
-
-  const buffer = new SharedArrayBuffer(bytes);
-  let released = false;
-  const release = (): void => {
-    if (released) return;
-    released = true;
-    if (slot.checkedOut === buffer) slot.checkedOut = null;
-    if (slot.held === null || buffer.byteLength > slot.held.byteLength) slot.held = buffer;
-  };
-
-  if (slot.checkedOut === null) {
-    slot.held = buffer;
-    slot.checkedOut = buffer;
-  }
-  return { buffer, release };
-};
 
 const bandConfig = (character: Character, kind: BandKind): BandConfig => {
   if (character === "price") {

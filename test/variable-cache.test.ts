@@ -8,7 +8,7 @@ import { handleChartOptions } from "../src/contexts/computed/chart-options";
 import { handleDrawdownVariableLabels } from "../src/contexts/computed/drawdown-variable-labels";
 import { MS_PER_WEEK } from "../src/constants";
 import { handleDrawdownVariable } from "../src/contexts/workers/drawdown-variable";
-import type { WorkerContextType } from "../src/contexts/workers";
+import type { WorkerContextType } from "../src/contexts/workers/types";
 import type { TaskResult, WorkerTasks } from "../src/contexts/workers/types";
 import type { NarrowedOneOffFiat, OneOffFiatVariable } from "../src/types";
 

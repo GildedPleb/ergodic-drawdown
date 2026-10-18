@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import GrowableSharedArray from "../src/classes/growable-shared-array";
 import { VariableDrawdownFinal } from "../src/classes/variable-drawdown-final";
 import { handleVolume as scheduleVolume } from "../src/contexts/computed/volume";
-import type { WorkerContextType } from "../src/contexts/workers";
+import type { WorkerContextType } from "../src/contexts/workers/types";
 import type { TaskResult } from "../src/contexts/workers/types";
 import { handleVolumeCalculation } from "../src/contexts/workers/volume";
 

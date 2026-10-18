@@ -1,7 +1,7 @@
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { createTaskQueue } from "../../helpers";
 import { type Full } from "../../types";
-import { type WorkerContextType } from "../workers";
+import { type WorkerContextType } from "../workers/types";
 import { type RunSimulationEvent, type SupplementedTask } from "../workers/types";
 
 export const handleSimulation = async (

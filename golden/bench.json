@@ -1,0 +1,25 @@
+{
+  "protocol": "3 warmups, median of 15. Kernels are one thread, 1000 samples × 10 epochs, volatility 0.1, seed 1.",
+  "runs": {
+    "bun": {
+      "bubbleLastPrice": 68549145.63387094,
+      "hashDefaultChangeMs": 0.04274999999984175,
+      "hashWideChangeMs": 4.355250000000069,
+      "quantileMs": 40.2857919999999,
+      "quantileSum": 356947211751.9044,
+      "sharkLastPrice": 89538006.89075482,
+      "simulationBubbleMs": 24.016500000000008,
+      "simulationSharkMs": 23.825667000000067
+    },
+    "node": {
+      "bubbleLastPrice": 68549145.6338708,
+      "hashDefaultChangeMs": 0.05508400000007896,
+      "hashWideChangeMs": 4.901124999999865,
+      "quantileMs": 54.269166999999925,
+      "quantileSum": 356947211751.9044,
+      "sharkLastPrice": 89538006.89075482,
+      "simulationBubbleMs": 36.637833,
+      "simulationSharkMs": 36.717124999999896
+    }
+  }
+}

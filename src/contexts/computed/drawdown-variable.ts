@@ -1,7 +1,7 @@
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import VariableDrawdownCache from "../../classes/variable-drawdown-cache";
 import { VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
-import { type WorkerContextType } from "../../contexts/workers";
+import { type WorkerContextType } from "../workers/types";
 import { createTaskQueue } from "../../helpers";
 import { type NarrowedOneOffFiat } from "../../types";
 import { type RunDrawdownVariableEvent } from "../workers/types";

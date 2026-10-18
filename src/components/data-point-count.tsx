@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import styled from "styled-components";
 
-import { useComputedValues } from "../contexts/computed";
+import { useEngineSelector } from "../hooks/use-engine";
 import { useModel } from "../contexts/model";
 import { useMemory } from "../data/data-size";
 import Loading from "./loading";
@@ -12,7 +12,7 @@ const MemoryUsageSpan = styled.span<{ $memoryUsageMB: number }>`
 `;
 
 const DataPointCount = (): JSX.Element => {
-  const { dataLength } = useComputedValues();
+  const dataLength = useEngineSelector((snapshot) => snapshot.dataLength);
   const { loadingPriceData, samples } = useModel();
   const using = samples * dataLength * 2;
 

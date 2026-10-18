@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 
 import { WEEKS_PER_EPOCH } from "../../constants";
-import { useComputedValues } from "../../contexts/computed";
+import { useEngineSelector } from "../../hooks/use-engine";
 import { useModel } from "../../contexts/model";
 import { getDataSetSize } from "./get-dataset-size";
 export const useMemory = (): number => {
-  const { dataProperties } = useComputedValues();
+  const dataProperties = useEngineSelector((snapshot) => snapshot.dataProperties);
 
   const { epochCount, samples } = useModel();
 

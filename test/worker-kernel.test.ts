@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 
 import GrowableSharedArray from "../src/classes/growable-shared-array";
-import { cancelBoard } from "../src/contexts/workers/cancel";
-import { createScheduler } from "../src/contexts/workers/scheduler";
+import { cancelBoard } from "../src/engine/pool/cancel";
+import { createScheduler } from "../src/engine/pool/scheduler";
 import { type TaskResult, type WorkerEvent, type WorkerTasks } from "../src/contexts/workers/types";
 
 const emptyGrid = (): WorkerTasks => {

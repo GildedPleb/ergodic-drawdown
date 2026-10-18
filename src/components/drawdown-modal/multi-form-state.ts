@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { MS_PER_WEEK } from "../../constants";
-import { useComputedValues } from "../../contexts/computed";
+import { useEngineSelector } from "../../hooks/use-engine";
 import {
   type DrawdownItem,
   type DrawdownTypes,
@@ -121,7 +121,7 @@ export const useMultiFormState = (
   existingItem?: DrawdownItem,
   onTypeChange?: (type: DrawdownTypes) => void,
 ): UseMultiFormState => {
-  const { dataLength } = useComputedValues();
+  const dataLength = useEngineSelector((snapshot) => snapshot.dataLength);
   const maxDateUNIX = Date.now() + (dataLength - 2) * MS_PER_WEEK;
 
   const initialType =

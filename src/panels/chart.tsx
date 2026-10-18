@@ -19,7 +19,7 @@ import { Line } from "react-chartjs-2";
 import styled from "styled-components";
 
 import { crosshairPlugin } from "../components/crosshair-plugin";
-import { useComputedValues } from "../contexts/computed";
+import { useEngineSelector } from "../hooks/use-engine";
 
 ChartJS.register(
   CategoryScale,
@@ -54,7 +54,8 @@ const staticOptions: ChartOptions<"line"> = {
 };
 
 const Chart = (): JSX.Element => {
-  const { chartOptions, dataProperties } = useComputedValues();
+  const chartOptions = useEngineSelector((snapshot) => snapshot.chartOptions);
+  const dataProperties = useEngineSelector((snapshot) => snapshot.dataProperties);
 
   const fullOption = useMemo(() => ({ ...chartOptions, ...staticOptions }), [chartOptions]);
 

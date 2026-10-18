@@ -1,4 +1,4 @@
-import { type SignalState } from "./types";
+import { type SignalState } from "../../contexts/workers/types";
 
 export const cancelBoard = (slots: number): Uint32Array =>
   new Uint32Array(new SharedArrayBuffer(slots * Uint32Array.BYTES_PER_ELEMENT));

@@ -26,3 +26,8 @@ dist-ssr
 out.js
 coverage/
 *.pem
+
+# Local value fixtures from `bun run golden -- --update`.
+# golden/MEASURED.md and golden/bench.json stay tracked.
+golden/bun/
+golden/node/

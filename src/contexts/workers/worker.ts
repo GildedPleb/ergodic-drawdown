@@ -1,4 +1,4 @@
-import { cancelSignal } from "./cancel";
+import { cancelSignal } from "../../engine/pool/cancel";
 import { handleDrawdownVariable } from "./drawdown-variable";
 import { handleGroup } from "./group";
 import { handleNormal } from "./normal";

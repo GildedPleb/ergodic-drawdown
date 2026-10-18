@@ -13,6 +13,8 @@
     "preview": "vite preview",
     "secrets": "bun scripts/gitleaks.ts protect --staged --redact --no-banner",
     "test": "bun scripts/check-coverage.ts",
+    "golden": "bun scripts/capture-golden.ts",
+    "golden:check": "bun scripts/capture-golden.ts --check",
     "typecheck": "tsc -b"
   },
   "dependencies": {

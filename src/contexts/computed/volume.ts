@@ -1,7 +1,7 @@
 import type GrowableSharedArray from "../../classes/growable-shared-array";
 import { type VariableDrawdownFinal } from "../../classes/variable-drawdown-final";
 import { createTaskQueue } from "../../helpers";
-import { type WorkerContextType } from "../workers";
+import { type WorkerContextType } from "../workers/types";
 import { type RunVolumeEvent } from "../workers/types";
 import { type DrawdownStaticReturn } from "./drawdown-static";
 

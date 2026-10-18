@@ -1,0 +1,68 @@
+import { MS_PER_YEAR } from "../src/constants";
+import { type EngineConfig } from "../src/engine/keys";
+import { type DistributionType } from "../src/types";
+
+const halvings = {
+  "210000": 1_354_116_278,
+  "420000": 1_468_082_773,
+  "630000": 1_589_225_023,
+  "840000": 1_713_571_767,
+};
+
+export const engineConfig = (
+  patch: {
+    distribution?: DistributionType;
+    epochs?: number;
+    items?: boolean;
+    samples?: number;
+    showModel?: boolean;
+  } = {},
+): EngineConfig => ({
+  currentBlock: 840_000,
+  currentPrice: 64_000,
+  epochs: patch.epochs ?? 1,
+  halvings,
+  inflation: { annualPercent: 8, mode: "constant" },
+  interim: [],
+  now: Date.now(),
+  render: {
+    renderDrawdownDistribution: patch.distribution ?? "Quantile",
+    renderDrawdownWalks: false,
+    renderModelMax: true,
+    renderModelMin: true,
+    renderPriceDistribution: patch.distribution ?? "Quantile",
+    renderPriceWalks: false,
+    samplesToRender: 1,
+    showHistoric: true,
+  },
+  samples: patch.samples ?? 1,
+  scenario: {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 3,
+    model: "Power Law Regression Median",
+    oneOffFiatVariables: [],
+    oneOffItems: [],
+    reoccurringItems:
+      patch.items === false
+        ? []
+        : [
+            {
+              active: true,
+              annualAmount: 100_000,
+              annualPercentChange: 0,
+              effective: new Date(Date.now() + 8 * MS_PER_YEAR),
+              expense: true,
+              id: "item-1",
+              isFiat: true,
+              name: "Live off Bitcoin",
+            },
+          ],
+    showModel: patch.showModel ?? false,
+    variable: 0,
+    volatility: 0.1,
+    walk: "Bubble",
+  },
+  seed: 1,
+  stack: { bitcoin: 1 },
+});

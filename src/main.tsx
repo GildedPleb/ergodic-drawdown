@@ -3,13 +3,14 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import App from "./app";
-import { ComputedProvider } from "./contexts/computed";
 import { DrawdownProvider } from "./contexts/drawdown";
 import { ModelProvider } from "./contexts/model";
 import queryClient from "./contexts/query";
 import { RenderProvider } from "./contexts/render";
 import { TimeProvider } from "./contexts/time";
-import { WorkerProvider } from "./contexts/workers";
+import EngineBridge from "./engine-bridge";
+import { createEngine } from "./engine/engine";
+import { EngineProvider } from "./hooks/use-engine";
 import GlobalStyle from "./styled";
 
 interface RootErrorState {
@@ -58,25 +59,26 @@ if (!crossOriginIsolated) {
     </p>,
   );
 } else {
+  const engine = createEngine();
   root.render(
     <React.StrictMode>
       <RootError>
         <GlobalStyle />
-        <QueryClientProvider client={queryClient}>
-          <TimeProvider>
-            <ModelProvider>
-              <DrawdownProvider>
-                <RenderProvider>
-                  <WorkerProvider>
-                    <ComputedProvider>
+        <EngineProvider engine={engine}>
+          <QueryClientProvider client={queryClient}>
+            <TimeProvider>
+              <ModelProvider>
+                <DrawdownProvider>
+                  <RenderProvider>
+                    <EngineBridge>
                       <App />
-                    </ComputedProvider>
-                  </WorkerProvider>
-                </RenderProvider>
-              </DrawdownProvider>
-            </ModelProvider>
-          </TimeProvider>
-        </QueryClientProvider>
+                    </EngineBridge>
+                  </RenderProvider>
+                </DrawdownProvider>
+              </ModelProvider>
+            </TimeProvider>
+          </QueryClientProvider>
+        </EngineProvider>
       </RootError>
     </React.StrictMode>,
   );

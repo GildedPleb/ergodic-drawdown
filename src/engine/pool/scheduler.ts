@@ -1,4 +1,9 @@
-import { type QueueTask, type TaskResult, type WorkerEvent, type WorkerTasks } from "./types";
+import {
+  type QueueTask,
+  type TaskResult,
+  type WorkerEvent,
+  type WorkerTasks,
+} from "../../contexts/workers/types";
 
 interface PoolWorker {
   postMessage(message: WorkerEvent): void;

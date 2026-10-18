@@ -4,7 +4,7 @@ import styled from "styled-components";
 import CaretSVG from "../components/caret";
 import Loading from "../components/loading";
 import { MS_PER_WEEK } from "../constants";
-import { useComputedValues } from "../contexts/computed";
+import { useEngineSelector } from "../hooks/use-engine";
 import { useDrawdown } from "../contexts/drawdown";
 import { useModel } from "../contexts/model";
 import { useRender } from "../contexts/render";
@@ -68,7 +68,9 @@ const Summary = (): JSX.Element => {
 
   const { hideResults, setShowResults, showResults } = useRender();
 
-  const { simulationStats, volumeStats, zeroCount } = useComputedValues();
+  const simulationStats = useEngineSelector((snapshot) => snapshot.simulationStats);
+  const volumeStats = useEngineSelector((snapshot) => snapshot.volumeStats);
+  const zeroCount = useEngineSelector((snapshot) => snapshot.zeroCount);
 
   const average = volumeStats === null ? 0 : volumeStats.average;
   const median = volumeStats === null ? 0 : volumeStats.median;
@@ -77,7 +79,7 @@ const Summary = (): JSX.Element => {
   const { bitcoin, inflation, loadingVolumeData } = useDrawdown();
   const { model, samples, walk } = useModel();
   const now = useTime();
-  const { dataLength } = useComputedValues();
+  const dataLength = useEngineSelector((snapshot) => snapshot.dataLength);
 
   const expired = new Date(now + dataLength * MS_PER_WEEK).toDateString().slice(-4);
 
