@@ -24,9 +24,19 @@ export class EngineMemory {
   );
 }
 
+interface Waiter {
+  bytes: number;
+  resolve: (loan: Loan | null) => void;
+  settled: boolean;
+  signal: AbortSignal;
+  stop: () => void;
+}
+
 interface BufferSlot {
   checkedOut: SharedArrayBuffer | null;
   held: SharedArrayBuffer | null;
+  spareOut: SharedArrayBuffer | null;
+  waiter: Waiter | null;
 }
 
 interface Loan {
@@ -42,12 +52,18 @@ interface YSlot {
 export type BandCharacter = "drawdown" | "price";
 export type BandKind = "quantile" | "sd";
 
-const emptySlot = (): BufferSlot => ({ checkedOut: null, held: null });
+const emptySlot = (): BufferSlot => ({
+  checkedOut: null,
+  held: null,
+  spareOut: null,
+  waiter: null,
+});
 
 const emptyY = (): YSlot => ({ key: "", values: null });
 
-// One high-water buffer per chart per role. A wave that is still being written
-// keeps it checked out so the next wave allocates a spare instead of sharing it.
+// One high-water buffer per chart per role, and one spare while it is checked
+// out. A third wave waits. A held sample spinner must not allocate a buffer
+// per tick. The spare stays out until its kernels reply.
 export const bufferSlots: Record<BandCharacter, { grouped: BufferSlot; values: BufferSlot }> = {
   drawdown: { grouped: emptySlot(), values: emptySlot() },
   price: { grouped: emptySlot(), values: emptySlot() },
@@ -60,33 +76,106 @@ export const ySlots: Record<BandCharacter, Record<BandKind, YSlot>> = {
   price: { quantile: emptyY(), sd: emptyY() },
 };
 
-export const acquire = (slot: BufferSlot, bytes: number): Loan => {
-  if (slot.checkedOut === null && slot.held !== null && slot.held.byteLength >= bytes) {
-    const buffer = slot.held;
-    slot.checkedOut = buffer;
-    let released = false;
-    return {
-      buffer,
-      release: () => {
-        if (released) return;
-        released = true;
-        if (slot.checkedOut === buffer) slot.checkedOut = null;
-      },
-    };
+const settleWaiter = (waiter: Waiter, loan: Loan | null): void => {
+  if (waiter.settled) return;
+  waiter.settled = true;
+  waiter.stop();
+  waiter.resolve(loan);
+};
+
+const handoff = (slot: BufferSlot): void => {
+  const waiter = slot.waiter;
+  if (waiter === null) return;
+  if (waiter.settled || waiter.signal.aborted) {
+    if (slot.waiter === waiter) slot.waiter = null;
+    settleWaiter(waiter, null);
+    return;
   }
+  const next = acquire(slot, waiter.bytes);
+  if (next === null) return;
+  slot.waiter = null;
+  settleWaiter(waiter, next);
+};
 
-  const buffer = new SharedArrayBuffer(bytes);
+const loan = (slot: BufferSlot, buffer: SharedArrayBuffer, kind: "checked" | "spare"): Loan => {
+  if (kind === "checked") slot.checkedOut = buffer;
+  else slot.spareOut = buffer;
   let released = false;
-  const release = (): void => {
-    if (released) return;
-    released = true;
-    if (slot.checkedOut === buffer) slot.checkedOut = null;
-    if (slot.held === null || buffer.byteLength > slot.held.byteLength) slot.held = buffer;
+  return {
+    buffer,
+    release: () => {
+      if (released) return;
+      released = true;
+      if (kind === "checked" && slot.checkedOut === buffer) slot.checkedOut = null;
+      if (kind === "spare" && slot.spareOut === buffer) slot.spareOut = null;
+      if (slot.held === null || buffer.byteLength > slot.held.byteLength) slot.held = buffer;
+      const waiter = slot.waiter;
+      if (
+        kind === "spare" &&
+        slot.checkedOut !== null &&
+        slot.spareOut === null &&
+        waiter !== null &&
+        !waiter.settled &&
+        !waiter.signal.aborted &&
+        buffer.byteLength >= waiter.bytes &&
+        buffer !== slot.checkedOut
+      ) {
+        slot.waiter = null;
+        settleWaiter(waiter, loan(slot, buffer, "spare"));
+        return;
+      }
+      handoff(slot);
+    },
   };
+};
 
+// Null means both the high-water buffer and the spare are already loaned.
+export const acquire = (slot: BufferSlot, bytes: number): Loan | null => {
+  if (
+    slot.checkedOut === null &&
+    slot.held !== null &&
+    slot.held !== slot.spareOut &&
+    slot.held.byteLength >= bytes
+  ) {
+    return loan(slot, slot.held, "checked");
+  }
+  if (slot.checkedOut !== null && slot.spareOut !== null) return null;
+  const buffer = new SharedArrayBuffer(bytes);
   if (slot.checkedOut === null) {
     slot.held = buffer;
-    slot.checkedOut = buffer;
+    return loan(slot, buffer, "checked");
   }
-  return { buffer, release };
+  return loan(slot, buffer, "spare");
+};
+
+export const acquireWhenFree = (
+  slot: BufferSlot,
+  bytes: number,
+  signal: AbortSignal,
+): Promise<Loan | null> => {
+  if (!signal.aborted) {
+    const ready = acquire(slot, bytes);
+    if (ready !== null) return Promise.resolve(ready);
+  }
+  if (signal.aborted) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    const waiter: Waiter = {
+      bytes,
+      resolve,
+      settled: false,
+      signal,
+      stop: () => {
+        signal.removeEventListener("abort", onAbort);
+      },
+    };
+    function onAbort(): void {
+      if (slot.waiter === waiter) slot.waiter = null;
+      settleWaiter(waiter, null);
+    }
+    const previous = slot.waiter;
+    slot.waiter = waiter;
+    if (previous !== null) settleWaiter(previous, null);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 };

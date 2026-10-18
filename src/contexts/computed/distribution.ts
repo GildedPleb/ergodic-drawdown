@@ -3,7 +3,7 @@ import { MS_PER_WEEK } from "../../constants";
 import { createDataSet, createTaskQueue } from "../../helpers";
 import { numberAt } from "../../number-at";
 import { type DatasetList, type DistributionType } from "../../types";
-import { acquire, bufferSlots, ySlots } from "../../engine/memory";
+import { acquire, acquireWhenFree, bufferSlots, ySlots } from "../../engine/memory";
 import { type WorkerContextType } from "../workers/types";
 import { type DistributionGroupEvent, type TaskResult, type WorkerTasks } from "../workers/types";
 
@@ -123,11 +123,27 @@ export const handleDistribution = async (
   }
 
   const slots = bufferSlots[character];
-  const grouped = acquire(slots.grouped, Float64Array.BYTES_PER_ELEMENT * dataLength * samples);
-  const values = acquire(
-    slots.values,
-    Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length,
-  );
+  let grouped = acquire(slots.grouped, Float64Array.BYTES_PER_ELEMENT * dataLength * samples);
+  if (grouped === null) {
+    grouped = await acquireWhenFree(
+      slots.grouped,
+      Float64Array.BYTES_PER_ELEMENT * dataLength * samples,
+      signal,
+    );
+    if (grouped === null) return [];
+  }
+  let values = acquire(slots.values, Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length);
+  if (values === null) {
+    values = await acquireWhenFree(
+      slots.values,
+      Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length,
+      signal,
+    );
+    if (values === null) {
+      grouped.release();
+      return [];
+    }
+  }
   let abandoned = false;
   let groupedDone = false;
   let valuesDone = false;

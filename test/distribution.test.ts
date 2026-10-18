@@ -274,6 +274,67 @@ test("the same size reuses the grouped buffer and an overlap allocates a spare",
   await finish(restored);
 });
 
+test("a pile of overlaps keeps the checked-out buffer and one spare", async () => {
+  const warmed = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "cap-warm" });
+  await finish(warmed);
+
+  const checked = run({
+    character: "drawdown",
+    dataLength: 2,
+    samples: 4,
+    sourceHash: "cap-checked",
+  });
+  const spare = run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: "cap-spare" });
+  const checkedGroup = take();
+  const spareGroup = take();
+  let allocations = 0;
+  const NativeSharedArrayBuffer = globalThis.SharedArrayBuffer;
+  class CountingSharedArrayBuffer extends NativeSharedArrayBuffer {
+    constructor(byteLength?: number, options?: { maxByteLength?: number }) {
+      if (byteLength === undefined) super();
+      else if (options === undefined) super(byteLength);
+      else super(byteLength, options);
+      allocations += 1;
+    }
+  }
+  globalThis.SharedArrayBuffer = CountingSharedArrayBuffer;
+  try {
+    const waiting = Array.from({ length: 20 }, (_, index) =>
+      run({ character: "drawdown", dataLength: 2, samples: 4, sourceHash: `cap-wait-${index}` }),
+    );
+    await flush();
+    expect(posts.length).toBe(0);
+    expect(allocations).toBe(0);
+    for (const wave of waiting.slice(0, 19)) expect(await wave).toEqual([]);
+    expect(allocations).toBe(0);
+
+    await settle(checkedGroup);
+    await settle(spareGroup);
+    const checkedStat = take();
+    const spareStat = take();
+    expect(posts.length).toBe(0);
+    await settle(checkedStat);
+    await settle(spareStat);
+    await flush();
+    expect(posts.length).toBe(1);
+    const resumed = posts[0];
+    if (resumed === undefined) throw new Error("missing resumed group");
+    const reused =
+      resumed.grouped === checkedGroup.grouped || resumed.grouped === spareGroup.grouped;
+    expect(reused).toBe(true);
+    expect(allocations).toBe(0);
+
+    const last = waiting[19];
+    if (last === undefined) throw new Error("missing last overlap");
+    await finish(last);
+    expect(allocations).toBe(0);
+    await checked;
+    await spare;
+  } finally {
+    globalThis.SharedArrayBuffer = NativeSharedArrayBuffer;
+  }
+});
+
 test("a stat abort keeps the grouped buffer until that kernel replies", async () => {
   const pending = run({
     character: "drawdown",
