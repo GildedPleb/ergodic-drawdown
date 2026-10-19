@@ -11,7 +11,7 @@ const calculateCAGRPrice = memoize(
 );
 
 const cagrModel = {
-  default: 50,
+  default: 20,
   maxPrice: ({ currentPrice, minMaxMultiple, variable, week }): number => {
     const startPrice = currentPrice * minMaxMultiple;
     const targetDate = week * MS_PER_WEEK;
