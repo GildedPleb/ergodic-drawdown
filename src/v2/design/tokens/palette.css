@@ -50,6 +50,9 @@
     --coral-575: #ae424d;
     --gold-wash-125: #e3d9c6;
     --gold-wash-850: #29241b;
+    /* shadow inks (v2.2) */
+    --shadow-ink-dark: rgb(0 0 0 / 0.35);
+    --shadow-ink-linen: rgb(60 44 24 / 0.16);
     --leaf-175: #7ee2a0;
     --leaf-525: #1f8240;
     --red-500: #d9404a;

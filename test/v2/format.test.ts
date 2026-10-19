@@ -6,6 +6,9 @@ import {
   fmtBTCRange,
   fmtUSD,
   hasSuffixBtc,
+  nameBTC,
+  nameBTCRange,
+  nameUSD,
 } from "../../src/v2/design/format/money";
 
 const check = (rows: [string, string][]): void => {
@@ -107,9 +110,45 @@ test("G3 edge: ranges (equal ends, ₿1 boundary, negative, crossing zero)", () 
     [fmtBTCRange(0.42, 1.3), "₿0.42–1.3"],
     [fmtBTCRange(0.99999999, 1.2), "₿1–1.2"],
     [fmtBTCRange(-0.7, -0.4), "−₿0.7–0.4"],
-    [fmtBTCRange(-0.4, 0.7), "−₿0.4–₿0.7"],
+    [fmtBTCRange(-0.4, -0.7), "−₿0.7–0.4"],
+    [fmtBTCRange(0.7, 0.4), "₿0.4–0.7"],
+    [fmtBTCRange(-0.4, 0.7), "−₿0.4 to ₿0.7"],
+    [fmtBTCRange(0.7, -0.4), "−₿0.4 to ₿0.7"],
     [fmtBTCRange(0, 0.7), "₿0–0.7"],
-    [fmtBTCRange(1e-9, 0.7), "<₿0.00000001–₿0.7"],
+    [fmtBTCRange(1, 13), "₿1–13"],
+    [fmtBTCRange(1e-9, 0.7), "<₿0.00000001 to ₿0.7"],
+  ]);
+});
+
+test("G3 Form: cross-zero never puts an en dash beside a minus", () => {
+  for (const [lo, hi] of [
+    [-0.4, 0.7],
+    [-13.1, 2],
+    [-0.0021, 0.42],
+  ] as const) {
+    const r = fmtBTCRange(lo, hi);
+    expect(r.includes("\u2013\u2212")).toBe(false);
+    expect(r.includes(" to ")).toBe(true);
+    expect(r.split("₿").length - 1).toBe(2);
+  }
+});
+
+test("G3 Form: no trailing .0 for ₿ or $", () => {
+  check([
+    [fmtBTC(1), "₿1"],
+    [fmtBTC(13), "₿13"],
+    [fmtBTC(13.04), "₿13"],
+    [fmtBTC(13.1), "₿13.1"],
+    [fmtBTC(0.999), "₿1"],
+    [fmtUSD(1), "$1"],
+    [fmtUSD(13), "$13"],
+    [fmtUSD(13.1), "$13"],
+    [fmtUSD(4.1), "$4.10"],
+    [fmtUSD(4), "$4"],
+    [fmtUSD(1_000), "$1k"],
+    [fmtUSD(1_040), "$1k"],
+    [fmtUSD(1_000_000), "$1M"],
+    [fmtUSD(-1), "−$1"],
   ]);
 });
 
@@ -128,10 +167,30 @@ test("G3 fonts-failed mode prefixes BTC (story 197)", () => {
     [fmtBTC(13.1, ff), "BTC\u00A013.1"],
     [fmtBTC(-0.4, ff), "−BTC\u00A00.4"],
     [fmtBTCRange(0.4, 0.7, ff), "BTC\u00A00.4–0.7"],
-    [fmtBTCRange(-0.4, 0.7, ff), "−BTC\u00A00.4–BTC\u00A00.7"],
+    [fmtBTC(0.7, ff), "BTC\u00A00.7"],
+    [fmtBTCRange(-0.4, 0.7, ff), "−BTC\u00A00.4 to BTC\u00A00.7"],
     [fmtBTCChange(0.4, 0.7, ff), "BTC\u00A00.4 → BTC\u00A00.7"],
   ]);
   expect(fmtBTC(13.1, ff).includes("₿")).toBe(false);
+});
+
+test("G3 Form: accessible name is always 'bitcoin 0.7', regardless of display", () => {
+  check([
+    [nameBTC(0.7), "bitcoin 0.7"],
+    [nameBTC(-0.4), "minus bitcoin 0.4"],
+    [nameBTC(0), "bitcoin 0"],
+    [nameBTC(1e-9), "less than bitcoin 0.00000001"],
+    [nameBTC(0.00000546, { detail: true }), "bitcoin 0.00000546"],
+    [nameBTCRange(0.4, 0.7), "bitcoin 0.4 to 0.7"],
+    [nameBTCRange(-0.4, 0.7), "minus bitcoin 0.4 to bitcoin 0.7"],
+    [nameUSD(-4.5), "minus $4.50"],
+  ]);
+  expect(nameBTC(0.7)).toBe(nameBTC(0.7, { detail: false }));
+  for (const v of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    expect(nameBTC(v)).toBe("not available");
+    expect(nameUSD(v)).toBe("not available");
+    expect(nameBTCRange(v, 1)).toBe("not available");
+  }
 });
 
 test("no output ever puts ₿ after a digit", () => {
@@ -142,4 +201,21 @@ test("no output ever puts ₿ after a digit", () => {
   }
   expect(hasSuffixBtc("13.1₿")).toBe(true);
   expect(hasSuffixBtc("13.1 ₿")).toBe(true);
+});
+
+test("Amount: fonts-failed display is 'BTC 0.7' but the spoken name stays 'bitcoin 0.7'; NaN is '—' / 'not available'", async () => {
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { Amount } = await import("../../src/v2/design/primitives/Amount/Amount");
+  const ok = renderToStaticMarkup(createElement(Amount, { value: 0.7, unit: "btc" }));
+  const ff = renderToStaticMarkup(
+    createElement(Amount, { value: 0.7, unit: "btc", fontsFailed: true }),
+  );
+  expect((ok ?? "").includes(">bitcoin 0.7<")).toBe(true);
+  expect((ok ?? "").includes('aria-hidden="true">₿0.7<')).toBe(true);
+  expect((ff ?? "").includes(">bitcoin 0.7<")).toBe(true);
+  expect((ff ?? "").includes('aria-hidden="true">BTC\u00A00.7<')).toBe(true);
+  const na = renderToStaticMarkup(createElement(Amount, { value: Number.NaN, unit: "btc" }));
+  expect((na ?? "").includes(">not available<")).toBe(true);
+  expect((na ?? "").includes('aria-hidden="true">—<')).toBe(true);
 });

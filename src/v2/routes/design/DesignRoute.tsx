@@ -7,6 +7,8 @@ import * as ClusterStories from "../../design/primitives/Cluster/Cluster.stories
 import * as GridStories from "../../design/primitives/Grid/Grid.stories";
 import * as IconStories from "../../design/primitives/Icon/Icon.stories";
 import * as LabelGlyphsStories from "../../design/primitives/LabelGlyphs/LabelGlyphs.stories";
+import * as NumberFieldStories from "../../design/primitives/NumberField/NumberField.stories";
+import * as SelectStories from "../../design/primitives/Select/Select.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
 import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
 import styles from "./DesignRoute.module.css";
@@ -25,6 +27,8 @@ const GROUPS: Record<string, StoryModule> = {
   grid: GridStories,
   icon: IconStories,
   "label-glyphs": LabelGlyphsStories,
+  "number-field": NumberFieldStories,
+  select: SelectStories,
   stack: StackStories,
   "tick-toggle": TickToggleStories,
 };

@@ -36,6 +36,7 @@
     --walk-up: var(--leaf-175);
     --walk-down: var(--red-500);
     /* engine walk label dots */
+    --shadow-ink: var(--shadow-ink-dark); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--linen-75) var(--mix-5), var(--ink-900));
     /* fans: per path fill / edge / halo (halo = the 1.5px surface casing under each median) */
     --fan-btc-price-fill: var(--orange-300);
@@ -116,6 +117,7 @@
     --walk-up: var(--leaf-525);
     --walk-down: var(--red-775);
     /* engine walk label dots */
+    --shadow-ink: var(--shadow-ink-linen); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--umber-800) var(--mix-5), var(--linen-150));
     /* fans: per path fill / edge / halo (halo = the 1.5px surface casing under each median) */
     --fan-btc-price-fill: var(--orange-600);

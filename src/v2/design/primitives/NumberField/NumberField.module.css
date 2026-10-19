@@ -1,0 +1,68 @@
+@layer primitives {
+  .root {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    min-inline-size: 0;
+    color: var(--text);
+    font-family: var(--f-sans);
+    font-size: var(--t-small);
+  }
+
+  .label {
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .control {
+    box-sizing: content-box;
+    flex: none;
+    inline-size: var(--dyn-field-chars);
+    min-block-size: var(--hit);
+    padding-block: 0;
+    padding-inline: var(--s-2);
+    border: var(--rule-hair) solid var(--control-line);
+    border-radius: var(--radius-0);
+    background: var(--raised);
+    color: var(--text);
+    font: inherit;
+    font-variant-numeric: lining-nums tabular-nums;
+    text-align: end;
+  }
+
+  .control:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  .root[data-invalid="true"] .control {
+    border-color: var(--danger-floor);
+  }
+
+  .root[data-invalid="false"] .control {
+    border-color: var(--control-line);
+  }
+
+  .root[data-disabled="true"] {
+    color: var(--disabled);
+  }
+
+  .root[data-disabled="true"] .control {
+    color: var(--disabled);
+    cursor: not-allowed;
+  }
+
+  .root[data-disabled="false"] .control {
+    cursor: text;
+  }
+
+  .error {
+    flex: 1 0 100%;
+    color: var(--danger-floor);
+  }
+}

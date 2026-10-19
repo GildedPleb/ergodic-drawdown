@@ -35,32 +35,6 @@
     white-space: nowrap;
   }
 
-  .select,
-  .input {
-    flex: 1 1 auto;
-    min-inline-size: 0;
-    padding-block: var(--s-1);
-    padding-inline: var(--s-2);
-    border: var(--rule-hair) solid var(--control-line);
-    border-radius: var(--radius-0);
-    background: var(--raised);
-    color: var(--text);
-    font: inherit;
-    font-variant-numeric: lining-nums tabular-nums;
-  }
-
-  .input {
-    inline-size: var(--dyn-input-w);
-    flex: 0 0 auto;
-    text-align: end;
-  }
-
-  .select:focus-visible,
-  .input:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
-  }
-
   .options {
     display: flex;
     flex-wrap: wrap;

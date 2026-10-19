@@ -258,8 +258,6 @@ export const checkVars = (tree: Tree): string[] => {
 
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/;
 const RAW_LENGTH = /(?<![\w-])\d*\.?\d+(?:px|rem|em|ms|s|vh|vw|%)\b/;
-/** Form's one shadow (motion-etc.css), pending Keel/Form on M3; the only colour literal outside palette. */
-const TIER_EXCEPTIONS = new Set(["design/tokens/motion-etc.css --shadow-sheet"]);
 
 export const checkTiers = (tree: Tree): string[] => {
   const out: string[] = [];
@@ -268,8 +266,14 @@ export const checkTiers = (tree: Tree): string[] => {
   for (const path of cssFiles(tree)) {
     if (path === palette) continue;
     for (const d of declsOf(cssRoot(tree, path))) {
-      if (COLOR_LITERAL.test(d.value) && !TIER_EXCEPTIONS.has(`${path} ${d.prop}`)) {
+      if (COLOR_LITERAL.test(d.value)) {
         out.push(`R5 ${path}: colour literal in ${d.prop} (raw values live in palette.css)`);
+      }
+      if (path === "design/tokens/motion-etc.css" && d.prop.startsWith("--shadow-")) {
+        for (const name of varRefs(d.value)) {
+          if (paletteNames.has(name))
+            out.push(`R5 ${path}: ${d.prop} uses palette --${name}; use semantic --shadow-ink`);
+        }
       }
       if (path === "design/tokens/semantic.css" && RAW_LENGTH.test(d.value)) {
         out.push(`R5 ${path}: raw value in ${d.prop} (semantic maps onto palette vars only)`);
@@ -524,13 +528,10 @@ export const checkSize = (tree: Tree, budget: CssBudget): string[] => {
 /* ---------- G4 extras ---------- */
 
 /**
- * Raw controls that are known debt. The Models pane landed (7eb35d1) before the Phase 1 Select and
- * NumberField primitives exist. This list may only shrink: the test pins it to the current offenders.
+ * Raw controls that are known debt. Empty: feature code composes Select / NumberField / TickToggle.
+ * This list may only shrink (the test pins it to the current offenders), so it stays empty.
  */
-export const PENDING_RAW_CONTROLS: Record<string, string> = {
-  "app/models/ModelsPane.tsx":
-    "native <select>/<input>; Phase 1 Select + NumberField primitives replace them",
-};
+export const PENDING_RAW_CONTROLS: Record<string, string> = {};
 
 export const rawControls = (tree: Tree): string[] => {
   const out: string[] = [];

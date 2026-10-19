@@ -14,11 +14,7 @@ export const Linen = (): ReactElement => (
 );
 export const Tiny = (): ReactElement => <Amount value={1e-10} unit="btc" />;
 export const Negative = (): ReactElement => <Amount value={-0.4} unit="btc" />;
-export const Range = (): ReactElement => (
-  <>
-    <Amount value={0.4} unit="btc" />
-    <span>–</span>
-    <Amount value={0.7} unit="btc" />
-  </>
-);
+export const Zero = (): ReactElement => <Amount value={0} unit="btc" />;
+export const Unavailable = (): ReactElement => <Amount value={Number.NaN} unit="btc" />;
+export const FontsFailed = (): ReactElement => <Amount value={0.7} unit="btc" fontsFailed />;
 export const Usd = (): ReactElement => <Amount value={80000} unit="usd" />;

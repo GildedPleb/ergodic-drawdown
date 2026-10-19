@@ -30,7 +30,7 @@
     --z-focus: 50;
     /* shadow · Deco linework over fills: none by default */
     --shadow-none: none;
-    --shadow-sheet: 0 -18px 40px rgb(0 0 0 / 0.35); /* the one allowed: the locked v32 bottom dock lift */
+    --shadow-sheet: 0 -18px 40px var(--shadow-ink); /* the one allowed: the locked v32 bottom dock lift */
     /* radius · everything square */
     --radius-0: 0;
     /* rules + focus */

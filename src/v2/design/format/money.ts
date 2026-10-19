@@ -5,6 +5,10 @@
  * binary floats, so `$9.995` rounds to `$10` and exactly half a sat rounds up to 1 sat.
  * The unit (sats / ₿ tenths, cents / dollars / k / M) is chosen after rounding, so `$999.5` → `$1k`
  * and `0.99999999` → `₿1`.
+ *
+ * Form G3 rulings (v2.2): zero is `₿0` / `$0`; no trailing `.0` (`₿1`, `₿13`, `$1`, `$1k`);
+ * NaN / ±∞ is an em dash whose accessible name is "not available"; fonts-failed prefixes
+ * `BTC` + NBSP, and the accessible name is always "bitcoin 0.7" regardless of display.
  */
 
 const MINUS = "\u2212";
@@ -77,7 +81,7 @@ export const fmtBTC = (x: number, options?: FormatOptions): string => {
 const usdBody = (d: Dec): string => {
   const cents = roundTo(d, 2);
   if (cents === 0n) return "<$0.01";
-  if (cents < 1_000n) return `$${fixed(cents, 2, true)}`;
+  if (cents < 1_000n) return `$${fixed(cents, 2, cents % 100n !== 0n)}`;
   const dollars = roundTo(d, 0);
   if (dollars < 1_000n) return `$${dollars.toString()}`;
   const k: Dec = { digits: d.digits, exp: d.exp - 3 };
@@ -99,24 +103,58 @@ export const fmtUSD = (x: number): string => {
 };
 
 /**
- * `₿0.4–0.7`: one prefix, en dash, no spaces. Equal ends collapse to one value.
- * Both negative: `−₿0.7–0.4` (one sign covers both). Crossing zero: each end keeps its own sign
- * and prefix, `−₿0.4–₿0.7`, so it never reads as both negative.
+ * Same sign: one prefix, en dash, no spaces, number-line order: `₿0.4–0.7`, `−₿0.7–0.4` (one sign
+ * covers both, larger magnitude first). Equal ends collapse to one value. Crossing zero (or a
+ * `<` floor end): the word "to" with ₿ repeated, `−₿0.4 to ₿0.7`, never an en dash beside a minus.
  */
 export const fmtBTCRange = (low: number, high: number, options?: FormatOptions): string => {
   if (!Number.isFinite(low) || !Number.isFinite(high)) return EM;
-  const a = fmtBTC(low, options);
-  const b = fmtBTC(high, options);
+  const [lo, hi] = low <= high ? [low, high] : [high, low];
+  const a = fmtBTC(lo, options);
+  const b = fmtBTC(hi, options);
   if (a === b) return a;
   const prefix = btcPrefix(options);
   const negA = a.startsWith(MINUS);
   const negB = b.startsWith(MINUS);
-  if (negA !== negB || a.startsWith("<") || b.startsWith("<")) return `${a}${EN}${b}`;
+  if (negA !== negB || a.startsWith("<") || b.startsWith("<")) return `${a} to ${b}`;
   const lead = negA ? MINUS + prefix : prefix;
   return `${lead}${a.slice(lead.length)}${EN}${b.slice(lead.length)}`;
 };
 
 export const fmtBTCChange = (from: number, to: number, options?: FormatOptions): string =>
   `${fmtBTC(from, options)} → ${fmtBTC(to, options)}`;
+
+const NOT_AVAILABLE = "not available";
+
+/** Display text → spoken form: the ₿ / `BTC ` prefix reads "bitcoin", − reads "minus". */
+const speakBtc = (display: string, prefix: string): string =>
+  display
+    .split(prefix)
+    .join("bitcoin ")
+    .replaceAll(MINUS, "minus ")
+    .replaceAll("<", "less than ")
+    .replaceAll(EN, " to ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Accessible name for a ₿ amount: always "bitcoin 0.7" (never the glyph, never "BTC"), the same
+ * whether fonts loaded or not. NaN / ±∞ → "not available".
+ */
+export const nameBTC = (x: number, options?: Pick<FormatOptions, "detail">): string =>
+  Number.isFinite(x)
+    ? speakBtc(fmtBTC(x, { detail: options?.detail === true }), BTC)
+    : NOT_AVAILABLE;
+
+export const nameBTCRange = (low: number, high: number): string =>
+  Number.isFinite(low) && Number.isFinite(high)
+    ? speakBtc(fmtBTCRange(low, high), BTC)
+    : NOT_AVAILABLE;
+
+/** Accessible name for a $ amount; NaN / ±∞ → "not available". */
+export const nameUSD = (x: number): string =>
+  Number.isFinite(x)
+    ? fmtUSD(x).replaceAll(MINUS, "minus ").replaceAll("<", "less than ")
+    : NOT_AVAILABLE;
 
 export const hasSuffixBtc = (s: string): boolean => /\d\s?₿/.test(s);

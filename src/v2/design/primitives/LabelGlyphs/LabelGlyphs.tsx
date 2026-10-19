@@ -17,7 +17,7 @@ export type LabelGlyphsProps = {
 };
 
 /**
- * Maps known codepoints to filled squares at cap height.
+ * Maps known codepoints to filled squares at cap height; other characters render as plain text.
  * The string itself stays exact in a visually hidden span; drawn glyphs are aria-hidden.
  * --walk-up / --walk-down may only be used here.
  */
@@ -29,26 +29,33 @@ export const LabelGlyphs = ({ text }: LabelGlyphsProps): JSX.Element => {
 
   const style = {
     ["--dyn-glyph-size" as string]: "0.7em",
-    ["--dyn-glyph-gap" as string]: "0.05em",
+    ["--dyn-glyph-gap" as string]: "0.2em",
   } satisfies CSSProperties;
 
-  const chars = Array.from(text);
-  const mapped = chars.map((ch, i) => {
-    if (ch === UP) {
-      return <span key={i} className={dot} data-tone="up" aria-hidden="true" />;
+  // Mapped codepoints draw as glyphs; any other run stays as text so mixed labels still read.
+  const parts: JSX.Element[] = [];
+  let run = "";
+  const flush = (): void => {
+    if (run.length > 0) parts.push(<span key={`t${parts.length}`}>{run}</span>);
+    run = "";
+  };
+  for (const ch of Array.from(text)) {
+    const tone = ch === UP ? "up" : ch === DOWN ? "down" : undefined;
+    if (tone === undefined) {
+      run += ch;
+      continue;
     }
-    if (ch === DOWN) {
-      return <span key={i} className={dot} data-tone="down" aria-hidden="true" />;
-    }
-    return null;
-  });
-
-  const hasMapped = mapped.some((n) => n !== null);
+    flush();
+    parts.push(<span key={`g${parts.length}`} className={dot} data-tone={tone} />);
+  }
+  flush();
 
   return (
     <span className={root} style={style}>
       <span className={hidden}>{text}</span>
-      {hasMapped ? <span className={glyphs}>{mapped}</span> : null}
+      <span className={glyphs} aria-hidden="true">
+        {parts}
+      </span>
     </span>
   );
 };

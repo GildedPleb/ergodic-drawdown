@@ -1,0 +1,109 @@
+@layer primitives {
+  .root {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2);
+    min-inline-size: 0;
+    color: var(--text);
+    font-family: var(--f-sans);
+    font-size: var(--t-small);
+  }
+
+  .root[data-label="visible"] {
+    justify-content: space-between;
+  }
+
+  .root[data-label="hidden"] {
+    justify-content: stretch;
+  }
+
+  .label {
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .field {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    min-block-size: var(--hit);
+    border: var(--rule-hair) solid var(--control-line);
+    border-radius: var(--radius-0);
+    background: var(--raised);
+  }
+
+  .field:has(.control:focus-visible) {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  .face {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    min-inline-size: 0;
+    padding-block: var(--s-1);
+    padding-inline: var(--s-2);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .value {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .caret {
+    display: inline-flex;
+    flex: none;
+    color: var(--accent);
+  }
+
+  /* The native control: transparent, covering the face, so it owns pointer, keys and pickers. */
+  .control {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-0);
+    opacity: 0;
+    font: inherit;
+    cursor: pointer;
+    appearance: none;
+  }
+
+  .root[data-invalid="true"] .field {
+    border-color: var(--danger-floor);
+  }
+
+  .root[data-invalid="false"] .field {
+    border-color: var(--control-line);
+  }
+
+  .root[data-disabled="true"] {
+    color: var(--disabled);
+  }
+
+  .root[data-disabled="true"] .control {
+    cursor: not-allowed;
+  }
+
+  .root[data-disabled="false"] .caret {
+    color: var(--accent);
+  }
+
+  .error {
+    flex: 1 0 100%;
+    color: var(--danger-floor);
+  }
+}

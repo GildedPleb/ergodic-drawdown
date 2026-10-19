@@ -33,6 +33,20 @@ test("G4: a raw control in app fails", () => {
   expect(checkElements(tree).length).toBe(2);
 });
 
+test("G4: a raw <select> or <input> in the Models pane fails (no exception entry)", () => {
+  expect(Object.keys(PENDING_RAW_CONTROLS)).toEqual([]);
+  const pane = "app/models/ModelsPane.tsx";
+  for (const raw of ['<select value="a" onChange={() => {}} />', '<input type="number" />']) {
+    const tree = apply({
+      name: raw,
+      path: pane,
+      edit: (c) =>
+        c.replace("<h2 className={title}>Model</h2>", `<h2 className={title}>Model</h2>${raw}`),
+    });
+    expect(checkElements(tree).length).toBe(1);
+  }
+});
+
 test("G4: stories stay plain CSF (no @storybook / @ladle imports)", () => {
   expect(checkStoryImports(realTree)).toEqual([]);
   const tree = apply({

@@ -1,7 +1,8 @@
-import type { ChangeEvent, CSSProperties, JSX } from "react";
+import type { JSX } from "react";
 import { useMemo, useState } from "react";
 
-import { LabelGlyphs } from "../../design/primitives/LabelGlyphs";
+import { NumberField } from "../../design/primitives/NumberField";
+import { Select } from "../../design/primitives/Select";
 import { TickToggle } from "../../design/primitives/TickToggle";
 import styles from "./ModelsPane.module.css";
 import { modelsPaneSchema } from "./schema";
@@ -30,13 +31,20 @@ const defaultsFromSchema = (): ModelsPaneValues => ({
   epochCount: modelsPaneSchema.controls.epochs.default,
 });
 
+/** Old-UI "Infinity" bounds mean no bound on the native control. */
+const bound = (v: number | string | undefined): number | undefined =>
+  v === undefined || v === "Infinity" || v === "-Infinity" ? undefined : Number(v);
+
 export type ModelsPaneProps = {
   /** Controlled values; omit for uncontrolled defaults from G12 schema. */
   value?: ModelsPaneValues;
   onChange?: (next: ModelsPaneValues) => void;
 };
 
-/** Models pane — same names, options, ranges and defaults as the live app (G12). */
+/**
+ * Models pane: same names, options, order, ranges, steps and defaults as the live app (G12).
+ * Feature code composes design primitives only; no raw <select>/<input> (G4).
+ */
 export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element => {
   const [internal, setInternal] = useState<ModelsPaneValues>(defaultsFromSchema);
   const values = value ?? internal;
@@ -63,13 +71,10 @@ export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element =>
   const title = styles["title"] ?? "models-title";
   const row = styles["row"] ?? "models-row";
   const label = styles["label"] ?? "models-label";
-  const select = styles["select"] ?? "models-select";
-  const input = styles["input"] ?? "models-input";
   const options = styles["options"] ?? "models-options";
   const hint = styles["hint"] ?? "models-hint";
 
-  const onModel = (event: ChangeEvent<HTMLSelectElement>): void => {
-    const name = event.target.value;
+  const onModel = (name: string): void => {
     const meta = modelsPaneSchema.models.find((m) => m.name === name);
     const patch: Partial<ModelsPaneValues> = { model: name };
     if (meta !== undefined && meta.varInput !== "") {
@@ -78,109 +83,77 @@ export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element =>
     set(patch);
   };
 
-  const onWalk = (event: ChangeEvent<HTMLSelectElement>): void => {
-    set({ walk: event.target.value });
-  };
-
   const years = values.epochCount * 4;
-
-  const style = { ["--dyn-input-w" as string]: "4.5rem" } satisfies CSSProperties;
+  const { controls } = modelsPaneSchema;
 
   return (
-    <section className={root} style={style} aria-label="Model">
+    <section className={root} aria-label="Model">
       <h2 className={title}>Model</h2>
 
       <div className={row}>
-        <select
-          className={select}
+        <Select
           id="v2-model"
-          aria-label="Price model"
+          label="Price model"
+          labelVisibility="hidden"
+          options={modelsPaneSchema.modelOrder}
           value={values.model}
           onChange={onModel}
-        >
-          {modelsPaneSchema.modelOrder.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        />
         <div className={options}>
           {showVariable ? (
-            <>
-              <label className={label} htmlFor="v2-variable">
-                {modelMeta?.varInput}
-              </label>
-              <input
-                className={input}
-                id="v2-variable"
-                type="number"
-                step={modelsPaneSchema.controls.variable.step}
-                min={modelMeta?.rangeMin === "Infinity" ? undefined : modelMeta?.rangeMin}
-                max={modelMeta?.rangeMax === "Infinity" ? undefined : modelMeta?.rangeMax}
-                value={values.variable}
-                onChange={(e) => {
-                  set({ variable: Number.parseFloat(e.target.value) });
-                }}
-              />
-            </>
+            <NumberField
+              id="v2-variable"
+              label={modelMeta?.varInput ?? ""}
+              step={controls.variable.step}
+              min={bound(modelMeta?.rangeMin)}
+              max={bound(modelMeta?.rangeMax)}
+              value={values.variable}
+              onChange={(n) => {
+                set({ variable: n });
+              }}
+            />
           ) : null}
           {showMinMax ? (
-            <>
-              <label className={label} htmlFor="v2-minmax">
-                +/-
-              </label>
-              <input
-                className={input}
-                id="v2-minmax"
-                type="number"
-                step={modelsPaneSchema.controls.minMaxMultiple.step}
-                min={modelsPaneSchema.controls.minMaxMultiple.min}
-                value={values.minMaxMultiple}
-                onChange={(e) => {
-                  const n = Number.parseFloat(e.target.value);
-                  set({
-                    minMaxMultiple:
-                      n < modelsPaneSchema.controls.minMaxMultiple.min
-                        ? modelsPaneSchema.controls.minMaxMultiple.min
-                        : n,
-                  });
-                }}
-              />
-            </>
+            <NumberField
+              id="v2-minmax"
+              label="+/-"
+              step={controls.minMaxMultiple.step}
+              min={controls.minMaxMultiple.min}
+              value={values.minMaxMultiple}
+              onChange={(n) => {
+                set({
+                  minMaxMultiple: n < controls.minMaxMultiple.min ? controls.minMaxMultiple.min : n,
+                });
+              }}
+            />
           ) : null}
         </div>
       </div>
 
       <div className={row}>
-        <label className={label} htmlFor="v2-walk">
-          Walk Strategy:
-        </label>
-        <select className={select} id="v2-walk" value={values.walk} onChange={onWalk}>
-          {modelsPaneSchema.walks.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="v2-walk"
+          label="Walk Strategy:"
+          options={modelsPaneSchema.walks}
+          value={values.walk}
+          onChange={(walk) => {
+            set({ walk });
+          }}
+        />
       </div>
-      {values.walk === "🟢🟢🟢🔴" ? (
-        <div className={row} aria-hidden="true">
-          <LabelGlyphs text="🟢🟢🟢🔴" />
-        </div>
-      ) : null}
 
       <div className={row}>
-        <span className={label}>{modelsPaneSchema.controls.clamp.label}</span>
+        <span className={label}>{controls.clamp.label}</span>
         <div className={options}>
           <TickToggle
-            label={modelsPaneSchema.controls.clamp.topLabel}
+            label={controls.clamp.topLabel}
             checked={values.clampTop}
             onChange={(next) => {
               set({ clampTop: next });
             }}
           />
           <TickToggle
-            label={modelsPaneSchema.controls.clamp.bottomLabel}
+            label={controls.clamp.bottomLabel}
             checked={values.clampBottom}
             onChange={(next) => {
               set({ clampBottom: next });
@@ -190,54 +163,44 @@ export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element =>
       </div>
 
       <div className={row}>
-        <label className={label} htmlFor="v2-vol">
-          {modelsPaneSchema.controls.volatility.label}
-        </label>
-        <input
-          className={input}
+        <NumberField
           id="v2-vol"
-          type="number"
-          min={modelsPaneSchema.controls.volatility.min}
-          max={modelsPaneSchema.controls.volatility.max}
+          label={controls.volatility.label}
+          min={controls.volatility.min}
+          max={controls.volatility.max}
           step={volStep}
           value={values.volatility}
-          onChange={(e) => {
-            set({ volatility: Number.parseFloat(e.target.value) });
+          onChange={(n) => {
+            set({ volatility: n });
           }}
         />
       </div>
 
       <div className={row}>
-        <label className={label} htmlFor="v2-epochs">
-          {modelsPaneSchema.controls.epochs.label}
-        </label>
-        <input
-          className={input}
+        <NumberField
           id="v2-epochs"
-          type="number"
-          min={modelsPaneSchema.controls.epochs.min}
-          max={modelsPaneSchema.controls.epochs.max}
+          label={controls.epochs.label}
+          parse="int"
+          min={controls.epochs.min}
+          max={controls.epochs.max}
           value={values.epochCount}
-          onChange={(e) => {
-            set({ epochCount: Number.parseInt(e.target.value, 10) });
+          onChange={(n) => {
+            set({ epochCount: n });
           }}
         />
         <span className={hint}>{` (~${years} years)`}</span>
       </div>
 
       <div className={row}>
-        <label className={label} htmlFor="v2-samples">
-          {modelsPaneSchema.controls.samples.label}
-        </label>
-        <input
-          className={input}
+        <NumberField
           id="v2-samples"
-          type="number"
-          min={modelsPaneSchema.controls.samples.min}
-          max={modelsPaneSchema.controls.samples.max}
+          label={controls.samples.label}
+          parse="int"
+          min={controls.samples.min}
+          max={controls.samples.max}
           value={values.samples}
-          onChange={(e) => {
-            set({ samples: Number.parseInt(e.target.value, 10) });
+          onChange={(n) => {
+            set({ samples: n });
           }}
         />
       </div>
