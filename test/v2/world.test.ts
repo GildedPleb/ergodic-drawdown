@@ -71,6 +71,14 @@ test("gridlines only at the decades inside the fitted range: no empty $1B above,
   expect(axisTicks({ lo: 1e4, hi: 1e7 })).toEqual([1e4, 1e5, 1e6, 1e7]);
 });
 
+test("n11: the chart status caption sits in the plot: --plot-inset mirrors plotBox (T R B L)", async () => {
+  const css = await file(`${import.meta.dir}/../../src/v2/design/tokens/space.css`).text();
+  const inset = /--plot-inset:([^;]+);/.exec(css)?.[1]?.trim().split(/\s+/) ?? [];
+  const px = inset.map((v) => Number.parseFloat(v) * 16);
+  const plot = plotBox(400, 300);
+  expect(px).toEqual([plot.T, 400 - plot.R, 300 - plot.Bt, plot.L]);
+});
+
 test("n10: thinned ticks count down from the top decade inside the domain; coverTop lifts the axis over the data", () => {
   const ticks = axisTicks({ lo: 1e4, hi: 3e300 });
   expect(ticks.at(-1)).toBe(1e300);

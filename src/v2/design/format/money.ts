@@ -114,11 +114,37 @@ const UNITS = [
   ["T", 12],
 ] as const;
 
+/**
+ * Form (n4 revision, 2026-10-19): grouped T up to $999,999T; from $1,000,000T scientific notation
+ * at 3 significant figures, trailing zeros kept: `$1.23×10²¹`, `$1.00×10²³`, with Unicode
+ * superscript digits (and a superscript minus, never needed for money this large). $1,000,000T is
+ * 10¹⁸ (the ruling's "(1e21)" does not match its own T bounds; the T bounds win, see the report).
+ * Decided after rounding, so $999,999.5T is `$1.00×10¹⁸`; the largest grouped T is `$999,000T`.
+ */
+const SCI_FROM_EXP = 18;
+const SUPER = "\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";
+const TIMES = "\u00D7";
+const superscript = (n: number): string =>
+  Array.from(String(n), (c) => (c === "-" ? "\u207B" : (SUPER[Number(c)] ?? c))).join("");
+
+/** 3 significant figures as [x.yz, exponent], rounded half-up; undefined below 10²¹. */
+const sciParts = (d: Dec): [string, number] | undefined => {
+  let lead = leadExp(d);
+  let n = roundTo(d, 2 - lead);
+  if (n >= 1000n) {
+    n /= 10n;
+    lead += 1;
+  }
+  return lead < SCI_FROM_EXP ? undefined : [fixed(n, 2, true), lead];
+};
+
 const usdBody = (d: Dec, raw: number): string => {
   const cents = roundTo(d, 2);
   if (cents === 0n) return "<$0.01";
   if (raw < 1) return cents < 100n ? `$${fixed(cents, 2, true)}` : "$1";
   if (raw < 10_000) return `$${group(roundTo(d, 0).toString())}`;
+  const sci = sciParts(d);
+  if (sci !== undefined) return `$${sci[0]}${TIMES}10${superscript(sci[1])}`;
   // The unit is chosen after rounding ($999,950 → $1M, $999.95B → $1T).
   for (const [unit, exp] of UNITS) {
     const last = unit === "T";
@@ -256,10 +282,17 @@ export const nameBTCRange = (low: number, high: number): string => {
   return speakBtc(shown, BTC);
 };
 
-/** Accessible name for a $ amount; NaN / ±∞ → "not available". */
-export const nameUSD = (x: number): string =>
-  Number.isFinite(x)
-    ? speakUnits(fmtUSD(x).replaceAll(MINUS, "minus ").replaceAll("<", "less than "))
-    : NOT_AVAILABLE;
+/**
+ * Accessible name for a $ amount; NaN / ±∞ → "not available". Scientific amounts are said in words
+ * with the currency at the end (Form): "1.23 times ten to the 21 dollars".
+ */
+export const nameUSD = (x: number): string => {
+  if (!Number.isFinite(x)) return NOT_AVAILABLE;
+  const sci = sciParts(toDec(Math.abs(x)));
+  if (sci !== undefined) {
+    return `${x < 0 ? "minus " : ""}${sci[0]} times ten to the ${sci[1]} dollars`;
+  }
+  return speakUnits(fmtUSD(x).replaceAll(MINUS, "minus ").replaceAll("<", "less than "));
+};
 
 export const hasSuffixBtc = (s: string): boolean => /\d\s?₿/.test(s);

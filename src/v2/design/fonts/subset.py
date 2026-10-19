@@ -17,7 +17,10 @@ if fontTools.version != PIN:
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Basic Latin + NBSP + the MVP-SPEC G2 set + em dash (formatter "—") + curly quotes.
 REQUIRED = [0x20BF, 0x2192, 0x2212, 0x2013, 0x2019, 0x2026, 0x00B7, 0x00D7, 0x202F]
-EXTRA = [0x00A0, 0x2014, 0x2018, 0x201C, 0x201D]
+# Superscript figures + superscript minus for $1.23×10²¹ (Form, n4 revision). Optional like EXTRA:
+# EB Garamond italic has no superior figures and no face has U+207B, so those stay out.
+SUPERS = [0x2070, 0x00B9, 0x00B2, 0x00B3, 0x2074, 0x2075, 0x2076, 0x2077, 0x2078, 0x2079, 0x207B]
+EXTRA = [0x00A0, 0x2014, 0x2018, 0x201C, 0x201D] + SUPERS
 UNICODES = list(range(0x20, 0x7F)) + REQUIRED + EXTRA
 # onum/pnum stay so EB Garamond's tnum/lnum lookups (which map from .osf/.lf figures) survive the closure.
 FEATURES = ["kern", "liga", "calt", "ccmp", "locl", "mark", "mkmk", "tnum", "lnum", "onum", "pnum"]

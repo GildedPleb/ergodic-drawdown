@@ -296,7 +296,7 @@ test("Slice 1 review (5): money steps up to B and T at 3 significant figures, ne
     [fmtUSD(1_234_000_000_000_000), "$1,230T"],
     [fmtUSD(45_600_000_000_000_000), "$45,600T"],
     [fmtUSD(999_500_000_000_000), "$1,000T"],
-    [fmtUSD(3.16e46), `$31,600${",000".repeat(10)}T`],
+    [fmtUSD(3.16e46), "$3.16\u00D710\u2074\u2076"],
     [fmtUSDRange(999e12, 1.234e15), "$999T\u20131,230T"],
     [fmtUSD(-29_533_000_000), "\u2212$29.5B"],
     [fmtUSDRange(59_500_000, 29_533_000_000), "$59.5M\u201329.5B"],
@@ -321,5 +321,47 @@ test("Slice 1 review (5): the spoken form says the unit as a word", () => {
     [nameUSDRange(240, 1_040), "$240 to $1,040"],
     [nameUSDRange(0.004, 5), "less than $0.01 to $5"],
     [nameUSDRange(-2e9, -1e9), "minus $2 billion to minus $1 billion"],
+  ]);
+});
+
+// $1,000,000T = 10¹⁸: Form's T bounds ($1,000T–$999,999T grouped) set the switch.
+const T = 1e12;
+
+test("n4 revision: $1,000T–$999,000T stay grouped T; from $1,000,000T scientific at 3 significant figures", () => {
+  check([
+    [fmtUSD(1_000 * T), "$1,000T"],
+    [fmtUSD(999_000 * T), "$999,000T"],
+    [fmtUSD(999_499 * T), "$999,000T"],
+    // 999,999.5T rounds to 1,000,000T, so it takes the scientific form, as does 999,500T.
+    [fmtUSD(999_999.5 * T), "$1.00\u00D710\u00B9\u2078"],
+    [fmtUSD(999_500 * T), "$1.00\u00D710\u00B9\u2078"],
+    [fmtUSD(1_000_000 * T), "$1.00\u00D710\u00B9\u2078"],
+    [fmtUSD(1e21), "$1.00\u00D710\u00B2\u00B9"],
+    [fmtUSD(1.234e21), "$1.23\u00D710\u00B2\u00B9"],
+    [fmtUSD(9.995e22), "$1.00\u00D710\u00B2\u00B3"],
+    [fmtUSD(9.994e22), "$9.99\u00D710\u00B2\u00B2"],
+    [fmtUSD(4.56e100), "$4.56\u00D710\u00B9\u2070\u2070"],
+    [fmtUSD(1e308), "$1.00\u00D710\u00B3\u2070\u2078"],
+    [fmtUSD(-1.234e21), "\u2212$1.23\u00D710\u00B2\u00B9"],
+    [fmtUSDRange(999_000 * T, 1.234e21), "$999,000T\u20131.23\u00D710\u00B2\u00B9"],
+    [fmtUSDRange(1.234e21, 4.56e22), "$1.23\u00D710\u00B2\u00B9\u20134.56\u00D710\u00B2\u00B2"],
+    [fmtUSDRange(1e21, 1.004e21), "$1.00\u00D710\u00B2\u00B9"],
+  ]);
+});
+
+test("n4 revision: scientific amounts are spoken in words, currency on both ends of a range", () => {
+  check([
+    [nameUSD(1.234e21), "1.23 times ten to the 21 dollars"],
+    [nameUSD(999_999.5 * T), "1.00 times ten to the 18 dollars"],
+    [nameUSD(1e308), "1.00 times ten to the 308 dollars"],
+    [nameUSD(-1.234e21), "minus 1.23 times ten to the 21 dollars"],
+    [nameUSD(999_000 * T), "$999,000 trillion"],
+    [nameUSDRange(999_000 * T, 1.234e21), "$999,000 trillion to 1.23 times ten to the 21 dollars"],
+    [nameUSDRange(1_000 * T, 999_999.5 * T), "$1,000 trillion to 1.00 times ten to the 18 dollars"],
+    [
+      nameUSDRange(1.234e21, 4.56e22),
+      "1.23 times ten to the 21 dollars to 4.56 times ten to the 22 dollars",
+    ],
+    [nameUSDRange(1e21, 1.004e21), "1.00 times ten to the 21 dollars"],
   ]);
 });

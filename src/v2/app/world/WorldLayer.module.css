@@ -27,19 +27,24 @@
   /* §1h no data: centred caption, no spinner. */
   .status {
     position: absolute;
-    inset: 0;
+    inset: var(--plot-inset);
     z-index: var(--z-chart);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0 var(--s-4);
+    padding: 0 var(--s-5);
     color: var(--text-muted);
     font-family: var(--f-text);
     font-size: var(--t-chart-serif);
     font-style: italic;
     text-align: center;
     pointer-events: none;
+  }
+
+  .msg {
+    max-inline-size: var(--status-measure);
+    text-wrap: balance;
   }
 
   .retry {

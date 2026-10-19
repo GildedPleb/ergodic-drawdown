@@ -23,12 +23,13 @@ export type WorldLayerProps = {
 const Status = ({ phase, onRetry }: { phase: InputsPhase; onRetry: () => void }): JSX.Element => {
   const note = styles["status"] ?? "world-status";
   const again = styles["retry"] ?? "world-retry";
+  const msg = styles["msg"] ?? "world-msg";
   return (
     <div className={note} role="status" data-phase={phase}>
-      {phase === "slow" ? <span>{strings.chart.loading}</span> : null}
+      {phase === "slow" ? <span className={msg}>{strings.chart.loading}</span> : null}
       {phase === "failed" ? (
         <>
-          <span>{strings.chart.failed}</span>
+          <span className={msg}>{strings.chart.failed}</span>
           <span className={again}>
             <TextButton label={strings.chart.tryAgain} onClick={onRetry} />
           </span>

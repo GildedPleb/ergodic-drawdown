@@ -97,7 +97,10 @@
     "U+007D",
     "U+007E",
     "U+00A0",
+    "U+00B2",
+    "U+00B3",
     "U+00B7",
+    "U+00B9",
     "U+00D7",
     "U+2013",
     "U+2014",
@@ -107,6 +110,14 @@
     "U+201D",
     "U+2026",
     "U+202F",
+    "U+2070",
+    "U+2074",
+    "U+2075",
+    "U+2076",
+    "U+2077",
+    "U+2078",
+    "U+2079",
+    "U+207B",
     "U+20BF",
     "U+2192",
     "U+2212"
@@ -124,46 +135,46 @@
   ],
   "faces": {
     "SMCormorant-500.woff2": {
-      "sha256": "533f7b25a41dc7c630cb76ba1d44c07e031aca25b6ecd812f4a824cf2340bae8",
-      "bytes": 12568,
-      "codepoints": 109,
+      "sha256": "064579dee56c1ab0c4195afd3bce1473b0fea00f4bd4e742ba3230e2d976c5b2",
+      "bytes": 13284,
+      "codepoints": 119,
       "gsubFeatures": ["calt", "liga", "lnum", "locl", "tnum"],
       "tnum": true,
       "lnum": true
     },
     "SMEBGaramond-400.woff2": {
-      "sha256": "94a1870bea0f27316371f18d1da3b879c6c8c899a4e84d25c006feb2c8b0d63c",
-      "bytes": 14512,
-      "codepoints": 109,
+      "sha256": "54e8b2d129d974e8d47dfff7f1fc9bf50c36b79d1c3ea502bd3b82bc77e9f7f5",
+      "bytes": 15452,
+      "codepoints": 120,
       "gsubFeatures": ["liga", "lnum", "locl", "onum", "pnum", "tnum"],
       "tnum": true,
       "lnum": true
     },
     "SMEBGaramond-400i.woff2": {
-      "sha256": "98d87f21832685163bca7bb973a778fa6e1b31a549af69f3a19eaefa565fa214",
-      "bytes": 15032,
-      "codepoints": 109,
+      "sha256": "c628602af1e8d5132db4ebfa5f3ee72a504d2d665ae52599da530e6d9ba82adb",
+      "bytes": 15044,
+      "codepoints": 110,
       "gsubFeatures": ["liga", "lnum", "locl", "onum", "pnum", "tnum"],
       "tnum": true,
       "lnum": true
     },
     "SMJost-500.woff2": {
-      "sha256": "abe7966b26fbd931e0b350827da0d0bf06f30d78985171a2025f50e6651785a5",
-      "bytes": 6060,
-      "codepoints": 109,
+      "sha256": "4aa23cf43210512707e0c4ea1a7aeb9370c3fbb381448a5682d5a36d745a83b0",
+      "bytes": 6608,
+      "codepoints": 119,
       "gsubFeatures": ["tnum"],
       "tnum": true,
       "lnum": false
     },
     "SMJost-600.woff2": {
-      "sha256": "666f91fbe8cde8f9b59b8c0cf26350dcf638f44f33a5cd93cfc4c596b478f6ba",
-      "bytes": 5956,
-      "codepoints": 109,
+      "sha256": "1fb616be6af365b020fa92b7c0a6b285481b8f3adb62eea6ff9a4a9b986251c9",
+      "bytes": 6612,
+      "codepoints": 119,
       "gsubFeatures": ["tnum"],
       "tnum": true,
       "lnum": false
     }
   },
-  "totalBytes": 54128,
-  "preloadBytes": 18628
+  "totalBytes": 57000,
+  "preloadBytes": 19892
 }

@@ -357,14 +357,13 @@ export const drawWorld = (
     x.lineTo(box.R, y);
     x.stroke();
     x.setLineDash([]);
-    // A label too wide for the right margin ($1,000T and up) sits just inside the plot, right-
-    // aligned above its gridline; one wider than half the plot is left off rather than clipped.
+    // Every gridline is labelled (Form, n4 revision): a label too wide for the right margin
+    // ($1,000T and up, $1.23×10²¹) sits just inside the plot, right-aligned above its gridline.
     const text = fmtUSD(v);
-    const w = x.measureText(text).width;
     x.fillStyle = p.muted;
-    if (w <= width - box.R - 4) {
+    if (x.measureText(text).width <= width - box.R - 4) {
       x.fillText(text, box.R + 4, y + 3);
-    } else if (w <= (box.R - box.L) / 2) {
+    } else {
       x.textAlign = "right";
       x.fillText(text, box.R - 4, y - 3);
       x.textAlign = "left";

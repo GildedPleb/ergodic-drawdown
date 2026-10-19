@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { priceBands, type PriceBands } from "../../src/v2/app/world/bands";
+import { bandRange, priceBands, type PriceBands } from "../../src/v2/app/world/bands";
+import { fmtUSD } from "../../src/v2/design/format/money";
 import {
   type Ctx2D,
   drawWorld,
@@ -8,7 +9,7 @@ import {
   LABEL_LINE,
   type Paint,
 } from "../../src/v2/app/world/draw";
-import { axisTicks, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
+import { axisTicks, coverTop, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
 
 const NOW = new Date(2026, 9, 19).getTime();
 const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -272,6 +273,23 @@ test("n10: the $ scale stays, and a tick covers the data's top ($10,000T drawn i
   expect(texts.includes("$100T")).toBe(true);
   expect(texts.includes(OUT)).toBe(true);
   expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
+});
+
+test("n4 revision: every gridline is labelled up to the 10³⁰⁸ clamp, scientific labels inside the plot", () => {
+  const b = pack([1e5, 1e150, 1e300, PAST], [1e5, 1e150, 1e300, PAST], [1e5, 1e150, 1e300, PAST]);
+  const range = bandRange(b);
+  const domain = coverTop(fitDomain(range?.low ?? 0, range?.high ?? 0), range?.high ?? 0);
+  const ticks = axisTicks(domain);
+  expect(ticks.at(-1)).toBe(1e308);
+  const { ctx, ops } = recorder();
+  drawWorld(ctx, PAINT, { width: 390, height: 693, dpr: 1, now: NOW, horizon: 3 }, b);
+  const box = plotBox(390, 693);
+  for (const v of ticks) {
+    const label = ops.find((o) => o.t === fmtUSD(v));
+    expect(label === undefined ? `missing ${fmtUSD(v)}` : "ok").toBe("ok");
+    if (v >= 1e18) expect(label?.x).toBe(box.R - 4);
+  }
+  expect(ops.some((o) => o.t === "$1.00\u00D710\u00B3\u2070\u2078")).toBe(true);
 });
 
 test("B2: bands that are past a double from the start draw the frame and the caption, no end label", () => {

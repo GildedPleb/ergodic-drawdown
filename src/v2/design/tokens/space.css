@@ -79,6 +79,8 @@
     --rail-tab-pad: 0.75rem 0.25rem; /* 12px 4px */
     --rail-tab-min: 3rem; /* 48px: v32 min-height 24px on the content box + 12px padding ×2 */
     --rail-gap: 0.375rem; /* 6px */
+    --plot-inset: 1.125rem 2.75rem 2.125rem 2.125rem; /* draw.ts plotBox T R B L: 18 44 34 34px */
+    --status-measure: 28ch; /* chart status caption line length (Form n11) */
     --rail-tabs-gap: 0.125rem; /* 2px */
     --rail-icon-space: 0.25rem 0 0.625rem; /* 4px 0 10px */
     --panel-w: min(40vw, 28.75rem); /* open right panel, min(40vw,460px) */
