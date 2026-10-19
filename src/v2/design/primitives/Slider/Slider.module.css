@@ -1,0 +1,67 @@
+@layer primitives {
+  /* The whole row is the hit area (--hit tall); the rail sits on its centre line. */
+  .root {
+    position: relative;
+    display: grid;
+    align-items: center;
+    min-block-size: var(--hit);
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .root[data-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  .root[data-disabled="false"] {
+    cursor: pointer;
+  }
+
+  .rail {
+    position: relative;
+    display: block;
+    block-size: 1px;
+    background: var(--control-line);
+  }
+
+  .fill {
+    position: absolute;
+    inset-inline-start: 0;
+    inline-size: var(--dyn-at);
+    block-size: var(--line-median);
+    translate: 0 -25%;
+    background: var(--accent);
+  }
+
+  .tick {
+    position: absolute;
+    inset-inline-start: var(--dyn-was);
+    inline-size: 1px;
+    block-size: var(--s-3);
+    translate: 0 -50%;
+    background: var(--text-muted);
+  }
+
+  /* 5×18 square thumb; the 2px --surface halo is a border in the surface colour (no shadow, R4). */
+  .thumb {
+    position: absolute;
+    inset-inline-start: var(--dyn-at);
+    align-self: center;
+    box-sizing: content-box;
+    inline-size: var(--thumb-w);
+    block-size: var(--thumb-h);
+    translate: -50% 0;
+    background: var(--accent);
+    border: var(--line-median) solid var(--surface);
+    border-radius: var(--radius-0);
+  }
+
+  .root[data-disabled="true"] .thumb {
+    background: var(--disabled);
+  }
+
+  .thumb:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+}

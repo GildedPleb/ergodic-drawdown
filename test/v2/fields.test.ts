@@ -18,11 +18,11 @@ test("invalid is never a colour signal: --rule-strong border in --invalid, no --
   for (const [, text, invalid] of pairs) expect(invalid).toBe(text);
 });
 
-test("LabelGlyphs: emoji walk is one role=img named with the exact string, drawn as SVG circles", async () => {
+test("LabelGlyphs: emoji walk is one role=img named 3 up, 1 down, drawn as SVG circles", async () => {
   const { LabelGlyphs } = await import("../../src/v2/design/primitives/LabelGlyphs");
   const html = renderToStaticMarkup(createElement(LabelGlyphs, { text: "🟢🟢🟢🔴" }));
   expect(html.includes('role="img"')).toBe(true);
-  expect(html.includes('aria-label="🟢🟢🟢🔴"')).toBe(true);
+  expect(html.includes('aria-label="3 up, 1 down"')).toBe(true);
   expect((html.match(/<circle /g) ?? []).length).toBe(4);
   // The emoji never reaches a text node (only attributes).
   expect(html.replace(/<[^>]*>/g, "").includes("🟢")).toBe(false);

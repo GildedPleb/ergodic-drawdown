@@ -4,12 +4,17 @@ import { useEffect } from "react";
 import { ModelsPane } from "../../app/models";
 import * as AmountStories from "../../design/primitives/Amount/Amount.stories";
 import * as ClusterStories from "../../design/primitives/Cluster/Cluster.stories";
+import * as DockStories from "../../design/primitives/Dock/Dock.stories";
+import * as GrabPointStories from "../../design/primitives/GrabPoint/GrabPoint.stories";
 import * as GridStories from "../../design/primitives/Grid/Grid.stories";
 import * as IconStories from "../../design/primitives/Icon/Icon.stories";
 import * as LabelGlyphsStories from "../../design/primitives/LabelGlyphs/LabelGlyphs.stories";
+import * as LedgerRowStories from "../../design/primitives/LedgerRow/LedgerRow.stories";
 import * as NumberFieldStories from "../../design/primitives/NumberField/NumberField.stories";
+import * as RadioListStories from "../../design/primitives/RadioList/RadioList.stories";
 import * as SectionLabelStories from "../../design/primitives/SectionLabel/SectionLabel.stories";
 import * as SelectStories from "../../design/primitives/Select/Select.stories";
+import * as SliderStories from "../../design/primitives/Slider/Slider.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
 import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
@@ -27,12 +32,17 @@ const kebab = (name: string): string => name.replace(/([a-z0-9])([A-Z])/g, "$1-$
 const GROUPS: Record<string, StoryModule> = {
   amount: AmountStories,
   cluster: ClusterStories,
+  dock: DockStories,
+  "grab-point": GrabPointStories,
   grid: GridStories,
   icon: IconStories,
   "label-glyphs": LabelGlyphsStories,
+  "ledger-row": LedgerRowStories,
   "number-field": NumberFieldStories,
+  "radio-list": RadioListStories,
   "section-label": SectionLabelStories,
   select: SelectStories,
+  slider: SliderStories,
   stack: StackStories,
   "tick-toggle": TickToggleStories,
   "visually-hidden": VisuallyHiddenStories,

@@ -1,0 +1,147 @@
+@layer primitives {
+  /* Row: 30px, 🔍 · tabs (flex 1, centred, 28px gap) · ⚙, 8px between (v32 .drow.d3). */
+  .root {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    block-size: var(--dock-row);
+    padding-block-end: var(--dock-row-pad-end);
+  }
+
+  .root[data-orientation="rail"] {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--rail-gap);
+    block-size: 100%;
+    padding-block-end: var(--dock-row-pad-end);
+  }
+
+  .root[data-orientation="row"] {
+    flex-direction: row;
+  }
+
+  .tabs {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    gap: var(--dock-tabs-gap);
+  }
+
+  /* Rail: the tab column grows (content at its top) so ⚙ lands at the bottom without margin. */
+  .root[data-orientation="rail"] .tabs {
+    flex: 1 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--rail-tabs-gap);
+  }
+
+  .tab {
+    position: relative;
+    padding: var(--dock-tab-pad);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--f-sans);
+    font-size: var(--t-dock-tab);
+    font-weight: 600;
+    line-height: normal;
+    letter-spacing: var(--tr-tab);
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 0;
+    border-radius: var(--radius-0);
+    cursor: pointer;
+  }
+
+  .root[data-orientation="rail"] .tab {
+    min-block-size: var(--rail-tab-min);
+    padding: var(--rail-tab-pad);
+    font-size: var(--t-rail-tab);
+    letter-spacing: var(--tr-rail-tab);
+  }
+
+  .tab[data-selected="true"] {
+    color: var(--accent);
+  }
+
+  .tab[data-selected="false"] {
+    color: var(--text-muted);
+  }
+
+  .tab[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: var(--dock-tab-line);
+    background: var(--accent);
+  }
+
+  .tab:focus-visible,
+  .mag:focus-visible,
+  .gear:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  /* Reserved slots: the box stays, the control is out of focus and the accessibility tree. */
+  .tab[data-shown="false"],
+  .mag[data-shown="false"],
+  .gear[data-shown="false"] {
+    visibility: hidden;
+  }
+
+  .tab[data-shown="true"],
+  .mag[data-shown="true"],
+  .gear[data-shown="true"] {
+    visibility: visible;
+  }
+
+  /* 🔍: v32's 28×28 box pulled 8px into the padding (margin-left:-8px). Margins are banned
+     (R6), so the layout slot is the 20px that remains and the glyph shifts 4px back to the box
+     centre; 13px glyph, 44px hit area. */
+  .mag {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--dock-icon-slot);
+    block-size: var(--dock-icon-box);
+    translate: var(--dock-icon-shift) 0;
+    padding: 0;
+    background: transparent;
+    color: var(--accent);
+    font-size: var(--dock-icon);
+    border: 0;
+    border-radius: var(--radius-0);
+    cursor: pointer;
+  }
+
+  .mag::after {
+    content: "";
+    position: absolute;
+    inset: var(--dock-icon-hit) var(--dock-icon-hit-x);
+  }
+
+  /* Rail: 4px above, 10px below the full 28px box. */
+  .root[data-orientation="rail"] .mag {
+    box-sizing: content-box;
+    inline-size: var(--dock-icon-box);
+    padding: var(--rail-icon-space);
+    translate: none;
+  }
+
+  .gear {
+    display: inline-flex;
+    flex: none;
+    padding: var(--dock-gear-pad);
+    background: transparent;
+    color: var(--accent);
+    font-size: var(--dock-gear);
+    border: 0;
+    border-radius: var(--radius-0);
+    cursor: pointer;
+  }
+}

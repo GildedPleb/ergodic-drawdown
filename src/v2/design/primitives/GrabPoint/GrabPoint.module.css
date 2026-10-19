@@ -1,0 +1,25 @@
+@layer primitives {
+  /* 44px hit target around the fixed 26px mark. */
+  .root {
+    display: grid;
+    place-items: center;
+    inline-size: var(--hit);
+    block-size: var(--hit);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-0);
+    cursor: pointer;
+  }
+
+  .root:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  .mark {
+    display: block;
+    inline-size: var(--grab);
+    block-size: var(--grab);
+  }
+}

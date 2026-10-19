@@ -1,0 +1,73 @@
+@layer primitives {
+  .root {
+    display: grid;
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+    min-block-size: var(--hit);
+    padding: var(--row-pad);
+    background: transparent;
+    color: var(--text);
+    text-align: start;
+    border: 0;
+    border-block-end: 1px solid var(--hairline);
+    border-radius: var(--radius-0);
+    cursor: pointer;
+  }
+
+  .row:hover {
+    background: var(--hover);
+  }
+
+  .root[data-open="true"] .row {
+    background: var(--selected);
+  }
+
+  .root[data-open="false"] .row {
+    background: transparent;
+  }
+
+  .row:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset-tight);
+  }
+
+  .label {
+    min-inline-size: 0;
+    font-family: var(--f-text);
+    font-size: var(--t-row);
+    line-height: var(--lh-row);
+    overflow-wrap: break-word;
+  }
+
+  .value {
+    flex: none;
+    font-family: var(--f-sans);
+    font-size: var(--t-value);
+    font-weight: 500;
+    font-variant-numeric: var(--figs);
+    text-align: end;
+  }
+
+  /* --rule-double frame: 1px line, 2px gap, 1px line, square corners, on --selected. */
+  .editor {
+    position: relative;
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--selected);
+    border: var(--rule-double-line) solid var(--accent);
+  }
+
+  .editor::before {
+    content: "";
+    position: absolute;
+    inset: var(--rule-double-gap);
+    border: var(--rule-double-line) solid var(--accent);
+    pointer-events: none;
+  }
+}

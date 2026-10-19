@@ -1,6 +1,10 @@
 import { expect, test } from "bun:test";
 
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
+import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
+import { variants as ledger } from "../../src/v2/design/primitives/LedgerRow/LedgerRow";
+import { variants as radio } from "../../src/v2/design/primitives/RadioList/RadioList";
+import { variants as slider } from "../../src/v2/design/primitives/Slider/Slider";
 import { variants as cluster } from "../../src/v2/design/primitives/Cluster/Cluster";
 import { variants as grid } from "../../src/v2/design/primitives/Grid/Grid";
 import { variants as glyphs } from "../../src/v2/design/primitives/LabelGlyphs/LabelGlyphs";
@@ -29,4 +33,20 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...numberField.disabled]).toEqual(["true", "false"]);
   expect([...sectionLabel.level]).toEqual(["section", "group"]);
   expect([...sectionLabel.side]).toEqual(["start", "end"]);
+  expect([...dock.orientation, ...dock.shown, ...dock.selected]).toEqual([
+    "row",
+    "rail",
+    "true",
+    "false",
+    "true",
+    "false",
+  ]);
+  expect([...ledger.open, ...radio.state, ...slider.disabled]).toEqual([
+    "true",
+    "false",
+    "on",
+    "off",
+    "true",
+    "false",
+  ]);
 });

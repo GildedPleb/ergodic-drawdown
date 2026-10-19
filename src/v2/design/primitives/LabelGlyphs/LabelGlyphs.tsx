@@ -12,6 +12,43 @@ export const GLYPH_MAP: ReadonlyMap<string, "up" | "down"> = new Map([
   [DOWN, "down"],
 ]);
 
+/**
+ * Spoken form (V32-BUILD §1f): each run of drawn dots becomes "3 up", "1 down", comma-joined,
+ * e.g. "🟢🟢🟢🔴" → "3 up, 1 down". Other characters are kept as they are.
+ */
+export const spokenLabel = (text: string): string => {
+  const parts: string[] = [];
+  let plain = "";
+  let tone: "up" | "down" | undefined;
+  let n = 0;
+  const flushRun = (): void => {
+    if (tone !== undefined) parts.push(`${n} ${tone}`);
+    tone = undefined;
+    n = 0;
+  };
+  const flushText = (): void => {
+    if (plain.trim() !== "") parts.push(plain.trim());
+    plain = "";
+  };
+  for (const ch of Array.from(text)) {
+    const t = GLYPH_MAP.get(ch);
+    if (t === undefined) {
+      flushRun();
+      plain += ch;
+    } else if (t === tone) {
+      n += 1;
+    } else {
+      flushRun();
+      flushText();
+      tone = t;
+      n = 1;
+    }
+  }
+  flushRun();
+  flushText();
+  return parts.join(", ");
+};
+
 /** R7: variant keys and values. */
 export const variants = {
   tone: ["up", "down"] as const,
@@ -30,7 +67,7 @@ export type LabelGlyphsProps = {
 /**
  * Maps known codepoints to filled SVG circles at cap height (--glyph-dot, ≥8px), spaced like
  * letters (--glyph-gap); every other character renders as plain text, inline, so long labels wrap.
- * A label with mapped codepoints is one role="img" named with the exact string: the emoji never
+ * A label with mapped codepoints is one role="img" named in words ("3 up, 1 down"), exact string in data-text: the emoji never
  * reaches a text node, so no emoji font is ever shaped (B2). --walk-up / --walk-down only live here.
  */
 export const LabelGlyphs = ({ text, decorative = false }: LabelGlyphsProps): JSX.Element => {
@@ -71,7 +108,7 @@ export const LabelGlyphs = ({ text, decorative = false }: LabelGlyphsProps): JSX
   return decorative ? (
     <span className={root}>{parts}</span>
   ) : (
-    <span className={root} role="img" aria-label={text} data-text={text}>
+    <span className={root} role="img" aria-label={spokenLabel(text)} data-text={text}>
       {parts}
     </span>
   );
