@@ -44,15 +44,17 @@ export const AppShell = (): JSX.Element => {
   const world = useWorld(values, now);
 
   const { bands } = world;
-  const sentence =
+  const ends =
     bands === null
-      ? strings.headline.pending
-      : strings.headline.sentence(
+      ? null
+      : ([
           endValue(bands.p50),
           endYear(now, bands.weeks),
           endValue(bands.p5),
           endValue(bands.p95),
-        );
+        ] as const);
+  const sentence = ends === null ? strings.headline.pending : strings.headline.sentence(...ends);
+  const spoken = ends === null ? strings.headline.pending : strings.headline.spoken(...ends);
 
   const setSheet = (next: boolean): void => {
     setOpen(next);
@@ -140,7 +142,7 @@ export const AppShell = (): JSX.Element => {
           </h1>
         </div>
         <div className={chart}>
-          <WorldLayer bands={bands} now={now} horizon={world.horizon} label={sentence} />
+          <WorldLayer bands={bands} now={now} horizon={world.horizon} label={spoken} />
         </div>
       </main>
       <div className={dockArea}>

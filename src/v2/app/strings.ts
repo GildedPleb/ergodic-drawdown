@@ -4,7 +4,7 @@
  * Setting labels are NOT here: they are the back end's text, verbatim (models/schema.ts).
  * Numbers always go through money.ts.
  */
-import { fmtUSD, fmtUSDRange } from "../design/format/money";
+import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
 
 const count = (n: number): string => n.toLocaleString("en-US");
 
@@ -23,6 +23,9 @@ export const strings = {
     /** The model headline sentence (.dh on desktop, half sheet on phone, chart aria-label). */
     sentence: (median: number, year: number, low: number, high: number): string =>
       `Bitcoin\u2019s median price reaches ${fmtUSD(median)} by ${year}; 9 in 10 futures end between ${fmtUSD(low)} and ${fmtUSD(high)}.`,
+    /** The same sentence, spoken (the chart's aria-label): "$29.5 billion", not "$29.5B". */
+    spoken: (median: number, year: number, low: number, high: number): string =>
+      `Bitcoin\u2019s median price reaches ${nameUSD(median)} by ${year}; 9 in 10 futures end between ${nameUSD(low)} and ${nameUSD(high)}.`,
     /** Before the engine returns: no headline number (§1h empty). */
     pending: "Bitcoin\u2019s price, across the futures the model draws.",
     /** Phone h1. */

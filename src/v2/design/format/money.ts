@@ -4,7 +4,7 @@
  * All rounding is half-up on the decimal value (via 15 significant digits and BigInt), never on
  * binary floats, so `$9.995` rounds to `$10` and exactly half a sat rounds up to 1 sat.
  * The ₿ unit (sats / tenths) is chosen after rounding, so `0.99999999` → `₿1`. Dollars: cents only
- * below $1, whole dollars below $10,000 (raw value), k/M at 3 significant figures from $10,000.
+ * below $1, whole dollars below $10,000 (raw value), k/M/B/T at 3 significant figures from $10,000.
  *
  * Form G3 rulings (v2.2): zero is `₿0` / `$0`; no trailing `.0` (`₿1`, `₿13`, `$1`, `$1k`);
  * NaN / ±∞ is an em dash whose accessible name is "not available"; fonts-failed prefixes
@@ -89,9 +89,12 @@ export const fmtBTC = (x: number, options?: FormatOptions): string => {
   return btcAt(x, btcDecimals(d), prefix);
 };
 
-/** 3 significant figures in a unit (k or M), trailing zeros trimmed; undefined if it reaches 1000. */
+/** 3 significant figures in a unit (k, M, B, T), trailing zeros trimmed; undefined at 1000. */
 const threeSig = (u: Dec, allowOver = false): string | undefined => {
-  const decimals = Math.max(0, 2 - leadExp(u));
+  const lead = leadExp(u);
+  // Past the last unit (1,000T and up) stay at 3 significant figures: $1,230T.
+  if (allowOver && lead > 2) return group((roundTo(u, 2 - lead) * pow10(lead - 2)).toString());
+  const decimals = Math.max(0, 2 - lead);
   const n = roundTo(u, decimals);
   if (!allowOver && n >= 1000n * pow10(decimals)) return undefined;
   return fixed(n, decimals);
@@ -100,18 +103,44 @@ const threeSig = (u: Dec, allowOver = false): string | undefined => {
 /**
  * Form G3 (2026-10-19): cents only below $1 (2 decimals: `$0.45`); whole dollars from $1 up to
  * (not including) $10,000, decided on the raw value (`$12`, `$1,040`, `$9,950`, `$9,999.99` →
- * `$10,000`, never `$10k`); from $10,000, k/M at 3 significant figures (`$85.4k`, `$1.23M`).
+ * `$10,000`, never `$10k`); from $10,000, 3 significant figures with the unit stepping up
+ * (Form, Slice 1 review): `$85.4k`, `$1.23M`, `$29.5B`, `$1.23T`, never `$29,533M`. Past the
+ * trillions the T count keeps growing (`$1,230T`).
  */
+const UNITS = [
+  ["k", 3],
+  ["M", 6],
+  ["B", 9],
+  ["T", 12],
+] as const;
+
 const usdBody = (d: Dec, raw: number): string => {
   const cents = roundTo(d, 2);
   if (cents === 0n) return "<$0.01";
   if (raw < 1) return cents < 100n ? `$${fixed(cents, 2, true)}` : "$1";
   if (raw < 10_000) return `$${group(roundTo(d, 0).toString())}`;
-  // k and M: 3 significant figures; the unit is chosen after rounding ($999,950 → $1M).
-  const k = threeSig({ digits: d.digits, exp: d.exp - 3 });
-  if (k !== undefined) return `$${k}k`;
-  return `$${threeSig({ digits: d.digits, exp: d.exp - 6 }, true) ?? ""}M`;
+  // The unit is chosen after rounding ($999,950 → $1M, $999.95B → $1T).
+  for (const [unit, exp] of UNITS) {
+    const last = unit === "T";
+    const body = threeSig({ digits: d.digits, exp: d.exp - exp }, last);
+    if (body !== undefined) return `$${body}${unit}`;
+  }
+  return EM;
 };
+
+const UNIT_WORDS: Record<string, string> = {
+  k: "thousand",
+  M: "million",
+  B: "billion",
+  T: "trillion",
+};
+
+/** Spoken units: "$29.5B" reads "$29.5 billion", never the letter B. */
+const speakUnits = (s: string): string =>
+  s.replace(
+    /(\d)([kMBT])(?![A-Za-z])/g,
+    (_, digit: string, unit: string) => `${digit} ${UNIT_WORDS[unit] ?? unit}`,
+  );
 
 export const fmtUSD = (x: number): string => {
   if (!Number.isFinite(x)) return EM;
@@ -181,9 +210,11 @@ export const nameUSDRange = (low: number, high: number): string => {
   const shown = fmtUSDRange(low, high);
   if (shown.startsWith(`${MINUS}$`) && shown.includes(EN)) {
     const [from = "", to = ""] = shown.slice(2).split(EN);
-    return `minus $${from} to minus $${to}`;
+    return speakUnits(`minus $${from} to minus $${to}`);
   }
-  return shown.replaceAll(MINUS, "minus ").replaceAll("<", "less than ").replaceAll(EN, " to ");
+  return speakUnits(
+    shown.replaceAll(MINUS, "minus ").replaceAll("<", "less than ").replaceAll(EN, " to "),
+  );
 };
 
 export const fmtBTCChange = (from: number, to: number, options?: FormatOptions): string =>
@@ -229,7 +260,7 @@ export const nameBTCRange = (low: number, high: number): string => {
 /** Accessible name for a $ amount; NaN / ±∞ → "not available". */
 export const nameUSD = (x: number): string =>
   Number.isFinite(x)
-    ? fmtUSD(x).replaceAll(MINUS, "minus ").replaceAll("<", "less than ")
+    ? speakUnits(fmtUSD(x).replaceAll(MINUS, "minus ").replaceAll("<", "less than "))
     : NOT_AVAILABLE;
 
 export const hasSuffixBtc = (s: string): boolean => /\d\s?₿/.test(s);

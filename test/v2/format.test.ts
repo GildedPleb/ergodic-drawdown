@@ -96,7 +96,7 @@ test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding, full 
     [fmtUSD(85_400), "$85.4k"],
     [fmtUSD(999_500), "$1M"],
     [fmtUSD(12_340_000), "$12.3M"],
-    [fmtUSD(2_500_000_000), "$2,500M"],
+    [fmtUSD(2_500_000_000), "$2.5B"],
     [fmtUSD(0.004), "<$0.01"],
     [fmtUSD(-4.5), "−$5"],
     [fmtUSD(-0.45), "−$0.45"],
@@ -278,9 +278,36 @@ test("V32 Gap 5: a $ range has one prefix and an en dash, each end in its own un
     [fmtUSDRange(-5, 10), "−$5 to $10"],
     [fmtUSDRange(-10, -5), "−$10–5"],
     [fmtUSDRange(Number.NaN, 5), "—"],
-    [nameUSDRange(400_000, 3_100_000), "$400k to 3.1M"],
+    [nameUSDRange(400_000, 3_100_000), "$400 thousand to 3.1 million"],
     [nameUSDRange(-10, -5), "minus $10 to minus $5"],
     [nameUSDRange(-5, 10), "minus $5 to $10"],
     [nameUSDRange(Number.NaN, 5), "not available"],
+  ]);
+});
+
+test("Slice 1 review (5): money steps up to B and T at 3 significant figures, never $29,533M", () => {
+  check([
+    [fmtUSD(29_533_000_000), "$29.5B"],
+    [fmtUSD(999_499_999), "$999M"],
+    [fmtUSD(999_500_000), "$1B"],
+    [fmtUSD(1_234_000_000), "$1.23B"],
+    [fmtUSD(999_950_000_000), "$1T"],
+    [fmtUSD(1_234_000_000_000), "$1.23T"],
+    [fmtUSD(1_234_000_000_000_000), "$1,230T"],
+    [fmtUSD(-29_533_000_000), "\u2212$29.5B"],
+    [fmtUSDRange(59_500_000, 29_533_000_000), "$59.5M\u201329.5B"],
+  ]);
+});
+
+test("Slice 1 review (5): the spoken form says the unit as a word", () => {
+  check([
+    [nameUSD(29_533_000_000), "$29.5 billion"],
+    [nameUSD(1_234_000_000_000), "$1.23 trillion"],
+    [nameUSD(67_800_000), "$67.8 million"],
+    [nameUSD(85_400), "$85.4 thousand"],
+    [nameUSD(-29_533_000_000), "minus $29.5 billion"],
+    [nameUSD(9_950), "$9,950"],
+    [nameUSDRange(59_500_000, 29_533_000_000), "$59.5 million to 29.5 billion"],
+    [nameUSDRange(-2e9, -1e9), "minus $2 billion to minus $1 billion"],
   ]);
 });

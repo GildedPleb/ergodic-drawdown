@@ -34,3 +34,11 @@ test("clamp and invalid messages name the range and the value in use", () => {
 test("the drawn walk is spoken as runs: 3 up, 1 down", () => {
   expect(spokenLabel("\u{1F7E2}\u{1F7E2}\u{1F7E2}\u{1F534}")).toBe("3 up, 1 down");
 });
+
+test("the chart's spoken sentence names units as words; the shown one abbreviates", () => {
+  const ends = [67_800_000, 2064, 2_420_000, 29_533_000_000] as const;
+  expect(strings.headline.sentence(...ends).endsWith("between $2.42M and $29.5B.")).toBe(true);
+  expect(
+    strings.headline.spoken(...ends).endsWith("between $2.42 million and $29.5 billion."),
+  ).toBe(true);
+});
