@@ -39,6 +39,7 @@ export type Ctx2D = Pick<
   | "arc"
   | "setLineDash"
   | "fillText"
+  | "strokeText"
   | "font"
   | "textAlign"
   | "textBaseline"
@@ -56,11 +57,17 @@ export type Paint = {
   today: string;
   price: string;
   surface: string;
+  /** The page ground: the corner plates and the tick-label halos (Form b, c). */
+  ground: string;
   accent: string;
   /** End label on two lines (WorldLayer's container query, chart narrower than 30rem). */
   split: boolean;
   /** --t-chart-serif in px: the end label's em (its plate pads 0.25em 0.5em). */
   serifPx: number;
+  /** --t-chart in px: the $ labels' em. */
+  chartPx: number;
+  /** --sup-kern in em: the space before a scientific exponent (Form d). */
+  supKern: number;
   median: number;
   casing: number;
   chart: string;
@@ -71,6 +78,8 @@ export type Paint = {
 };
 
 const SHORT = 150;
+/** $1,000T: tick labels from here up carry the halo (m8). */
+const HALO_FROM = 1e15;
 
 const remPx = (value: string, root: number): number => {
   const n = Number.parseFloat(value);
@@ -99,6 +108,7 @@ export const paintFrom = (
     today: v("--today-line"),
     price: v("--path-btc-price"),
     surface: v("--surface"),
+    ground: v("--ground"),
     accent: v("--accent"),
     split: v("--chart-end-lines") === "2",
     median: remPx(v("--line-median"), root) || 2,
@@ -109,6 +119,8 @@ export const paintFrom = (
     serif: `italic 400 ${remPx(v("--t-chart-serif"), root)}px ${v("--f-text")}`,
     serifUpright: `400 ${remPx(v("--t-chart-serif"), root)}px ${v("--f-text")}`,
     serifPx: remPx(v("--t-chart-serif"), root) || 13,
+    chartPx: remPx(v("--t-chart"), root) || 12,
+    supKern: Number.parseFloat(v("--sup-kern")) || 0,
     section: `600 ${remPx(v("--t-section"), root)}px ${sans}`,
   };
 };
@@ -257,41 +269,74 @@ export const endLabelAt = (
 };
 
 /** Width of a label whose scientific exponents are set upright (Form): each run in its own font. */
-const runsWidth = (x: Ctx2D, text: string, font: string, upright: string): number => {
+/** A label's type: its face, the upright face for exponents, and the kern before each exponent. */
+type RunFont = { font: string; upright: string; kern: number };
+
+const runsWidth = (x: Ctx2D, text: string, f: RunFont): number => {
   let w = 0;
   for (const run of sciRuns(text)) {
-    x.font = run.sup ? upright : font;
-    w += x.measureText(run.text).width;
+    x.font = run.sup ? f.upright : f.font;
+    w += x.measureText(run.text).width + (run.sup ? f.kern : 0);
   }
-  x.font = font;
+  x.font = f.font;
   return w;
 };
 
-/** fillText, right-aligned at `right`, with every exponent run in the upright face. */
-const fillRunsRight = (
+/**
+ * Text right-aligned at `right` (or left-aligned at `left`), every exponent run in the upright
+ * face after --sup-kern. `stroke` paints the halo pass (strokeText) instead of the fill.
+ */
+const drawRuns = (
   x: Ctx2D,
   text: string,
-  right: number,
+  edge: { right: number } | { left: number },
   y: number,
-  font: string,
-  upright: string,
+  f: RunFont,
+  halo = false,
 ): void => {
+  const paint = (t: string, at: number): void => {
+    if (halo) x.strokeText(t, at, y);
+    else x.fillText(t, at, y);
+  };
   const runs = sciRuns(text);
+  const align = x.textAlign;
+  x.font = f.font;
   if (runs.length === 1 && runs[0]?.sup === false) {
-    x.font = font;
-    x.fillText(text, right, y);
+    if ("right" in edge) {
+      x.textAlign = "right";
+      paint(text, edge.right);
+    } else {
+      x.textAlign = "left";
+      paint(text, edge.left);
+    }
+    x.textAlign = align;
     return;
   }
-  const align = x.textAlign;
-  let at = right - runsWidth(x, text, font, upright);
+  let at = "right" in edge ? edge.right - runsWidth(x, text, f) : edge.left;
   x.textAlign = "left";
   for (const run of runs) {
-    x.font = run.sup ? upright : font;
-    x.fillText(run.text, at, y);
+    if (run.sup) at += f.kern;
+    x.font = run.sup ? f.upright : f.font;
+    paint(run.text, at);
     at += x.measureText(run.text).width;
   }
-  x.font = font;
+  x.font = f.font;
   x.textAlign = align;
+};
+
+type Rect = { x0: number; y0: number; x1: number; y1: number };
+
+const overlaps = (a: Rect, b: Rect): boolean =>
+  a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
+
+/** Where the end label goes, what it says, and its corner plate if it has one. */
+type EndLayout = {
+  lines: string[];
+  all: string[];
+  at: LabelPlace;
+  textWidth: number;
+  bottom: number;
+  plate: Rect | null;
 };
 
 /**
@@ -300,7 +345,7 @@ const fillRunsRight = (
  * the caption stands alone at the top right. Top-right placements (m7) sit on an opaque square
  * plate in --surface, padded 0.25em 0.5em, drawn over the band, so the band passes behind them.
  */
-const drawEndLabel = (
+const endLayout = (
   x: Ctx2D,
   p: Paint,
   {
@@ -311,7 +356,7 @@ const drawEndLabel = (
   }: { box: PlotBox; domain: LogDomain; horizon: number; short: boolean },
   bands: PriceBands,
   overflow: boolean,
-): void => {
+): EndLayout | null => {
   const mid = endValue(bands.p50);
   const low = endValue(bands.p5);
   const high = endValue(bands.p95);
@@ -324,10 +369,10 @@ const drawEndLabel = (
   }
   const caption = overflow && !short ? [strings.chart.outOfRange] : [];
   const all = [...lines, ...caption];
-  if (all.length === 0) return;
+  if (all.length === 0) return null;
   x.font = p.serif;
-  x.textAlign = "right";
-  const textWidth = Math.max(...all.map((line) => runsWidth(x, line, p.serif, p.serifUpright)));
+  const serif = serifRuns(p);
+  const textWidth = Math.max(...all.map((line) => runsWidth(x, line, serif)));
   const at: LabelPlace = endsFinite
     ? endLabelAt(
         box,
@@ -339,20 +384,37 @@ const drawEndLabel = (
       )
     : { x: box.R - 12, y: short ? box.T + CAP : box.T + 36, mode: "corner", leader: null };
   const bottom = at.y + (all.length - 1) * LABEL_LINE + DESCENT;
-  if (at.mode === "corner") {
-    const padX = p.serifPx * 0.5;
-    const padY = p.serifPx * 0.25;
-    x.fillStyle = p.surface;
-    x.fillRect(
-      at.x - textWidth - padX,
-      at.y - CAP - padY,
-      textWidth + 2 * padX,
-      bottom - at.y + CAP + 2 * padY,
-    );
+  const padX = p.serifPx * 0.5;
+  const padY = p.serifPx * 0.25;
+  const plate =
+    at.mode === "corner"
+      ? {
+          x0: at.x - textWidth - padX,
+          y0: at.y - CAP - padY,
+          x1: at.x + padX,
+          y1: bottom + padY,
+        }
+      : null;
+  return { lines, all, at, textWidth, bottom, plate };
+};
+
+const serifRuns = (p: Paint): RunFont => ({
+  font: p.serif,
+  upright: p.serifUpright,
+  kern: p.supKern * p.serifPx,
+});
+
+const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
+  const { lines, all, at, textWidth, bottom, plate } = layout;
+  if (plate !== null) {
+    // Form (b): the plate is the page ground, so the label reads as cut out of the chart.
+    x.fillStyle = p.ground;
+    x.fillRect(plate.x0, plate.y0, textWidth + p.serifPx, plate.y1 - plate.y0);
   }
+  const serif = serifRuns(p);
   all.forEach((line, k) => {
     x.fillStyle = k < lines.length ? p.price : p.muted;
-    fillRunsRight(x, line, at.x, at.y + k * LABEL_LINE, p.serif, p.serifUpright);
+    drawRuns(x, line, { right: at.x }, at.y + k * LABEL_LINE, serif);
   });
   if (at.leader === null) return;
   // A muted hairline on a surface casing from the plate's lower edge, so it reads across the band;
@@ -407,8 +469,19 @@ export const drawWorld = (
   x.textAlign = "left";
   x.textBaseline = "alphabetic";
   x.lineWidth = 1;
+  // The end label is laid out first: a tick whose label would sit under its plate is dropped (m8).
+  const layout =
+    bands === null ? null : endLayout(x, p, { box, domain, horizon, short }, bands, overflow);
+  const chartRuns: RunFont = { font: p.chart, upright: p.chart, kern: p.supKern * p.chartPx };
   for (const v of axisTicks(domain)) {
     const y = ly(v, box, domain);
+    const text = fmtUSD(v);
+    const w = runsWidth(x, text, chartRuns);
+    const inside = w > width - box.R - 4;
+    const left = inside ? box.R - 4 - w : box.R + 4;
+    const base = inside ? y - 3 : y + 3;
+    const rect = { x0: left, y0: base - CAP, x1: left + w, y1: base + DESCENT };
+    if (layout?.plate != null && overlaps(rect, layout.plate)) continue;
     x.strokeStyle = p.hairline;
     x.setLineDash([1, 3]);
     x.beginPath();
@@ -418,15 +491,17 @@ export const drawWorld = (
     x.setLineDash([]);
     // Every gridline is labelled (Form, n4 revision): a label too wide for the right margin
     // ($1,000T and up, $1.23×10²¹) sits just inside the plot, right-aligned above its gridline.
-    const text = fmtUSD(v);
-    x.fillStyle = p.muted;
-    if (x.measureText(text).width <= width - box.R - 4) {
-      x.fillText(text, box.R + 4, y + 3);
-    } else {
-      x.textAlign = "right";
-      x.fillText(text, box.R - 4, y - 3);
-      x.textAlign = "left";
+    // m8 (Form c): from $1,000T up a 3px --ground halo (paint-order: stroke) keeps the label
+    // legible over the fan.
+    if (v >= HALO_FROM) {
+      x.strokeStyle = p.ground;
+      x.lineWidth = 3;
+      x.lineJoin = "round";
+      drawRuns(x, text, { left }, base, chartRuns, true);
+      x.lineWidth = 1;
     }
+    x.fillStyle = p.muted;
+    drawRuns(x, text, { left }, base, chartRuns);
   }
 
   // Baseline.
@@ -494,7 +569,7 @@ export const drawWorld = (
   }
 
   // End label (plus the out-of-range caption under it).
-  if (bands !== null) drawEndLabel(x, p, { box, domain, horizon, short }, bands, overflow);
+  if (layout !== null) drawEndLabel(x, p, layout);
 
   // Caption.
   if (!short) {

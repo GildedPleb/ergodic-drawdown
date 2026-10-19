@@ -8,6 +8,7 @@
 
   /* Form: a scientific exponent is always upright, even under an italic parent. */
   .exp {
+    padding-inline-start: var(--sup-kern);
     font-style: normal;
   }
 

@@ -26,6 +26,7 @@
     --t-group: 0.6875rem;
     --t-small: 0.6875rem; /* technical small print, ON/OFF */
     --t-chart: 0.75rem; /* ×1.3 at ≥75rem */
+    --sup-kern: 0.06em; /* Form (d): space before a scientific exponent, canvas and HTML */
     --t-chart-serif: 0.8125rem;
     --tr-tab: 0.14em;
     --tr-section: 0.2em;

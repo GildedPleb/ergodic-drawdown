@@ -398,3 +398,13 @@ test("Form: an Amount's scientific exponent is its own run, set upright even und
   ).text();
   expect(/\.exp\s*\{[^}]*font-style:\s*normal;/.test(css)).toBe(true);
 });
+
+test("Form (d): --sup-kern is 0.06em and opens before an Amount's exponent", async () => {
+  const { file } = await import("bun");
+  const type = await file(`${import.meta.dir}/../../src/v2/design/tokens/type.css`).text();
+  expect(/--sup-kern:\s*0\.06em;/.test(type)).toBe(true);
+  const css = await file(
+    `${import.meta.dir}/../../src/v2/design/primitives/Amount/Amount.module.css`,
+  ).text();
+  expect(/\.exp\s*\{[^}]*padding-inline-start:\s*var\(--sup-kern\);/.test(css)).toBe(true);
+});

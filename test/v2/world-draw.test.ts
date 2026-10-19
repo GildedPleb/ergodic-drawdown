@@ -22,6 +22,7 @@ const PAINT: Paint = {
   today: "#eee",
   price: "#f93",
   surface: "#111",
+  ground: "#0a0a0a",
   accent: "#fc6",
   split: false,
   median: 2,
@@ -30,6 +31,8 @@ const PAINT: Paint = {
   serif: "italic 400 13px SM EB Garamond",
   serifUpright: "400 13px SM EB Garamond",
   serifPx: 13,
+  chartPx: 12,
+  supKern: 0.06,
   section: "600 11.5px SM Jost",
 };
 
@@ -46,6 +49,8 @@ type Op = {
   style: string;
   t?: string;
   font?: string;
+  align?: string;
+  lw?: number;
 };
 
 /** A 2D context that records every fillText (texts) and every paint op in order (ops). */
@@ -76,7 +81,19 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[]; measured: Op[] } 
     setLineDash: noop,
     fillText: (t: string, x: number, y: number) => {
       texts.push(t);
-      ops.push({ op: "fillText", x, y, style: style(), t, font: ctx.font });
+      ops.push({ op: "fillText", x, y, style: style(), t, font: ctx.font, align: ctx.textAlign });
+    },
+    strokeText: (t: string, x: number, y: number) => {
+      ops.push({
+        op: "strokeText",
+        x,
+        y,
+        style: str(ctx.strokeStyle),
+        t,
+        font: ctx.font,
+        align: ctx.textAlign,
+        lw: ctx.lineWidth,
+      });
     },
     measureText: (t: string) => {
       measured.push({ op: "measureText", x: 0, y: 0, style: "", t, font: ctx.font });
@@ -92,6 +109,26 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[]; measured: Op[] } 
     globalAlpha: 1,
   };
   return { ctx, texts, ops, measured };
+};
+
+/** Text drawn in one font on one baseline, runs joined: [{ t, left, right, y, align }]. */
+const joined = (
+  ops: Op[],
+  font: string,
+  op = "fillText",
+): { t: string; left: number; right: number; y: number }[] => {
+  const out: { t: string; left: number; right: number; y: number }[] = [];
+  for (const o of ops) {
+    if (o.op !== op || o.font !== font || o.t === undefined) continue;
+    const w = o.t.length * 6;
+    const left = o.align === "right" ? o.x - w : o.x;
+    const last = out.at(-1);
+    if (last !== undefined && last.y === o.y && Math.abs(left - last.right) < 2) {
+      last.t += o.t;
+      last.right = left + w;
+    } else out.push({ t: o.t, left, right: left + w, y: o.y });
+  }
+  return out;
 };
 
 const draw = (h: number, b: PriceBands | null, horizon: number, split = false): string[] => {
@@ -231,11 +268,11 @@ const paint = (b: PriceBands | null, width = 390, height = 693): Op[] => {
   return ops;
 };
 
-test("m7: a top-right label sits on an opaque square --surface plate, padded 0.25em 0.5em, painted after the band", () => {
+test("m7 + Form (b): a top-right label sits on an opaque square --ground plate, padded 0.25em 0.5em, painted after the band", () => {
   // The end itself ran past a double: the caption stands alone, top right, on its plate.
   const ops = paint(pack([1e5, PAST], [1e5, PAST], [1e5, PAST]));
   const box = plotBox(390, 693);
-  const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.surface);
+  const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.ground);
   const text = ops.find((o) => o.t === OUT);
   const w = OUT.length * 6;
   expect(text?.x).toBe(box.R - 12);
@@ -245,7 +282,7 @@ test("m7: a top-right label sits on an opaque square --surface plate, padded 0.2
     y: box.T + 36 - 10 - 3.25,
     w: w + 13,
     h: 10 + 4 + 6.5,
-    style: PAINT.surface,
+    style: PAINT.ground,
   });
   const at = (o: Op | undefined): number => (o === undefined ? -1 : ops.indexOf(o));
   const lastFill = ops.findLastIndex((o) => o.op === "fill");
@@ -261,7 +298,7 @@ test("m7: a top-right label sits on an opaque square --surface plate, padded 0.2
     [2e9, ...flat(100, 9.4e7)],
   );
   expect(
-    paint(placed, 1392, 717).some((o) => o.op === "fillRect" && o.style === PAINT.surface),
+    paint(placed, 1392, 717).some((o) => o.op === "fillRect" && o.style === PAINT.ground),
   ).toBe(false);
 });
 
@@ -309,12 +346,21 @@ test("n4 revision: every gridline is labelled up to the 10³⁰⁸ clamp, scient
   const { ctx, ops } = recorder();
   drawWorld(ctx, PAINT, { width: 390, height: 693, dpr: 1, now: NOW, horizon: 3 }, b);
   const box = plotBox(390, 693);
+  const labels = joined(ops, PAINT.chart);
+  // m8: a tick under the caption plate is dropped; every other gridline keeps its label.
+  const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.ground);
+  const underPlate = (v: number): boolean => {
+    const y = ly(v, box, domain);
+    return plate !== undefined && y - 13 < plate.y + (plate.h ?? 0) && y + 1 > plate.y;
+  };
   for (const v of ticks) {
-    const label = ops.find((o) => o.t === fmtUSD(v));
+    const label = labels.find((o) => o.t === fmtUSD(v));
+    if (label === undefined && underPlate(v)) continue;
     expect(label === undefined ? `missing ${fmtUSD(v)}` : "ok").toBe("ok");
-    if (v >= 1e18) expect(label?.x).toBe(box.R - 4);
+    if (v >= 1e18) expect(Math.abs((label?.right ?? 0) - (box.R - 4)) < 1e-9).toBe(true);
   }
-  expect(ops.some((o) => o.t === "$1.00\u00D710\u00B3\u2070\u2078")).toBe(true);
+  expect(ticks.filter(underPlate).length <= 1).toBe(true);
+  expect(labels.some((o) => o.t === "$1.00\u00D710\u00B3\u2070\u2078")).toBe(true);
 });
 
 test("Form: a scientific exponent inside the italic end label is measured and drawn in the upright face", () => {
@@ -338,12 +384,20 @@ test("Form: a scientific exponent inside the italic end label is measured and dr
   // Runs sit side by side, left-aligned from the label's right edge minus the whole width.
   const widths = runs.map((o) => (o.t ?? "").length * 6);
   const right = (runs.at(-1)?.x ?? 0) + (widths.at(-1) ?? 0);
-  expect(right).toBe(plotBox(1440, 900).R - 12);
+  expect(Math.abs(right - (plotBox(1440, 900).R - 12)) < 1e-9).toBe(true);
+  // Form (d): --sup-kern (0.06em of the 13px label) opens before each exponent run.
+  const kern = 0.06 * 13;
   runs.forEach((o, k) => {
-    if (k > 0) expect(o.x).toBe((runs[k - 1]?.x ?? 0) + (widths[k - 1] ?? 0));
+    const gap = k % 2 === 1 ? kern : 0;
+    if (k > 0)
+      expect(Math.abs(o.x - ((runs[k - 1]?.x ?? 0) + (widths[k - 1] ?? 0) + gap)) < 1e-9).toBe(
+        true,
+      );
   });
   const sup = measured.filter((m) => m.t === "\u00B2\u00B9");
-  expect(sup.length > 0 && sup.every((m) => m.font === PAINT.serifUpright)).toBe(true);
+  // Never measured in the italic face (tick labels measure theirs in the upright sans).
+  expect(sup.some((m) => m.font === PAINT.serifUpright)).toBe(true);
+  expect(sup.some((m) => m.font === PAINT.serif)).toBe(false);
 });
 
 const near = (x: number, y: number): boolean => Math.abs(x - y) < 1e-12;
@@ -420,6 +474,8 @@ test("paintFrom reads the tokens off a computed style (rem → px at the root si
   const { paintFrom } = await import("../../src/v2/app/world/draw");
   const tokens: Record<string, string> = {
     "--surface": " #111 ",
+    "--ground": "#000",
+    "--sup-kern": "0.06em",
     "--t-chart": "0.75rem",
     "--t-chart-serif": "0.8125rem",
     "--line-median": "2px",
@@ -431,4 +487,112 @@ test("paintFrom reads the tokens off a computed style (rem → px at the root si
   expect([p.surface, p.split, p.serifPx, p.median, p.casing]).toEqual(["#111", true, 13, 2, 1.5]);
   expect(p.chart).toBe("500 12px SM Jost");
   expect(p.serifUpright).toBe("400 13px SM EB Garamond");
+  expect([p.ground, p.chartPx, p.supKern]).toEqual(["#000", 12, 0.06]);
+});
+
+/** Distinct quantiles so each band edge is its own series. */
+const q = (k: number): Float64Array => Float64Array.from([1e5 * k, 2e5 * k, 4e5 * k]);
+
+test("1L.4 Form (a): zero stroke calls on any band path, the outer p1–p99 edge included", () => {
+  const b: PriceBands = {
+    start: NOW,
+    weeks: 2,
+    p1: q(0.5),
+    p5: q(0.7),
+    p25: q(0.9),
+    p50: q(1),
+    p75: q(1.2),
+    p95: q(1.5),
+    p99: q(2),
+  };
+  const { ctx } = recorder();
+  type Path = { ys: number[]; fills: number; strokes: number; alpha: number };
+  const paths: Path[] = [];
+  let current: Path = { ys: [], fills: 0, strokes: 0, alpha: 1 };
+  ctx.beginPath = () => {
+    current = { ys: [], fills: 0, strokes: 0, alpha: 1 };
+    paths.push(current);
+  };
+  ctx.moveTo = (_x: number, y: number) => {
+    current.ys.push(Math.round(y));
+  };
+  ctx.lineTo = (_x: number, y: number) => {
+    current.ys.push(Math.round(y));
+  };
+  ctx.fill = () => {
+    current.fills += 1;
+    current.alpha = ctx.globalAlpha;
+  };
+  ctx.stroke = () => {
+    current.strokes += 1;
+  };
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 }, b);
+  const box = plotBox(1440, 900);
+  const domain = fitDomain(5e4, 8e5);
+  const ys = (s: Float64Array): number[] => [...s].map((v) => Math.round(ly(v, box, domain)));
+  const edges = [b.p1, b.p5, b.p25, b.p75, b.p95, b.p99].map(ys);
+  const isEdge = (p: Path): boolean => edges.some((e) => e.every((y) => p.ys.includes(y)));
+  const bandPaths = paths.filter((p) => p.fills > 0 && p.alpha < 1);
+  expect(bandPaths.length).toBe(3);
+  expect(bandPaths.every(isEdge)).toBe(true);
+  // Not one stroke on a band path or on any path tracing a band edge.
+  expect(paths.filter((p) => p.strokes > 0 && (p.fills > 0 || isEdge(p))).length).toBe(0);
+});
+
+test("m8 (Form c): tick labels from $1,000T up get a 3px --ground halo (strokeText, then fillText)", () => {
+  const { ctx, ops } = recorder();
+  const b = pack([1e5, 1e9, 1e12], [1e5, 1e12, 1e14], [1e5, 4.6e15, 5e15]);
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 }, b);
+  const filled = joined(ops, PAINT.chart);
+  const halos = joined(ops, PAINT.chart, "strokeText");
+  expect(filled.some((l) => l.t === "$10,000T") && filled.some((l) => l.t === "$100T")).toBe(true);
+  const big = filled.filter((l) => l.t === "$10,000T").map((l) => l.t);
+  expect(halos.map((l) => l.t)).toEqual(big);
+  for (const h of halos) {
+    const at = ops.findIndex((o) => o.op === "strokeText" && o.y === h.y);
+    const fillAt = ops.findIndex(
+      (o) => o.op === "fillText" && o.y === h.y && o.font === PAINT.chart,
+    );
+    expect([ops[at]?.style, ops[at]?.lw, at < fillAt]).toEqual([PAINT.ground, 3, true]);
+  }
+});
+
+/** Probe's cases: does any tick label overlap the corner (caption) plate? */
+const plateHits = (b: PriceBands, width: number, height: number): string[] => {
+  const { ctx, ops } = recorder();
+  drawWorld(ctx, PAINT, { width, height, dpr: 1, now: NOW, horizon: b.weeks }, b);
+  const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.ground);
+  if (plate === undefined) return ["no plate"];
+  const [x0, y0, x1, y1] = [plate.x, plate.y, plate.x + (plate.w ?? 0), plate.y + (plate.h ?? 0)];
+  return joined(ops, PAINT.chart)
+    .filter((l) => l.t.startsWith("$"))
+    .filter((l) => l.left < x1 && l.right > x0 && l.y - 10 < y1 && l.y + 4 > y0)
+    .map((l) => l.t);
+};
+
+test("m8 (Form c): a tick that would collide with the caption plate is dropped", () => {
+  // R = 1e6 for 30 epochs: the fan runs past a double; caption plate top right.
+  const huge = pack([1e5, 1e60, PAST], [1e5, 1e90, PAST], [1e5, 1e200, PAST]);
+  expect(plateHits(huge, 1440, 900)).toEqual([]);
+  expect(plateHits(huge, 390, 693)).toEqual([]);
+  // R = 300 at 390 wide: in range at the end but past a double along the way.
+  const r300 = pack([1e5, 1e12, 1e15], [1e5, 1e14, 3e16], [1e5, PAST, 4e17]);
+  expect(plateHits(r300, 390, 693)).toEqual([]);
+  // A fan topping out at $1,000T puts that gridline's label right under the plate: dropped.
+  const top = pack([1e5, 1e10, PAST], [1e5, 1e12, PAST], [1e5, 1e15, PAST]);
+  expect(plateHits(top, 390, 693)).toEqual([]);
+  expect(plateHits(top, 1440, 900)).toEqual([]);
+  expect(draw(693, top, 2).includes("$1,000T")).toBe(false);
+});
+
+test("Form (d): --sup-kern opens 0.06em before an exponent in tick labels too", () => {
+  const { ctx, ops } = recorder();
+  const b = pack([1e5, 1e20, 1e21], [1e5, 1e20, 1e21], [1e5, 1e20, 1e21]);
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 }, b);
+  const sup = ops.find(
+    (o) => o.op === "fillText" && o.font === PAINT.chart && o.t === "\u00B2\u00B9",
+  );
+  const before = ops[ops.indexOf(sup ?? ops[0]!) - 1];
+  expect(before?.t).toBe("$1.00\u00D710");
+  expect(Math.abs((sup?.x ?? 0) - ((before?.x ?? 0) + 8 * 6 + 0.06 * 12)) < 1e-9).toBe(true);
 });
