@@ -55,3 +55,24 @@ test("1L.2: Models is the active pane: its tab selected, its layer on the chart"
   expect(html.includes('data-active-pane="models"')).toBe(true);
   expect(html.includes('data-layer-pane="models"')).toBe(true);
 });
+
+test("1L.6: the sheet is edge to edge; only its content is inset, plus the safe area", async () => {
+  const { file } = await import("bun");
+  const css = await file(`${import.meta.dir}/../../src/v2/app/shell/AppShell.module.css`).text();
+  const space = await file(`${import.meta.dir}/../../src/v2/design/tokens/space.css`).text();
+  // No gutter around the sheet at any size.
+  const dock = [...css.matchAll(/\.dockArea \{([^}]*)\}/g)].map((m) => m[1] ?? "");
+  expect(dock.some((d) => /padding(-inline)?: var\(--shell/.test(d))).toBe(false);
+  // Each content padding adds the notch's safe area on the screen-edge sides.
+  for (const [token, sides] of [
+    ["--sheet-pad-phone", ["right", "bottom", "left"]],
+    ["--sheet-pad", ["right", "bottom", "left"]],
+    ["--panel-pad", ["top", "right", "bottom"]],
+    ["--rail-pad", ["top", "right", "bottom"]],
+  ] as const) {
+    const value = new RegExp(`${token}:([^;]*);`).exec(space)?.[1] ?? "";
+    expect(sides.map((s) => value.includes(`env(safe-area-inset-${s}`))).toEqual(
+      sides.map(() => true),
+    );
+  }
+});

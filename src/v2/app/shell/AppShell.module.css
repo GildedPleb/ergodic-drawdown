@@ -268,10 +268,7 @@
       padding-inline: var(--shell-m-half);
     }
 
-    .dockArea {
-      padding-inline: var(--shell-m);
-    }
-
+    /* §1L.6: no gutter; the sheet's bevelled corners touch the screen edges. */
     .sheet {
       padding: var(--sheet-pad);
     }
