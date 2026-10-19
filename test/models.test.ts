@@ -61,3 +61,7 @@ for (const model of Object.values(modelMap)) {
     expect(model.maxPrice(options)).toBe(expected.max);
   });
 }
+
+test("CAGR rate is capped at 1000 percent", () => {
+  expect(modelMap.CAGR.rangeMax).toBe(1000);
+});

@@ -23,7 +23,7 @@ const cagrModel = {
     return calculateCAGRPrice(startPrice, targetDate, variable);
   },
   modelType: "CAGR" as const,
-  rangeMax: Infinity,
+  rangeMax: 1000,
   rangeMin: 0,
   varInput: "R (%)",
   varRange: true,
