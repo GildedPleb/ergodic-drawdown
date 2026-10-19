@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 
 import styles from "./Icon.module.css";
 
@@ -17,9 +17,11 @@ const PATHS: Record<IconName, JSX.Element> = {
 /** SVG icon primitive — currentColor, text-sized (1em). Never font glyphs. */
 export const Icon = ({ name, title }: IconProps): JSX.Element => {
   const root = styles["root"] ?? "icon-root";
+  const style = { ["--dyn-icon-size" as string]: "1em" } satisfies CSSProperties;
   return (
     <svg
       className={root}
+      style={style}
       viewBox="0 0 16 16"
       focusable="false"
       aria-hidden={title === undefined ? true : undefined}

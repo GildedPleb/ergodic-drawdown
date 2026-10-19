@@ -1,6 +1,6 @@
 @layer tokens {
   /* StackMath · tier 2 · SEMANTIC tokens. Only var() references to palette.css (no raw values).
-   Components use ONLY these (plus motion-etc.css, ../type/type.css sizes, space.css). Dark is the default theme. */
+   Components use ONLY these (plus motion-etc.css, type.css sizes, space.css). Dark is the default theme. v2.1: --selected gold-wash; --walk-up/--walk-down. */
   :root,
   [data-theme="dark"] {
     --ground: var(--ink-950);
@@ -31,7 +31,11 @@
     --path-plan-4: var(--citron-125);
     --path-plan-5: var(--orchid-200);
     --path-plan-6: var(--coral-350);
-    --selected: color-mix(in srgb, var(--gold-225) var(--mix-14), var(--ink-900));
+    --selected: var(--gold-wash-850);
+    /* v2.1: gold wash, was gold 14% into surface */
+    --walk-up: var(--leaf-175);
+    --walk-down: var(--red-500);
+    /* engine walk label dots */
     --hover: color-mix(in srgb, var(--linen-75) var(--mix-5), var(--ink-900));
     /* fans: per path fill / edge / halo (halo = the 1.5px surface casing under each median) */
     --fan-btc-price-fill: var(--orange-300);
@@ -107,7 +111,11 @@
     --path-plan-4: var(--citron-575);
     --path-plan-5: var(--orchid-800);
     --path-plan-6: var(--coral-575);
-    --selected: color-mix(in srgb, var(--gold-650) var(--mix-14), var(--linen-150));
+    --selected: var(--gold-wash-125);
+    /* v2.1: gold wash, was gold 14% into surface */
+    --walk-up: var(--leaf-525);
+    --walk-down: var(--red-775);
+    /* engine walk label dots */
     --hover: color-mix(in srgb, var(--umber-800) var(--mix-5), var(--linen-150));
     /* fans: per path fill / edge / halo (halo = the 1.5px surface casing under each median) */
     --fan-btc-price-fill: var(--orange-600);

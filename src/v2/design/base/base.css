@@ -23,7 +23,7 @@
 
   :where(body) {
     margin: 0;
-    min-block-size: 100dvh;
+    min-block-size: 100%;
   }
 
   :where(:focus-visible) {

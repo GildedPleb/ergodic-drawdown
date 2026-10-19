@@ -1,7 +1,7 @@
 @layer app {
   .main {
     box-sizing: border-box;
-    min-block-size: 100dvh;
+    min-block-size: 100%;
     padding-block: var(--s-7);
     padding-inline: var(--s-7);
     margin: 0;

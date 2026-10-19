@@ -10,7 +10,7 @@
 | `space.css`                    | sizes        | The v41 rem spacing, unchanged. Focus and thumb tokens moved out to motion-etc.css.                                                                                                                                                                                                   |
 | `tokens.css`                   | entry        | Imports, in order: palette, semantic, motion-etc, ../type/type.css, space.                                                                                                                                                                                                            |
 | `contrast.py` → `contrast.txt` | check        | Recomputes WCAG contrast through the semantic layer for both themes and compares it with the old color.css values.                                                                                                                                                                    |
-| `check.html`                   | check        | A browser cascade check: all 218 properties resolve, none empty.                                                                                                                                                                                                                      |
+| `check.html`                   | check        | A browser cascade check: all 226 properties resolve in both themes, none empty.                                                                                                                                                                                                       |
 
 ## Rules
 
@@ -19,21 +19,57 @@
 - **Theme switch:** `data-theme="linen"` on `<html>` (or any subtree) replaces the old `.linen` class.
 - **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with `--shadow-sheet` as the single allowed shadow (the locked v32 bottom dock).
 
-## Contrast check result
+## Contrast check result (v2.1)
 
-**All 160 pairs are unchanged** (20 foreground tokens × 4 backgrounds × 2 themes; exit code 0). The check also surfaced pre-existing pairs below their floor. These are not caused by the split:
+`contrast.py` exits 0.
 
-- **On `--selected`:**
-  - dark `usd` 3.79 vs 4.5 (selected plan rows show $ values)
-  - linen `accent` 4.25 vs 4.5
-  - linen `btc` 3.74 vs 4.5
-  - `text-faint` and `control-line` 2.72–2.98 vs 3
-  - dark `path-inflation` 2.95 vs 3
-  - linen `path-plan-1` 2.94 vs 3
-- **On linen `--raised`:** `btc` 3.98 vs 4.5 (the known rule: no data text on linen raised).
+- Every pair **not** on `--selected` is unchanged from color.css (120 pairs).
+- Every pair on `--selected` now meets its floor: text ≥4.5, lines ≥3. `text-faint` is disabled text, which WCAG exempts, but it passes 3:1 anyway.
+- Still below floor and unchanged on purpose: linen `btc` on `--raised` is 3.98. The rule stays: no data text on linen raised.
+
+### v2.1 · selected-row fix (palette-level only)
+
+The old `--selected` was `color-mix(gold 14%, surface)`, which was too strong for text drawn on it. It now points at a precomputed palette **gold wash**:
+
+| Theme | Old tint                                               | New tint                      | How                                                                                          |
+| ----- | ------------------------------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| Dark  | `#393122` (gold 14% into surface)                      | `--gold-wash-850` **#29241b** | gold 6% into surface                                                                         |
+| Linen | `#cfc0a7` (gold 14% into surface, darker than surface) | `--gold-wash-125` **#e3d9c6** | gold 3% into ground, so a hair **lighter** than surface; the lift is paper-light, not shadow |
+
+| On `--selected`       | Dark before → after    | Linen before → after  |
+| --------------------- | ---------------------- | --------------------- |
+| text                  | 10.53 → 12.65          | 7.51 → 9.60           |
+| text-muted            | 4.84 → 5.81            | 4.63 → 5.92           |
+| accent (gold)         | 6.79 → 8.16            | **4.25 → 5.43**       |
+| btc                   | 5.59 → 6.71            | **3.74 → 4.78**       |
+| usd                   | **3.79 → 4.55**        | 5.78 → 7.38           |
+| control-line          | **2.72 → 3.27**        | **2.98 → 3.81**       |
+| text-faint (disabled) | 2.72 → 3.26            | 2.92 → 3.73           |
+| path-inflation        | **2.95 → 3.54**        | 5.07 → 6.48           |
+| path-plan-1           | 6.06 → 7.28            | **2.94 → 3.75**       |
+| lowest other line     | 3.79 (path-usd) → 4.55 | 3.04 (path-sp) → 3.89 |
+
+- **Trade-off:** the wash itself is quieter. Against the surface it is now 1.11:1 in dark (was 1.34) and 1.06:1 in linen (was 1.21, and now lighter rather than darker). Per the brief, selection is carried by the ■ mark, the gold frame and weight, never by the tint alone.
+- Only `--selected` moved. `--hover` (gold-free: ink 5% into surface) and every other value are untouched. `--mix-14` stays in the palette but is now unused.
+
+### v2.1 · walk label dots `--walk-up` / `--walk-down`
+
+These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the engine walk label. They are new palette families, `leaf` and `red`.
+
+| Token         | Dark                             | Linen                            | ≥3:1 on ground / surface               |
+| ------------- | -------------------------------- | -------------------------------- | -------------------------------------- |
+| `--walk-up`   | `--leaf-175` **#7ee2a0** (L* 83) | `--leaf-525` **#1f8240** (L* 48) | dark 11.82 / 10.85 · linen 3.61 / 3.28 |
+| `--walk-down` | `--red-500` **#d9404a** (L* 51)  | `--red-775` **#6e1219** (L* 23)  | dark 4.26 / 3.91 · linen 8.85 / 8.06   |
+
+- **Colour-blind** (Machado 2009 simulation, ΔE2000 between up and down): dark deutan 21.7 and protan 36.2; linen deutan 16.9 and protan 28.2. The two read apart by **lightness**: up is the lighter dot in both themes.
+- **Distinct from `--usd`:** ΔE2000 is 22.9 (dark) and 22.3 (linen). Leaf is a clean grass green; $ is an olive.
+- **Rules:**
+  - This is the only red in the system. Use it for the walk label only, never for chart paths, risk or "bad" values (the "no red/green good/bad" rule still holds for data).
+  - Keep each dot ≥8px and pair the row with a text equivalent (e.g. aria-label "3 up, 1 down").
 
 ## Invented (not in the old files or the specs)
 
+- v2.1: palette families `gold-wash`, `leaf` and `red`; semantic `--walk-up` and `--walk-down`.
 - `--dur-fast` 180ms, `--dur-panel` 280ms (the dock spec named no number), `--ease-out`, the `--motion-transform` flag, and the full z-index scale values.
 - `--rule-strong` 3px and `--rule-double` (1px line, 2px gap, 1px line = 4px total; taken from the `.db` inset rule).
 - Names `--text-faint`, `--control-line`, `--today-line`, `--risk-line`, `--ghost`, `--hover`, `--fan-band-1..4`, `--path-usd`; the per-path `--fan-*-fill/-edge/-halo` (fill and edge are the path colour, halo is the surface).

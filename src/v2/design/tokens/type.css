@@ -30,12 +30,7 @@
     --lh-caption: 1.4;
     --lh-num: 1.05;
   }
-  @media (min-width: 75em) {
-    :root {
-      --t-chart: 0.975rem;
-      --t-chart-serif: 1.05625rem;
-    }
-  }
+  /* chart text size: container query on the chart (Form); former viewport @media removed */
   /* roles */
   .t-headline {
     font: 500 var(--t-headline)/var(--lh-display) var(--f-serif);

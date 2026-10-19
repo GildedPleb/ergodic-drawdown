@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "name": "Power Law Regression Median",
+      "default": 0,
+      "rangeMin": 0,
+      "rangeMax": "Infinity",
+      "varInput": "",
+      "varRange": false,
+      "showVariable": false,
+      "showMinMaxMultiple": false
+    },
+    {
+      "name": "Power Law Support Line",
+      "default": 0,
+      "rangeMin": 0,
+      "rangeMax": "Infinity",
+      "varInput": "",
+      "varRange": false,
+      "showVariable": false,
+      "showMinMaxMultiple": false
+    },
+    {
+      "name": "Rainbow Chart",
+      "default": 0,
+      "rangeMin": 0,
+      "rangeMax": "Infinity",
+      "varInput": "",
+      "varRange": false,
+      "showVariable": false,
+      "showMinMaxMultiple": false
+    },
+    {
+      "name": "CAGR",
+      "default": 50,
+      "rangeMin": 0,
+      "rangeMax": "Infinity",
+      "varInput": "R (%)",
+      "varRange": true,
+      "showVariable": true,
+      "showMinMaxMultiple": true
+    },
+    {
+      "name": "Stock-To-Flow 2024 Refit",
+      "default": 0,
+      "rangeMin": 0,
+      "rangeMax": "Infinity",
+      "varInput": "",
+      "varRange": false,
+      "showVariable": false,
+      "showMinMaxMultiple": false
+    },
+    {
+      "name": "Stock-To-Flow",
+      "default": 0,
+      "rangeMin": 0,
+      "rangeMax": "Infinity",
+      "varInput": "",
+      "varRange": false,
+      "showVariable": false,
+      "showMinMaxMultiple": false
+    },
+    {
+      "name": "Historic",
+      "default": 2,
+      "rangeMin": 2,
+      "rangeMax": 3,
+      "varInput": "Previous Halvings",
+      "varRange": false,
+      "showVariable": true,
+      "showMinMaxMultiple": false
+    }
+  ],
+  "modelOrder": [
+    "Power Law Regression Median",
+    "Power Law Support Line",
+    "Rainbow Chart",
+    "CAGR",
+    "Stock-To-Flow 2024 Refit",
+    "Stock-To-Flow",
+    "Historic"
+  ],
+  "defaultModel": "Power Law Regression Median",
+  "walks": [
+    "Bubble",
+    "Momentum",
+    "Pong",
+    "Random",
+    "Saw",
+    "Shark",
+    "Sin",
+    "Vote Count",
+    "🟢🟢🟢🔴"
+  ],
+  "defaultWalk": "Bubble",
+  "controls": {
+    "variable": {
+      "step": 1,
+      "default": 0
+    },
+    "minMaxMultiple": {
+      "min": 1.01,
+      "step": 0.1,
+      "default": 3
+    },
+    "volatility": {
+      "min": 0,
+      "max": 1,
+      "default": 0.1,
+      "stepBubble": 0.005,
+      "stepOther": 0.001,
+      "label": "Volatility (0-1):"
+    },
+    "clamp": {
+      "topDefault": false,
+      "bottomDefault": false,
+      "label": "Clamp Price:",
+      "topLabel": "Max",
+      "bottomLabel": "Min"
+    },
+    "samples": {
+      "min": 1,
+      "max": 10000,
+      "default": 1000,
+      "label": "Statistical Sample Count (1k-10k):"
+    },
+    "epochs": {
+      "min": 1,
+      "max": 30,
+      "default": 10,
+      "label": "Epoch Count (1-30):"
+    }
+  }
+}

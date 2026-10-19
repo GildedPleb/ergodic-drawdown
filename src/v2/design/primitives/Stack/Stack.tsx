@@ -11,7 +11,7 @@ export type StackProps = {
 /** Vertical stack. Gap via token; no outer margin. */
 export const Stack = ({ children, gap = "3", pad = false }: StackProps): JSX.Element => {
   const root = styles["root"] ?? "stack-root";
-  const style = { ["--stack-gap" as string]: `var(--space-${gap})` };
+  const style = { ["--stack-gap" as string]: `var(--s-${gap})` };
   return (
     <div className={root} data-pad={pad ? "true" : "false"} style={style}>
       {children}

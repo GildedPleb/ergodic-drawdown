@@ -21,7 +21,8 @@
     "tokens": "bun scripts/v2/generate-tokens.ts",
     "css:enforce": "bun scripts/v2/css-enforce.ts",
     "design:absent": "bun scripts/v2/check-design-route-absent.ts",
-    "visual": "playwright test -c test/visual/playwright.config.ts"
+    "visual": "playwright test -c test/visual/playwright.config.ts",
+    "models:snapshot": "bun scripts/v2/snapshot-old-ui.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.2",
