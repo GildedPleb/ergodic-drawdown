@@ -1,0 +1,36 @@
+/* v37: Certificate (d0) and Crossed (d1) inner themes */
+/* segmented: square double rule */
+.v33 .seg{clip-path:none!important;border:3px double var(--rule);position:relative;overflow:visible}
+.v33 .seg span{border-left:1px solid var(--rule)}
+.v33 .seg .on{box-shadow:none!important;background:var(--chip);font-weight:600;color:var(--text)}
+.v33 .seg .on::before{content:'■ ';color:var(--gold);font-size:9px}
+/* toggle: ledger tick-box with the word */
+.v33 .sw{clip-path:none!important;width:16px!important;height:16px;border:3px double var(--rule)!important;background:none!important;box-sizing:border-box;position:relative;overflow:visible}
+.v33 .sw::after{all:unset;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 10px Inter;color:var(--surface)}
+.v33 .sw::before{content:'OFF';position:absolute;right:24px;top:50%;transform:translateY(-50%);font:600 9.5px Inter;letter-spacing:.14em;color:var(--muted)}
+.v33 .sw.on{border:1px solid var(--gold)!important;background:var(--gold)!important}
+.v33 .sw.on::after{content:'✓'}.v33 .sw.on::before{content:'ON';color:var(--gold)}
+/* radio: square, not diamond */
+.v33 .op .dm{transform:translateY(-1px)!important;width:9px;height:9px;border:1px solid var(--gold)}
+/* cards: ledger rows, square, no cut corners */
+.v33 .cd{clip-path:none!important;background:none!important;border-bottom:1px solid color-mix(in srgb,var(--rule) 55%,transparent);margin:0;padding:8px 4px 8px 10px}
+.v33 .cd.ed{background:var(--chip)!important;box-shadow:none!important;border:3px double var(--gold);padding:9px 12px;margin:4px 0}
+.v33 .gh5{border-bottom:3px double color-mix(in srgb,var(--gold) 55%,transparent);padding-bottom:5px;margin-bottom:0}
+/* slider thumb: thin square bar */
+.v33 .trk .th{width:4px!important;height:16px!important;background:var(--gold);box-shadow:0 0 0 2px var(--surface)}
+.v33 .cd.ed .trk .th{box-shadow:0 0 0 2px var(--chip)}
+.v33 .trk .th svg{display:none}
+.v33 .th.fv::before{transform:none!important;inset:-5px!important;border-width:2px}
+.gear.on{clip-path:none!important;box-shadow:inset 0 0 0 1px var(--gold)}
+
+/* v38 locked: centred section + group labels between hairlines that fade outward */
+.v33 .sx,.v33 .gh5{display:flex;align-items:center;justify-content:center;gap:10px;text-align:center}
+.v33 .gh5{border:0!important;padding:0!important;margin:14px 0 4px!important}
+.v33 .sx::before,.v33 .sx::after,.v33 .gh5::before,.v33 .gh5::after{content:''!important;flex:1;height:2px!important;background:var(--gold)!important;opacity:.7!important;min-width:16px}
+.v33 .gh5::before,.v33 .gh5::after{opacity:.45!important;height:1.5px!important}
+.v33 .sx::before,.v33 .gh5::before{clip-path:polygon(0 50%,100% 0,100% 100%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 70%);mask-image:linear-gradient(90deg,transparent,#000 70%)}
+.v33 .sx::after,.v33 .gh5::after{clip-path:polygon(0 0,100% 50%,0 100%);-webkit-mask-image:linear-gradient(270deg,transparent,#000 70%);mask-image:linear-gradient(270deg,transparent,#000 70%)}
+.v33 .cd.ed+.gh5,.v33 .cd+.gh5{margin-top:16px!important}
+/* square Undo chip */
+.dchip{border-radius:0!important;border:3px double var(--gold)!important;padding:2px 10px!important}
+.v33 .sw.on::after{left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;background:none!important;border:0!important;box-sizing:border-box}

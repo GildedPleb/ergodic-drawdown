@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StackMath · depth prototype</title>
+<link rel="stylesheet" href="../type/type.css"><link rel="stylesheet" href="../color/color.css"><link rel="stylesheet" href="../system/space.css"><link rel="stylesheet" href="base.css"><style>
+body{margin:0;background:var(--ground);color:var(--ink);padding:16px;font-variant-numeric:lining-nums tabular-nums}
+.wrap{max-width:1000px;margin:0 auto}
+.stage{position:relative;height:330px;background:var(--ground);overflow:hidden;box-shadow:0 0 0 1px var(--hairline)}
+.layer{position:absolute;inset:0;transform-origin:50% 100%;transition:opacity 320ms cubic-bezier(.2,.7,.2,1),transform 320ms cubic-bezier(.2,.7,.2,1),filter 320ms cubic-bezier(.2,.7,.2,1)}
+.layer canvas{display:block}
+.layer.is-front{opacity:1;transform:none;filter:none;z-index:2;transition-delay:40ms}
+.layer.is-back{opacity:.07;transform:scaleY(.94) translateY(-6px);filter:blur(.6px);z-index:1;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.layer{transition:opacity 120ms linear;transform:none!important;filter:none!important}}
+.tabs{display:flex;gap:18px;align-items:center;padding:10px 16px;border-top:1px solid var(--gold-rule);background:var(--surface)}
+.tabs button{all:unset;cursor:pointer;font:600 .6875rem var(--f-sans);letter-spacing:.14em;color:var(--ink-muted);padding:12px 2px;min-height:var(--hit);box-sizing:border-box}
+.tabs button[aria-selected=true]{color:var(--gold);box-shadow:inset 0 -2px 0 var(--gold)}
+.tabs button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tabs .hint{margin-left:auto;font:italic 400 .875rem var(--f-text);color:var(--ink-muted)}
+.lay{position:absolute;right:14px;top:10px;font:600 .625rem var(--f-sans);letter-spacing:.16em;color:var(--ink-muted);z-index:3}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style></head><body><div class="wrap">
+<div class="folio"><span>StackMath · Depth prototype · push back</span><span>tap Models / Plans · or press M / P</span></div>
+<div class="stage" id="stage">
+ <div class="layer is-front" id="Lp" role="img" aria-label="Your plan: drawdown of your bitcoin stack over time, Orchid and Coral plans."><canvas id="cp"></canvas></div>
+ <div class="layer is-back" id="Lm" role="img" aria-label="The world: bitcoin price, S&P 500 and inflation, in dollars." aria-hidden="true" inert><canvas id="cm"></canvas></div>
+ <span class="lay" id="lay">PLANS · YOUR STACK</span>
+</div>
+<div class="tabs" role="tablist" aria-label="Drawer tabs"><button role="tab" id="tm" aria-selected="false" aria-controls="stage">MODELS</button><button role="tab" id="tp" aria-selected="true" aria-controls="stage">PLANS</button><button role="tab" aria-selected="false" disabled style="opacity:.5">STATS</button><span class="hint">Stats reads the drawdown, whichever layer is forward.</span></div>
+<div class="sr" aria-live="polite" id="live"></div>
+</div><script src="lib.js"></script><script src="layers.js"></script><script>
+const W=Math.min(1000,innerWidth-32),H=330;
+const set=m=>{const front=m=='m'?Lm:Lp,back=m=='m'?Lp:Lm;front.className='layer is-front';back.className='layer is-back';front.removeAttribute('aria-hidden');front.inert=false;back.setAttribute('aria-hidden','true');back.inert=true;
+ tm.setAttribute('aria-selected',m=='m');tp.setAttribute('aria-selected',m!='m');lay.textContent=m=='m'?'MODELS · THE WORLD':'PLANS · YOUR STACK';live.textContent=m=='m'?'Showing the world: bitcoin price, S&P and inflation.':'Showing your plan.'};
+tm.onclick=()=>set('m');tp.onclick=()=>set('p');
+stage.addEventListener('click',e=>{const b=document.querySelector('.layer.is-back');if(b&&b.contains(e.target))set(b.id=='Lm'?'m':'p')});
+addEventListener('keydown',e=>{if(e.key=='m'||e.key=='M')set('m');if(e.key=='p'||e.key=='P')set('p')});
+Promise.all(['500 12px "SM Jost"','600 12px "SM Jost"'].map(f=>document.fonts.load(f,'₿'))).then(()=>{DD(cp,W,H,W<600);PX(cm,W,H,W<600);document.title='ready'});
+</script></body></html>

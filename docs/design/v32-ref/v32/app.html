@@ -1,0 +1,519 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#14120e;--surface:#1e1b16;--text:#f1e8d4;--muted:#a99e86;--gold:#dcb86c;--rule:#6f5e3e;--btc:#f7931a;--usd:#a9b98a;--loss:#9c9387;--line:#3a342a;--chip:#2a2418;--time:#e9dfc8}
+.linen{--bg:#e7ddcc;--surface:#dfd3bf;--text:#3b2c1d;--muted:#65523d;--gold:#6e4e14;--rule:#b8a37e;--btc:#a8500a;--usd:#5c7451;--loss:#73695a;--line:#cbbd9f;--chip:#d6c6a5;--time:#8a6f45}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.linen body,body.linen{background:radial-gradient(120% 80% at 70% 0%,#efe6d6,#e7ddcc 60%,#dccfb8)}
+header{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px 6px;border-bottom:1px solid var(--rule);margin:0 12px}
+.logo{font:500 17px 'Cormorant Garamond';letter-spacing:.32em}.logo b{color:var(--gold);font-weight:500}
+.crumb{font:10px 'Cormorant Garamond';letter-spacing:.2em;color:var(--muted)}
+.top{padding:6px 16px 0}.kick{font:600 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+h1{font:500 24px/1.05 'Cormorant Garamond';margin:4px 0 2px}
+.sub{color:var(--muted);font-size:13px}
+canvas{flex:1;width:100%;min-height:0}
+.sheet{background:var(--surface);border-top:1px solid var(--rule);border-radius:16px 16px 0 0;padding:8px 12px 12px}
+.beat{display:flex;gap:10px;margin:6px 0}.beat i{font:600 13px 'Cormorant Garamond';color:var(--gold);font-style:normal;min-width:14px}
+.beat p{margin:0;font:500 17px/1.3 'Cormorant Garamond'}
+.num{font:500 12.5px 'JetBrains Mono'}.btc{color:var(--btc)}.usd{color:var(--usd)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chip{border:1px dashed var(--rule);border-radius:99px;padding:3px 9px;font-size:11.5px;background:var(--chip)}
+.chip.on{border-style:solid;border-color:var(--gold)}
+.nav{display:flex;justify-content:space-between;margin-top:10px;font-size:13px}.nav b{color:var(--gold)}
+.search{margin:8px 0 0;border:1px solid var(--rule);border-radius:99px;padding:8px 14px;color:var(--muted);font-size:13px}
+.plan{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;scrollbar-width:none}.plan .chip{white-space:nowrap}.chip .num{font-size:11.5px}
+.row{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px dotted var(--rule);padding:5px 0}.row span:first-child{font:500 15px 'Cormorant Garamond'}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--rule);margin:0 auto 6px}
+.drawer{height:52%;overflow:hidden;display:flex;flex-direction:column}.drawer .body{overflow:hidden}
+.trail{display:flex;gap:4px;align-items:center;font:600 10px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}.trail b{color:var(--gold)}.trail .x{margin-left:auto;border:1px solid var(--gold);border-radius:99px;padding:4px 10px;color:var(--gold);letter-spacing:.06em;text-transform:none;font:600 11.5px Inter}
+.map{display:flex;align-items:center;gap:3px;font:500 12.5px 'Cormorant Garamond';color:var(--muted);margin:2px 0 8px;flex-wrap:wrap}.map span{border:1px dotted var(--rule);border-radius:6px;padding:1px 6px}.map .here{border:1px solid var(--gold);color:var(--text);background:var(--chip)}.map i{color:var(--gold);font-style:normal}
+.link{display:flex;justify-content:space-between;border:1px solid var(--rule);border-radius:10px;padding:7px 11px;margin-top:6px;font:500 15px 'Cormorant Garamond'}.link em{font:500 11.5px Inter;color:var(--gold);font-style:normal}
+.warn{color:var(--btc)}.row.sel{border-bottom:1px solid var(--gold)}.row.sel span:first-child::before{content:'◆ ';color:var(--gold)}
+.chip.flag{border-style:solid;border-color:var(--btc);color:var(--text)}
+.tap{position:fixed;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2px solid var(--btc);background:rgba(168,80,10,.18);box-shadow:0 0 0 7px rgba(168,80,10,.1);pointer-events:none;z-index:9}
+.hint{font:italic 13px 'Cormorant Garamond';color:var(--muted);margin-top:6px}.hint b{color:var(--gold);font-style:normal}
+.peek{display:flex;gap:4px;margin-top:2px}.tile{flex:1;min-width:0;border:1px dashed var(--rule);border-radius:10px;padding:4px 5px 5px;background:var(--chip);cursor:pointer}
+.tile .k{font:600 9px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}.tile .v{font:500 10.5px 'JetBrains Mono';line-height:1.25;color:var(--text);margin-top:2px}.tile .v i{font-style:normal;color:var(--muted)}
+.tile.flag{border-style:solid;border-color:var(--btc)}.tile.pressed{border-style:solid;border-color:var(--gold)}
+.tabs{display:flex;border-bottom:1px solid var(--rule);margin:0 -2px 8px}.tabs span{flex:1;text-align:center;font:600 10px Inter;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 0 7px}.tabs .on{color:var(--gold);border-bottom:2px solid var(--gold)}
+.full{height:46%;display:flex;flex-direction:column}.full .body{overflow:auto}
+.item{display:flex;align-items:center;gap:8px;border-bottom:1px dotted var(--rule);padding:7px 2px}.item .n{flex:1;font:500 16px 'Cormorant Garamond'}.item .t{font:500 9px Inter;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block}.item.sel{background:var(--chip);border:1px solid var(--gold);border-radius:8px;padding:7px 8px}
+.slide{height:4px;background:var(--line);border-radius:2px;position:relative;margin:12px 4px 4px}.slide b{position:absolute;top:-6px;width:12px;height:12px;background:var(--gold);transform:rotate(45deg);margin-left:-6px}.slide u{position:absolute;top:-5px;width:2px;height:14px;background:var(--muted)}
+.undo{position:absolute;right:14px;border:1px solid var(--gold);border-radius:99px;padding:4px 10px;font:600 11.5px Inter;color:var(--gold);background:var(--surface)}
+.why{border:1px solid var(--gold);border-radius:10px;padding:8px 10px;margin-bottom:6px}
+.storyline{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:italic 500 14px/1.2 'Cormorant Garamond';color:var(--muted);margin:2px 0 0}.storyline b{font-style:normal}
+.words{display:flex;justify-content:space-between;margin:8px 2px 0;font:500 15px 'Cormorant Garamond';color:var(--muted)}.words span{padding:6px 2px}.words i{color:var(--gold);font-style:normal;padding:6px 0}.words .on{color:var(--gold)}
+.tog{display:flex;border:1px solid var(--rule);border-radius:99px;overflow:hidden;margin:4px 0 2px}.tog span{flex:1;text-align:center;padding:6px 0;font:600 11.5px Inter;color:var(--muted)}.tog .on{background:var(--chip);color:var(--text);box-shadow:inset 0 0 0 1px var(--gold)}
+.grp{font:600 9.5px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:8px 0 2px}
+.hl{box-shadow:0 0 0 2px var(--btc);border-radius:8px}.hl.u{box-shadow:0 0 0 2px var(--usd)}
+.gb{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:4px}.gb .grab{margin:0}.gb .undo{position:absolute;right:0;top:-6px;padding:3px 9px;font-size:11px}
+.arc .k2{font:600 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}.arc .bt{font:500 19px/1.3 'Cormorant Garamond';margin:4px 0}.arc .q{font:italic 500 14px/1.35 'Cormorant Garamond';color:var(--muted);margin-top:6px}.dots{display:flex;gap:6px;margin-top:8px}.dots b{width:6px;height:6px;transform:rotate(45deg);background:var(--rule)}.dots b.on{background:var(--gold)}
+.door{display:block;font:italic 500 16px 'Cormorant Garamond';color:var(--muted);padding:5px 0;border-bottom:1px dotted var(--rule)}.door b{color:var(--gold);font-style:normal}
+.flt{display:flex;gap:5px;margin:2px 0 6px;overflow-x:auto;scrollbar-width:none}.flt span{white-space:nowrap;border:1px dashed var(--rule);border-radius:99px;padding:3px 9px;font:500 11px Inter;color:var(--muted)}.flt .on{border-style:solid;border-color:var(--gold);color:var(--text)}
+.pr{display:grid;grid-template-columns:18px 1fr auto 74px;gap:6px;align-items:baseline;padding:5px 2px;border-bottom:1px dotted var(--rule);font-size:12px}.pr .g{font:600 12px 'JetBrains Mono';color:var(--gold)}.pr .nm{font:500 15px 'Cormorant Garamond';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr .sp{font:10px 'JetBrains Mono';color:var(--muted);text-align:right}.pr .d{color:var(--btc);font:600 10px Inter;margin-left:4px}.pr.open{background:var(--chip);border:1px solid var(--gold);border-radius:8px;padding:6px}
+.cmp{display:flex;flex-direction:column;gap:6px}.opt{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--rule);border-radius:10px;padding:8px 10px}.opt.on{border-color:var(--gold);background:var(--chip)}.opt .nm{font:500 16px 'Cormorant Garamond'}.opt small{display:block;font:11px Inter;color:var(--muted)}.opt .r{width:14px;height:14px;transform:rotate(45deg);border:1px solid var(--gold)}.opt.on .r{background:var(--gold)}
+.qt{width:100%;border-collapse:collapse;font:11px 'JetBrains Mono'}.qt td,.qt th{padding:3px 2px;text-align:right;border-bottom:1px dotted var(--line)}.qt th{font:600 9px Inter;letter-spacing:.1em;color:var(--gold)}.qt td:first-child,.qt th:first-child{text-align:left;color:var(--muted)}.qt .lo{color:var(--btc)}
+.rw{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--rule);border-radius:10px;padding:7px 10px;margin-top:5px;font:500 15px 'Cormorant Garamond'}.rw em{font:600 11px Inter;color:var(--gold);font-style:normal}.rw.on{border-color:var(--btc)}
+.hist{display:flex;align-items:flex-end;gap:3px;height:46px;margin:6px 0 2px}.hist b{flex:1;background:var(--btc);opacity:.75;border-radius:2px 2px 0 0}.hl2{display:flex;justify-content:space-between;font:9.5px 'JetBrains Mono';color:var(--muted)}
+.ach{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.ach span{border:1px dashed var(--rule);border-radius:99px;padding:3px 9px;font:500 11px Inter;background:var(--chip)}.ach b{color:var(--gold);font-weight:600}
+.esc{position:absolute;left:0;top:-4px;border:1px solid var(--gold);border-radius:99px;padding:3px 9px;font:600 11px Inter;color:var(--gold);background:var(--surface)}
+.sec{font:600 9.5px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:10px 0 3px}
+.mag{display:inline-flex;align-items:center;padding:6px 4px 6px 0}.mag svg{width:16px;height:16px}
+.sfield{display:flex;align-items:center;gap:8px;border:1px solid var(--gold);border-radius:99px;padding:7px 12px;margin-top:8px;background:var(--bg);transform-origin:left center}@keyframes grow{from{transform:scaleX(.08);opacity:.3}to{transform:none;opacity:1}}
+.sfield .tx{flex:1;font:500 16px 'Cormorant Garamond';color:var(--text);white-space:nowrap;overflow:hidden}.sfield .ph{color:var(--muted);font-style:italic}.sfield .x{font:600 12px Inter;color:var(--gold)}.caret{display:inline-block;width:1.5px;height:16px;background:var(--gold);vertical-align:-3px;margin-left:1px}
+.sg{margin-top:4px}.sg .h{font:600 9.5px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:8px 0 2px}.sg .o{display:flex;justify-content:space-between;align-items:baseline;padding:6px 2px;border-bottom:1px dotted var(--rule);font:500 16px 'Cormorant Garamond'}.sg .o em{font:500 10.5px Inter;color:var(--muted);font-style:normal}.sg .o b{color:var(--gold);font-weight:600}.sg .o.top{background:var(--chip);border-radius:8px;border-bottom-color:transparent;padding:6px 8px}
+.kb{background:#2b2721;padding:6px 3px 18px;display:flex;flex-direction:column;gap:9px}.kb div{display:flex;justify-content:center;gap:5px}.kb span{background:#4a443a;color:#efe6d4;border-radius:5px;font:400 17px Inter;width:31px;height:40px;display:flex;align-items:center;justify-content:center}.kb span.w{width:46px;font-size:13px;background:#3a352d}.kb span.sp{width:170px;font-size:13px}
+.beat.one p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv{border:1px solid var(--gold);border-radius:10px;padding:7px 10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;font:500 15px 'Cormorant Garamond'}.pv em{font:600 11px Inter;color:var(--gold);font-style:normal}
+.s-open{height:46%;display:flex;flex-direction:column}.s-open .body{overflow:auto;flex:1}.s-edit{height:auto}.s-chart{padding:6px 12px 10px}.s-chart .grab{opacity:.6}
+.tabs .tmag{flex:0 0 30px}.tabs .tmag .mag{padding:0}.beat.one p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trail{display:flex;gap:4px;align-items:center;font:600 10px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}.trail b{color:var(--gold)}.trail .x{margin-left:auto;border:1px solid var(--gold);border-radius:99px;padding:4px 12px;color:var(--gold);text-transform:none;letter-spacing:.04em;font:600 11.5px Inter}
+.mag{min-width:30px;min-height:30px;justify-content:center}
+.hrow{display:flex;align-items:center;gap:8px}.hrow .beat{flex:1;min-width:0;margin:4px 0}.hrow .mag{min-width:44px;min-height:44px}
+.pr.flash{animation:fl .3s ease-in-out 2 alternate}@keyframes fl{to{background:rgba(220,184,108,.28)}}.pr.flash .num{color:var(--gold)}
+.s-edit .item.sel{animation:none}.gb{min-height:24px}
+.sheet{width:100%;box-sizing:border-box}
+.tabs{align-items:center}.tabs .tmag{flex:0 0 26px;display:flex;justify-content:flex-start;padding:6px 0 7px}.tabs .tmag .mag{min-width:0;min-height:0;padding:0;display:block;height:12px}.tabs .tmag svg{width:12px;height:12px;display:block;transform:translateY(1px)}
+.hrow{flex-direction:row}.hrow .mag{order:-1;min-width:36px;min-height:44px;justify-content:flex-start}.hrow .beat i{display:none}
+.sfield .lm{display:flex;width:16px;height:16px}.sfield .lm svg{width:15px;height:15px}
+.gb .lmag{position:absolute;left:0;top:-4px}.gb .lmag+.esc{left:34px}
+
+/* ---- v23 unified components ---- */
+.gb{display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;min-height:28px;margin-bottom:4px;position:relative}
+.gb .gl{justify-self:start;display:flex;gap:6px;align-items:center}.gb .gr{justify-self:end;display:flex;gap:6px;align-items:center}
+.gb .esc,.gb .undo{position:static!important;margin:0}.gb .grab{margin:0!important;width:36px;height:4px;border-radius:2px;background:var(--rule);opacity:1}
+.mag{display:inline-flex!important;align-items:center;justify-content:center;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;flex:0 0 28px;padding:0!important;margin:0;position:relative;cursor:pointer;order:0!important}
+.mag::after{content:'';position:absolute;inset:-8px}.mag svg{width:13px!important;height:13px!important;display:block;transform:none!important}
+.hrow{display:flex;align-items:flex-start;gap:6px}.hrow .mag{margin:1px 0 0 -6px}.hrow .beat{flex:1;min-width:0;margin:4px 0!important}
+.tabs{display:flex;align-items:center}.tabs .tmag{flex:0 0 28px!important;padding:0!important;display:flex;align-items:center;justify-content:flex-start}.tabs .tmag .mag{margin-left:-7px}
+.tabs span{white-space:nowrap;font-size:9.5px!important;letter-spacing:.08em!important}
+.sfield .lm{width:28px;height:28px;flex:0 0 28px;margin-left:-8px;display:flex}.sfield .lm .mag{pointer-events:none}
+.flt{padding-right:12px;mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.pr .nm{min-width:0}
+/* landscape phone: open = full-screen overlay with pinned mini chart */
+body.lo header,body.lo .top{display:none!important}body.lo canvas{flex:0 0 112px!important}body.lo .sheet{flex:1;height:auto!important;min-height:0;display:flex;flex-direction:column;border-radius:0}body.lo .sheet .body{flex:1;overflow:auto}
+body[data-mode=land] .top h1{font-size:20px;margin:0}body[data-mode=land] header{padding:6px 16px 4px}
+/* tablet / narrow desktop 768–1023: phone sheet, full width, more padding */
+@media(min-width:768px) and (max-width:1023px){.sheet{padding-left:28px;padding-right:28px}}
+/* desktop dock ≥1024 */
+body[data-mode=dock] header{margin:0 48px;padding:18px 0 10px}
+body[data-mode=dock] .top{padding:18px 48px 0}
+.dhead{display:flex;align-items:flex-start;gap:12px}.dhead .mag{margin-top:20px;margin-left:-38px}.dh{font:500 24px/1.25 'Cormorant Garamond';margin-top:4px}
+body[data-mode=dock] .dhead{padding-left:38px}
+body[data-mode=dock] canvas{margin:0 24px;width:calc(100% - 48px)}
+.sheet.dock{margin:0 48px;width:auto;max-width:none;border:1px solid var(--rule);border-bottom:0;border-radius:14px 14px 0 0;padding:8px 32px 22px;position:relative;box-shadow:0 -18px 40px rgba(0,0,0,.35)}
+.drow{display:flex;align-items:center;gap:8px;padding:0 0 2px}.drow .mag{margin-left:-8px}.ask{flex:1;font:italic 500 16px 'Cormorant Garamond';color:var(--muted)}.ask.on{font-style:normal;color:var(--text)}
+.dlink{font:500 11.5px Inter;color:var(--gold);white-space:nowrap}.more{font:600 16px Inter;color:var(--muted);padding:0 4px;letter-spacing:.1em}
+.cols{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:40px;margin-top:12px}.cols.three{grid-template-columns:1.25fr 1fr 1fr 44px}
+.col h4{font:600 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:0 0 10px}.col h5{font:600 9px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+.card{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:8px;background:rgba(255,255,255,.015)}.card .bar{width:6px;height:24px;border-radius:2px;flex:0 0 6px}.card .tx{flex:1;min-width:0}.card .nm{font:500 13.5px Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card .sb{font:11px Inter;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card .vl{font:500 12px 'JetBrains Mono';white-space:nowrap}
+.card.ed{flex-wrap:wrap;border-color:var(--gold);background:var(--chip)}.card.ed .slide{flex:0 0 100%;margin:10px 4px 2px}.card.ed .st{flex:0 0 100%;font:italic 12.5px 'Cormorant Garamond';color:var(--muted)}
+.addc{border:1px dashed var(--rule);border-radius:9px;padding:9px;text-align:center;font:12.5px Inter;color:var(--muted)}
+.cols .chips{display:flex;flex-wrap:wrap;gap:6px}.cols .chip{font-size:11.5px}.cols .chip.on::before{content:'✓ ';color:var(--gold)}
+.cols .row span:first-child{font:13px Inter;color:var(--muted)}.cols .row .num{font-size:12px}
+.rail{border-left:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding-top:2px}.rail span{writing-mode:vertical-rl;font:600 10px Inter;letter-spacing:.16em;color:var(--gold)}
+.dfloat{position:absolute;top:-46px;left:50%;transform:translateX(-50%);border:1px solid var(--gold);border-radius:10px;padding:7px 14px;font:500 12.5px Inter;background:var(--surface);white-space:nowrap}.dfloat u{color:var(--gold);margin-left:10px}
+.sgc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:40px;margin-top:10px}.sgc .o{display:flex;justify-content:space-between;padding:7px 2px;border-bottom:1px dotted var(--rule);font:500 16px 'Cormorant Garamond'}.sgc .o.top{background:var(--chip);border-radius:8px;padding:7px 10px;border-bottom-color:transparent}.sgc .o em{font:500 10.5px Inter;color:var(--muted);font-style:normal}
+
+/* fluid overrides (v23) */
+body[data-mode=dock] header{margin:0 var(--m);padding:clamp(10px,1.4vw,18px) 0 10px}
+body[data-mode=dock] .top{padding:clamp(10px,1.4vw,18px) var(--m) 0}
+body[data-mode=dock] canvas{margin:0 calc(var(--m)/2);width:calc(100% - var(--m))}
+.sheet.dock{margin:0 auto;width:calc(100% - 2*var(--m));max-width:1880px;padding:8px clamp(16px,2.2vw,32px) clamp(14px,1.6vw,22px)}
+.dh{font-size:clamp(19px,1.05vw + 10px,27px)!important}
+.cols,.sgc{gap:clamp(18px,2.4vw,44px)!important}
+.ctabs{display:flex;gap:14px;border-bottom:1px solid var(--line);margin:-2px 0 10px}.ctabs span{font:600 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:0 0 7px}.ctabs .on{color:var(--gold);border-bottom:2px solid var(--gold)}
+.col{min-width:0}
+.sheet.dock{display:flex;flex-direction:column;max-height:min(50vh,560px)}.sheet.dock .cols,.sheet.dock .sgc{overflow:auto;min-height:0;flex:1 1 auto;padding-bottom:4px}
+body.lo .sheet.dock{max-height:none;width:100%;border-radius:0;margin:0}body.lo canvas{margin:0!important;width:100%!important}
+.dchip{border:1px solid var(--gold);border-radius:99px;padding:3px 12px;font:500 12px Inter;white-space:nowrap}.dchip u{color:var(--gold);margin-left:8px}
+.sheet.dock .cols{mask-image:linear-gradient(#000 calc(100% - 28px),transparent);-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
+
+/* v24 hairline + ornament edge (replaces pill) */
+.sheet{border-top:0!important;position:relative}
+.sheet::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold) 12%,var(--gold) 88%,transparent);opacity:.55}
+.gb{cursor:row-resize;user-select:none}.gb:focus-visible,.chev:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
+.gb .grab,.grab{width:auto!important;height:auto!important;background:none!important;border-radius:0!important;opacity:1!important;margin:0!important;display:flex;align-items:center;gap:8px;color:var(--gold);font-size:9px;line-height:1}
+.grab::before,.grab::after{content:'';width:22px;height:1px;background:var(--gold);opacity:.5}
+.gb .grab{position:absolute;left:50%;top:-14px;transform:translateX(-50%);background:var(--surface)!important;padding:0 6px}
+.gb .grab>i{font-style:normal}
+.gb:hover .grab{color:var(--btc)}
+body.alt .gb .grab{display:none!important}body.alt .sheet::before{height:14px;opacity:.18;background:linear-gradient(180deg,var(--gold),transparent)}
+.chev{all:unset;cursor:pointer;font:500 12px Inter;color:var(--muted,#a99e86);display:inline-flex;gap:6px;align-items:center;padding:4px 6px;border-radius:4px}.chev b{color:var(--gold);font-weight:400;font-size:14px}
+.col h4 .pc{font:400 10px Inter;letter-spacing:0;text-transform:none;opacity:.6;margin-left:6px}
+.sheet.dock .col h5{margin:10px 0 4px}
+.sheet.dock .card{padding-top:7px;padding-bottom:7px}
+
+.sheet.dock{border-top:0!important}.sheet.dock .drow{cursor:row-resize}.sheet.dock .drow .ask{cursor:text}
+.grab.edge{position:absolute!important;left:50%;top:-5px;transform:translateX(-50%);background:var(--surface)!important;padding:0 6px}
+.sheet.dock .drow .ask{flex:0 1 auto;margin-right:auto;min-width:0}.sheet.dock .sheet::before{opacity:.7}.sheet.dock .drow .more{padding:0 6px;cursor:pointer;color:var(--gold)}
+.gb .gr{grid-column:3}.gb .gl{grid-column:1}
+
+.sheet{border-radius:0!important}.sheet::before{opacity:.75!important}
+.gb .grab,.grab.edge{top:-5px!important;background:transparent!important;padding:0!important}
+.grab>i{text-shadow:0 0 6px var(--surface)}
+
+.sheet.dock:has(.cols){height:min(50vh,560px)}body.lo .sheet.dock:has(.cols){height:auto}
+.sheet.dock .cols{overflow:hidden!important;grid-template-rows:100%;-webkit-mask-image:none;mask-image:none}
+.sheet.dock .cols>.col{overflow:auto;min-height:0;padding-bottom:18px;-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent);scrollbar-width:thin}
+.grab::before,.grab::after{border:0!important;border-radius:0!important}
+
+.grab::before,.grab::after{display:none!important}
+.gb .grab,.grab.edge{top:0!important;transform:translate(-50%,-50%)!important;line-height:0}.grab>i{display:block;font-size:10px;line-height:10px}
+
+.gb{position:static!important}.gb:has(.gl:empty):has(.gr:empty){min-height:14px}
+
+/* v25 chamfered edge + ◆ variants (?edge=1..4) */
+:root{--ch:16px}
+.sheet{background:transparent!important;isolation:isolate;border:0!important;box-shadow:none!important}
+.sheet::after{content:'';position:absolute;inset:0;z-index:-1;background:var(--surface);clip-path:polygon(var(--ch) 0,calc(100% - var(--ch)) 0,100% var(--ch),100% 100%,0 100%,0 var(--ch))}
+.sheet.dock::after{box-shadow:none}
+.sheet::before{left:var(--ch)!important;right:var(--ch)!important;background:var(--gold)!important;opacity:.7!important;height:1px!important;z-index:1}
+.ce{position:absolute;top:0;width:var(--ch);height:var(--ch);pointer-events:none;z-index:1;opacity:.7}
+.ce.l{left:0;background:linear-gradient(to bottom right,transparent calc(50% - .7px),var(--gold) 50%,transparent calc(50% + .7px))}
+.ce.r{right:0;background:linear-gradient(to bottom left,transparent calc(50% - .7px),var(--gold) 50%,transparent calc(50% + .7px))}
+.ce i{position:absolute;top:0;font:normal 7px/7px serif;color:var(--gold);transform:translate(-50%,-50%);display:none}
+.ce.l i{left:100%}.ce.r i{left:0}
+.grab{z-index:2}
+/* V2 state */
+body.e2 .grab>i{transition:transform .2s,color .2s}
+body.e2[data-ds=half] .grab>i,body.e2[data-ds=chart] .grab>i{color:transparent;-webkit-text-stroke:1px var(--gold)}
+body.e2[data-ds=chart] .grab>i{transform:rotate(45deg) scale(1.15)}
+body.e2[data-ds=open] .grab>i,body.e2[data-ds=edit] .grab>i,body.e2[data-ds=search] .grab>i{color:var(--gold);transform:scale(1.2)}
+/* V3 clasp */
+body.e3 .grab>i{font-size:0!important;width:14px;height:14px;line-height:0;box-sizing:border-box;transform:rotate(45deg);border:1px solid var(--gold);background:var(--surface);box-shadow:0 0 0 3px var(--bg,#100f0d),0 0 0 4px rgba(212,175,95,.35);position:relative}
+body.e3 .grab>i::after{content:'';position:absolute;inset:3px;background:var(--gold)}
+/* V4 three ornament + chamfer points */
+body.e4 .grab>i{font-size:0!important;line-height:0;display:flex;gap:6px;align-items:center}
+body.e4 .grab>i::before{content:'◆ ◇ ◆';font:10px/10px serif;letter-spacing:4px;color:var(--gold);padding:0 4px;text-shadow:0 0 4px var(--bg),0 0 8px var(--bg)}
+body.e4 .ce i{display:block}
+
+body.e9 .ce i,body.e10 .ce i,body.e11 .ce i,body.e12 .ce i,body.e5 .ce i,body.e6 .ce i,body.e7 .ce i,body.e8 .ce i{display:none!important}
+.grab .deco{display:block;overflow:visible;transform:scaleY(-1)}
+body.e5 .grab,body.e6 .grab,body.e7 .grab,body.e8 .grab{width:240px!important;height:44px!important;cursor:row-resize;pointer-events:auto}
+
+.decoE{position:absolute;left:0;top:-8px;pointer-events:none;z-index:3;overflow:visible}
+body.e9 .sheet,body.e10 .sheet,body.e11 .sheet,body.e12 .sheet{padding-top:22px!important}
+body.e9 .grab,body.e10 .grab,body.e11 .grab,body.e12 .grab{width:240px!important;height:44px!important;cursor:row-resize}
+
+body.e13 .sheet::after,body.e14 .sheet::after{top:-18px;clip-path:var(--clip)}
+body.e13 .sheet::before,body.e14 .sheet::before,body.e13 .ce,body.e14 .ce{display:none!important}
+.peak{position:absolute;left:0;top:-18px;pointer-events:none;z-index:3;overflow:visible}
+body.e13 .sheet,body.e14 .sheet{margin-top:14px;padding-top:14px!important}
+body.e13 .grab,body.e14 .grab{height:44px!important;top:-8px!important;transform:translate(-50%,-50%)!important;cursor:row-resize}
+
+body.e15 .sheet::after,body.e16 .sheet::after,body.e17 .sheet::after{top:-24px;clip-path:var(--clip)}
+body.e15 .sheet::before,body.e16 .sheet::before,body.e17 .sheet::before,body.e15 .ce,body.e16 .ce,body.e17 .ce{display:none!important}
+body.e15 .peak,body.e16 .peak,body.e17 .peak{top:-24px}
+body.e15 .sheet,body.e16 .sheet,body.e17 .sheet{margin-top:22px;padding-top:16px!important}
+body.e15 .grab,body.e16 .grab,body.e17 .grab{height:44px!important;top:-8px!important;transform:translate(-50%,-50%)!important;cursor:row-resize}
+body.e18 .sheet{margin-top:6px}body.e18 .grab{cursor:row-resize;pointer-events:auto}body.e18 .grab>svg{display:block;transform:rotate(90deg)}body.e18 .ce i{display:none!important}
+.logo{display:flex;align-items:center}.logo .lm{color:var(--gold);margin-right:10px;flex:none}
+</style></head><body>
+<header><div class="logo"><svg class="lm" width="18" height="18" viewBox="-1 -1 28 28"><g transform="rotate(90 13 13)"><path d="M13 0 L26 13 L13 26 L0 13 Z" fill="none" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="3.25" y2="9.75" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="22.75" y2="9.75" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="6.5" y2="6.5" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="19.5" y2="6.5" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="9.75" y2="3.25" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="16.25" y2="3.25" stroke="currentColor" stroke-width="1"/><line x1="13" y1="26" x2="13" y2="0" stroke="currentColor" stroke-width="1"/></g></svg>STACK<b>MATH</b></div><div class="crumb" id="cr"></div></header>
+<div class="top" id="top"></div><canvas id="c"></canvas><div class="sheet" id="sh"></div><div class="kb" id="kb" style="display:none"><div><span>q</span><span>w</span><span>e</span><span>r</span><span>t</span><span>y</span><span>u</span><span>i</span><span>o</span><span>p</span></div><div><span>a</span><span>s</span><span>d</span><span>f</span><span>g</span><span>h</span><span>j</span><span>k</span><span>l</span></div><div><span class="w">⇧</span><span>z</span><span>x</span><span>c</span><span>v</span><span>b</span><span>n</span><span>m</span><span class="w">⌫</span></div><div><span class="w">123</span><span class="sp">space</span><span class="w">ask</span></div></div>
+<script>
+const q=new URLSearchParams(location.search);if(q.get('mode')!='dark')document.body.classList.add('linen');
+const css=v=>getComputedStyle(document.body).getPropertyValue(v).trim();
+const TOP=document.getElementById('top'),sh=document.getElementById('sh'),N=18*13+1,Y0=2026,lerp=(a,b,t)=>a+(b-a)*t,sm=t=>t*t*(3-2*t);
+// illustrative shapes from the user's screenshots; the live engine replaces these
+function base(y){return y<2.8?lerp(5.2,3.6,sm(y/2.8)):3.6+8.5*Math.pow((y-2.8)/14.2,1.6)}
+function usdMed(y){return y<3?lerp(5.2,5.4,sm(y/3)):lerp(5.4,3.2,sm((y-3)/14))}
+function mkB(s0){const d=s0-5.2,A=[];for(let i=0;i<N;i++){const y=i/13,k=Math.min(1,y/3);let m=base(y);const yy=Math.max(0,y-(ST.spFrom?ST.spFrom-ST.age:0)),e=(90-SP())/10*.45*(Math.min(1,yy/2.5)+yy*.06);m+=e;let w=m*(1-.95*k)+e*.5+.25*Math.pow(Math.max(0,y-2.2),1.3);if(y>4)w=Math.max(w,m*.25+(y-4)*.2);
+ const g=d*(1+y*.12)*.5;A.push([w+g,m*(1-.315*k)+g,m+g,m*(1+.2*k)+g,m*(1+.4*k)+g])}return A}
+const US=[];for(let i=0;i<N;i++){const y=i/13,m=usdMed(y),k=Math.min(1,y/3);US.push([m*(1-.12*k),m*(1-.05*k),m,m*(1+.05*k),m*(1+.1*k)])}
+const SP=()=>ST.sp;const ST={ep:null,flashI:null,editI:null,prevD:null,search:0,sq:'',kb:0,sres:null,compact:0,spFrom:null,crash:0,rf:0,out:0,dot:0,cview:null,cmp:'usd',nA:'Main · steady',nB:'Out by 50',filt:'all',openI:null,zoom:null,rwSel:null,saved:0,pay:'btc',bp:1.2,up:100,raise:-5,hlp:null,arc:0,au:1,doors:0,finger2:null,sp:90,tab:'plan',ghostSp:null,press:null,undo:0,why:0,s0:5.2,age:38,scrub:null,warn:0,ghost:null,finger:null,drag:null,drawer:0,hint:1};
+const SAFE=6.2; // illustrative: stack at which the worst future stays above 1 ₿
+const worstMin=s0=>Math.min(...mkB(s0).slice(0,5*13).map(r=>r[0]));
+const f1=v=>v.toFixed(1);const fw=v=>v<1&&v>0.85?'just under 1':v<1?f1(Math.min(v,0.9)):f1(v);
+function summ(){const B=mkB(ST.s0);return{plan:`4 items<br><i>$${ST.sp}k</i> spend`,model:`Power law<br><i>8%</i> infl.`,view:`Stack ₿<br><i>17 yrs</i>`,stats:`worst ${f1(Math.max(0,worstMin(ST.s0)))}<br><i>med ${f1(B[N-1][2])}</i>`,settings:`Dark<br><i>on device</i>`}}
+const ITEMS=[['₿↻','Bitcoin salary','1.2 ₿/yr','’26–’36','btc',1],['₿↻','Consulting, in ₿','0.3 ₿/yr','’26–’30','btc'],['₿↻','Mining payout','0.05 ₿/yr','’27–’40','btc'],['₿↻','Book royalties','0.02 ₿/yr','’26→','btc'],
+['$↻','Spouse salary','$80k/yr','’26–’41','usd'],['$↻','Rental income','$24k/yr','’26–’60','usd'],['$↻','Pension','$30k/yr','’52→','usd'],
+['−↻','Living','$90k/yr','’26→','sp'],['−↻','Kids’ school','$30k/yr','’30–’44','sp'],['−↻','Healthcare','$12k/yr','’41→','sp'],['−↻','Travel','$10k/yr','’26–’50','sp',1],
+['◆','Starting stack','5.2 ₿','Today','one'],['◆','House down payment','−$400k','’29','one'],['◆','Car','−$60k','’33','one'],['◆','Sell business','+$900k','’36','one',1]];
+const ALT=mkB0(5.2,115);function mkB0(s0,sp){const v=ST.sp;ST.sp=sp;const r=mkB(s0);ST.sp=v;return r}
+const ARC=[['You','About <b class="btc">6 ₿</b> carries you. Below that, a few of your futures run dry in the rough start.','','Drag your stack up until the bad futures clear.'],
+['Your family','Your coin doesn’t stop when you do. Past your life, toward 2143, <b class="btc">your kids start where you finished.</b>','','Drag the horizon out past your lifetime.'],
+['Everyone','Zoom out: 0.1 ₿ or 50 ₿, it’s the same curve, every stack. Working until 65 becomes optional.','','Pinch to see every stack at once.'],
+['The bigger thing','The years come back: time you’d have sold for dollars, returned to you.','“I will restore to you the years…” · Joel 2:25','Touch the years you get back.'],
+['Back to you','These are your two futures. Everything else lives one tap below.','','Hold anywhere to read yours.']];
+const DOORS=['Is bitcoin time?','Isn’t this the dream, without the state?  <span style="font-size:12px">· after Upton Sinclair</span>','How do I ask my boss?'];
+const ext=y=>y<17?base(y):base(17)*Math.pow(1+(y-17)*.05,1.3);
+function drawArc(x,W,H){const L=34,R=W-44,T=24,Bt=H-34,a=ST.arc,u=ST.au,cb=css('--btc'),cu=css('--usd'),gd=css('--gold');
+ const HY=a==2?17+u*100:a==3?40:32;const lx=y=>L+(R-L)*y/HY;const LG=v=>Math.log10(Math.max(v,.02));const lo=a==3?-1.7:0,hi=a==2?2.7:a==3?2.3:1.75;const ly=v=>Bt-(Bt-T)*(LG(v)-lo)/(hi-lo);G={L,R,T,Bt,lx,ly,W,H,warns:[],h:{X:-99,Y:-99},BT:mkB(ST.s0)};
+ x.font='10px JetBrains Mono';x.fillStyle=css('--muted');x.textAlign='left';[.1,1,10,100].filter(v=>LG(v)>=lo&&LG(v)<=hi).forEach(v=>{x.strokeStyle=css('--line');x.setLineDash([1,3]);x.beginPath();x.moveTo(L,ly(v));x.lineTo(R,ly(v));x.stroke();x.setLineDash([]);x.fillText(v+'₿',R+4,ly(v)+3)});
+ const path=(f,y0,y1,col,w,d=[])=>{x.beginPath();for(let y=y0;y<=y1;y+=HY/300)x.lineTo(lx(y),ly(f(y)));x.strokeStyle=col;x.lineWidth=w;x.setLineDash(d);x.stroke();x.setLineDash([]);x.lineWidth=1};
+ const S=ST.s0/5.2,T2=(t,X,Y,col,al='left',f='italic 14px "Cormorant Garamond"')=>{x.font=f;x.fillStyle=col;x.textAlign=al;x.fillText(t,X,Y)};
+ x.save();x.beginPath();x.rect(0,T-10,W,Bt-T+10);x.clip();
+ if(a==2){const life=47;path(y=>ext(y)*S,0,Math.min(HY,life),cb,2.4);if(HY>life){path(y=>ext(y)*S,life,HY,gd,2.4,[6,3]);x.strokeStyle=css('--time');x.setLineDash([2,3]);x.beginPath();x.moveTo(lx(life),T);x.lineTo(lx(life),Bt);x.stroke();x.setLineDash([]);T2('you, at 85',lx(life)-4,T+12,css('--time'),'right');T2('your kids start here',lx(life)+6,ly(ext(life)*S)+22,gd)}
+  x.restore();x.save();T2('2026',L,Bt+16,css('--muted'),'left','10px JetBrains Mono');T2(String(Math.round(2026+HY)),R,Bt+16,css('--muted'),'right','10px JetBrains Mono');if(HY>110)T2('2143 · the last coin',R-4,ly(ext(HY)*S)+18,gd,'right')}
+ if(a==3){const ss=[.1,.5,1,5.2,20,50],k=Math.min(1,u*1.2);ss.forEach((s0,i)=>{const sh=s0==5.2;if(!sh&&i/ss.length>k)return;path(y=>ext(y)*s0/5.2,0,HY,cb,sh?2.4:1.1);T2(s0+' ₿',lx(HY)-2,ly(ext(HY)*s0/5.2)-5,sh?cb:css('--muted'),'right','10px JetBrains Mono')});
+  path(y=>Math.max(.03,usdMed(Math.min(y,17))*(y<27?1:Math.max(.02,1-(y-27)/3))),0,HY,cu,1.6,[9,4]);x.strokeStyle=cu;x.setLineDash([2,3]);x.beginPath();x.moveTo(lx(27),T);x.lineTo(lx(27),Bt);x.stroke();x.setLineDash([]);T2('65 · the conveyor belt',lx(27)+5,Bt-30,cu);T2('optional',lx(27)+5,Bt-14,cu);T2('same curve, every stack',L+8,T+14,css('--text'))}
+ if(a==4){const w0=lx(17),w1=lx(27),gw=w0+(w1-w0)*u;x.globalAlpha=.22;x.fillStyle=gd;x.fillRect(w0,T,gw-w0,Bt-T);x.globalAlpha=1;path(y=>ext(y)*S,0,HY,cb,2.4);path(y=>usdMed(Math.min(y,17))*(y<17?1:Math.max(.1,1-(y-17)/12)),0,HY,cu,1.6,[9,4]);
+  x.restore();x.save();x.fillStyle=gd;x.fillRect(w0,Bt+8,gw-w0,3);T2('you at 55',w0,Bt+24,gd,'left','10px JetBrains Mono');T2('65',w1,Bt+24,cu,'right','10px JetBrains Mono');if(u>.6){T2('10 years,',(w0+w1)/2,ly(2)-14,gd,'center','italic 22px "Cormorant Garamond"');T2('given back',(w0+w1)/2,ly(2)+10,gd,'center','italic 22px "Cormorant Garamond"')}
+  T2('paid in bitcoin',lx(12),ly(ext(12)*S)-10,cb,'right');T2('paid in dollars',lx(10),ly(4.6)+18,cu)}
+ x.restore();x.strokeStyle=css('--rule');x.beginPath();x.moveTo(L,Bt);x.lineTo(R,Bt);x.stroke()}
+const RW=[['5% wipeout risk','Apr ’31–Mar ’32',68,81],['12% below 1 ₿','Jan ’27–Sep ’28',13,36]];
+const TI=6;function trail(){const B0=mkB(5.2),A=[];for(let i=0;i<=TI;i++){const r=B0[i],u=i/TI,tgt=ST.out?r[0]-.55:r[0]+.35*(r[1]-r[0]);A.push(lerp(5.2,tgt,Math.pow(u,.8))+Math.sin(i*2.1)*.06*u)}return A}
+function refan(){const tr=trail(),s=tr[TI];const R=mkB0(s,ST.sp);return R}
+function crashDraw(x){const{L,R,T,Bt,lx,ly,BT}=G,cb=css('--btc'),tm=css('--time'),tr=trail(),X=lx(TI),Y=ly(tr[TI]);
+ // re-fan from reality
+ if(ST.rf>0){const F=refan(),n=Math.round(ST.rf*(N-1-TI)),seg=F.slice(0,n+1),fx=i=>lx(TI+i);
+  const band=(lo,hi,a)=>{x.beginPath();seg.forEach((r,i)=>x.lineTo(fx(i),ly(r[lo])));for(let i=seg.length-1;i>=0;i--)x.lineTo(fx(i),ly(seg[i][hi]));x.globalAlpha=a;x.fillStyle=cb;x.fill();x.globalAlpha=1};band(0,4,.2);band(1,3,.32);
+  x.beginPath();seg.forEach((r,i)=>x.lineTo(fx(i),ly(r[2])));x.strokeStyle=cb;x.lineWidth=2.4;x.stroke();x.lineWidth=1;x.beginPath();seg.forEach((r,i)=>x.lineTo(fx(i),ly(r[0])));x.setLineDash([1,3]);x.stroke();x.setLineDash([]);
+  const e=seg[seg.length-1];x.font='italic 14px "Cormorant Garamond"';x.fillStyle=cb;x.textAlign='right';if(ST.rf>.6)x.fillText('from where you are',Math.min(fx(seg.length-1),R)-4,ly(e[2])-10);
+  x.fillStyle=css('--muted');x.font='italic 12px "Cormorant Garamond"';if(ST.rf>.6)x.fillText('your saved futures',R-4,ly(BT[N-1][3])-6);
+  x.strokeStyle=tm;x.setLineDash([3,3]);x.beginPath();x.moveTo(fx(seg.length-1),T);x.lineTo(fx(seg.length-1),Bt);x.stroke();x.setLineDash([]);x.fillStyle=tm;x.font='10px JetBrains Mono';x.textAlign='center';x.fillText('’'+String(26+Math.floor((TI+n)/13)),fx(seg.length-1),T-6<0?T+10:T-4)}
+ // today line + reality trail
+ x.strokeStyle=tm;x.lineWidth=1.2;x.beginPath();x.moveTo(X,T);x.lineTo(X,Bt);x.stroke();x.lineWidth=1;x.fillStyle=tm;x.font='italic 13px "Cormorant Garamond"';x.textAlign='left';x.fillText('Today · Oct ’26',X+5,T+20);
+ x.beginPath();tr.forEach((v,i)=>x.lineTo(lx(i),ly(v)));x.strokeStyle=css('--text');x.lineWidth=2.4;x.stroke();x.lineWidth=1;
+ x.beginPath();x.arc(X,Y,10,0,7);x.globalAlpha=.25;x.fillStyle=css('--text');x.fill();x.globalAlpha=1;x.beginPath();x.arc(X,Y,5,0,7);x.fillStyle=css('--text');x.fill();
+ x.font='600 10px Inter';x.textAlign='left';x.fillStyle=css('--text');x.fillText('YOU ARE HERE · '+f1(tr[TI])+' ₿',X+12,Y+(ST.out?18:-10));
+ G.dotP={X,Y};
+}
+function crashBubble(x){const{BT}=G,cb=css('--btc'),tr=trail(),X=G.dotP.X,Y=G.dotP.Y;if(ST.dot){const r=BT[TI];bubble(x,X,Y,[['Today · price −55% since May','h'],['You hold '+f1(tr[TI])+' ₿','b'],['Plan expected '+f1(r[0])+'–'+f1(r[4])+' ₿',' '],[ST.out?'Below every future we drew':'Inside the fan · bottom 15%',ST.out?'b':'u']],cb)}}
+function limitSug(h){if(innerHeight>=760)return h;const d=document.createElement('div');d.innerHTML=h;const keep=innerHeight<680?2:3;[...d.querySelectorAll('.o')].forEach((o,i)=>{if(i>=keep)o.remove()});d.querySelectorAll('.h').forEach(x=>{const n=x.nextElementSibling;if(!n||!n.classList.contains('o'))x.remove()});return d.innerHTML}
+function sugg(){const q=ST.sq.toLowerCase(),o=(t,m,top)=>`<div class="o ${top?'top':''}"><span>${t}</span><em>${m}</em></div>`;
+ if(!q)return `<div class="sg"><div class="h">Suggested for your plan</div>${o('When can I stop working?','on your chart',1)}${o('What if I spend <b>$70k</b> from 50?','change your plan')}${o('Why does my stack dip first?','lesson · 2 min')}</div>`;
+ if(q.startsWith('when'))return `<div class="sg"><div class="h">On your chart</div>${o('When can I <b>st</b>op working?','highlights the age',1)}${o('When does my stack recover to 5.2 ₿?','marks the year')}<div class="h">Change your plan</div>${o('<b>St</b>op dollar pay at…','adds an end date')}<div class="h">Go deeper</div>${o('<b>St</b>ats · risk windows','depth')}${o('Is bitcoin <b>t</b>ime?','doorway')}</div>`;
+ if(q.startsWith('spend'))return `<div class="sg"><div class="h">Change your plan</div>${o('Add <b>Spending $70k/yr from age 50</b>','preview with ghost',1)}${o('Change Living to $70k/yr from today','edit item')}<div class="h">On your chart</div>${o('How much can I <b>spend</b> and stay above 1 ₿?','answer on chart')}<div class="h">Go deeper</div>${o('Lesson: spending vs. stack','2 min')}</div>`;
+ return `<div class="sg"><div class="h">Go deeper</div>${o('<b>Drawdown</b>s · depth and duration','Stats',1)}${o('Lesson: why <b>drawdown</b>s happen','Learn')}${o('Is bitcoin time?','doorway')}<div class="h">On your chart</div>${o('Show my worst <b>drawdown</b>','highlights on chart')}<div class="h">Change your plan</div>${o('Add a cash buffer for <b>drawdown</b>s','new item')}</div>`}
+const SECS=[['plan','Plan'],['model','Model'],['view','View'],['stats','Stats'],['settings','Settings'],['cmp','Vs']];
+function body(t){const B=mkB(ST.s0);
+ if(t=='plan'){const F=[['all','All 15'],['btc','₿ income'],['usd','$ income'],['sp','Spending'],['one','One-offs'],['diff','≠ differs']];
+  const L2=ITEMS.map((r,i)=>[r,i]).filter(([r])=>ST.filt=='all'||(ST.filt=='diff'?r[5]:r[4]==ST.filt));
+  return `<div class="flt">${F.map(([k,l])=>`<span class="${ST.filt==k?'on':''}">${l}</span>`).join('')}</div><div class="hint" style="margin:0 0 4px">Editing <b>${ST.nA}</b> · <b class="btc">≠</b> differs in ${ST.nB} · sort: by type</div>`+L2.map(([r,i])=>`<div class="pr ${ST.openI==i||ST.ep!=null&&i==ST.editI0?'open':''} ${ST.flashI==i?'flash':''}"><span class="g">${r[0]}</span><span class="nm">${r[1]}${r[5]?'<span class="d">≠</span>':''}</span><span class="num ${r[4]=='btc'?'btc':r[4]=='usd'?'usd':''}">${i==7?'$'+ST.sp+'k/yr':r[2]}</span><span class="sp">${r[3]}</span>${ST.openI==i?`<div style="grid-column:1/-1"><div class="slide"><u style="left:30%"></u><b style="left:${ST.openI==10?52:42}%"></b></div><div class="hint">${r[5]?`In ${ST.nB}: <b>$25k/yr</b> · `:''}drag ◆ · tap to type · span ${r[3]}</div></div>`:''}</div>`).join('')}
+ if(t=='cmp'){const O=[['none','Just my plan','one line, no comparison'],['usd','Dollar pay','default for first visits · $100k, −5%/yr'],['alt',ST.nB,'variant of '+ST.nA+' · 3 items differ']];
+  return `<div class="sec">Your plan</div><div class="opt on"><span><span class="nm">${ST.nA}</span><small>15 items · tap to rename</small></span><span class="num btc">gold line</span></div><div class="sec">Compare against</div><div class="cmp">${O.map(([k,n,d])=>`<div class="opt ${ST.cmp==k?'on':''}"><span><span class="nm">${n}</span><small>${d}</small></span><span class="r"></span></div>`).join('')}<div class="hint">+ New comparison from a copy of ${ST.nA}</div></div>`}
+ if(t=='where'){const o=ST.out;return `<div class="sec">Where you are</div><div class="rw on"><span><span class="warn">⚠</span> ${o?'Outside the fan':'Rough-start window'} · Oct ’26–Sep ’28</span><em>see on chart ›</em></div>
+  <div class="sub" style="margin-top:6px">${o?'None of the 1,000 futures we drew started this low. That doesn’t mean it ends badly; it means the plan as saved doesn’t describe you anymore.':'In the runs that passed through a window like this one, here’s how long it lasted:'}</div>
+  <div class="hist">${[3,8,14,19,16,11,7,4,2,1].map(h=>`<b style="height:${h*2.2}px"></b>`).join('')}</div><div class="hl2"><span>3 mo</span><span>median 1.4 yrs</span><span>4 yrs</span></div><div class="hint">9 in 10 were over within 3 years · re-runs from today’s real price</div>
+  <div class="sec">What each choice does · from today</div><div class="row"><span>Keep the plan as it is</span><span class="num btc">worst ${o?'0.0':'0.6'} ₿ · at 55 ${o?'8.1':'10.4'} ₿</span></div><div class="row"><span>Spend $10k/yr less</span><span class="num btc">worst ${o?'0.5':'1.1'} ₿ · at 55 ${o?'9.9':'12.2'} ₿</span></div><div class="row"><span>Sell 1 ₿ now</span><span class="num btc">worst ${o?'0.0':'0.2'} ₿ · at 55 ${o?'6.6':'8.8'} ₿</span></div><div class="row"><span>Add 0.5 ₿ to your stack</span><span class="num btc">worst ${o?'0.4':'1.0'} ₿ · at 55 ${o?'9.4':'11.9'} ₿</span></div>
+  <div class="hint">These are consequences, not advice. You decide; the chart redraws for any of them.</div>`}
+ if(t=='stats'){const B=mkB(ST.s0),yrs=[1,3,5,8,12,17];
+  return `<div class="ach"><span>Model <b>Power law</b></span><span>Walk <b>Bubble 0.1</b></span><span>Inflation <b>8%</b></span><span>Runs <b>1,000</b></span></div><div class="sec">Quantiles · ₿ held · ${ST.nA}</div><table class="qt"><tr><th>Year</th><th>p5</th><th>p25</th><th>p50</th><th>p75</th><th>p95</th></tr>${yrs.map(y=>{const r=B[y*13];return `<tr><td>’${String(26+y)}</td>${r.map((v,k)=>`<td class="${k==0&&v<1?'lo':''}">${v<1&&v>.85?'&lt;1':f1(Math.max(0,v))}</td>`).join('')}</tr>`}).join('')}</table>
+  <div class="sec">Risk windows · tap to see on chart</div>${RW.map((w,k)=>`<div class="rw ${ST.rwSel==k?'on':''}"><span><span class="warn">⚠</span> ${w[0]}</span><em>${w[1]} ›</em></div>`).join('')}
+  <div class="sec">Drawdowns · depth from peak, all runs</div><div class="hist">${[4,9,16,22,19,13,8,5,3,1].map(h=>`<b style="height:${h*2}px"></b>`).join('')}</div><div class="hl2"><span>0%</span><span>median −38%</span><span>−90%</span></div><div class="hint">Median duration 2.1 yrs · p95 4.6 yrs · longest ’31–’35</div>`}
+ if(t=='model')return `<div class="row"><span>Price model</span><span class="num">Power law</span></div><div class="row"><span>Walk</span><span class="num">Bubble · vol 0.1</span></div><div class="row"><span>Inflation</span><span class="num">8%/yr</span></div><div class="link">Learn why the model matters <em>Lesson ›</em></div>`;
+ if(t=='view')return `<div class="row"><span>Measure in</span><span class="num">₿ held</span></div><div class="row"><span>Horizon</span><span class="num">17 yrs · to 2143 via epoch</span></div><div class="row"><span>Danger floor</span><span class="num">1 ₿</span></div><div class="row"><span>S&P comparison</span><span class="num">off</span></div>`;
+ return `<div class="row"><span>Theme</span><span class="num">Dark</span></div><div class="row"><span>Your numbers</span><span class="num">stay on device</span></div><div class="row"><span>Share</span><span class="num">link · image</span></div>`}
+const MAGI=`<span class="mag" data-s="1" aria-label="Search or ask"><svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="4.8" fill="none" stroke="var(--gold)" stroke-width="1.5"/><path d="M10.2 10.2L14.5 14.5" stroke="var(--gold)" stroke-width="1.3" stroke-linecap="round"/></svg></span>`;
+// ---- drawer state machine (DRAWER.md) ----
+// fluid: number of side-by-side drawer sections from available width (no device modes)
+const MARG=()=>Math.round(Math.min(48,Math.max(0,(innerWidth-560)/12)));
+const NC=()=>Math.max(1,Math.min(4,Math.floor((Math.min(innerWidth,1880)-2*MARG()-24)/300)));
+const MODE=()=>NC()>=2?'dock':(innerHeight<=500&&innerWidth>innerHeight)?'land':'phone';
+function dockSheet(){const open=ST.drawer||ST.editI!=null||ST.search,ed=ST.editI!=null,four=innerWidth>=1280;sh.dataset.state=ST.search?'search':ed?'edit':open?'open':'half';sh.className='sheet dock';sh.style.height='';
+ const card=(col,n,sb,v,i)=>{const e=ed&&ST.editI==i;return `<div class="card ${e?'ed':''}" data-di="${i}"><span class="bar" style="background:${col}"></span><span class="tx"><div class="nm">${n}</div><div class="sb">${sb}</div></span><span class="vl">${v}</span>${e?`<div class="slide"><u style="left:${(ST.ghostSp||ST.sp)-40}%"></u><b style="left:${(ST.sp-40)/120*100}%"></b></div><div class="st">${ST.undo?'Saved to your plan as you let go.':'Drag ◆ · type a number · saves when you let go'}</div>`:''}</div>`};
+ const B=mkB(ST.s0);
+ const COL={btc:'var(--btc)',usd:'var(--usd)',sp:'#a99e86',one:'var(--gold)'},GRP={btc:'Paid in bitcoin',usd:'Paid in dollars',sp:'Spending',one:'One-offs'};let pg='';
+ const plan=`<div class="col"><h4>Plan <i class="pc">${ITEMS.length} items</i></h4>${ITEMS.map((r,i)=>{const h=r[4]!=pg?(pg=r[4],`<h5>${GRP[r[4]]}</h5>`):'';return h+card(COL[r[4]],r[1],r[3],i==7?'$'+ST.sp+'k/yr':r[2],i)}).join('')}<div class="addc">+ Add income, cost or purchase</div></div>`;
+ const model=`<div class="col"><h4>Model</h4><h5>Price model</h5><div class="chips"><span class="chip on">Power law</span><span class="chip">Floor</span><span class="chip">Rainbow</span><span class="chip">CAGR 10%</span></div><div style="margin-top:10px"><div class="row"><span>Prices rise</span><span class="num">8%/yr</span></div><div class="row"><span>Walk</span><span class="num">Bubble</span></div><div class="row"><span>Volatility</span><span class="num">0.1</span></div><div class="row"><span>Futures · years</span><span class="num">1,000 · 17</span></div></div></div>`;
+ const view=`<div class="col"><h4>View</h4><h5>Show on chart</h5><div class="chips"><span class="chip on">Bands</span><span class="chip on">Medians</span><span class="chip">Price paths</span><span class="chip">Today’s dollars</span><span class="chip">Halvings</span></div><div style="margin-top:10px"><div class="row"><span>Measure in</span><span class="num">₿ held</span></div><div class="row"><span>Danger floor</span><span class="num">1 ₿</span></div><div class="row"><span>Compare against</span><span class="num">Dollar pay</span></div></div></div>`;
+ const stats=true?`<div class="col"><h4>Stats</h4><div class="row"><span>Worst low, first 5 yrs</span><span class="num btc">${fw(Math.max(0,worstMin(ST.s0)))} ₿</span></div><div class="row"><span>Futures below 1 ₿</span><span class="num">${worstMin(ST.s0)<1?6:0} in 100</span></div><div class="row"><span>Median at ${ST.age+17} · bitcoin</span><span class="num btc">${f1(B[N-1][2])} ₿</span></div><div class="row"><span>Median at ${ST.age+17} · dollars</span><span class="num usd">${f1(US[N-1][2])} ₿</span></div><div class="link" style="margin-top:8px">Risk windows <em>Oct ’26–Sep ’28 ›</em></div></div>`:`<div class="rail" title="Stats"><span>STATS ›</span></div>`;
+ const o=(t,m,top)=>`<div class="o ${top?'top':''}"><span>${t}</span><em>${m}</em></div>`;
+ const sg=`<div class="sgc" style="grid-template-columns:repeat(${Math.min(3,NC())},minmax(0,1fr))"><div class="col"><h4>On your chart</h4>${o('When can I stop working?','highlights the age',1)}${o('When does my stack recover to 5.2 ₿?','marks the year')}</div><div class="col"><h4>Change your plan</h4>${o('Spend $70k/yr from 50','preview')}${o('Stop dollar pay at 55','end date')}</div><div class="col"><h4>Go deeper</h4>${o('Drawdowns · depth and duration','Stats')}${o('Is bitcoin time?','doorway')}</div></div>`;
+ const row=`<div class="drow" data-open="1" role="button" tabindex="-1">${MAGI}<span class="ask ${ST.search?'on':''}">${ST.search?(ST.sq||'')+'<span class="caret"></span>':'Ask anything, or change your plan…'}</span>${ST.search?'<span class="dlink" data-xs="1">✕ Close</span>':open?'<button class="chev" data-open="1" aria-label="Close your plan" aria-expanded="true">Your plan <b>⌄</b></button>':'<button class="chev" data-open="1" aria-label="Open your plan" aria-expanded="false">Your plan <b>⌃</b></button>'}</div>`;
+ const n=NC(),SEC={plan,model,view,stats},keys=['plan','model','view','stats'],fixed=keys.slice(0,n-1),rest=keys.slice(n-1),tb=rest.includes(ST.tab)?ST.tab:rest[0];
+ const strip=h=>h.replace(/^<div class="col"><h4>[^<]*<\/h4>/,'<div class="col">');
+ const last=rest.length==1?SEC[rest[0]]:`<div class="col"><div class="ctabs">${rest.map(k=>`<span data-t="${k}" class="${k==tb?'on':''}">${k[0].toUpperCase()+k.slice(1)}</span>`).join('')}</div>${strip(SEC[tb])}</div>`;
+ const colsHTML=`<div class="cols" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${fixed.map(k=>SEC[k]).join('')}${last}</div>`;
+ const chip=ST.undo?`<span class="dchip">Living costs $${ST.ghostSp}k → $${ST.sp}k<u class="undo2">Undo</u></span>`:'';
+ sh.innerHTML=`<div class="grab edge" aria-hidden="true"><i>◆</i></div>`+row.replace('<span class="ask','<span class="ask').replace(/(<button class="chev")/,chip+'<span class="more" title="Settings" tabindex="0">⋯</span>$1')+(ST.search?sg:open?colsHTML:'');const ce=sh.querySelector('.card.ed');if(ce){const cl=ce.closest('.col'),sc=cl.scrollHeight>cl.clientHeight?cl:sh.querySelector('.cols');if(sc)sc.scrollTop=ce.offsetTop-sc.offsetTop-60}}
+function DS(){if(ST.arc)return'arc';if(ST.scrub!=null||(ST.drag&&ST.drag!='sp'))return'chart';if(ST.search)return'search';if(ST.ep!=null)return'open';if(ST.editI!=null)return'edit';if(ST.drawer)return'open';return'half'}
+function headline(){const ok=ST.s0>5.3&&worstMin(ST.s0)>=1,B=mkB(ST.s0);
+ if(ST.crash)return ST.rf>=1?`From here your futures still climb: about <b class="btc">${f1(refan()[N-1-TI][2])} ₿</b> at ${ST.age+17}.`:ST.out?`You’re <b>below every future we drew</b>. Spending and stack are the levers.`:`You’re in the <b>bottom 15%</b> of the futures we drew, <b class="usd">still inside the fan.</b>`;
+ if(ST.sres=='stop')return 'Stop at <b class="btc">52</b> · worst future stays above 1 ₿.';
+ if(ST.sres=='edit')return '<b class="btc">'+f1(B[N-1][2])+' ₿</b> at 55 with spending $70k/yr from 50.';
+ if(ST.saved)return ST.zoom?'Zoomed to a risk window. Your median never leaves 3 ₿.':`<b class="btc">${ST.nA}</b> carries you; <b class="usd">${ST.nB}</b> gets thin in ’31–’32.`;
+ return ok?`<b class="btc">${f1(B[N-1][2])} ₿</b> by ${ST.age+17}; even your worst futures stay above 1 ₿.`:`Starts rough, then carries you to about <b class="btc">${f1(B[N-1][2])} ₿</b> by ${ST.age+17}.`}
+function sheet(){const D=DS();if(MODE()=='dock'){dockSheet();return}document.getElementById('sl').innerHTML=headline();
+ if(D!='open')sh.style.height='';const gb=`<div class="gb" role="button" tabindex="0" aria-label="Close drawer"><span class="gl">${D=='edit'?MAGI+'<span class="esc" data-back="1">↩ Back to Plan</span>':ST.zoom&&!ST.crash&&D!='chart'?'<span class="esc">↩ Back to Stats</span>':''}</span><div class="grab"><i>◆</i></div><span class="gr">${ST.undo&&D!='chart'?`<span class="undo">↶ Undo · $${ST.ghostSp}k</span>`:''}</span></div>`;
+ const tabsL=ST.crash?[['where','Now'],['plan','Plan'],['stats','Stats'],['model','Model']]:SECS.slice(0,5);
+ sh.dataset.state=D;
+ if(D=='arc'){const A=ARC[ST.arc-1];sh.className='sheet s-arc';sh.innerHTML=`<div class="k2">${['I','II','III','IV','V'][ST.arc-1]} · ${A[0]}</div><div class="bt">${A[1]}</div>${A[2]?`<div class="q">${A[2]}</div>`:''}<div class="hint"><b>◆</b> ${A[3]}</div><div class="dots">${ARC.map((_,k)=>`<b class="${k<ST.arc?'on':''}"></b>`).join('')}</div>`;return}
+ if(D=='chart'){sh.className='sheet s-chart';sh.innerHTML=`<div class="gb" role="button" tabindex="0"><div class="grab"><i>◆</i></div></div>`;return}
+ const desk=false;if(D=='open'||(desk&&D=='half')){sh.className='sheet s-open';sh.style.height=ST.ep!=null?(lerp(409,142,ST.ep)/innerHeight*100)+'%':'';sh.innerHTML=gb+(desk?`<div class="beat"><i>I</i><p>${headline()}</p></div>`:'')+`<div class="tabs"><span data-s="1" class="tmag">${MAGI}</span>${tabsL.map(([k,l])=>`<span data-t="${k}" class="${ST.tab==k?'on':''}">${l}</span>`).join('')}</div><div class="body">${body(ST.tab)}</div>`;return}
+ if(D=='edit'){const r=ITEMS[ST.editI]||ITEMS[7];sh.className='sheet s-edit';sh.innerHTML=gb+`<div class="item sel"><span class="n"><span class="t">${r[4]=='sp'?'recurring spending':r[4]=='one'?'one-off':'recurring income'} · ${r[3]}</span>${r[1]}</span><span class="num">$${ST.sp}k/yr</span></div><div class="slide">${ST.ghostSp?`<u style="left:${(ST.ghostSp-40)/120*100}%"></u>`:''}<b style="left:${(ST.sp-40)/120*100}%"></b></div><div class="hint">${ST.undo?'Saved to your plan as you let go.':'◆ drag · tap the number to type · saves when you let go'}</div>`;return}
+ if(D=='search'){sh.className='sheet s-search'+(ST.kb?' withkb':'');sh.innerHTML=gb+limitSug(sugg())+`<div class="sfield" style="clip-path:inset(0 ${(1-(ST.sgrow??1))*92}% 0 0 round 99px)"><span class="lm">${MAGI}</span><span class="tx">${ST.sq?ST.sq:'<span class="ph">Ask anything, or change your plan…</span>'}${ST.kb?'<span class="caret"></span>':''}</span><span class="x">✕</span></div>`;return}
+ // half: headline + 🔍 only
+ sh.className='sheet s-half';sh.innerHTML=gb+`${ST.crash?'<div class="kick">Price −55% since you saved in May</div>':''}<div class="hrow"><div class="beat ${ST.compact?'one':''}" data-up="1"><i>${ST.crash?'◆':'I'}</i><p>${headline()}</p></div>${MAGI}</div>${ST.sres=='edit'?`<div class="pv"><span>＋ Spending <b class="num">$70k/yr</b> · from 50 <span style="color:var(--muted)">· preview</span></span><em>Keep · ↶ Undo</em></div>`:''}${ST.hint?'<div class="hint"><b>◆</b> Hold the chart to read your future · tap the line above for everything else</div>':''}`}
+const c=document.getElementById('c');let G={};
+function draw(){const W=c.clientWidth,H=c.clientHeight,x=c.getContext('2d');if(H<150){const ft=CanvasRenderingContext2D.prototype.fillText;x.fillText=function(t,a,b){if(/₿$|^you at \d|· you at/.test(t)&&!/your|danger|worst|before/.test(t))ft.call(this,t,a,b)}}else delete x.fillText;c.width=W*2;c.height=H*2;x.setTransform(2,0,0,2,0,0);
+ if(ST.arc>=2&&ST.arc<=4){x.clearRect(0,0,W,H);drawArc(x,W,H);return}
+ const BT=mkB(ST.s0),YM=ST.crash?lerp(8,20,ST.rf):ST.zoom?8:20,L=34,R=W-44,T=18,Bt=H-34,z0=ST.zoom?ST.zoom[0]:0,z1=ST.zoom?ST.zoom[1]:N-1,lx=i=>L+(R-L)*(i-z0)/(z1-z0),ly=v=>Bt-(Bt-T)*Math.max(v,0)/YM;G={L,R,T,Bt,lx,ly,BT,W,H};
+ x.font='10px JetBrains Mono';x.fillStyle=css('--muted');x.textAlign='left';
+ (ST.crash?(ST.rf<.5?[0,2,4,6,8]:[0,5,10,15,20]):ST.zoom?[0,2,4,6,8]:[0,5,10,15,20]).forEach(v=>{x.strokeStyle=css('--line');x.setLineDash([1,3]);x.beginPath();x.moveTo(L,ly(v));x.lineTo(R,ly(v));x.stroke();x.setLineDash([]);x.fillText(v+'₿',R+4,ly(v)+3)});
+ x.save();if(ST.zoom){x.beginPath();x.rect(L,0,R-L+1,H);x.clip()}const CM=ST.cmp=='usd'?US:ST.cmp=='alt'?ALT:null;
+ const fan=(s,lo,hi,col,a)=>{x.beginPath();s.forEach((r,i)=>x.lineTo(lx(i),ly(r[lo])));for(let i=N-1;i>=0;i--)x.lineTo(lx(i),ly(s[i][hi]));x.globalAlpha=a*(ST.crash&&ST.rf>0?.35:1);x.fillStyle=col;x.fill();x.globalAlpha=1};
+ const ln=(s,col,d,w,k=2)=>{x.beginPath();s.forEach((r,i)=>x.lineTo(lx(i),ly(r[k])));x.globalAlpha=ST.crash&&ST.rf>0?.35:1;x.strokeStyle=col;x.setLineDash(d);x.lineWidth=w;x.stroke();x.globalAlpha=1;x.setLineDash([]);x.lineWidth=1};
+ const cb=css('--btc'),cu=css('--usd');
+ // danger floor: the 1 ₿ line during the rough start
+ const r1=lx(3*13);x.globalAlpha=.08;x.fillStyle=css('--loss');x.fillRect(L,T,r1-L,Bt-T);x.globalAlpha=1;
+ x.globalAlpha=.10;x.fillStyle=cb;x.fillRect(L,ly(1),R-L,Bt-ly(1));x.globalAlpha=1;
+ x.strokeStyle=cb;x.setLineDash([2,3]);x.beginPath();x.moveTo(L,ly(1));x.lineTo(R,ly(1));x.stroke();x.setLineDash([]);
+ x.fillStyle=cb;x.font='italic 12px "Cormorant Garamond"';x.textAlign='right';x.fillText('below 1 ₿ · danger',R-4,ly(1)+12);
+ x.fillStyle=css('--muted');x.font='italic 12px "Cormorant Garamond"';x.textAlign='left';if(!ST.zoom)x.fillText('your rough start',L+5,ly(10.5));
+ if(ST.ghostSp){const sv=ST.sp;ST.sp=ST.ghostSp;const g=mkB(ST.s0);ST.sp=sv;ln(g,css('--muted'),[2,3],1.2,2);ln(g,css('--muted'),[2,3],1.2,0);x.fillStyle=css('--muted');x.font='italic 12px "Cormorant Garamond"';x.textAlign='right';{const t='before, at $'+ST.ghostSp+'k',tw=x.measureText(t).width;x.fillStyle=css('--bg');x.globalAlpha=.85;x.fillRect(R-8-tw,ly(g[N-1][2])+3,tw+6,15);x.globalAlpha=1;x.fillStyle=css('--muted');x.fillText(t,R-4,ly(g[N-1][2])+14)}}
+ if(ST.ghost){const g=mkB(ST.ghost);ln(g,css('--muted'),[2,3],1.2,0);ln(g,css('--muted'),[2,3],1.2,2);x.fillStyle=css('--muted');x.font='italic 12px "Cormorant Garamond"';x.textAlign='left';const gi=g.reduce((m,r,i)=>r[0]<g[m][0]?i:m,0);x.fillText('worst, at '+f1(ST.ghost)+' ₿',lx(gi)+8,ly(g[gi][0])-6)}
+ if(CM)fan(CM,0,4,cu,.14);fan(BT,0,4,cb,.18);fan(BT,1,3,cb,.3);if(CM){ln(CM,cu,[9,4],2);if(ST.cmp=='alt')ln(CM,cu,[1,3],1,0)}ln(BT,cb,[],2.2);ln(BT,cb,[1,3],1,0);
+ x.textAlign='right';x.font='italic 14px "Cormorant Garamond"';x.fillStyle=cb;x.fillText(ST.crash?'':ST.saved?ST.nA:'paid in bitcoin',R-4,ly(BT[N-1][2])-10);
+ if(CM){x.fillStyle=cu;x.fillText(ST.cmp=='alt'?ST.nB:'paid in dollars',R-4,ly(CM[N-1][3])+18)}
+ // warning marks living on the worst-futures line where it dips under 1 ₿
+ const W2=[];for(let i=0;i<5*13;i+=4){if(BT[i][0]<1)W2.push(i)}
+ G.warns=(W2.length?[W2[0],W2[W2.length-1]].filter((v,k,a)=>k==0||v-a[0]>12):[]).map(i=>({X:lx(i),Y:ly(BT[i][0]),i}));
+ G.warns.forEach((w,k)=>{x.fillStyle=css('--bg')||'#e7ddcc';x.beginPath();x.arc(w.X,w.Y,8,0,7);x.fillStyle=css('--surface');x.fill();x.strokeStyle=cb;x.lineWidth=1.3;x.stroke();x.lineWidth=1;x.fillStyle=cb;x.font='600 10px Inter';x.textAlign='center';x.fillText('⚠',w.X,w.Y+3.5)});
+ if(!G.warns.length&&ST.s0>5.3&&H>420){x.fillStyle=css('--usd');x.font='italic 13px "Cormorant Garamond"';x.textAlign='left';x.fillText('✓ no future dips below 1 ₿',lx(70),ly(1)-8)}
+ // stack handle at today
+ const hx=L,hy=ly(ST.s0);G.h={X:hx,Y:hy};x.save();x.translate(hx,hy);x.rotate(Math.PI/4);x.fillStyle=css('--gold');x.fillRect(-7,-7,14,14);x.restore();
+ x.fillStyle=css('--gold');x.font='500 13px "Cormorant Garamond"';x.textAlign='left';x.fillText('your '+f1(ST.s0)+' ₿',hx+12,hy-10);
+ 
+ // today line, grabbable
+ x.strokeStyle=css('--time');x.lineWidth=1.5;x.beginPath();x.moveTo(L,T-6);x.lineTo(L,Bt);x.stroke();x.lineWidth=1;x.fillStyle=css('--time');x.font='italic 13px "Cormorant Garamond"';x.textAlign='left';x.fillText(ST.crash?'Saved · May ’26':'Today · you at '+ST.age,L+5,T+4);
+ x.beginPath();x.arc(L,Bt+20,5,0,7);x.fill();
+ x.fillRect(L,Bt+19,R-L,2);x.font='10px Inter';x.textAlign='right';x.fillText((Y0+17)+' · you at '+(ST.age+17),R,Bt+32);
+ x.font='10px JetBrains Mono';x.fillStyle=css('--muted');x.textAlign='center';for(let y=5;y<16;y+=4)x.fillText('you at '+(ST.age+y),lx(y*13),Bt+13);
+ x.strokeStyle=css('--rule');x.beginPath();x.moveTo(L,Bt);x.lineTo(R,Bt);x.stroke();
+ if(ST.rwSel!=null){const w=RW[ST.rwSel];x.globalAlpha=.16;x.fillStyle=cb;x.fillRect(lx(w[2]),T,lx(w[3])-lx(w[2]),Bt-T);x.globalAlpha=1;x.strokeStyle=cb;x.setLineDash([3,3]);[w[2],w[3]].forEach(i=>{x.beginPath();x.moveTo(lx(i),T);x.lineTo(lx(i),Bt);x.stroke()});x.setLineDash([]);
+  x.fillStyle=css('--surface');x.fillRect(L,Bt+2,R-L,15);x.font='10px JetBrains Mono';x.fillStyle=cb;x.textAlign='center';x.fillText(w[1].split('–')[0],lx(w[2]),Bt+14);x.fillText(w[1].split('–')[1],lx(w[3]),Bt+14);x.font='italic 15px "Cormorant Garamond"';x.fillText('⚠ '+w[0],(lx(w[2])+lx(w[3]))/2,T+16);x.font='italic 12px "Cormorant Garamond"';x.fillStyle=css('--muted');x.fillText('5 in 100 runs of '+ST.nB+' reach 0 ₿',(lx(w[2])+lx(w[3]))/2,T+32)}
+ if(ST.sres=='stop'){const i=(52-ST.age)*13,X=lx(i);x.globalAlpha=.12;x.fillStyle=css('--gold');x.fillRect(X,T,R-X,Bt-T);x.globalAlpha=1;x.strokeStyle=css('--gold');x.lineWidth=1.6;x.beginPath();x.moveTo(X,T);x.lineTo(X,Bt);x.stroke();x.lineWidth=1;x.save();x.translate(X,Bt+20);x.rotate(Math.PI/4);x.fillStyle=css('--gold');x.fillRect(-5,-5,10,10);x.restore();
+  x.fillStyle=css('--gold');x.font='italic 15px "Cormorant Garamond"';x.textAlign='left';x.fillText('stop at 52',X+6,T+16);G.stopX=X;G.stopY=ly(BT[i][2])}
+ if(ST.crash)crashDraw(x);
+ x.restore();if(ST.crash)crashBubble(x);if(ST.sres=='stop')bubble(x,G.stopX,G.stopY,[['You at 52 · 2040','h'],['Your pay outgrows spending here.','t'],['Worst future: '+f1(G.BT[(52-ST.age)*13][0])+' ₿, never below 1.','b'],['Median: '+f1(G.BT[(52-ST.age)*13][2])+' ₿','b']],css('--gold'),true);
+ // warn callout
+ if(ST.warn){const w=G.warns[Math.min(ST.warn-1,G.warns.length-1)];if(w)bubble(x,w.X,w.Y,[['⚠ You at '+(ST.age+1)+'–'+(ST.age+2)+' · ’27–’28','h'],['6 in 100 of your futures dip','t'],['below 1 ₿ here. Hold more coin','t'],['going in, and this mark fades.','t']],cb)}
+ // scrub readout
+ if(ST.scrub!=null){const i=Math.round(ST.scrub),X=lx(i),y=i/13,r=BT[i];x.strokeStyle=css('--gold');x.setLineDash([2,2]);x.beginPath();x.moveTo(X,T);x.lineTo(X,Bt);x.stroke();x.setLineDash([]);
+  [[r[2],cb],[r[0],cb]].concat(CM?[[CM[i][2],cu]]:[]).forEach(([v,col])=>{x.beginPath();x.arc(X,ly(v),4,0,7);x.fillStyle=col;x.fill();x.strokeStyle=css('--surface');x.stroke()});
+  const yr=Y0+Math.floor(y),ag=ST.age+Math.floor(y);
+  bubble(x,X,ly(r[2]),[['You at '+ag+' · '+yr,'h'],['Paid in bitcoin: about '+f1(r[2])+' ₿','b'],['In a bad future: '+f1(r[0])+' ₿','b'],].concat(CM?[[(ST.cmp=='alt'?ST.nB:'Paid in dollars')+': '+f1(CM[i][2])+' ₿','u']]:[]),cb,true)}
+ // drag readout
+ if(ST.drag=='stack'){const ok=worstMin(ST.s0)>=1;bubble(x,hx,hy,[['Start with '+f1(ST.s0)+' ₿','h'],ok?['Your worst future stays above 1 ₿.','u']:['Worst future bottoms at '+f1(Math.max(0,worstMin(ST.s0)))+' ₿','b'],ok?['This carries you through.','u']:['About '+f1(SAFE)+' ₿ carries you through.','t']],cb)}
+ if(ST.drag=='sp'){const i=13*4;bubble(x,lx(i),ly(mkB(ST.s0)[i][2]),[['Spending $'+ST.sp+'k/yr','h'],['Worst future bottoms at '+f1(Math.max(0,worstMin(ST.s0)))+' ₿','b'],['At '+(ST.age+17)+': about '+f1(mkB(ST.s0)[N-1][2])+' ₿','t']],cb)}
+ if(ST.drag=='age'){bubble(x,L,T+40,[['You’re '+ST.age+' today','h'],['Same plan, your years.','t'],['Rough start ends at '+(ST.age+3)+'.','t']],css('--time'))}
+}
+function bubble(x,X,Y,lines,col,above){x.font='500 15px "Cormorant Garamond"';const w=Math.max(...lines.map(l=>{x.font=l[1]=='h'?'600 11px Inter':'500 15px "Cormorant Garamond"';return x.measureText(l[0]).width}))+22,h=lines.length*19+12;
+ let bx=Math.min(Math.max(X-w/2,8),G.W-w-8),by=above?Y-h-22:Y+18;if(by<G.T)by=Y+22;if(by+h>G.Bt)by=Y-h-22;
+ x.shadowColor='rgba(60,40,20,.18)';x.shadowBlur=12;x.fillStyle=css('--surface');x.beginPath();x.roundRect(bx,by,w,h,10);x.fill();x.shadowBlur=0;x.strokeStyle=col;x.lineWidth=1;x.stroke();
+ lines.forEach((l,k)=>{x.textAlign='left';x.font=l[1]=='h'?'600 11px Inter':'500 15px "Cormorant Garamond"';x.fillStyle=l[1]=='h'?css('--gold'):l[1]=='b'?css('--btc'):l[1]=='u'?css('--usd'):css('--text');if(l[1]=='h'){x.save();x.letterSpacing='.08em';x.fillText(l[0].toUpperCase(),bx+11,by+20+k*19);x.restore()}else x.fillText(l[0],bx+11,by+20+k*19)})}
+function finger(){let d2=document.querySelector('.tap2');if(ST.finger2){if(!d2){d2=document.createElement('div');d2.className='tap tap2';document.body.appendChild(d2)}const r=c.getBoundingClientRect();d2.style.left=(r.left+ST.finger2[0])+'px';d2.style.top=(r.top+ST.finger2[1])+'px'}else if(d2)d2.remove();let d=document.querySelector('.tap');if(!ST.finger){if(d)d.remove();return}if(!d){d=document.createElement('div');d.className='tap';document.body.appendChild(d)}const r=c.getBoundingClientRect();d.style.left=(r.left+ST.finger[0])+'px';d.style.top=(r.top+ST.finger[1])+'px'}
+function render(){render0();const sh2=document.getElementById('sh');document.body.dataset.ds=DS();const EG=+((location.search.match(/edge=(\d+)/)||[])[1]||18);if(EG==18){sh2.querySelectorAll('.grab').forEach(g=>{if(!g.dataset.h){g.innerHTML=hDia();g.dataset.h=1}})}else if(EG>=15){const k=['open','edit','search','chart'].includes(DS())?1:0,W=sh2.clientWidth;sh2.style.setProperty('--clip',`path('${gClip(EG,k,W)}')`);const old=sh2.querySelector('.peak');if(old)old.remove();sh2.insertAdjacentHTML('beforeend',gSVG(EG,k,W));const g=sh2.querySelector('.grab');if(g){g.innerHTML='';g.style.width=(gTiers(EG,k)[0][0]*2+(EG==16?50:0))+'px'}}else if(EG>=13){const k=['open','edit','search','chart'].includes(DS())?1:0,W=sh2.clientWidth;const pts=peakPts(EG,k,W);sh2.style.setProperty('--clip','polygon('+pts.map(p=>p[0]+'px '+(p[1]+18)+'px').join(',')+',100% 100%,0 100%)');const old=sh2.querySelector('.peak');if(old)old.remove();sh2.insertAdjacentHTML('beforeend',peakSVG(EG,k,W));const pk=pts.slice(2,-2),xs=pk.map(p=>p[0]);const g=sh2.querySelector('.grab');if(g){g.innerHTML='';g.style.width=(Math.max(...xs)-Math.min(...xs))+'px'}}else if(EG>=9){const k=['open','edit','search','chart'].includes(DS())?1:0,W=sh2.clientWidth;const old=sh2.querySelector('.decoE');if(old)old.remove();sh2.insertAdjacentHTML('beforeend',decoE(EG,k,W));sh2.querySelectorAll('.grab').forEach(g=>g.innerHTML='')}else if(EG>=5){const k=['open','edit','search','chart'].includes(DS())?1:0;sh2.querySelectorAll('.grab').forEach(g=>{if(g.dataset.k!=k){g.innerHTML=decoSVG(EG,k);g.dataset.k=k}})}if(!sh2.querySelector('.ce'))sh2.insertAdjacentHTML('beforeend','<span class="ce l"><i>◆</i></span><span class="ce r"><i>◆</i></span>')}
+
+function decoSVG(e,k){const W=240,c=W/2,y=22,G='var(--gold)',S='var(--surface)',sw='stroke="'+G+'" stroke-width="1" vector-effect="non-scaling-stroke" stroke-linejoin="miter"';let p='';const f=n=>n.toFixed(1);
+ if(e==5){const st=[[26+34*k,0],[18+26*k,3],[11+18*k,6],[5+10*k,9]];let L=[],R=[];st.forEach(([b,h],i)=>{const nb=st[i+1]?st[i+1][0]:0;if(i==0)L.push([c-b,y]);L.push([c-b,y-h-3]);if(st[i+1])L.push([c-nb,y-h-3]);});
+  const pts=L.concat(L.slice().reverse().map(([x,yy])=>[2*c-x,yy]));p=`<polygon points="${pts.map(q=>f(q[0])+','+f(q[1])).join(' ')}" fill="${S}" ${sw}/><line x1="${f(c-3-6*k)}" y1="${y-8}" x2="${f(c+3+6*k)}" y2="${y-8}" ${sw}/>`}
+ if(e==6){p=`<path d="M${f(c-34-40*k)} ${y} A${f(34+40*k)} 9 0 0 1 ${f(c+34+40*k)} ${y}Z" fill="${S}" stroke="none"/>`;[[12,3.5],[22,6],[34,9]].forEach(([rx,ry],i)=>{const R=rx*(1+1.15*k);p+=`<path d="M${f(c-R)} ${y} A${f(R)} ${ry} 0 0 1 ${f(c+R)} ${y}" fill="none" ${sw}/>`});
+  const n=4+Math.round(2*k);for(let i=1;i<=n;i++){const a=i/(n+1)*Math.PI;const rx=(34)*(1+1.15*k),x=c-Math.cos(a)*rx,yy=y-Math.sin(a)*9;const x0=c-Math.cos(a)*12*(1+1.15*k),y0=y-Math.sin(a)*3.5;p+=`<line x1="${f(x0)}" y1="${f(y0)}" x2="${f(x)}" y2="${f(yy)}" ${sw} opacity=".8"/>`}}
+ if(e==7){const hw=14,hh=5;p=`<polygon points="${c-hw},${y} ${c-hw+5},${y-hh} ${c+hw-5},${y-hh} ${c+hw},${y} ${c+hw-5},${y+hh} ${c-hw+5},${y+hh}" fill="${S}" ${sw}/><polygon points="${c-5},${y} ${c-2},${y-2} ${c+2},${y-2} ${c+5},${y} ${c+2},${y+2} ${c-2},${y+2}" fill="${G}"/>`;
+  [[-3,10,26],[0,18,44],[3,10,26]].forEach(([dy,a,b])=>{const L=a+(b-a)*k*1.6;if(dy==0)return;[[-1],[1]].forEach(([s])=>{const x0=c+s*(hw+4);p+=`<line x1="${x0}" y1="${y+dy}" x2="${f(x0+s*L)}" y2="${y+dy}" ${sw}/>`})});
+  p=`<rect x="${f(c-hw-4-26*1.6*k-12)}" y="${y-1}" width="${f(2*(hw+4+26*1.6*k+12))}" height="2" fill="${S}"/>`+p}
+ if(e==8){const b=20+42*k,h=3;const P=[[c-b-8,y],[c-b-8,y-2],[c-b-4,y-2],[c-b-4,y-h-1],[c-b,y-h-3],[c+b,y-h-3],[c+b+4,y-h-1],[c+b+4,y-2],[c+b+8,y-2],[c+b+8,y],[c+b+8,y+2],[c+b+4,y+2],[c+b+4,y+h+1],[c+b,y+h+3],[c-b,y+h+3],[c-b-4,y+h+1],[c-b-4,y+2],[c-b-8,y+2]];
+  p=`<polygon points="${P.map(q=>f(q[0])+','+f(q[1])).join(' ')}" fill="${S}" ${sw}/><line x1="${f(c-b+4)}" y1="${y}" x2="${f(c+b-4)}" y2="${y}" ${sw} opacity=".6"/>`}
+ return `<svg class="deco" width="${W}" height="44" viewBox="0 0 ${W} 44" aria-hidden="true">${p}</svg>`}
+
+
+function decoE(e,k,W){const c=W/2,y=8,f=n=>(+n).toFixed(2),G='var(--gold)',S='var(--surface)';let o='';
+ const L=(x1,y1,x2,y2,w=1)=>o+=`<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${G}" stroke-width="${w}"/>`;
+ const P=(pts,fill='none',w=1)=>o+=`<polygon points="${pts.map(p=>f(p[0])+','+f(p[1])).join(' ')}" fill="${fill}" stroke="${G}" stroke-width="${w}" stroke-linejoin="miter"/>`;
+ const PL=(pts,w=1)=>o+=`<polyline points="${pts.map(p=>f(p[0])+','+f(p[1])).join(' ')}" fill="none" stroke="${G}" stroke-width="${w}"/>`;
+ const D=(x,yy,r,fill=G)=>o+=`<circle cx="${f(x)}" cy="${f(yy)}" r="${r}" fill="${fill}" stroke="${G}" stroke-width=".9"/>`;
+ const M=(x,yy,r,fill=G)=>P([[x-r,yy],[x,yy-r],[x+r,yy],[x,yy+r]],fill,.9);
+ const sym=fn=>{fn(1);fn(-1)};const end=W*(0.40+0.06*k);
+ if(e==9){// stacked fan over triple line
+  const a=16+3*k,h=17;sym(s=>{const x0=c+s*(a+3);L(x0,y+3,c+s*(end-14),y+3);L(x0+s*(4+8*k),y+6,c+s*(end-30-8*k),y+6);
+   // capsule
+   const cx0=c+s*(a+8+10*k),cx1=c+s*(a+40+34*k);o+=`<rect x="${f(Math.min(cx0,cx1))}" y="${y+1.5}" width="${f(Math.abs(cx1-cx0))}" height="6" rx="3" fill="${S}" stroke="${G}" stroke-width="1"/>`;
+   D(c+s*(end-10),y+3,2.2,S);D(c+s*(end-4),y+3,1.3);D(c+s*(end+1),y+3,1);
+   // side wings unfold
+   const wx=c+s*(a-2+9*k);P([[wx,y],[wx+s*9,y],[wx+s*12,y+5],[wx+s*4,y+12]],S)});
+  P([[c-a,y],[c+a,y],[c+a+3,y+5],[c+8,y+h],[c-8,y+h],[c-a-3,y+5]],S,1.1);
+  [-12,-6,0,6,12].forEach(d=>L(c+d*0.45,y+h,c+d*1.15,y+0.5,.9))}
+ if(e==10){// nested lozenge
+  const hw=22+4*k,hh=9,yc=y+hh;P([[c-hw,yc],[c-hw+7,yc-hh],[c+hw-7,yc-hh],[c+hw,yc],[c+hw-7,yc+hh],[c-hw+7,yc+hh]],S,1.1);
+  P([[c-14,yc],[c,yc-7],[c+14,yc],[c,yc+7]],'none',1);P([[c-7,yc],[c,yc-3.5],[c+7,yc],[c,yc+3.5]],G,.8);
+  sym(s=>{const x0=c+s*hw;L(x0,yc,c+s*(x0*s-c*s+18+30*k),yc);// step line
+   PL([[x0-s*3,y+3],[c+s*(hw+30+20*k),y+3],[c+s*(hw+34+20*k),y+6],[c+s*(end-20),y+6]]);
+   M(c+s*(hw+22+24*k),yc,3.2,S);M(c+s*(hw+34+44*k),yc,2.2);
+   PL([[c+s*(end-20),y+6],[c+s*(end-16),y+9],[c+s*(end-6),y+9]]);M(c+s*(end-2),y+9,1.8)})}
+ if(e==11){// stepped ziggurat with inner offsets and fins
+  const st=[[26+8*k,0],[19+6*k,5],[12+4*k,10],[6+2*k,15]];const zig=(ins)=>{let pts=[];st.forEach(([b,h],i)=>{const bb=b-ins,nb=st[i+1]?st[i+1][0]-ins:0;pts.push([c-bb,y+h+(i?0:0)+ins*(i?1:0)]);pts.push([c-bb,y+h+5-ins*0]);if(i<3)pts.push([c-nb,y+h+5])});
+   pts=[[c-st[0][0]+ins,y]].concat(pts.slice(1));return pts.concat(pts.slice().reverse().map(p=>[2*c-p[0],p[1]]))};
+  P(zig(0),S,1.1);let inner=[];st.forEach(([b,h],i)=>{const bb=b-3,nb=st[i+1]?st[i+1][0]-3:0;if(i==0)inner.push([c-bb,y+2.5]);inner.push([c-bb,y+h+2.5]);if(i<3)inner.push([c-nb,y+h+2.5])});PL(inner.concat(inner.slice().reverse().map(p=>[2*c-p[0],p[1]])),.8);L(c-3,y+17,c+3,y+17,1);
+  sym(s=>{const x0=c+s*(st[0][0]);L(x0,y+3,c+s*(end-12),y+3);L(x0+s*(6+6*k),y+6,c+s*(end-28-10*k),y+6);L(x0+s*(14+14*k),y+9,c+s*(end-44-20*k),y+9);
+   [[end-12,3],[end-28-10*k,6],[end-44-20*k,9]].forEach(([xe,dy])=>{PL([[c+s*(xe-5),y+dy-3],[c+s*xe,y+dy],[c+s*(xe-5),y+dy+3]],.9)})})}
+ if(e==12){// sunburst with crossbar and arrow tips
+  const R=16,rx=R*(1+0.5*k);o+=`<path d="M${f(c-rx)} ${y} A${f(rx)} ${R} 0 0 0 ${f(c+rx)} ${y}Z" fill="${S}" stroke="${G}" stroke-width="1.1"/>`;
+  for(let i=1;i<12;i++){const a=i/12*Math.PI,l=i%2?0.92:0.6;L(c-Math.cos(a)*rx*0.25,y+Math.sin(a)*R*0.25,c-Math.cos(a)*rx*l,y+Math.sin(a)*R*l,.8)}
+  o+=`<path d="M${f(c-rx*0.25)} ${y} A${f(rx*0.25)} ${R*0.25} 0 0 0 ${f(c+rx*0.25)} ${y}" fill="${G}"/>`;
+  sym(s=>{const x0=c+s*(rx+2);L(x0,y+3,c+s*(end-10),y+3);L(x0,y+6,c+s*(end-10),y+6);
+   const xb=c+s*(rx+8+6*k),xe=c+s*(rx+48+40*k);P([[xb,y+2],[xe,y+2],[xe+s*5,y+4.5],[xe,y+7],[xb,y+7]],S,1);
+   const t=c+s*(end-10);P([[t,y+0.5],[t+s*7,y+4.5],[t,y+8.5],[t+s*2.5,y+4.5]],G,.8)})}
+ return `<svg class="decoE" width="${W}" height="40" viewBox="0 0 ${W} 40" aria-hidden="true">${o}</svg>`}
+
+
+function peakPts(e,k,W){const c=W/2,ch=16,f=n=>+n.toFixed(2);let pk=[];
+ if(e==13){const a=30+26*k,b=22+20*k,d=9+10*k;pk=[[c-a,0],[c-b,-9],[c-d,-16],[c+d,-16],[c+b,-9],[c+a,0]];}
+ if(e==14){const a=32+28*k,b=22+20*k,d=11+12*k;pk=[[c-a,0],[c-a,-5],[c-b,-5],[c-b,-10],[c-d,-10],[c-d,-15],[c+d,-15],[c+d,-10],[c+b,-10],[c+b,-5],[c+a,-5],[c+a,0]];}
+ return [[0,ch],[ch,0],...pk,[W-ch,0],[W,ch]].map(p=>[f(p[0]),f(p[1])])}
+function peakSVG(e,k,W){const T=18,c=W/2,G='var(--gold)';const pts=peakPts(e,k,W),str=pts.map(p=>p[0]+','+(p[1]+T)).join(' ');let o=`<polyline points="${str}" fill="none" stroke="${G}" stroke-width="1.1" stroke-linejoin="miter"/>`;
+ const L=(x1,y1,x2,y2,w=.8,op=1)=>o+=`<line x1="${x1.toFixed(2)}" y1="${(y1+T).toFixed(2)}" x2="${x2.toFixed(2)}" y2="${(y2+T).toFixed(2)}" stroke="${G}" stroke-width="${w}" opacity="${op}"/>`;
+ const pk=pts.slice(2,-2);
+ // inner offset (3px) — follows contour
+ if(e==13){const a=30+26*k,b=22+20*k,d=9+10*k;const q=[[c-a+5,0],[c-b+3,-6.5],[c-d+1,-12.5],[c+d-1,-12.5],[c+b-3,-6.5],[c+a-5,0]];o+=`<polyline points="${q.map(p=>p[0].toFixed(2)+','+(p[1]+T)).join(' ')}" fill="none" stroke="${G}" stroke-width=".8" opacity=".75"/>`;
+  const n=7+2*k;for(let i=0;i<n;i++){const t=(i+.5)/n;// point along inner contour top
+   const segs=[[q[1],q[2]],[q[2],q[3]],[q[3],q[4]]];const tt=t*3,si=Math.min(2,Math.floor(tt)),u=tt-si,[A,B]=segs[si];L(c,0,A[0]+(B[0]-A[0])*u,A[1]+(B[1]-A[1])*u+1)}}
+ if(e==14){const a=32+28*k,b=22+20*k,d=11+12*k;const q=[[c-a+3,0],[c-a+3,-2.5],[c-b+3,-2.5],[c-b+3,-7.5],[c-d+3,-7.5],[c-d+3,-12.5],[c+d-3,-12.5],[c+d-3,-7.5],[c+b-3,-7.5],[c+b-3,-2.5],[c+a-3,-2.5],[c+a-3,0]];o+=`<polyline points="${q.map(p=>p[0].toFixed(2)+','+(p[1]+T)).join(' ')}" fill="none" stroke="${G}" stroke-width=".8" opacity=".75"/>`;
+  [[c-d+3,-12.5],[c-d/3,-12.5],[c+d/3,-12.5],[c+d-3,-12.5],[c-b+3,-7.5],[c+b-3,-7.5],[c-a+3,-2.5],[c+a-3,-2.5]].forEach(p=>L(c,0,p[0],p[1]+.6))}
+ return `<svg class="peak" width="${W}" height="${T+20}" viewBox="0 0 ${W} ${T+20}" aria-hidden="true">${o}</svg>`}
+
+
+const GT=24;
+function gTiers(e,k){const m=1+0.7*k;return [[25*m,9],[17.5*m,15.5],[11*m,22]]}
+function tierD(c,w,h,arc,ins){const W=Math.max(1,w-ins*1.3),H=Math.max(1,h-ins),bw=W*0.5,y=v=>(GT-v).toFixed(2),x=v=>v.toFixed(2);
+ if(arc){return `M${x(c-bw)} ${y(0)} L${x(c-W)} ${y(H*0.45)} A${x(W)} ${x(H*0.55)} 0 0 1 ${x(c+W)} ${y(H*0.45)} L${x(c+bw)} ${y(0)}`}
+ const P=[[c-bw,0],[c-W,H*0.45],[c-W*0.82,H*0.78],[c-W*0.45,H*0.96],[c,H],[c+W*0.45,H*0.96],[c+W*0.82,H*0.78],[c+W,H*0.45],[c+bw,0]];return 'M'+P.map(p=>x(p[0])+' '+y(p[1])).join(' L')}
+function finsD(c,w0,k,side){const s=side,b=c+s*(w0*0.5),L=6+6*k;const P=[[b,0],[b+s*2,3],[b+s*L,3],[b+s*(L+2),1.5],[b+s*(L+10+8*k),1.5],[b+s*(L+12+8*k),0]];return 'M'+P.map(p=>p[0].toFixed(2)+' '+(GT-p[1]).toFixed(2)).join(' L')}
+function hDia(){const S=26,c=13,r=[];for(const t of [.25,.5,.75]){r.push([c*t,c-c*t],[S-c*t,c-c*t])}r.push([c,0]);return `<svg class="hd" width="${S}" height="${S}" viewBox="-1 -1 ${S+2} ${S+2}"><path d="M${c} 0 L${S} ${c} L${c} ${S} L0 ${c} Z" fill="var(--surface)" stroke="var(--gold)" stroke-width="1.2" stroke-linejoin="miter"/>${r.map(([x,y])=>`<line x1="${c}" y1="${S}" x2="${x}" y2="${y}" stroke="var(--gold)" stroke-width="1"/>`).join('')}</svg>`}
+function gClip(e,k,W){const c=W/2,ch=16,arc=e==17;let d=`M0 ${GT+ch} L${ch} ${GT} L${W-ch} ${GT} L${W} ${GT+ch} L${W} 3000 L0 3000 Z`;gTiers(e,k).forEach(([w,h])=>d+=' '+tierD(c,w,h,arc,0)+' Z');if(e==16){const w0=gTiers(e,k)[0][0];d+=' '+finsD(c,w0,k,1)+' Z '+finsD(c,w0,k,-1)+' Z'}return d}
+function gSVG(e,k,W){const c=W/2,ch=16,arc=e==17,G='var(--gold)',S='var(--surface)';let o='';
+ const pa=(d,fill,w,op=1)=>o+=`<path d="${d}" fill="${fill}" stroke="${G}" stroke-width="${w}" opacity="${op}" stroke-linejoin="miter"/>`;
+ const ln=(x1,y1,x2,y2,w=.7,op=.9)=>o+=`<line x1="${x1.toFixed(2)}" y1="${(GT-y1).toFixed(2)}" x2="${x2.toFixed(2)}" y2="${(GT-y2).toFixed(2)}" stroke="${G}" stroke-width="${w}" opacity="${op}"/>`;
+ pa(`M0 ${GT+ch} L${ch} ${GT} L${W-ch} ${GT} L${W} ${GT+ch}`,'none',1.1);
+ if(e==16){[3,6].forEach((dy,i)=>pa(`M${ch+dy*0.41+2} ${GT+dy} L${W-ch-dy*0.41-2} ${GT+dy}`,'none',.8,.8-i*.2));const w0=gTiers(e,k)[0][0];[1,-1].forEach(s=>pa(finsD(c,w0,k,s),S,1))}
+ const T=gTiers(e,k);T.forEach(([w,h],i)=>{pa(tierD(c,w,h,arc,0)+(arc?' Z':' Z'),S,1.1);if(i>0)pa(tierD(c,w,h,arc,2.2),'none',.75,.85);if(i==2)pa(tierD(c,w,h,arc,4.4),'none',.6,.6);
+  // blades from common base
+  const n=i==2?7+2*k:5+2*k,W2=w-2.2*1.3,H2=h-2.2;for(let j=0;j<n;j++){const t=(j+.5)/n,a=Math.PI*(1-t);const ex=c+Math.cos(a)*W2*0.9,ey=Math.min(H2-0.6,Math.sin(a)*H2*1.02+H2*0.15*(1-Math.abs(Math.cos(a))));ln(c+Math.cos(a)*1.5,0.3,ex,Math.max(1,ey),i==2?.75:.6,i==2?.95:.6)}});
+ return `<svg class="peak" width="${W}" height="${GT+20}" viewBox="0 0 ${W} ${GT+20}" aria-hidden="true">${o}</svg>`}
+
+function render0(){document.getElementById('kb').style.display=ST.search&&ST.kb&&NC()<2?'flex':'none';if(ST.crash)ST.zoom=[0,Math.round(52+(N-1-52)*sm(ST.rf))];const MD=MODE();document.body.dataset.mode=MD;document.body.style.setProperty('--m',MARG()+'px');document.body.classList.toggle('lo',innerHeight<=500&&(ST.drawer||ST.editI!=null||(ST.search&&MD=='dock')));TOP.style.position='relative';TOP.innerHTML=MD=='dock'?`<p class="storyline" id="sl" style="display:none"></p><div class="dhead"><div><div class="kick">${ST.crash?'Price −55% since you saved in May':'From today · 1,000 futures · illustrative'}</div><div class="dh">${headline()}</div></div></div>`:'<h1>Your two futures</h1><p class="storyline" id="sl" style="display:none"></p>';sheet();document.getElementById('cr').textContent=ST.crash?'SAVED MAY ’26 · 5 ITEMS':ST.arc?'FIRST VISIT':ST.saved?'SAVED · '+ST.nA.toUpperCase():'IV · ILLUSTRATIVE';draw();finger()}
+addEventListener('resize',()=>render());window.ST=ST;window.GG=()=>G;window.render=render;
+// live interaction for the real prototype
+let mode=null;const pt=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};let holdT;
+c.addEventListener('pointerdown',e=>{const[px,py]=pt(e);ST.hint=0;if(Math.hypot(px-G.h.X,py-G.h.Y)<22){mode='stack';ST.ghost=ST.ghost||ST.s0;ST.drag='stack'}else if(py>G.Bt+8){mode='age';ST.drag='age'}else{const ix=Math.round((px-G.L)/(G.R-G.L)*(N-1));if(ix>=0&&ix<N){const yb=G.ly(G.BT[ix][2]),yu=G.ly(US[ix][2]);if(Math.abs(py-yb)<10||Math.abs(py-yu)<10){ST.hlp=Math.abs(py-yb)<Math.abs(py-yu)?'btc':'usd';ST.pay=ST.hlp;ST.drawer=1;ST.tab='plan';render();return}}const w=G.warns.findIndex(w=>Math.hypot(px-w.X,py-w.Y)<16);if(w>=0){ST.warn=w+1;render();return}holdT=setTimeout(()=>{mode='scrub';ST.scrub=Math.max(0,Math.min(N-1,(px-G.L)/(G.R-G.L)*(N-1)));render()},250)}render()});
+c.addEventListener('pointermove',e=>{const[px,py]=pt(e);if(mode=='stack'){ST.s0=Math.max(2,Math.min(12,(G.Bt-py)/(G.Bt-G.T)*20));render()}if(mode=='scrub'){ST.scrub=Math.max(0,Math.min(N-1,(px-G.L)/(G.R-G.L)*(N-1)));render()}if(mode=='age'){ST.age=Math.round(Math.max(18,Math.min(60,38+(px-G.L)/6)));render()}});
+addEventListener('keydown',e=>{if(e.key=='/'&&!ST.search){e.preventDefault();ST.search=1;ST.kb=0;ST.compact=1;render()}else if(e.key=='Escape'){back()}else if(ST.search&&e.key.length==1){ST.sq+=e.key;render()}else if(ST.search&&e.key=='Backspace'){ST.sq=ST.sq.slice(0,-1);render()}});
+addEventListener('pointerup',()=>{clearTimeout(holdT);const was=mode||ST.scrub!=null||ST.drag;mode=null;ST.scrub=null;ST.drag=null;if(was){ST.compact=1;render()}});
+sh.addEventListener('keydown',e=>{if((e.key=='Enter'||e.key==' ')&&e.target.matches('.gb,.chev')){e.preventDefault();e.target.click()}});sh.addEventListener('click',e=>{ST.compact=1;ST.hint=0;const T=e.target;if(MODE()=='dock'){if(T.closest('[data-xs]')){closeSearch();return}if(T.closest('.mag')||T.closest('.ask')){if(ST.search)return;ST.search=1;ST.kb=0;render();return}{const tt=T.closest('[data-t]');if(tt){ST.tab=tt.dataset.t;render();return}}if(T.closest('.undo2')){ST.sp=ST.ghostSp;ST.undo=0;render();return}if(T.closest('.more'))return;if(ST.search&&T.closest('.drow'))return;if(T.closest('[data-open]')){ST.drawer=ST.drawer?0:1;ST.editI=null;render();return}const c2=T.closest('[data-di]');if(c2&&!T.closest('.slide')){ST.editI=+c2.dataset.di==ST.editI?null:+c2.dataset.di;render();return}if(T.closest('.undo2')){ST.sp=ST.ghostSp;ST.undo=0;render();return}return}
+ if(T.closest('[data-s]')){ST.prevD=DS();ST.search=1;ST.kb=1;const t0=performance.now();const st=()=>{ST.sgrow=Math.min(1,(performance.now()-t0)/280);render();if(ST.sgrow<1)requestAnimationFrame(st)};st();return}
+ if(T.closest('.sfield .x')){closeSearch();return}
+ if(T.closest('.undo')){ST.sp=ST.ghostSp;ST.undo=0;render();return}if(T.closest('[data-back]')){backToPlan();return}if(T.closest('[data-up]')){ST.drawer=1;render();return}
+ if(T.closest('.pr')&&ST.tab=='plan'){const nm=T.closest('.pr').querySelector('.nm').firstChild.textContent,ix=ITEMS.findIndex(r=>r[1]==nm);enterEdit(ix<0?7:ix);return}if(false){const i=[...document.querySelectorAll('.pr')].indexOf(T.closest('.pr'));ST.editI=ITEMS.findIndex(r=>r[1]==T.closest('.pr').querySelector('.nm').firstChild.textContent);if(ST.editI<0)ST.editI=7;render();return}
+ const t=T.closest('[data-t]');if(t){ST.drawer=1;ST.tab=t.dataset.t;render();return}
+ if(T.closest('[data-x]')){ST.compact=0;render();return}
+ if(T.closest('.gb')&&!T.closest('.esc,.undo,.mag')){if(DS()=='edit')ST.editI=null;else ST.drawer=0;render()}});
+const EASE=t=>1-Math.pow(1-t,3);
+function anim(ms,f,done){const t0=performance.now();const st=()=>{const u=Math.min(1,(performance.now()-t0)/ms);f(EASE(u));if(u<1)requestAnimationFrame(st);else done&&done()};st()}
+function enterEdit(i){ST.editI0=i;anim(280,u=>{ST.ep=u;render()},()=>{ST.ep=null;ST.editI=i;ST.undo=0;render()})}
+function backToPlan(){const i=ST.editI;ST.editI=null;ST.editI0=i;anim(280,u=>{ST.ep=1-u;render()},()=>{ST.ep=null;ST.flashI=i;render();setTimeout(()=>{ST.flashI=null;render()},700)})}
+let sDrag=null;sh.addEventListener('pointerdown',e=>{const sl=e.target.closest('.s-edit .slide');if(!sl)return;sDrag=sl.getBoundingClientRect();ST.ghostSp=ST.sp;ST.drag='sp';ST.undo=0;mv(e)});
+const mv=e=>{if(!sDrag)return;ST.sp=Math.round(40+120*Math.max(0,Math.min(1,(e.clientX-sDrag.left)/sDrag.width)));render()};addEventListener('pointermove',mv);
+addEventListener('pointerup',()=>{if(sDrag){sDrag=null;ST.drag=null;ST.undo=ST.sp!=ST.ghostSp?1:0;render()}},true);
+function closeSearch(){ST.search=0;ST.kb=0;ST.sq='';ST.sgrow=1;render()}
+function back(){const D=DS();if(D=='search')closeSearch();else if(D=='edit'){backToPlan()}else if(D=='open'){ST.drawer=0;render()}}
+addEventListener('popstate',back);
+document.body.addEventListener('touchmove',e=>{if(!e.target.closest('.body'))e.preventDefault()},{passive:false});
+// preset states for stills: ?st={json}
+if(q.get('crash')){Object.assign(ST,{crash:1,saved:0,arc:0,hint:0,cmp:'none',s0:5.2})}
+if(q.get('plan')){Object.assign(ST,{saved:1,arc:0,hint:0,cmp:'alt',s0:5.2})}
+if(q.get('st'))Object.assign(ST,JSON.parse(q.get('st')));
+Promise.all([document.fonts.load('500 10px "JetBrains Mono"'),document.fonts.load('italic 500 12px "Cormorant Garamond"'),document.fonts.load('600 11px Inter')]).then(()=>document.fonts.ready).then(()=>{render();document.title='ready'});
+</script><script>{const m=location.search.match(/edge=(\d+)/);document.body.classList.add("e"+(m?m[1]:18))}</script></body></html>
