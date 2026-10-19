@@ -5,6 +5,15 @@ export interface SuiteRecord {
 
 const COVERAGE_DROP_POINTS = 1;
 const WALL_TIME_LIMIT = 1.1;
+const SLOW_MACHINE_FACTOR = 5;
+
+// SHITTY_COMPUTER set to anything but empty or 0 marks a slow box.
+export const isSlowMachine = (value: string | undefined): boolean =>
+  value !== undefined && value !== "" && value !== "0";
+
+// A slow box gets five times the 10% line, and its runs never move the record.
+export const wallLimitMs = (budgetMs: number, slowMachine: boolean): number =>
+  budgetMs * WALL_TIME_LIMIT * (slowMachine ? SLOW_MACHINE_FACTOR : 1);
 
 export type SuiteDecision =
   | { kind: "fail"; reason: string }
@@ -15,6 +24,7 @@ export const decideSuiteRecord = (
   previous: SuiteRecord,
   measured: SuiteRecord,
   enforceWall = true,
+  slowMachine = false,
 ): SuiteDecision => {
   if (measured.lineCoverage < previous.lineCoverage - COVERAGE_DROP_POINTS) {
     return {
@@ -22,12 +32,13 @@ export const decideSuiteRecord = (
       reason: `line coverage ${measured.lineCoverage}% is more than 1 point under ${previous.lineCoverage}%`,
     };
   }
-  if (enforceWall && measured.wallTimeMs > previous.wallTimeMs * WALL_TIME_LIMIT) {
-    return {
-      kind: "fail",
-      reason: `wall time ${measured.wallTimeMs}ms is more than 10% over ${previous.wallTimeMs}ms`,
-    };
+  if (enforceWall && measured.wallTimeMs > wallLimitMs(previous.wallTimeMs, slowMachine)) {
+    const line = slowMachine
+      ? `the SHITTY_COMPUTER limit of ${Math.round(wallLimitMs(previous.wallTimeMs, true))}ms (5x of 10% over ${previous.wallTimeMs}ms)`
+      : `10% over ${previous.wallTimeMs}ms`;
+    return { kind: "fail", reason: `wall time ${measured.wallTimeMs}ms is more than ${line}` };
   }
+  if (slowMachine) return { kind: "keep" };
   const lineCoverage = Math.max(previous.lineCoverage, measured.lineCoverage);
   const wallTimeMs =
     enforceWall && measured.wallTimeMs > previous.wallTimeMs
