@@ -5,14 +5,6 @@
     min-inline-size: 0;
   }
 
-  .title {
-    color: var(--text);
-    font-family: var(--f-serif);
-    font-size: var(--t-pane);
-    font-weight: 500;
-    line-height: var(--lh-display);
-  }
-
   .section {
     display: grid;
     gap: var(--s-2);
@@ -21,5 +13,23 @@
 
   .group {
     display: grid;
+  }
+
+  .root[data-layout="stack"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Form M2: Price model | How prices move | Simulation, each column scrolling on its own. */
+  .root[data-layout="columns"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sheet-cols-gap);
+    block-size: 100%;
+  }
+
+  .root[data-layout="columns"] .section {
+    align-content: start;
+    min-block-size: 0;
+    overflow: auto;
+    padding-block-end: var(--s-5);
   }
 }

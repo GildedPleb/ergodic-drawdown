@@ -11,7 +11,7 @@ import { endValue } from "../world/bands";
 import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
-import { SIDE_PANEL, useMedia } from "./useMedia";
+import { SIDE_PANEL, useMedia, WIDE } from "./useMedia";
 
 /** R7: variant keys and values. */
 export const variants = {
@@ -40,6 +40,7 @@ export const AppShell = (): JSX.Element => {
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
+  const wide = useMedia(WIDE);
   const sheet = useRef<HTMLElement>(null);
   const world = useWorld(values, now);
 
@@ -171,6 +172,7 @@ export const AppShell = (): JSX.Element => {
             <div className={cols}>
               <div className={col}>
                 <ModelsSheet
+                  layout={wide && !side ? "columns" : "stack"}
                   values={values}
                   onChange={(patch) => {
                     setValues((v) => ({ ...v, ...patch }));

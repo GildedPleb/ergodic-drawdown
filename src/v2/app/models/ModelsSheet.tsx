@@ -6,6 +6,7 @@ import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
 import type { Bounds } from "../../design/primitives/NumberField";
 import { RadioList } from "../../design/primitives/RadioList";
+import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Slider } from "../../design/primitives/Slider";
 import { TickToggle } from "../../design/primitives/TickToggle";
@@ -79,7 +80,14 @@ const Editor = (p: EditorProps): JSX.Element => {
   );
 };
 
+/** R7: variant keys and values. */
+export const variants = {
+  layout: ["stack", "columns"] as const,
+};
+
 export type ModelsSheetProps = {
+  /** Desktop (Form M2): the three sections side by side, each scrolling on its own. */
+  layout?: (typeof variants.layout)[number];
   values: ModelsValues;
   onChange: (patch: Partial<ModelsValues>) => void;
   /** Stories and tests: a row whose editor starts open. */
@@ -94,6 +102,7 @@ export const ModelsSheet = ({
   values,
   onChange,
   initialEditing,
+  layout = "stack",
 }: ModelsSheetProps): JSX.Element => {
   const [editing, setEditing] = useState<Field | null>(initialEditing ?? null);
   const toggle =
@@ -111,7 +120,6 @@ export const ModelsSheet = ({
     values.walk === "Bubble" ? controls.volatility.stepBubble : controls.volatility.stepOther;
 
   const root = styles["root"] ?? "models-root";
-  const title = styles["title"] ?? "models-title";
   const section = styles["section"] ?? "models-section";
   const group = styles["group"] ?? "models-group";
 
@@ -169,8 +177,9 @@ export const ModelsSheet = ({
     ) : null;
 
   return (
-    <div className={root}>
-      <h2 className={title}>{modelsPaneSchema.title}</h2>
+    <div className={root} data-layout={layout}>
+      {/* Form m1: no visible pane title; the sheet keeps its h2 for headings navigation. */}
+      <VisuallyHidden as="h2">{modelsPaneSchema.title}</VisuallyHidden>
 
       <section className={section} aria-labelledby="sec-price-model">
         <SectionLabel text={strings.sections.priceModel} as="h3" id="sec-price-model" />

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import { variants as sheet } from "../../src/v2/app/models/ModelsSheet";
 import { variants as shell } from "../../src/v2/app/shell/AppShell";
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
@@ -39,6 +40,7 @@ test("R7: exported variants are the data-* values the components render", () => 
     "false",
   ]);
   expect([...shell.sheet, ...shell.column]).toEqual(["half", "open", "open", "closed"]);
+  expect([...sheet.layout]).toEqual(["stack", "columns"]);
   expect([...ledger.open, ...radio.state, ...slider.disabled]).toEqual([
     "true",
     "false",

@@ -14,5 +14,8 @@ export const useMedia = (query: string): boolean =>
     () => false,
   );
 
+/** The dock / desktop layout breakpoint (AppShell.module.css, 39.75rem). */
+export const WIDE = "(min-width: 39.75rem)";
+
 /** V32-BUILD §1e auto rule: dock right when innerWidth > innerHeight and innerHeight ≤ 500. */
 export const SIDE_PANEL = "(orientation: landscape) and (max-height: 500px)";

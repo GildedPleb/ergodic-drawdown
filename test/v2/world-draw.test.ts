@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
 
 import { priceBands, type PriceBands } from "../../src/v2/app/world/bands";
-import { type Ctx2D, drawWorld, type Paint } from "../../src/v2/app/world/draw";
+import { type Ctx2D, drawWorld, endLabelAt, type Paint } from "../../src/v2/app/world/draw";
+import { decadeDomain, decades, ly, plotBox } from "../../src/v2/app/world/geometry";
 
 const NOW = new Date(2026, 9, 19).getTime();
 const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -13,8 +14,10 @@ const PAINT: Paint = {
   price: "#f93",
   surface: "#111",
   accent: "#fc6",
-  outer: 0.08,
-  inner: 0.12,
+  outer: 0.1,
+  inner: 0.16,
+  edgeAlpha: 0.55,
+  edge: 0.75,
   median: 2,
   casing: 1.5,
   chart: "500 12px SM Jost",
@@ -91,4 +94,25 @@ test("short canvas (H<150) keeps only the $ axis values and the end value", () =
   const texts = draw(120, bands, 1);
   expect(texts.every((t) => t.startsWith("$"))).toBe(true);
   expect(texts.includes("$1.2M")).toBe(true);
+});
+
+test("m2: the end label sits inside the plot, 12px clear of the $ ticks, and off every gridline", () => {
+  const box = plotBox(1392, 717);
+  const domain = decadeDomain(50_000, 200_000_000);
+  // p95 ends 8px under the $100M line: left alone the label's cap height would cross it.
+  const lineY = ly(1e8, box, domain);
+  const at = endLabelAt(box, domain, 9.4e7, 6e7, false);
+  expect(at.x).toBe(box.R - 12);
+  for (const v of decades(domain)) {
+    const g = ly(v, box, domain);
+    expect(g <= at.y - 12 || g >= at.y + 6).toBe(true);
+  }
+  expect(at.y < lineY).toBe(true);
+});
+
+test("m2: with no room above the band the label drops below p5", () => {
+  const box = plotBox(1392, 717);
+  const domain = decadeDomain(50_000, 100_000_000);
+  const at = endLabelAt(box, domain, domain.hi, 6e7, false);
+  expect(at.y > ly(6e7, box, domain)).toBe(true);
 });

@@ -57,6 +57,9 @@ export type Paint = {
   accent: string;
   outer: number;
   inner: number;
+  /** p5 / p95 hairline edge: alpha and width. */
+  edgeAlpha: number;
+  edge: number;
   median: number;
   casing: number;
   chart: string;
@@ -87,8 +90,10 @@ export const readPaint = (canvas: Element): Paint => {
     price: v("--path-btc-price"),
     surface: v("--surface"),
     accent: v("--accent"),
-    outer: Number.parseFloat(v("--fan-focus-outer")) || 0.08,
-    inner: Number.parseFloat(v("--fan-focus-inner")) || 0.12,
+    outer: Number.parseFloat(v("--fan-focus-outer")) || 0.1,
+    inner: Number.parseFloat(v("--fan-focus-inner")) || 0.16,
+    edgeAlpha: Number.parseFloat(v("--fan-edge-outer-a")) || 0.55,
+    edge: remPx(v("--line-fan-edge-outer"), root) || 1,
     median: remPx(v("--line-median"), root) || 2,
     casing: remPx(v("--line-casing"), root) || 1.5,
     // --t-chart's "×1.3 at ≥75rem" is not applied: the $ labels live in v32's fixed 44px right
@@ -139,6 +144,37 @@ const stroke = (
   x.beginPath();
   trace(x, band, frame.box, frame.domain, frame.horizon);
   x.stroke();
+};
+
+/** Text box around an alphabetic baseline: cap height above, descent below (chart sizes). */
+const CAP = 10;
+const DESCENT = 4;
+
+/**
+ * Where the end label sits (Form m2): right-aligned 12px inside the plot (clear of the $ tick
+ * labels in the right margin), just above the p95 band's end so it never sits on the fan, and
+ * nudged off any decade gridline it would strike through. Too close to the top: below p5 instead.
+ */
+export const endLabelAt = (
+  box: PlotBox,
+  domain: LogDomain,
+  high: number,
+  low: number,
+  short: boolean,
+): { x: number; y: number } => {
+  const x = box.R - 12;
+  const top = short ? box.T + CAP : box.T + 36;
+  const clear = (y: number): number => {
+    for (const v of decades(domain)) {
+      const g = ly(v, box, domain);
+      if (g >= y - CAP - 2 && g <= y + DESCENT + 2) return g - DESCENT - 2;
+    }
+    return y;
+  };
+  const above = clear(ly(Number.isFinite(high) ? high : domain.hi, box, domain) - 8);
+  if (above >= top) return { x, y: above };
+  const below = ly(Number.isFinite(low) ? low : domain.lo, box, domain) + CAP + 6;
+  return { x, y: Math.min(clear(below), box.Bt - DESCENT) };
 };
 
 export type Frame = { width: number; height: number; dpr: number; now: number; horizon: number };
@@ -201,6 +237,13 @@ export const drawWorld = (
     x.fillStyle = p.price;
     fill(x, bands.p5, bands.p95, p.outer, frame);
     fill(x, bands.p25, bands.p75, p.inner, frame);
+    // Hairline edges on p5 and p95, so the 5–95 band reads as a band even when it is narrow.
+    x.strokeStyle = p.price;
+    x.lineWidth = p.edge;
+    x.globalAlpha = p.edgeAlpha;
+    stroke(x, bands.p5, frame);
+    stroke(x, bands.p95, frame);
+    x.globalAlpha = 1;
     x.lineJoin = "round";
     x.strokeStyle = p.surface;
     x.lineWidth = p.median + p.casing * 2;
@@ -245,7 +288,8 @@ export const drawWorld = (
       const label = short
         ? fmtUSD(mid)
         : strings.chart.endLabel(mid, endValue(bands.p5), endValue(bands.p95));
-      x.fillText(label, box.R - 4, ly(mid, box, domain) - 8);
+      const at = endLabelAt(box, domain, endValue(bands.p95), endValue(bands.p5), short);
+      x.fillText(label, at.x, at.y);
     }
   }
 

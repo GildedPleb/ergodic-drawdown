@@ -71,8 +71,9 @@
     --fan-plan-6-edge: var(--coral-350);
     --fan-plan-6-halo: var(--ink-900);
     /* fan + path alphas */
-    --fan-focus-outer: var(--alpha-8);
-    --fan-focus-inner: var(--alpha-12);
+    /* v32's world-band fills (Form, Slice 1 review M1): .10 outer, .16 inner. */
+    --fan-focus-outer: var(--alpha-10);
+    --fan-focus-inner: var(--alpha-16);
     --fan-ctx-outer: var(--alpha-0);
     --fan-ctx-inner: var(--alpha-4);
     --fan-edge-outer-a: var(--alpha-55);
@@ -154,7 +155,7 @@
     --fan-plan-6-halo: var(--linen-150);
     /* fan + path alphas */
     --fan-focus-outer: var(--alpha-10);
-    --fan-focus-inner: var(--alpha-14);
+    --fan-focus-inner: var(--alpha-16);
     --fan-ctx-inner: var(--alpha-5);
     --fan-edge-outer-a: var(--alpha-70);
   }
