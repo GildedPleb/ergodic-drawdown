@@ -1,0 +1,109 @@
+{
+  "requiredCodepoints": [
+    "U+20BF",
+    "U+2192",
+    "U+2212",
+    "U+2013",
+    "U+2019",
+    "U+2026",
+    "U+00B7",
+    "U+00D7",
+    "U+202F"
+  ],
+  "basicLatin": "U+0020-007E",
+  "faces": {
+    "SMCormorant-500.woff2": {
+      "sha256": "c58d85b86dbd41df0baf8c9480418ba51e2532a559c6cf59af5ccca61dbd57c8",
+      "bytes": 64412,
+      "glyphs": {
+        "U+20BF": true,
+        "U+2192": true,
+        "U+2212": true,
+        "U+2013": true,
+        "U+2019": true,
+        "U+2026": true,
+        "U+00B7": true,
+        "U+00D7": true,
+        "U+202F": true
+      },
+      "basicLatin": true,
+      "tnum": true,
+      "lnum": true
+    },
+    "SMEBGaramond-400.woff2": {
+      "sha256": "007e526f4978d58467b193c8d081e39de126156bbe68e711126576fbfe433653",
+      "bytes": 158164,
+      "glyphs": {
+        "U+20BF": true,
+        "U+2192": true,
+        "U+2212": true,
+        "U+2013": true,
+        "U+2019": true,
+        "U+2026": true,
+        "U+00B7": true,
+        "U+00D7": true,
+        "U+202F": true
+      },
+      "basicLatin": true,
+      "tnum": true,
+      "lnum": true
+    },
+    "SMEBGaramond-400i.woff2": {
+      "sha256": "5060f2ffffb4900fd7d1aef2185b35e6c56cee4545fe2d62affda6b8ee718cde",
+      "bytes": 154172,
+      "glyphs": {
+        "U+20BF": true,
+        "U+2192": true,
+        "U+2212": true,
+        "U+2013": true,
+        "U+2019": true,
+        "U+2026": true,
+        "U+00B7": true,
+        "U+00D7": true,
+        "U+202F": true
+      },
+      "basicLatin": true,
+      "tnum": true,
+      "lnum": true
+    },
+    "SMJost-500.woff2": {
+      "sha256": "d06ec5ad7a23cc09696de4451c2bacd25c6b13a567de6d3e8dadceae23c6f09e",
+      "bytes": 19424,
+      "glyphs": {
+        "U+20BF": true,
+        "U+2192": true,
+        "U+2212": true,
+        "U+2013": true,
+        "U+2019": true,
+        "U+2026": true,
+        "U+00B7": true,
+        "U+00D7": true,
+        "U+202F": true
+      },
+      "basicLatin": true,
+      "tnum": true,
+      "lnum": false
+    },
+    "SMJost-600.woff2": {
+      "sha256": "da868e57080b576652edc524f127f3c8322324365d21eefeb726fa23f401c7cd",
+      "bytes": 19492,
+      "glyphs": {
+        "U+20BF": true,
+        "U+2192": true,
+        "U+2212": true,
+        "U+2013": true,
+        "U+2019": true,
+        "U+2026": true,
+        "U+00B7": true,
+        "U+00D7": true,
+        "U+202F": true
+      },
+      "basicLatin": true,
+      "tnum": true,
+      "lnum": false
+    }
+  },
+  "notes": {
+    "SMJost-500.woff2": "no lnum feature; default figures are lining (Measured)"
+  }
+}

@@ -9,6 +9,7 @@ declare module "bun" {
   }
   export function file(path: string): {
     text(): Promise<string>;
+    arrayBuffer(): Promise<ArrayBuffer>;
   };
 }
 

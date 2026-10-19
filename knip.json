@@ -1,5 +1,15 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/contexts/workers/worker.ts"],
-  "project": ["src/**/*.{ts,tsx}"]
+  "entry": [
+    "src/contexts/workers/worker.ts",
+    "src/main.tsx",
+    "src/v2/**/*.stories.tsx",
+    "test/v2/**/*.test.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "test/v2/**/*.ts",
+    "test/visual/**/*.{ts,tsx}",
+    ".storybook/**/*.{ts,tsx}"
+  ]
 }

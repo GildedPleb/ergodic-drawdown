@@ -1,0 +1,14 @@
+@layer primitives {
+  .root {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--stack-gap, var(--s-3));
+    margin: 0;
+  }
+
+  .root[data-pad="true"] {
+    padding-block: var(--s-3);
+    padding-inline: var(--s-4);
+  }
+}

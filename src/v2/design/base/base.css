@@ -1,0 +1,33 @@
+@layer reset, tokens, base, primitives, layout, app, overrides;
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+}
+
+@layer base {
+  :where(html) {
+    color-scheme: dark;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--f-sans);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  :where(html[data-theme="linen"]) {
+    color-scheme: light;
+  }
+
+  :where(body) {
+    margin: 0;
+    min-block-size: 100dvh;
+  }
+
+  :where(:focus-visible) {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+}

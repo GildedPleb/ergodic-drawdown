@@ -1,0 +1,17 @@
+@layer primitives {
+  .root {
+    margin: 0;
+    font-family: var(--f-sans);
+    font-variant-numeric: lining-nums tabular-nums;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .root[data-unit="btc"] {
+    color: var(--btc);
+  }
+
+  .root[data-unit="usd"] {
+    color: var(--usd);
+  }
+}

@@ -31,3 +31,7 @@ coverage/
 # golden/MEASURED.md and golden/bench.json stay tracked.
 golden/bun/
 golden/node/
+tmp/
+tmp/
+/tmp/
+storybook-static/

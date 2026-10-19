@@ -6,6 +6,22 @@ publish = "dist"
 BUN_VERSION = "1.3.13"
 NODE_VERSION = "24"
 
+# redesign branch + PR previews: enable /design/:story
+[context.branch-deploy.environment]
+VITE_DESIGN_ROUTE = "1"
+
+[context.deploy-preview.environment]
+VITE_DESIGN_ROUTE = "1"
+
+[context.production.environment]
+VITE_DESIGN_ROUTE = ""
+
+# SPA fallback for /design/:story deep links
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
 [[headers]]
 for = "/*"
 [headers.values]

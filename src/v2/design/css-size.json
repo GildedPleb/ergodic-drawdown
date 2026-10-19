@@ -1,0 +1,20 @@
+{
+  "totalBytes": 17228,
+  "files": {
+    "design/tokens/palette.css": 1563,
+    "design/tokens/semantic.css": 5229,
+    "design/tokens/motion-etc.css": 2502,
+    "design/tokens/space.css": 714,
+    "design/tokens/type.css": 3009,
+    "design/tokens/tokens.css": 213,
+    "design/fonts/fonts.css": 668,
+    "design/base/base.css": 599,
+    "design/primitives/Amount/Amount.module.css": 292,
+    "design/primitives/Stack/Stack.module.css": 258,
+    "design/primitives/Icon/Icon.module.css": 256,
+    "design/primitives/TickToggle/TickToggle.module.css": 1491,
+    "app/Shell.module.css": 184,
+    "routes/design/DesignRoute.module.css": 250
+  },
+  "measuredAt": "2026-10-19T16:18:00.489Z"
+}

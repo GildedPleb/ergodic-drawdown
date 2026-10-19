@@ -1,0 +1,6 @@
+# Design system + visual baselines: owner only (Form has no GitHub identity).
+# Baseline changes also need the `design-approved` label after Form's review notes.
+/src/v2/design/ @GildedPleb
+/test/visual/__screenshots__/ @GildedPleb
+/src/v2/design/lint-allowlist.json @GildedPleb
+/stylelint.config.js @GildedPleb

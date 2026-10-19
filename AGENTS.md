@@ -191,3 +191,14 @@ Campaign: (meanings live in the beautify skill)
 - system: done — 2026-10-13 — The worker bundle is the walks and the sample buffers, 15.62 kB. Price models stay on the main thread. Halving dates live in `src/halvings.ts`. Historic still reads the clock and localStorage inside the price function. `contexts/computed` was left as it is.
 - trust: done — 2026-10-13 — Spot price, block height, and block time each try three sources. A zero or a failed source is logged and the next source is used. All three failing throws, and `useCurrentPrice` and `useHalvings` throw that into `RootError`. A cached non-positive candle or block height is not used. Stored halving times keep the baked heights. Fetch JSON stays `unknown` until that check. COOP/COEP stay on dev, preview, and Netlify. HEAD tracks no pem. No `git+ssh` ESLint dependency and no MDX packages. The historical localhost key stays allowlisted. Do not rewrite history.
 - cost: done — 2026-10-13 — The week map reads the log bounds already posted with the price bounds. A cold 1000×10×208 walk dropped from 37ms to 26ms with the same prices. The 0.01 floor and the weeks before the series stay. The quote and the weekly series share one in-flight spot request.
+
+## v2 redesign (`redesign` branch)
+
+Long-lived branch from `golden-baselines`. Do not merge to `main` until the user signs off. Do not change the old UI outside `src/v2`.
+
+- Entry on this branch: `index.html` → `src/v2/app/main.tsx`. Old `src/main.tsx` stays for mergeability.
+- Tokens/fonts/primitives: `src/v2/design/**` (CODEOWNERS `@GildedPleb`). Baseline changes also need the `design-approved` label after Form's notes.
+- Gallery: Storybook 10.6 (`bun run storybook`) on our Vite 8. Stories are plain CSF 3 with no Storybook imports.
+- Ground truth: `/design/:story` when `VITE_DESIGN_ROUTE=1`. Playwright screenshots that route, not Storybook.
+- Merge-gate extras: `test/v2/*` and `scripts/v2/css-enforce.ts`. Visuals are PR-only.
+- Models pane (Phase 4): exact current app models, walks, settings, and defaults — no rename/hide/remap.

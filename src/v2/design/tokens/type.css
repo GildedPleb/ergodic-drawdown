@@ -1,0 +1,106 @@
+@layer tokens {
+  /* StackMath P3 · v40 type tokens (LOCKED 2026-10-18). Cormorant ≥21px, EB Garamond ≤17px, Jost for caps/values. ₿ is a PREFIX like $ (₿13.1, −₿0.4); never after the number, never a space between ₿ and digits. See book/BOOK.md. Import after palette tokens. Source of truth: book/BOOK.md */
+  /* v41: all size tokens in rem (16px root) so OS text size and 200% zoom scale them; px comments are the 100% values. */
+
+  :root {
+    --f-serif: "SM Cormorant", Georgia, serif; /* display cut, ≥21px */
+    --f-text: "SM EB Garamond", Georgia, serif; /* text cut, ≤17px */
+    --f-sans: "SM Jost", system-ui, sans-serif;
+    --figs: lining-nums tabular-nums;
+    /* sizes: phone → desktop (fluid between 390 and 1440) */
+    --t-headline: clamp(1.3125rem, 0.86vw + 1.1rem, 1.6875rem);
+    --t-pane: clamp(1.3125rem, 0.19vw + 1.26875rem, 1.4375rem);
+    --t-big: clamp(2.25rem, 1.14vw + 1.96875rem, 3rem);
+    --t-row: clamp(1rem, 0.1vw + 0.975rem, 1.0625rem);
+    --t-caption: 0.9375rem; /* floor: never below 15 */
+    --t-value: 0.875rem;
+    --t-readout: 0.875rem;
+    --t-tab: 0.75rem;
+    --t-section: 0.71875rem;
+    --t-group: 0.6875rem;
+    --t-small: 0.6875rem; /* technical small print, ON/OFF */
+    --t-chart: 0.75rem; /* ×1.3 at ≥75rem */
+    --t-chart-serif: 0.8125rem;
+    --tr-tab: 0.14em;
+    --tr-section: 0.2em;
+    --tr-group: 0.16em;
+    --tr-small: 0.06em;
+    --lh-display: 1.1;
+    --lh-row: 1.25;
+    --lh-caption: 1.4;
+    --lh-num: 1.05;
+  }
+  @media (min-width: 75em) {
+    :root {
+      --t-chart: 0.975rem;
+      --t-chart-serif: 1.05625rem;
+    }
+  }
+  /* roles */
+  .t-headline {
+    font: 500 var(--t-headline)/var(--lh-display) var(--f-serif);
+  }
+  .t-pane {
+    font: 500 var(--t-pane)/var(--lh-display) var(--f-serif);
+    color: var(--text);
+  }
+  .t-big {
+    font: 500 var(--t-big)/var(--lh-num) var(--f-serif);
+    font-variant-numeric: var(--figs);
+  }
+  .t-row {
+    font: 400 var(--t-row)/var(--lh-row) var(--f-text);
+    color: var(--text);
+  }
+  .t-caption {
+    font: italic 400 var(--t-caption)/var(--lh-caption) var(--f-text);
+    color: var(--muted);
+    font-variant-numeric: var(--figs);
+  }
+  .t-value {
+    font: 500 var(--t-value)/1.2 var(--f-sans);
+    font-variant-numeric: var(--figs);
+  }
+  .t-readout {
+    font: 600 var(--t-readout)/1.2 var(--f-sans);
+    color: var(--gold);
+    font-variant-numeric: var(--figs);
+  }
+  .t-tab {
+    font: 600 var(--t-tab)/1 var(--f-sans);
+    letter-spacing: var(--tr-tab);
+    text-transform: uppercase;
+  }
+  .t-section {
+    font: 600 var(--t-section)/1 var(--f-sans);
+    letter-spacing: var(--tr-section);
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .t-group {
+    font: 600 var(--t-group)/1 var(--f-sans);
+    letter-spacing: var(--tr-group);
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .t-small {
+    font: 500 var(--t-small)/1.2 var(--f-sans);
+    letter-spacing: var(--tr-small);
+    color: var(--muted);
+  }
+  .t-chart {
+    font: 500 var(--t-chart) var(--f-sans);
+    font-variant-numeric: var(--figs);
+  }
+  .t-chart-serif {
+    font: italic 400 var(--t-chart-serif) var(--f-text);
+    font-variant-numeric: var(--figs);
+  }
+  /* font: shorthand resets numeric variants; restore on every role */
+  [class^="t-"],
+  [class*=" t-"] {
+    font-variant-numeric: var(--figs);
+  }
+
+  /* ₿/$ figures: same tokens; the sign carries the currency colour via .btc/.usd */
+}

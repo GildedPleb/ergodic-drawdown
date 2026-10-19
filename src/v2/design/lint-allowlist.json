@@ -1,0 +1,5 @@
+{
+  "$comment": "Every oxlint-disable / stylelint-disable under src/v2 must be listed here. Form review via design-approved label.",
+  "oxlint": [],
+  "stylelint": []
+}

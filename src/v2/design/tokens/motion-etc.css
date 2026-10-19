@@ -1,0 +1,73 @@
+@layer tokens {
+  /* StackMath · non-colour primitives that components may use directly: motion, layering, linework, shape.
+   Raw values here are deliberate (no theme variation). Sources: depth/DEPTH.md (v43/v44), dock/DOCK.md (v45), COLOR.md fans, STYLE.md v41. */
+  :root {
+    /* durations · all ≤400ms */
+    --dur-instant: 120ms; /* reduced-motion swap; opacity-only cuts */
+    --dur-fast: 180ms; /* INVENTED: hover/tint, tick-box check, chip appear */
+    --dur-fade: 240ms; /* cross-fade alternative (depth option 2) */
+    --dur-panel: 280ms; /* INVENTED value: side panel / drawer open-close (dock v45 named no number) */
+    --dur-swap: 320ms; /* depth push-back, Models ↔ Plans */
+    --dur-swap-lead: 40ms; /* incoming layer delay in the push-back */
+    --dur-sheet: 360ms; /* stacked-sheet alternative (depth option 3); ceiling */
+    /* easing */
+    --ease-swap: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1); /* INVENTED: panel + general exits */
+    --ease-linear: linear;
+    /* depth back layer */
+    --depth-back-opacity: 0.07;
+    --depth-back-scale-y: 0.94;
+    --depth-back-shift-y: -6px;
+    --depth-back-blur: 0.6px;
+    --motion-transform: 1; /* INVENTED flag: 0 = no scale/translate/blur (reduced motion) */
+    /* z-index scale */
+    --z-chart-back: 1;
+    --z-chart: 2;
+    --z-dock: 10;
+    --z-panel: 20;
+    --z-overlay: 30;
+    --z-toast: 40;
+    --z-focus: 50;
+    /* shadow · Deco linework over fills: none by default */
+    --shadow-none: none;
+    --shadow-sheet: 0 -18px 40px rgb(0 0 0 / 0.35); /* the one allowed: the locked v32 bottom dock lift */
+    /* radius · everything square */
+    --radius-0: 0;
+    /* rules + focus */
+    --rule-hair: 1px;
+    --rule-double-line: 1px;
+    --rule-double-gap: 2px;
+    --rule-double: 4px; /* Certificate double rule: 1px line, 2px gap, 1px line = 4px total */
+    --rule-strong: 3px;
+    --focus-w: 2px;
+    --focus-offset: 2px;
+    --focus-offset-tight: 0;
+    /* chart linework */
+    --line-path: 2px;
+    --line-path-focus: 2.5px;
+    --line-fan-edge-outer: 0.75px;
+    --line-fan-edge-inner: 1.25px;
+    --line-median: 2px;
+    --line-median-focus: 2.5px;
+    --line-casing: 1.5px;
+    /* slider thumb */
+    --thumb-w: 5px;
+    --thumb-h: 1.125rem; /* 18px at 100%; rem so it scales with text */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-fast: 0ms;
+      --dur-fade: var(--dur-instant);
+      --dur-panel: var(--dur-instant);
+      --dur-swap: var(--dur-instant);
+      --dur-swap-lead: 0ms;
+      --dur-sheet: var(--dur-instant);
+      --ease-swap: linear;
+      --ease-out: linear;
+      --motion-transform: 0;
+      --depth-back-scale-y: 1;
+      --depth-back-shift-y: 0px;
+      --depth-back-blur: 0px;
+    }
+  }
+}

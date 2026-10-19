@@ -1,0 +1,25 @@
+@layer tokens {
+  /* StackMath · spacing + component sizing (rem), unchanged from ../system/space.css v41 except:
+   --focus-w / --focus-off moved to motion-etc.css (--focus-w, --focus-offset-tight); --thumb-* moved to motion-etc.css;
+   --tk-sel-bg now points at the semantic --selected (same value). No component rules here. */
+  :root {
+    --s-0: 0.125rem;
+    --s-1: 0.25rem;
+    --s-2: 0.5rem;
+    --s-3: 0.75rem;
+    --s-4: 0.875rem;
+    --s-5: 1rem;
+    --s-6: 1.5rem;
+    --s-7: 2rem;
+    --s-8: 3rem;
+    --hit: 2.75rem;
+    --tk-h: var(--hit);
+    --tk-pad-x: var(--s-4);
+    --tk-gap: var(--s-3);
+    --tk-box: 1rem;
+    --tk-sel-bg: var(--selected);
+    --seg-pad: var(--s-3) var(--s-4);
+    --row-pad: 0.5625rem var(--s-3) 0.5625rem var(--s-3);
+    --card-pad: var(--s-3) var(--s-4);
+  }
+}
