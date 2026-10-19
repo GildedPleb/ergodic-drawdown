@@ -1,7 +1,8 @@
 import type { JSX } from "react";
 import { useMemo, useState } from "react";
 
-import { NumberField } from "../../design/primitives/NumberField";
+import { NumberField, type NumberRule } from "../../design/primitives/NumberField";
+import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Select } from "../../design/primitives/Select";
 import { TickToggle } from "../../design/primitives/TickToggle";
 import styles from "./ModelsPane.module.css";
@@ -19,35 +20,77 @@ export type ModelsPaneValues = {
   epochCount: number;
 };
 
+const { controls } = modelsPaneSchema;
+
 const defaultsFromSchema = (): ModelsPaneValues => ({
   model: modelsPaneSchema.defaultModel,
-  variable: modelsPaneSchema.controls.variable.default,
-  minMaxMultiple: modelsPaneSchema.controls.minMaxMultiple.default,
+  variable: controls.variable.default,
+  minMaxMultiple: controls.minMaxMultiple.default,
   walk: modelsPaneSchema.defaultWalk,
-  volatility: modelsPaneSchema.controls.volatility.default,
-  clampTop: modelsPaneSchema.controls.clamp.topDefault,
-  clampBottom: modelsPaneSchema.controls.clamp.bottomDefault,
-  samples: modelsPaneSchema.controls.samples.default,
-  epochCount: modelsPaneSchema.controls.epochs.default,
+  volatility: controls.volatility.default,
+  clampTop: controls.clamp.topDefault,
+  clampBottom: controls.clamp.bottomDefault,
+  samples: controls.samples.default,
+  epochCount: controls.epochs.default,
 });
 
-/** Old-UI "Infinity" bounds mean no bound on the native control. */
+/** Old-UI "Infinity" bounds mean no bound. */
 const bound = (v: number | string | undefined): number | undefined =>
   v === undefined || v === "Infinity" || v === "-Infinity" ? undefined : Number(v);
 
+/** main's useSettledNumber acceptance, from the G12 schema (B3). */
+const settle = (accept: { min: number; max: number }, emptyValue: number | null): NumberRule => ({
+  kind: "settle",
+  accept: (n) => n >= accept.min && n <= accept.max,
+  emptyValue,
+});
+
+const VOL_RULE = settle(controls.volatility.accept, controls.volatility.emptyValue);
+const EPOCH_RULE = settle(controls.epochs.accept, controls.epochs.emptyValue);
+const SAMPLE_RULE = settle(controls.samples.accept, controls.samples.emptyValue);
+/** main's +/-: below the floor commits the floor; anything else (NaN included) commits as typed. */
+const MINMAX_RULE: NumberRule = {
+  kind: "live",
+  apply: (n) => (n < controls.minMaxMultiple.floor ? controls.minMaxMultiple.floor : n),
+};
+
+const int = (n: number): string => n.toLocaleString("en-US");
+
+/** M2 copy: cause → next step → reassurance. */
+const volError = (current: number): string =>
+  `Volatility goes from ${controls.volatility.accept.min} to ${controls.volatility.accept.max}. Enter a number in that range. Your last value, ${current}, is still in use.`;
+const epochError = (current: number): string =>
+  `Epochs take a whole number from ${int(controls.epochs.accept.min)} to ${int(controls.epochs.accept.max)}. Enter one in that range. Your last value, ${current}, is still in use.`;
+const sampleError = (current: number): string =>
+  `Samples take a whole number from ${int(controls.samples.accept.min)} to ${int(controls.samples.accept.max)}. Enter one in that range. Your last value, ${int(current)}, is still in use.`;
+
+/** The pane's error copy (tests check every string against the SM cmaps, m2). */
+export const MODELS_PANE_ERRORS = {
+  volatility: volError,
+  epochs: epochError,
+  samples: sampleError,
+} as const;
+
 export type ModelsPaneProps = {
-  /** Controlled values; omit for uncontrolled defaults from G12 schema. */
+  /** Controlled values; omit for uncontrolled defaults from the G12 schema. */
   value?: ModelsPaneValues;
+  /** Uncontrolled starting values layered over the schema defaults (stories). */
+  initial?: Partial<ModelsPaneValues>;
   onChange?: (next: ModelsPaneValues) => void;
 };
 
 /**
- * Models pane: same names, options, order, ranges, steps and defaults as the live app (G12).
- * Feature code composes design primitives only; no raw <select>/<input> (G4).
+ * Models pane: same names, options, order, ranges, steps, acceptance and defaults as the live app
+ * (G12, B3). Feature code composes design primitives only; no raw <select>/<input> (G4).
  */
-export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element => {
-  const [internal, setInternal] = useState<ModelsPaneValues>(defaultsFromSchema);
+export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.Element => {
+  const [internal, setInternal] = useState<ModelsPaneValues>(() => ({
+    ...defaultsFromSchema(),
+    ...initial,
+  }));
   const values = value ?? internal;
+  const headingId = "v2-models-title";
+  const clampId = "v2-clamp-label";
 
   const set = (patch: Partial<ModelsPaneValues>): void => {
     const next = { ...values, ...patch };
@@ -59,20 +102,30 @@ export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element =>
     () => modelsPaneSchema.models.find((m) => m.name === values.model),
     [values.model],
   );
+  const rangeMin = bound(modelMeta?.rangeMin);
+  const rangeMax = bound(modelMeta?.rangeMax);
+  /** main's model variable: keystrokes outside rangeMin…rangeMax are ignored. */
+  const variableRule = useMemo<NumberRule>(
+    () => ({
+      kind: "live",
+      apply: (n) =>
+        n <= (rangeMax ?? Number.POSITIVE_INFINITY) && n >= (rangeMin ?? Number.NEGATIVE_INFINITY)
+          ? n
+          : undefined,
+    }),
+    [rangeMin, rangeMax],
+  );
 
   const showVariable = modelMeta?.showVariable === true;
   const showMinMax = modelMeta?.showMinMaxMultiple === true;
   const volStep =
-    values.walk === "Bubble"
-      ? modelsPaneSchema.controls.volatility.stepBubble
-      : modelsPaneSchema.controls.volatility.stepOther;
+    values.walk === "Bubble" ? controls.volatility.stepBubble : controls.volatility.stepOther;
 
   const root = styles["root"] ?? "models-root";
-  const title = styles["title"] ?? "models-title";
-  const row = styles["row"] ?? "models-row";
-  const label = styles["label"] ?? "models-label";
+  const fields = styles["fields"] ?? "models-fields";
+  const group = styles["group"] ?? "models-group";
+  const groupLabel = styles["groupLabel"] ?? "models-group-label";
   const options = styles["options"] ?? "models-options";
-  const hint = styles["hint"] ?? "models-hint";
 
   const onModel = (name: string): void => {
     const meta = modelsPaneSchema.models.find((m) => m.name === name);
@@ -84,122 +137,123 @@ export const ModelsPane = ({ value, onChange }: ModelsPaneProps): JSX.Element =>
   };
 
   const years = values.epochCount * 4;
-  const { controls } = modelsPaneSchema;
 
   return (
-    <section className={root} aria-label="Model">
-      <h2 className={title}>Model</h2>
+    <section className={root} aria-labelledby={headingId}>
+      <SectionLabel text={modelsPaneSchema.title} id={headingId} />
 
-      <div className={row}>
+      <div className={fields}>
         <Select
           id="v2-model"
-          label="Price model"
-          labelVisibility="hidden"
+          labelledBy={headingId}
           options={modelsPaneSchema.modelOrder}
           value={values.model}
           onChange={onModel}
         />
-        <div className={options}>
-          {showVariable ? (
-            <NumberField
-              id="v2-variable"
-              label={modelMeta?.varInput ?? ""}
-              step={controls.variable.step}
-              min={bound(modelMeta?.rangeMin)}
-              max={bound(modelMeta?.rangeMax)}
-              value={values.variable}
-              onChange={(n) => {
-                set({ variable: n });
-              }}
-            />
-          ) : null}
-          {showMinMax ? (
-            <NumberField
-              id="v2-minmax"
-              label="+/-"
-              step={controls.minMaxMultiple.step}
-              min={controls.minMaxMultiple.min}
-              value={values.minMaxMultiple}
-              onChange={(n) => {
-                set({
-                  minMaxMultiple: n < controls.minMaxMultiple.min ? controls.minMaxMultiple.min : n,
-                });
-              }}
-            />
-          ) : null}
-        </div>
-      </div>
+        {showVariable ? (
+          <NumberField
+            id="v2-variable"
+            label={modelMeta?.varInput ?? ""}
+            step={controls.variable.step}
+            min={rangeMin}
+            max={rangeMax}
+            rule={variableRule}
+            parse={controls.variable.parse}
+            value={values.variable}
+            onCommit={(n) => {
+              set({ variable: n });
+            }}
+          />
+        ) : null}
+        {showMinMax ? (
+          <NumberField
+            id="v2-minmax"
+            label="+/-"
+            step={controls.minMaxMultiple.step}
+            min={controls.minMaxMultiple.min}
+            rule={MINMAX_RULE}
+            parse={controls.minMaxMultiple.parse}
+            value={values.minMaxMultiple}
+            onCommit={(n) => {
+              set({ minMaxMultiple: n });
+            }}
+          />
+        ) : null}
 
-      <div className={row}>
         <Select
           id="v2-walk"
-          label="Walk Strategy:"
+          label={controls.walk.label}
           options={modelsPaneSchema.walks}
           value={values.walk}
           onChange={(walk) => {
             set({ walk });
           }}
         />
-      </div>
 
-      <div className={row}>
-        <span className={label}>{controls.clamp.label}</span>
-        <div className={options}>
-          <TickToggle
-            label={controls.clamp.topLabel}
-            checked={values.clampTop}
-            onChange={(next) => {
-              set({ clampTop: next });
-            }}
-          />
-          <TickToggle
-            label={controls.clamp.bottomLabel}
-            checked={values.clampBottom}
-            onChange={(next) => {
-              set({ clampBottom: next });
-            }}
-          />
+        <div className={group} role="group" aria-labelledby={clampId}>
+          <span className={groupLabel} id={clampId}>
+            {controls.clamp.label}
+          </span>
+          <div className={options}>
+            <TickToggle
+              label={controls.clamp.topLabel}
+              checked={values.clampTop}
+              onChange={(next) => {
+                set({ clampTop: next });
+              }}
+            />
+            <TickToggle
+              label={controls.clamp.bottomLabel}
+              checked={values.clampBottom}
+              onChange={(next) => {
+                set({ clampBottom: next });
+              }}
+            />
+          </div>
         </div>
-      </div>
 
-      <div className={row}>
         <NumberField
           id="v2-vol"
           label={controls.volatility.label}
           min={controls.volatility.min}
           max={controls.volatility.max}
           step={volStep}
+          rule={VOL_RULE}
+          parse={controls.volatility.parse}
+          error={volError}
           value={values.volatility}
-          onChange={(n) => {
+          onCommit={(n) => {
             set({ volatility: n });
           }}
         />
-      </div>
 
-      <div className={row}>
         <NumberField
           id="v2-epochs"
           label={controls.epochs.label}
-          parse="int"
           min={controls.epochs.min}
           max={controls.epochs.max}
+          step={1}
+          rule={EPOCH_RULE}
+          parse={controls.epochs.parse}
+          error={epochError}
+          hint={`(~${years} years)`}
           value={values.epochCount}
-          onChange={(n) => {
+          onCommit={(n) => {
             set({ epochCount: n });
           }}
         />
-        <span className={hint}>{` (~${years} years)`}</span>
-      </div>
 
-      <div className={row}>
         <NumberField
           id="v2-samples"
           label={controls.samples.label}
-          parse="int"
           min={controls.samples.min}
           max={controls.samples.max}
+          step={1}
+          rule={SAMPLE_RULE}
+          parse={controls.samples.parse}
+          error={sampleError}
           value={values.samples}
-          onChange={(n) => {
+          onCommit={(n) => {
             set({ samples: n });
           }}
         />

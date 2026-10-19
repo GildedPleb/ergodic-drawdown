@@ -1,8 +1,9 @@
 import type { ReactElement } from "react";
 
+import { TickToggle } from "../TickToggle";
 import { Grid } from "./Grid";
 
-/** Plain CSF 3, no Storybook/Ladle imports. */
+/** Plain CSF 3, no Storybook/Ladle imports. Focus demos use real 44px controls (Form nit). */
 export default { title: "Layout/Grid" };
 
 export const Default = (): ReactElement => (
@@ -14,8 +15,8 @@ export const Default = (): ReactElement => (
 );
 export const Focus = (): ReactElement => (
   <Grid gap="1">
-    <button type="button">One</button>
-    <button type="button">Two</button>
+    <TickToggle label="One" checked={false} />
+    <TickToggle label="Two" checked />
   </Grid>
 );
 export const LongText = (): ReactElement => (

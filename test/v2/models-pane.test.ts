@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
 
 import { ModelsPane, modelsPaneSchema, type ModelsPaneValues } from "../../src/v2/app/models";
+import { MODELS_PANE_ERRORS } from "../../src/v2/app/models/ModelsPane";
+import { loadCmaps, uncovered } from "./support/cmaps";
 
 test("ModelsPane source lists every schema model and walk in order", async () => {
   const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsPane.tsx`).text();
@@ -21,7 +23,17 @@ test("ModelsPane SSR includes all 7 models and 9 walks with defaults selected", 
   for (const name of modelsPaneSchema.walks) {
     expect(html.includes(`value="${name}"`)).toBe(true);
   }
-  expect(html.includes('aria-label="Model"')).toBe(true);
+  // m4: the pane and the model select are named by the visible "Model" heading, no new wording.
+  expect(html.includes('<h2 class="')).toBe(true);
+  expect(html.includes('id="v2-models-title">Model</h2>')).toBe(true);
+  expect(html.includes('aria-labelledby="v2-models-title"')).toBe(true);
+  expect(
+    /<select[^>]*aria-labelledby="v2-models-title"[^>]*id="v2-model"|<select[^>]*id="v2-model"[^>]*aria-labelledby="v2-models-title"/.test(
+      html,
+    ),
+  ).toBe(true);
+  expect(html.includes("Price model")).toBe(false);
+  expect(html.includes(modelsPaneSchema.controls.walk.label)).toBe(true);
   expect(html.includes("Power Law Regression Median")).toBe(true);
   expect(html.includes("Bubble")).toBe(true);
 });
@@ -82,7 +94,7 @@ test("ModelsPane imports only design primitives (plus its own module and schema)
   expect(/<(select|input|textarea|button)\b/.test(code)).toBe(false);
 });
 
-test("ModelsPane passes G12 ranges and steps through to the native controls", () => {
+test("ModelsPane passes G12 bounds to the text spinbuttons and steps from the schema", async () => {
   const values: ModelsPaneValues = {
     model: "CAGR",
     variable: 50,
@@ -98,22 +110,39 @@ test("ModelsPane passes G12 ranges and steps through to the native controls", ()
   const c = modelsPaneSchema.controls;
   const input = (id: string): string =>
     new RegExp(`<input[^>]*id="${id}"[^>]*>`).exec(html)?.[0] ?? "";
-  expect((input("v2-vol") ?? "").includes(`step="${c.volatility.stepBubble}"`)).toBe(true);
-  expect((input("v2-vol") ?? "").includes(`min="${c.volatility.min}"`)).toBe(true);
-  expect((input("v2-vol") ?? "").includes(`max="${c.volatility.max}"`)).toBe(true);
-  expect((input("v2-samples") ?? "").includes(`max="${c.samples.max}"`)).toBe(true);
-  expect((input("v2-epochs") ?? "").includes(`max="${c.epochs.max}"`)).toBe(true);
-  expect((input("v2-minmax") ?? "").includes(`min="${c.minMaxMultiple.min}"`)).toBe(true);
-  expect((input("v2-minmax") ?? "").includes(`step="${c.minMaxMultiple.step}"`)).toBe(true);
-  expect((input("v2-variable") ?? "").includes(`step="${c.variable.step}"`)).toBe(true);
-  const other = renderToStaticMarkup(
-    createElement(ModelsPane, { value: { ...values, walk: "Random" } }),
-  );
-  expect(
-    (/<input[^>]*id="v2-vol"[^>]*>/.exec(other)?.[0] ?? "").includes(
-      `step="${c.volatility.stepOther}"`,
-    ),
-  ).toBe(true);
+  for (const id of ["v2-vol", "v2-samples", "v2-epochs", "v2-minmax", "v2-variable"]) {
+    // m7: type=text + inputMode + spinbutton role; no browser number spinners.
+    expect(input(id).includes('type="text"')).toBe(true);
+    expect(input(id).includes('role="spinbutton"')).toBe(true);
+  }
+  expect(input("v2-vol").includes('inputMode="decimal"')).toBe(true);
+  expect(input("v2-samples").includes('inputMode="numeric"')).toBe(true);
+  expect(input("v2-vol").includes(`aria-valuemin="${c.volatility.min}"`)).toBe(true);
+  expect(input("v2-vol").includes(`aria-valuemax="${c.volatility.max}"`)).toBe(true);
+  expect(input("v2-samples").includes(`aria-valuemax="${c.samples.max}"`)).toBe(true);
+  expect(input("v2-epochs").includes(`aria-valuemax="${c.epochs.max}"`)).toBe(true);
+  expect(input("v2-minmax").includes(`aria-valuemin="${c.minMaxMultiple.min}"`)).toBe(true);
+  expect(input("v2-epochs").includes('aria-describedby="v2-epochs-hint"')).toBe(true);
+  expect(html.includes("(~40 years)")).toBe(true);
+  // Steps, rules and parse modes come from the schema, not literals in the pane.
+  const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsPane.tsx`).text();
+  for (const ref of [
+    "controls.volatility.stepBubble",
+    "controls.volatility.stepOther",
+    "controls.variable.step",
+    "controls.minMaxMultiple.step",
+    "controls.minMaxMultiple.floor",
+    "controls.volatility.accept",
+    "controls.samples.emptyValue",
+    "controls.epochs.accept",
+    "controls.walk.label",
+    "modelsPaneSchema.title",
+  ]) {
+    expect({ ref, found: src.includes(ref) }).toEqual({ ref, found: true });
+  }
+  // Clamp switches are one group named by "Clamp Price:" (m3), ON/OFF hidden from AT.
+  expect(html.includes('role="group" aria-labelledby="v2-clamp-label"')).toBe(true);
+  expect(html.includes('aria-hidden="true">OFF</span>')).toBe(true);
   // Option order equals the schema exactly.
   const opts = [...html.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
   expect(opts).toEqual([...modelsPaneSchema.modelOrder, ...modelsPaneSchema.walks]);
@@ -135,4 +164,27 @@ test("Select face draws the emoji walk via LabelGlyphs; option and name keep the
   expect(html.includes('<option value="🟢🟢🟢🔴" selected="">🟢🟢🟢🔴</option>')).toBe(true);
   expect((html.match(/data-tone="up"/g) ?? []).length).toBe(3);
   expect((html.match(/data-tone="down"/g) ?? []).length).toBe(1);
+});
+
+const decode = (s: string): string =>
+  s
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#x27;", "'");
+
+test("Form m2: every string the pane renders (text, aria-labels, hint, error copy) is in the SM cmaps", async () => {
+  const out: string[] = [];
+  // Each model once: its variable inputs; every option name is in every render.
+  for (const model of modelsPaneSchema.modelOrder) {
+    const html = renderToStaticMarkup(createElement(ModelsPane, { initial: { model } }));
+    for (const m of html.matchAll(/>([^<]+)</g)) out.push(decode(m[1] ?? ""));
+    for (const m of html.matchAll(/aria-label="([^"]*)"/g)) out.push(decode(m[1] ?? ""));
+  }
+  for (const fn of Object.values(MODELS_PANE_ERRORS)) out.push(fn(0.1), fn(1000), fn(10));
+  const list = [...new Set(out)].filter((s) => s.trim().length > 0);
+  expect(list.includes("(~40 years)")).toBe(true);
+  expect(list.includes("Model")).toBe(true);
+  expect(uncovered(list, await loadCmaps())).toEqual([]);
 });

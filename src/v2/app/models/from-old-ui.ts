@@ -3,6 +3,9 @@
  * Sources: src/data/models, src/data/walks, src/constants, src/content,
  * plus control attributes from src/components/input/{model,walk,volatility,clamp,samples,epoch}.tsx
  * and defaults from src/contexts/model.tsx. No engine or old-UI mutation.
+ * Literals that main keeps inline in components (steps, accept ranges, emptyValue, defaults,
+ * the default walk) are re-read from main's source by test/v2/old-ui-source.test.ts, so a change
+ * on main fails the suite instead of drifting silently.
  */
 import {
   DEFAULT_EPOCH_COUNT,
@@ -10,14 +13,19 @@ import {
   MAX_EPOCH_COUNT,
   MAX_SAMPLE_COUNT,
 } from "../../../constants";
-import { inputLabels } from "../../../content";
+import { fieldLabels, inputLabels } from "../../../content";
 import { models } from "../../../data/models";
 import { walks } from "../../../data/walks";
 
 const jsonInfinity = (n: number): number | "Infinity" => (Number.isFinite(n) ? n : "Infinity");
 
+/** main's acceptance for a settled field (useSettledNumber): accept min ≤ n ≤ max. */
+type Accept = { min: number; max: number };
+
 export type ModelsPaneSnapshot = {
   version: 1;
+  /** Pane title (fieldLabels.model); the model select is labelled by it (m4). */
+  title: string;
   models: Array<{
     name: string;
     default: number;
@@ -33,9 +41,22 @@ export type ModelsPaneSnapshot = {
   walks: string[];
   defaultWalk: string;
   controls: {
-    variable: { step: number; default: number };
-    minMaxMultiple: { min: number; step: number; default: number };
+    /** Live filter: keystrokes outside the model's rangeMin…rangeMax are ignored (model.tsx). */
+    variable: { step: number; default: number; parse: "float"; rule: "live-range" };
+    /** Live floor: n < floor commits floor (model.tsx). */
+    minMaxMultiple: {
+      min: number;
+      step: number;
+      default: number;
+      floor: number;
+      parse: "float";
+      rule: "live-floor";
+    };
+    walk: { label: string };
     volatility: {
+      accept: Accept;
+      emptyValue: number | null;
+      parse: "float";
       min: number;
       max: number;
       default: number;
@@ -51,12 +72,18 @@ export type ModelsPaneSnapshot = {
       bottomLabel: string;
     };
     samples: {
+      accept: Accept;
+      emptyValue: number | null;
+      parse: "int";
       min: number;
       max: number;
       default: number;
       label: string;
     };
     epochs: {
+      accept: Accept;
+      emptyValue: number | null;
+      parse: "int";
       min: number;
       max: number;
       default: number;
@@ -79,15 +106,27 @@ export const buildOldUiModelsSnapshot = (): ModelsPaneSnapshot => {
 
   return {
     version: 1,
+    title: fieldLabels.model,
     models: modelRows,
     modelOrder: modelRows.map((m) => m.name),
     defaultModel: modelRows[0]?.name ?? "",
     walks: Object.keys(walks),
     defaultWalk: "Bubble",
     controls: {
-      variable: { step: 1, default: 0 },
-      minMaxMultiple: { min: 1.01, step: 0.1, default: 3 },
+      variable: { step: 1, default: 0, parse: "float", rule: "live-range" },
+      minMaxMultiple: {
+        min: 1.01,
+        step: 0.1,
+        default: 3,
+        floor: 1.01,
+        parse: "float",
+        rule: "live-floor",
+      },
+      walk: { label: inputLabels.walk },
       volatility: {
+        accept: { min: 0, max: 1 },
+        emptyValue: null,
+        parse: "float",
         min: 0,
         max: 1,
         default: 0.1,
@@ -103,12 +142,18 @@ export const buildOldUiModelsSnapshot = (): ModelsPaneSnapshot => {
         bottomLabel: inputLabels.clampBottom,
       },
       samples: {
+        accept: { min: 0, max: MAX_SAMPLE_COUNT },
+        emptyValue: 1000,
+        parse: "int",
         min: 1,
         max: MAX_SAMPLE_COUNT,
         default: DEFAULT_SIMULATION_COUNT,
         label: inputLabels.samples,
       },
       epochs: {
+        accept: { min: 1, max: 100 },
+        emptyValue: null,
+        parse: "int",
         min: 1,
         max: MAX_EPOCH_COUNT,
         default: DEFAULT_EPOCH_COUNT,

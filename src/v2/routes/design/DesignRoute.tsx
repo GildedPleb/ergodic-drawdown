@@ -8,9 +8,12 @@ import * as GridStories from "../../design/primitives/Grid/Grid.stories";
 import * as IconStories from "../../design/primitives/Icon/Icon.stories";
 import * as LabelGlyphsStories from "../../design/primitives/LabelGlyphs/LabelGlyphs.stories";
 import * as NumberFieldStories from "../../design/primitives/NumberField/NumberField.stories";
+import * as SectionLabelStories from "../../design/primitives/SectionLabel/SectionLabel.stories";
 import * as SelectStories from "../../design/primitives/Select/Select.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
 import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
+import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
+import * as VisuallyHiddenStories from "../../design/primitives/VisuallyHidden/VisuallyHidden.stories";
 import styles from "./DesignRoute.module.css";
 
 type Story = () => JSX.Element;
@@ -28,15 +31,22 @@ const GROUPS: Record<string, StoryModule> = {
   icon: IconStories,
   "label-glyphs": LabelGlyphsStories,
   "number-field": NumberFieldStories,
+  "section-label": SectionLabelStories,
   select: SelectStories,
   stack: StackStories,
   "tick-toggle": TickToggleStories,
+  "visually-hidden": VisuallyHiddenStories,
 };
 
 /** Contract aliases (MVP-SPEC P0.10 uses /design/tick-row/<state>). */
 const ALIASES: Record<string, string> = { "tick-row": "tick-toggle" };
 
-const STORIES = new Map<string, Story>([["models-pane", () => <ModelsPane />]]);
+const STORIES = new Map<string, Story>([
+  ["models-pane", () => <ModelsPane />],
+  ["models-pane/default", () => <ModelsPane />],
+  // B2: the engine's emoji walk selected; the fonts check must see no emoji text node.
+  ["models-pane/emoji-walk", () => <ModelsPane initial={{ walk: "🟢🟢🟢🔴" }} />],
+]);
 for (const [group, mod] of Object.entries(GROUPS)) {
   for (const [name, value] of Object.entries(mod)) {
     if (name === "default" || !isStory(value)) continue;
@@ -68,13 +78,15 @@ export const DesignRoute = ({ story }: { story: string }): JSX.Element => {
   if (render === undefined) {
     return (
       <main className={main}>
-        <p>No story: {story}</p>
+        <h1>No story: {story}</h1>
       </main>
     );
   }
   const Render = render;
   return (
     <main className={main} data-story={story}>
+      {/* Form nit: every story page has one h1 (screen-reader only). */}
+      <VisuallyHidden as="h1">{`Design story: ${story}`}</VisuallyHidden>
       <Render />
     </main>
   );

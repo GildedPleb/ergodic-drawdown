@@ -9,16 +9,45 @@ export const TICK_ROW_STORIES = [
   "tick-row/linen",
 ] as const;
 
-/** Form-control primitives (Keel FAIL fix): each story in both themes at 390×844 and 1440×900. */
+/**
+ * Form B1: every Select, NumberField, LabelGlyphs, Amount and SectionLabel story plus the models
+ * pane, in both themes, at 390×844 and 1440×900, in Chromium and WebKit
+ * (test/v2/story-coverage.test.ts fails if a story is missing here).
+ */
 export const FIELD_STORIES = [
   "select/default",
   "select/focus",
+  "select/disabled",
   "select/invalid",
+  "select/long-text",
+  "select/labelled-by-heading",
   "select/emoji-label",
+  "select/linen",
   "number-field/default",
   "number-field/focus",
+  "number-field/disabled",
   "number-field/invalid",
+  "number-field/long-text",
   "number-field/emoji-label",
+  "number-field/linen",
+  "label-glyphs/default",
+  "label-glyphs/long-text",
+  "label-glyphs/plain-text",
+  "label-glyphs/linen",
+  "amount/default",
+  "amount/linen",
+  "amount/tiny",
+  "amount/negative",
+  "amount/zero",
+  "amount/unavailable",
+  "amount/fonts-failed",
+  "amount/usd",
+  "section-label/default",
+  "section-label/group",
+  "section-label/long-text",
+  "section-label/linen",
+  "models-pane/default",
+  "models-pane/emoji-walk",
 ] as const;
 
 export const FIELD_THEMES = ["dark", "linen"] as const;

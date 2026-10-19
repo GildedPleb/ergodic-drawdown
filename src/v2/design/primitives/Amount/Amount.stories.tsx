@@ -2,14 +2,13 @@ import type { ReactElement } from "react";
 
 import { Amount } from "./Amount";
 
+/** Plain CSF 3. Amount is not focusable and has no long form, so no Focus / LongText stories. */
 export default { title: "Primitives/Amount" };
 
 export const Default = (): ReactElement => <Amount value={13.1} unit="btc" />;
-export const Focus = (): ReactElement => <Amount value={13.1} unit="btc" />;
-export const LongText = (): ReactElement => <Amount value={13.1} unit="btc" />;
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
-    <Amount value={13.1} unit="btc" />
+    <Amount value={13.1} unit="btc" /> <Amount value={80000} unit="usd" />
   </div>
 );
 export const Tiny = (): ReactElement => <Amount value={1e-10} unit="btc" />;

@@ -21,5 +21,12 @@
     --seg-pad: var(--s-3) var(--s-4);
     --row-pad: 0.5625rem var(--s-3) 0.5625rem var(--s-3);
     --card-pad: var(--s-3) var(--s-4);
+    /* v2 repo additions (Form review 2026-10-19; Form to mirror in p3/tokens) */
+    --glyph-dot: max(0.5rem, 0.7em); /* walk dot: cap height, never under 8px */
+    --glyph-gap: 0.12em; /* walk dots spaced like letters */
+    --icon-size: 1em; /* Icon: text-sized */
+    --field-col: 9rem; /* the one field column in a form pane */
+    --section-rule-len: 70%; /* SectionLabel hairline taper, section */
+    --group-rule-len: 45%; /* SectionLabel hairline taper, group */
   }
 }

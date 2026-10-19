@@ -1,9 +1,17 @@
-import type { ChangeEvent, CSSProperties, JSX } from "react";
-import { useId } from "react";
+import type { JSX, KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
+import { focusNextOnEnter } from "./enter";
 import styles from "./NumberField.module.css";
+import {
+  createSettledNumber,
+  type NumberParse,
+  type NumberRule,
+  type SettleController,
+  type SettleOptions,
+} from "./settle";
 
 /** R7: variant keys and values. */
 export const variants = {
@@ -11,13 +19,19 @@ export const variants = {
   disabled: ["true", "false"] as const,
 };
 
+export type { NumberRule } from "./settle";
+
 export type NumberFieldProps = {
   label: string;
+  /** The committed value (the app state). */
   value: number;
-  /** Fires with the parsed number; NaN while the field is empty or mid-edit. */
-  onChange?: (next: number) => void;
-  /** "float" (parseFloat) or "int" (parseInt, base 10). */
-  parse?: "float" | "int";
+  /** Called with each value main would commit (see settle.ts). */
+  onCommit?: (next: number) => void;
+  /** main's acceptance rule for this field. Default: settle, accept every number. */
+  rule?: NumberRule;
+  /** "float" (parseFloat) or "int" (main's canonical integer). */
+  parse?: NumberParse;
+  /** Bounds and step for arrow keys and aria-value*; acceptance is the rule's job. */
   min?: number | undefined;
   max?: number | undefined;
   step?: number | undefined;
@@ -25,31 +39,37 @@ export type NumberFieldProps = {
   name?: string | undefined;
   autoComplete?: string | undefined;
   disabled?: boolean;
+  /** Force the Invalid state (otherwise it follows a rejected draft). */
   invalid?: boolean;
   /**
-   * Plain-language message shown with a ⚠ icon when invalid: the cause and the next step
-   * ("Volatility must be 0 to 1. Enter a number from 0 to 1."). Wired with aria-describedby.
+   * Plain-language message shown with ⚠ while invalid: the cause, the next step and the
+   * reassurance. A function receives the value still in use. Wired with aria-describedby.
    */
-  error?: string | undefined;
-  /** Visible digits the field is sized for; default from min / max / step. */
-  chars?: number | undefined;
+  error?: string | ((current: number) => string) | undefined;
+  /** Caption under the field (e.g. "(~40 years)"). */
+  hint?: string | undefined;
+  /** Text already typed at mount (stories and tests: show a draft such as a rejected "4"). */
+  initialText?: string | undefined;
 };
 
-const widthChars = (min?: number, max?: number, step?: number): number => {
-  const longest = [min, max, step]
-    .filter((n): n is number => n !== undefined && Number.isFinite(n))
-    .map((n) => String(n).length);
-  return Math.max(4, ...longest) + 1;
+const finite = (n: number | undefined): number | undefined =>
+  n !== undefined && Number.isFinite(n) ? n : undefined;
+
+const decimalsOf = (n: number): number => {
+  const s = String(n);
+  const dot = s.indexOf(".");
+  return dot === -1 ? 0 : s.length - dot - 1;
 };
 
 /**
- * A native <input type="number"> (spinners, numeric keypads, autofill, form semantics) in the design
- * frame. min / max / step pass straight through, so ranges and steps stay exactly the caller's.
+ * A text input (m7: inputMode keypads, no browser spinners, our own Postel-liberal parser) with
+ * spinbutton semantics and arrow-key steps, committing exactly what main's inputs commit (B3).
  */
 export const NumberField = ({
   label,
   value,
-  onChange,
+  onCommit,
+  rule = { kind: "settle", accept: () => true },
   parse = "float",
   min,
   max,
@@ -58,62 +78,130 @@ export const NumberField = ({
   name,
   autoComplete = "off",
   disabled = false,
-  invalid = false,
+  invalid,
   error,
-  chars,
+  hint,
+  initialText,
 }: NumberFieldProps): JSX.Element => {
   const root = styles["root"] ?? "number-root";
   const labelCls = styles["label"] ?? "number-label";
+  const field = styles["field"] ?? "number-field";
   const control = styles["control"] ?? "number-control";
+  const hintCls = styles["hint"] ?? "number-hint";
   const errorIcon = styles["errorIcon"] ?? "field-error-icon";
   const errorCls = styles["error"] ?? "number-error";
 
   const autoId = useId();
   const controlId = id ?? `number-${autoId}`;
   const errorId = `${controlId}-error`;
-  const showError = invalid && error !== undefined;
+  const hintId = `${controlId}-hint`;
 
-  const style = {
-    ["--dyn-field-chars" as string]: `${chars ?? widthChars(min, max, step)}ch`,
-  } satisfies CSSProperties;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const options = useRef<SettleOptions>({
+    rule,
+    parse,
+    commit: (n) => onCommit?.(n),
+    getValue: () => valueRef.current,
+  });
+  options.current.rule = rule;
+  options.current.parse = parse;
+  options.current.commit = (n) => onCommit?.(n);
+  const controller = useRef<SettleController | null>(null);
+  if (controller.current === null) {
+    controller.current = createSettledNumber(value, options.current);
+    if (initialText !== undefined) controller.current.change(initialText);
+  }
+  const settle = controller.current;
+  const [draft, setDraft] = useState(() => settle.draft());
+  const [rejected, setRejected] = useState(() => settle.rejected());
 
-  const handle = (event: ChangeEvent<HTMLInputElement>): void => {
-    const raw = event.target.value;
-    onChange?.(parse === "int" ? Number.parseInt(raw, 10) : Number.parseFloat(raw));
+  useEffect(() => {
+    settle.sync(value);
+    setDraft(settle.draft());
+    setRejected(settle.rejected());
+  }, [settle, value]);
+
+  const refresh = (): void => {
+    setDraft(settle.draft());
+    setRejected(settle.rejected());
   };
+  const change = (text: string): void => {
+    settle.change(text);
+    refresh();
+  };
+  const blur = (): void => {
+    settle.blur();
+    refresh();
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === "Enter") {
+      blur();
+      focusNextOnEnter(event);
+      return;
+    }
+    if ((event.key === "ArrowUp" || event.key === "ArrowDown") && step !== undefined) {
+      event.preventDefault();
+      const base = Number.isNaN(valueRef.current) ? (min ?? 0) : valueRef.current;
+      let next = base + (event.key === "ArrowUp" ? step : -step);
+      if (max !== undefined) next = Math.min(max, next);
+      if (min !== undefined) next = Math.max(min, next);
+      change(next.toFixed(Math.max(decimalsOf(step), decimalsOf(base))));
+    }
+  };
+
+  const isInvalid = invalid ?? rejected;
+  const message = typeof error === "function" ? error(value) : error;
+  const showError = isInvalid && message !== undefined;
+  const describedBy =
+    [hint === undefined ? "" : hintId, showError ? errorId : ""].filter(Boolean).join(" ") ||
+    undefined;
 
   return (
     <div
       className={root}
-      style={style}
-      data-invalid={invalid ? "true" : "false"}
+      data-invalid={isInvalid ? "true" : "false"}
       data-disabled={disabled ? "true" : "false"}
     >
       <label className={labelCls} htmlFor={controlId}>
         <LabelGlyphs text={label} />
       </label>
-      <input
-        className={control}
-        id={controlId}
-        name={name}
-        type="number"
-        inputMode={parse === "int" ? "numeric" : "decimal"}
-        autoComplete={autoComplete}
-        min={min}
-        max={max}
-        step={step}
-        value={Number.isNaN(value) ? "" : value}
-        disabled={disabled}
-        aria-invalid={invalid ? true : undefined}
-        aria-describedby={showError ? errorId : undefined}
-        onChange={handle}
-      />
+      <div className={field}>
+        <input
+          className={control}
+          id={controlId}
+          name={name}
+          type="text"
+          role="spinbutton"
+          inputMode={parse === "int" ? "numeric" : "decimal"}
+          autoComplete={autoComplete}
+          spellCheck={false}
+          aria-valuenow={Number.isFinite(value) ? value : undefined}
+          aria-valuemin={finite(min)}
+          aria-valuemax={finite(max)}
+          value={draft}
+          disabled={disabled}
+          aria-invalid={isInvalid ? true : undefined}
+          aria-describedby={describedBy}
+          onChange={(event) => {
+            change(event.target.value);
+          }}
+          onBlur={blur}
+          onKeyDown={onKeyDown}
+        />
+        {hint === undefined ? null : (
+          <span className={hintCls} id={hintId}>
+            {hint}
+          </span>
+        )}
+      </div>
       {showError ? (
         <span className={errorCls} id={errorId}>
           <span className={errorIcon}>
             <Icon name="warning" />
           </span>
-          <span>{error}</span>
+          <span>{message}</span>
         </span>
       ) : null}
     </div>

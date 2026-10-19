@@ -1,8 +1,8 @@
 @layer primitives {
   .root {
     display: inline-block;
-    inline-size: var(--dyn-icon-size);
-    block-size: var(--dyn-icon-size);
+    inline-size: var(--icon-size);
+    block-size: var(--icon-size);
     flex: none;
     fill: none;
     stroke: currentColor;

@@ -5,6 +5,7 @@ import { variants as cluster } from "../../src/v2/design/primitives/Cluster/Clus
 import { variants as grid } from "../../src/v2/design/primitives/Grid/Grid";
 import { variants as glyphs } from "../../src/v2/design/primitives/LabelGlyphs/LabelGlyphs";
 import { variants as numberField } from "../../src/v2/design/primitives/NumberField/NumberField";
+import { variants as sectionLabel } from "../../src/v2/design/primitives/SectionLabel/SectionLabel";
 import { variants as select } from "../../src/v2/design/primitives/Select/Select";
 import { variants as stack } from "../../src/v2/design/primitives/Stack/Stack";
 import { variants as tick } from "../../src/v2/design/primitives/TickToggle/TickToggle";
@@ -23,7 +24,9 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...cluster.align, ...cluster.justify].length).toBe(7);
   expect([...select.invalid]).toEqual(["true", "false"]);
   expect([...select.disabled]).toEqual(["true", "false"]);
-  expect([...select.label]).toEqual(["visible", "hidden"]);
+  expect([...select.label]).toEqual(["visible", "external"]);
   expect([...numberField.invalid]).toEqual(["true", "false"]);
   expect([...numberField.disabled]).toEqual(["true", "false"]);
+  expect([...sectionLabel.level]).toEqual(["section", "group"]);
+  expect([...sectionLabel.side]).toEqual(["start", "end"]);
 });

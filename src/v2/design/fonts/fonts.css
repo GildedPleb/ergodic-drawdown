@@ -30,4 +30,31 @@
     font-weight: 600;
     font-display: swap;
   }
+
+  /* m11: size-matched local fallbacks (metrics from fonts/subset.py's SM cuts vs the metric-compatible
+     Liberation / Gelasio faces), so a failed or slow webfont load does not reflow the panes. */
+  @font-face {
+    font-family: "SM Jost Fallback";
+    src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+    size-adjust: 100.41%;
+    ascent-override: 106.56%;
+    descent-override: 37.35%;
+    line-gap-override: 0%;
+  }
+  @font-face {
+    font-family: "SM EB Garamond Fallback";
+    src: local("Georgia"), local("Gelasio");
+    size-adjust: 87.26%;
+    ascent-override: 115.4%;
+    descent-override: 34.15%;
+    line-gap-override: 0%;
+  }
+  @font-face {
+    font-family: "SM Cormorant Fallback";
+    src: local("Times New Roman"), local("Liberation Serif"), local("Times");
+    size-adjust: 95.14%;
+    ascent-override: 97.12%;
+    descent-override: 30.17%;
+    line-gap-override: 0%;
+  }
 }

@@ -75,7 +75,7 @@ test("G3 edge: 0.99999999 next to the ₿1 boundary", () => {
   ]);
 });
 
-test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding", () => {
+test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding, k/M at 3 significant figures (m9)", () => {
   check([
     [fmtUSD(999.5), "$1k"],
     [fmtUSD(999.49), "$999"],
@@ -83,10 +83,12 @@ test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding", () =
     [fmtUSD(9.994), "$9.99"],
     [fmtUSD(10), "$10"],
     [fmtUSD(1_000), "$1k"],
-    [fmtUSD(1_250), "$1.3k"],
-    [fmtUSD(9_950), "$10k"],
+    [fmtUSD(1_250), "$1.25k"],
+    [fmtUSD(9_950), "$9.95k"],
+    [fmtUSD(99_950), "$100k"],
+    [fmtUSD(85_400), "$85.4k"],
     [fmtUSD(999_500), "$1M"],
-    [fmtUSD(12_340_000), "$12M"],
+    [fmtUSD(12_340_000), "$12.3M"],
     [fmtUSD(2_500_000_000), "$2,500M"],
     [fmtUSD(0.004), "<$0.01"],
     [fmtUSD(-4.5), "−$4.50"],
@@ -103,11 +105,12 @@ test("G3 edge: NaN and ±Infinity are an em dash (Form)", () => {
   }
 });
 
-test("G3 edge: ranges (equal ends, ₿1 boundary, negative, crossing zero)", () => {
+test("G3 / Form m9: ranges use the wider end's precision (equal ends, ₿1 boundary, negative, crossing zero)", () => {
   check([
     [fmtBTCRange(0.4, 0.4), "₿0.4"],
     [fmtBTCRange(0.4, 0.40000001), "₿0.4"],
-    [fmtBTCRange(0.42, 1.3), "₿0.42–1.3"],
+    [fmtBTCRange(0.42, 1.3), "₿0.4–1.3"],
+    [fmtBTCRange(0.0021, 0.42), "₿0–0.42"],
     [fmtBTCRange(0.99999999, 1.2), "₿1–1.2"],
     [fmtBTCRange(-0.7, -0.4), "−₿0.7–0.4"],
     [fmtBTCRange(-0.4, -0.7), "−₿0.7–0.4"],
@@ -116,7 +119,8 @@ test("G3 edge: ranges (equal ends, ₿1 boundary, negative, crossing zero)", () 
     [fmtBTCRange(0.7, -0.4), "−₿0.4 to ₿0.7"],
     [fmtBTCRange(0, 0.7), "₿0–0.7"],
     [fmtBTCRange(1, 13), "₿1–13"],
-    [fmtBTCRange(1e-9, 0.7), "<₿0.00000001 to ₿0.7"],
+    [fmtBTCRange(1e-9, 0.7), "₿0–0.7"],
+    [fmtBTCRange(-0.0021, 0.42), "₿0–0.42"],
   ]);
 });
 
@@ -124,7 +128,7 @@ test("G3 Form: cross-zero never puts an en dash beside a minus", () => {
   for (const [lo, hi] of [
     [-0.4, 0.7],
     [-13.1, 2],
-    [-0.0021, 0.42],
+    [-0.21, 0.42],
   ] as const) {
     const r = fmtBTCRange(lo, hi);
     expect(r.includes("\u2013\u2212")).toBe(false);
@@ -146,7 +150,7 @@ test("G3 Form: no trailing .0 for ₿ or $", () => {
     [fmtUSD(4.1), "$4.10"],
     [fmtUSD(4), "$4"],
     [fmtUSD(1_000), "$1k"],
-    [fmtUSD(1_040), "$1k"],
+    [fmtUSD(1_040), "$1.04k"],
     [fmtUSD(1_000_000), "$1M"],
     [fmtUSD(-1), "−$1"],
   ]);

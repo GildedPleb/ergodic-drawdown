@@ -1,8 +1,9 @@
 import type { ReactElement } from "react";
 
+import { TickToggle } from "../TickToggle";
 import { Stack } from "./Stack";
 
-/** Plain CSF 3, no Storybook/Ladle imports. */
+/** Plain CSF 3, no Storybook/Ladle imports. Focus demos use real 44px controls (Form nit). */
 export default { title: "Layout/Stack" };
 
 export const Default = (): ReactElement => (
@@ -14,8 +15,8 @@ export const Default = (): ReactElement => (
 );
 export const Focus = (): ReactElement => (
   <Stack gap="1">
-    <button type="button">One</button>
-    <button type="button">Two</button>
+    <TickToggle label="One" checked={false} />
+    <TickToggle label="Two" checked />
   </Stack>
 );
 export const LongText = (): ReactElement => (

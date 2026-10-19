@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   expectAxeClean,
+  expectNoEmojiText,
   expectNoOverflow,
   expectOnlySmFonts,
   expectTapTargets,
@@ -11,7 +12,8 @@ import {
 } from "./checks";
 import { FIELD_STORIES, FIELD_THEMES, FIELD_VIEWPORTS } from "./stories";
 
-// Select + NumberField: Default, Focus, Invalid, EmojiLabel × dark/linen × 390×844 and 1440×900.
+// Form B1: every field / glyph / amount / section-label story and the models pane, both themes,
+// 390×844 and 1440×900, Chromium and WebKit. `…/linen` stories force linen, so they run once.
 test.beforeEach(({ browserName }, info) => {
   test.skip(
     !FIELD_VIEWPORTS.some((v) => info.project.name === `${browserName}-${v}`),
@@ -21,12 +23,15 @@ test.beforeEach(({ browserName }, info) => {
 
 for (const id of FIELD_STORIES) {
   for (const theme of FIELD_THEMES) {
-    test(`${id} (${theme}): axe, tap targets, overflow, fonts, screenshot`, async ({
+    if (id.endsWith("/linen") && theme === "dark") continue;
+    test(`${id} (${theme}): axe, tap targets, overflow, fonts, emoji, screenshot`, async ({
       page,
       browserName,
     }, info) => {
       await gotoStory(page, id, { theme });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      // Form nit: one h1 per story page.
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       const control = id.startsWith("select/")
         ? page.getByRole("combobox")
         : page.getByRole("spinbutton");
@@ -37,20 +42,30 @@ for (const id of FIELD_STORIES) {
       if (id.endsWith("/invalid")) {
         await expect(control).toHaveAttribute("aria-invalid", "true");
         const describedBy = (await control.getAttribute("aria-describedby")) ?? "";
-        const message = page.locator(`[id="${describedBy}"]`);
+        const message = page.locator(`[id="${describedBy.split(" ").at(-1) ?? ""}"]`);
         await expect(message).toBeVisible();
         await expect(message.locator("svg")).toHaveCount(1); // the ⚠ icon
         await expect(message).toContainText(/\. (Enter|Pick)/); // cause, then the next step
       }
+      if (id.endsWith("/disabled")) await expect(control).toBeDisabled();
       if (id === "select/emoji-label") {
-        // Exact string in the native value; the closed face draws 4 SVG circles (no emoji font).
         await expect(control).toHaveValue("🟢🟢🟢🔴");
         await expect(page.locator("svg circle")).toHaveCount(4);
+      }
+      if (id === "select/labelled-by-heading") {
+        await expect(control).toHaveAccessibleName("Model");
       }
       if (id === "number-field/emoji-label") {
         await expect(page.getByRole("img", { name: "🟢🟢🟢🔴 volatility:" })).toBeVisible();
         await expect(control).toHaveAccessibleName("🟢🟢🟢🔴 volatility:");
       }
+      if (id === "models-pane/emoji-walk") {
+        // B2: the engine's emoji walk selected; exact value, SVG circles, no emoji text node.
+        await expect(page.locator("#v2-walk")).toHaveValue("🟢🟢🟢🔴");
+        await expect(page.locator("svg circle")).toHaveCount(4);
+        await expect(page.locator("#v2-model")).toHaveAccessibleName("Model");
+      }
+      await expectNoEmojiText(page);
       await expectAxeClean(page);
       await expectTapTargets(page);
       await expectNoOverflow(page);

@@ -1,4 +1,4 @@
-import type { CSSProperties, JSX } from "react";
+import type { JSX } from "react";
 
 import styles from "./LabelGlyphs.module.css";
 
@@ -20,25 +20,25 @@ export const variants = {
 export type LabelGlyphsProps = {
   /** Exact string kept in data and in the accessible name. */
   text: string;
+  /**
+   * Inside an aria-hidden face (the closed Select): draw only, no role or name. The accessible
+   * value lives on the native control.
+   */
+  decorative?: boolean;
 };
 
 /**
- * Maps known codepoints to filled SVG circles at cap height, spaced like letters; every other
- * character renders as plain text. A label without mapped codepoints is plain text. A label with
- * them is one role="img" whose accessible name is the exact string, so the emoji never reaches a
- * text node (no emoji font, the font check stays strict). --walk-up / --walk-down only live here.
+ * Maps known codepoints to filled SVG circles at cap height (--glyph-dot, ≥8px), spaced like
+ * letters (--glyph-gap); every other character renders as plain text, inline, so long labels wrap.
+ * A label with mapped codepoints is one role="img" named with the exact string: the emoji never
+ * reaches a text node, so no emoji font is ever shaped (B2). --walk-up / --walk-down only live here.
  */
-export const LabelGlyphs = ({ text }: LabelGlyphsProps): JSX.Element => {
+export const LabelGlyphs = ({ text, decorative = false }: LabelGlyphsProps): JSX.Element => {
   const root = styles["root"] ?? "label-glyphs-root";
   const dot = styles["dot"] ?? "label-glyphs-dot";
 
   const chars = Array.from(text);
   if (!chars.some((ch) => GLYPH_MAP.has(ch))) return <>{text}</>;
-
-  const style = {
-    ["--dyn-glyph-size" as string]: "0.7em",
-    ["--dyn-glyph-gap" as string]: "0.12em",
-  } satisfies CSSProperties;
 
   const parts: JSX.Element[] = [];
   let run = "";
@@ -68,8 +68,10 @@ export const LabelGlyphs = ({ text }: LabelGlyphsProps): JSX.Element => {
   }
   flush();
 
-  return (
-    <span className={root} style={style} role="img" aria-label={text} data-text={text}>
+  return decorative ? (
+    <span className={root}>{parts}</span>
+  ) : (
+    <span className={root} role="img" aria-label={text} data-text={text}>
       {parts}
     </span>
   );

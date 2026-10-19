@@ -48,15 +48,26 @@
     flex: none;
     inline-size: var(--tk-box);
     block-size: var(--tk-box);
-    border: var(--rule-double-line) solid var(--rule);
+    border: var(--rule-double-line) solid var(--control-line);
     background: transparent;
   }
 
+  /* M5: both rules in --control-line (≥3:1 boundary in both themes). */
   .box::before {
     content: "";
     position: absolute;
     inset: var(--rule-double-gap);
-    border: var(--rule-double-line) solid var(--rule);
+    border: var(--rule-double-line) solid var(--control-line);
+  }
+
+  /* M4: disabled is a shape change, not colour alone: a single dashed rule, no inner rule. */
+  .root[data-disabled="true"] .box {
+    border-style: dashed;
+    border-color: var(--text-faint);
+  }
+
+  .root[data-disabled="true"] .box::before {
+    border-color: transparent;
   }
 
   .root[data-state="on"] .box {

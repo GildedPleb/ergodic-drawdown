@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "title": "Model",
   "models": [
     {
       "name": "Power Law Regression Median",
@@ -97,14 +98,28 @@
   "controls": {
     "variable": {
       "step": 1,
-      "default": 0
+      "default": 0,
+      "parse": "float",
+      "rule": "live-range"
     },
     "minMaxMultiple": {
       "min": 1.01,
       "step": 0.1,
-      "default": 3
+      "default": 3,
+      "floor": 1.01,
+      "parse": "float",
+      "rule": "live-floor"
+    },
+    "walk": {
+      "label": "Walk Strategy:"
     },
     "volatility": {
+      "accept": {
+        "min": 0,
+        "max": 1
+      },
+      "emptyValue": null,
+      "parse": "float",
       "min": 0,
       "max": 1,
       "default": 0.1,
@@ -120,12 +135,24 @@
       "bottomLabel": "Min"
     },
     "samples": {
+      "accept": {
+        "min": 0,
+        "max": 10000
+      },
+      "emptyValue": 1000,
+      "parse": "int",
       "min": 1,
       "max": 10000,
       "default": 1000,
       "label": "Statistical Sample Count (1k-10k):"
     },
     "epochs": {
+      "accept": {
+        "min": 1,
+        "max": 100
+      },
+      "emptyValue": null,
+      "parse": "int",
       "min": 1,
       "max": 30,
       "default": 10,

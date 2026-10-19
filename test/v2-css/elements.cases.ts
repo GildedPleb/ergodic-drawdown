@@ -41,7 +41,10 @@ test("G4: a raw <select> or <input> in the Models pane fails (no exception entry
       name: raw,
       path: pane,
       edit: (c) =>
-        c.replace("<h2 className={title}>Model</h2>", `<h2 className={title}>Model</h2>${raw}`),
+        c.replace(
+          "<SectionLabel text={modelsPaneSchema.title} id={headingId} />",
+          `<SectionLabel text={modelsPaneSchema.title} id={headingId} />${raw}`,
+        ),
     });
     expect(checkElements(tree).length).toBe(1);
   }

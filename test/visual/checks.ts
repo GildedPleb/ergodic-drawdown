@@ -72,6 +72,24 @@ export const expectOnlySmFonts = async (page: Page): Promise<void> => {
   expect([...foreign]).toEqual([]);
 };
 
+/**
+ * Form B2 (every engine, no CDP): no text node outside the native <select> subtree contains an
+ * emoji, so nothing can ever shape in an emoji font. Emoji labels live only in attributes
+ * (aria-label, value) and as SVG.
+ */
+export const expectNoEmojiText = async (page: Page): Promise<void> => {
+  const hits = await page.evaluate(() => {
+    const out: string[] = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
+      if (n.parentElement?.closest("select") !== null) continue;
+      if (/\p{Extended_Pictographic}/u.test(n.nodeValue ?? "")) out.push(n.nodeValue ?? "");
+    }
+    return out;
+  });
+  expect(hits).toEqual([]);
+};
+
 export const gotoStory = async (
   page: Page,
   id: string,

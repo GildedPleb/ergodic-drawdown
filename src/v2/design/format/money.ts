@@ -61,6 +61,22 @@ const fixed = (n: bigint, decimals: number, keepZeros = false): string => {
 const btcPrefix = (options: FormatOptions | undefined): string =>
   options?.fontsFailed === true ? `BTC${NBSP}` : BTC;
 
+/** Display decimals for a non-zero ₿ magnitude: 2 sig figs below ₿1 (≤ 8), 1 decimal from ₿1. */
+const btcDecimals = (d: Dec): number => {
+  if (roundTo(d, 8) < 100_000_000n) {
+    const decimals = Math.min(8, 1 - leadExp(d));
+    if (roundTo(d, decimals) < pow10(decimals)) return decimals;
+  }
+  return 1;
+};
+
+/** ₿ at a fixed number of decimals (trailing zeros trimmed); an end that rounds to 0 is `₿0`. */
+const btcAt = (x: number, decimals: number, prefix: string): string => {
+  const n = roundTo(toDec(Math.abs(x)), decimals);
+  if (n === 0n) return `${prefix}0`;
+  return `${x < 0 ? MINUS : ""}${prefix}${fixed(n, decimals)}`;
+};
+
 export const fmtBTC = (x: number, options?: FormatOptions): string => {
   if (!Number.isFinite(x)) return EM;
   const prefix = btcPrefix(options);
@@ -70,12 +86,15 @@ export const fmtBTC = (x: number, options?: FormatOptions): string => {
   const sats = roundTo(d, 8);
   if (sats === 0n) return `<${prefix}0.00000001`;
   if (options?.detail === true) return `${sign}${prefix}${fixed(sats, 8)}`;
-  if (sats < 100_000_000n) {
-    const decimals = Math.min(8, 1 - leadExp(d));
-    const n = roundTo(d, decimals);
-    if (n < pow10(decimals)) return `${sign}${prefix}${fixed(n, decimals)}`;
-  }
-  return `${sign}${prefix}${fixed(roundTo(d, 1), 1)}`;
+  return btcAt(x, btcDecimals(d), prefix);
+};
+
+/** 3 significant figures in a unit (k or M), trailing zeros trimmed; undefined if it reaches 1000. */
+const threeSig = (u: Dec, allowOver = false): string | undefined => {
+  const decimals = Math.max(0, 2 - leadExp(u));
+  const n = roundTo(u, decimals);
+  if (!allowOver && n >= 1000n * pow10(decimals)) return undefined;
+  return fixed(n, decimals);
 };
 
 const usdBody = (d: Dec): string => {
@@ -84,15 +103,10 @@ const usdBody = (d: Dec): string => {
   if (cents < 1_000n) return `$${fixed(cents, 2, cents % 100n !== 0n)}`;
   const dollars = roundTo(d, 0);
   if (dollars < 1_000n) return `$${dollars.toString()}`;
-  const k: Dec = { digits: d.digits, exp: d.exp - 3 };
-  const tenthsK = roundTo(k, 1);
-  if (tenthsK < 100n) return `$${fixed(tenthsK, 1)}k`;
-  const wholeK = roundTo(k, 0);
-  if (wholeK < 1_000n) return `$${wholeK.toString()}k`;
-  const m: Dec = { digits: d.digits, exp: d.exp - 6 };
-  const tenthsM = roundTo(m, 1);
-  if (tenthsM < 100n) return `$${fixed(tenthsM, 1)}M`;
-  return `$${group(roundTo(m, 0).toString())}M`;
+  // k and M: 3 significant figures ($85,400 → $85.4k); the unit is chosen after rounding.
+  const k = threeSig({ digits: d.digits, exp: d.exp - 3 });
+  if (k !== undefined) return `$${k}k`;
+  return `$${threeSig({ digits: d.digits, exp: d.exp - 6 }, true) ?? ""}M`;
 };
 
 export const fmtUSD = (x: number): string => {
@@ -103,17 +117,21 @@ export const fmtUSD = (x: number): string => {
 };
 
 /**
+ * Both ends share the precision of the wider end (BOOK §5): `₿0.4–1.3`, not `₿0.42–1.3`.
  * Same sign: one prefix, en dash, no spaces, number-line order: `₿0.4–0.7`, `−₿0.7–0.4` (one sign
- * covers both, larger magnitude first). Equal ends collapse to one value. Crossing zero (or a
- * `<` floor end): the word "to" with ₿ repeated, `−₿0.4 to ₿0.7`, never an en dash beside a minus.
+ * covers both, larger magnitude first). Equal ends collapse to one value. Crossing zero: the word
+ * "to" with ₿ repeated, `−₿0.4 to ₿0.7`, never an en dash beside a minus.
  */
 export const fmtBTCRange = (low: number, high: number, options?: FormatOptions): string => {
   if (!Number.isFinite(low) || !Number.isFinite(high)) return EM;
   const [lo, hi] = low <= high ? [low, high] : [high, low];
-  const a = fmtBTC(lo, options);
-  const b = fmtBTC(hi, options);
-  if (a === b) return a;
   const prefix = btcPrefix(options);
+  const wide = toDec(Math.max(Math.abs(lo), Math.abs(hi)));
+  const shared =
+    options?.detail === true || roundTo(wide, 8) === 0n ? undefined : btcDecimals(wide);
+  const a = shared === undefined ? fmtBTC(lo, options) : btcAt(lo, shared, prefix);
+  const b = shared === undefined ? fmtBTC(hi, options) : btcAt(hi, shared, prefix);
+  if (a === b) return a;
   const negA = a.startsWith(MINUS);
   const negB = b.startsWith(MINUS);
   if (negA !== negB || a.startsWith("<") || b.startsWith("<")) return `${a} to ${b}`;

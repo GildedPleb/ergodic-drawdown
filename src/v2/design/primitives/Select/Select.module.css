@@ -1,40 +1,43 @@
 @layer primitives {
+  /* One field column (m5): label | field when labelled here; full width when labelled elsewhere. */
   .root {
-    display: flex;
+    display: grid;
     flex: 1 1 auto;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--s-2);
+    column-gap: var(--s-3);
+    row-gap: var(--s-1);
     min-inline-size: 0;
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-small);
   }
 
   .root[data-label="visible"] {
-    justify-content: space-between;
+    grid-template-columns: minmax(0, 1fr) var(--field-col);
   }
 
-  .root[data-label="hidden"] {
-    justify-content: stretch;
+  .root[data-label="external"] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
+  /* M1: row labels are EB Garamond 400 at --t-row. */
   .label {
-    flex: 0 1 auto;
     min-inline-size: 0;
     color: var(--text-muted);
+    font-family: var(--f-text);
+    font-size: var(--t-row);
+    font-weight: 400;
+    line-height: var(--lh-row);
     overflow-wrap: anywhere;
   }
 
-  /* Face and native control share one grid cell; the control is in flow so it sets the 44px hit. */
+  /* Face and native control share one grid cell; the in-flow control sets the 44px hit (M7).
+     m10: fields fill --surface. */
   .field {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    flex: 1 1 auto;
     min-inline-size: 0;
     border: var(--rule-hair) solid var(--control-line);
     border-radius: var(--radius-0);
-    background: var(--raised);
+    background: var(--surface);
   }
 
   .field:has(.control:focus-visible) {
@@ -42,6 +45,7 @@
     outline-offset: var(--focus-offset);
   }
 
+  /* M1: values are Jost 500 at --t-value. */
   .face {
     grid-area: 1 / 1;
     display: flex;
@@ -51,14 +55,22 @@
     min-inline-size: 0;
     padding-block: var(--s-1);
     padding-inline: var(--s-2);
+    font-family: var(--f-sans);
+    font-size: var(--t-value);
+    font-weight: 500;
     font-variant-numeric: lining-nums tabular-nums;
+    line-height: var(--lh-row);
   }
 
+  /* m6: long names wrap to two lines before truncating (200% zoom). */
   .value {
+    display: -webkit-box;
     min-inline-size: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
   }
 
   .caret {
@@ -67,7 +79,7 @@
     color: var(--accent);
   }
 
-  /* The native control: transparent, over the face (later in the cell), so it owns pointer, keys and pickers. */
+  /* The native control: transparent, later in the same cell, so it owns pointer, keys and pickers. */
   .control {
     grid-area: 1 / 1;
     inline-size: 100%;
@@ -81,7 +93,7 @@
     appearance: none;
   }
 
-  /* Invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
+  /* M2: invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
   .root[data-invalid="true"] .field {
     border: var(--rule-strong) solid var(--invalid);
   }
@@ -90,24 +102,36 @@
     border-color: var(--control-line);
   }
 
-  .root[data-disabled="true"] {
-    color: var(--disabled);
+  /* M4: disabled has a shape cue: dashed single rule, no chevron, muted (axe-clean) text. */
+  .root[data-disabled="true"] .field {
+    border-style: dashed;
+  }
+
+  .root[data-disabled="true"] .face {
+    color: var(--text-muted);
+  }
+
+  .root[data-disabled="true"] .caret {
+    display: none;
   }
 
   .root[data-disabled="true"] .control {
     cursor: not-allowed;
   }
 
-  .root[data-disabled="false"] .caret {
-    color: var(--accent);
+  .root[data-disabled="false"] .face {
+    color: var(--text);
   }
 
   .error {
     display: flex;
-    flex: 1 0 100%;
+    grid-column: 1 / -1;
     align-items: flex-start;
     gap: var(--s-1);
     color: var(--invalid);
+    font-family: var(--f-sans);
+    font-size: var(--t-small);
+    font-weight: 500;
   }
 
   .errorIcon {

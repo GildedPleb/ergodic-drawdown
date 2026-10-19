@@ -1,16 +1,16 @@
 @layer primitives {
+  /* Inline, so a label with glyphs wraps like text (m6). */
   .root {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--dyn-glyph-gap);
-    font: inherit;
-    line-height: 1;
+    display: inline;
   }
 
   .dot {
-    inline-size: var(--dyn-glyph-size);
-    block-size: var(--dyn-glyph-size);
-    flex: none;
+    display: inline-block;
+    box-sizing: content-box;
+    inline-size: var(--glyph-dot);
+    block-size: var(--glyph-dot);
+    padding-inline-end: var(--glyph-gap);
+    vertical-align: baseline;
   }
 
   .dot[data-tone="up"] {

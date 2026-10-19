@@ -1,0 +1,48 @@
+@layer primitives {
+  .root {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-3);
+    min-inline-size: 0;
+  }
+
+  .text {
+    flex: 0 1 auto;
+    color: var(--accent);
+    font-family: var(--f-sans);
+    font-size: var(--t-section);
+    font-weight: 600;
+    letter-spacing: var(--tr-section);
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .rule {
+    flex: 0 1 var(--section-rule-len);
+    min-inline-size: 0;
+    block-size: var(--rule-hair);
+  }
+
+  .root[data-level="section"] .rule {
+    flex-basis: var(--section-rule-len);
+  }
+
+  .root[data-level="group"] .rule {
+    flex-basis: var(--group-rule-len);
+  }
+
+  .root[data-level="group"] .text {
+    font-size: var(--t-group);
+    letter-spacing: var(--tr-group);
+  }
+
+  /* Hairlines fade out away from the text. */
+  .rule[data-side="start"] {
+    background-image: linear-gradient(to left, var(--rule), transparent);
+  }
+
+  .rule[data-side="end"] {
+    background-image: linear-gradient(to right, var(--rule), transparent);
+  }
+}

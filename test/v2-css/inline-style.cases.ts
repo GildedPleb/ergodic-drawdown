@@ -20,15 +20,16 @@ test("R10: seeded violations fail", () => {
     {
       name: "custom property not named --dyn-*",
       path: ICON_TSX,
-      edit: (c) => c.replaceAll("--dyn-icon-size", "--icon-size"),
+      edit: (c) =>
+        c.replace("className={root}", 'className={root} style={{ ["--icon-x" as string]: "1" }}'),
     },
     {
       name: "--dyn-* not consumed by the module",
       path: ICON_TSX,
       edit: (c) =>
         c.replace(
-          '"--dyn-icon-size" as string]: "1em"',
-          '"--dyn-icon-size" as string]: "1em", ["--dyn-unused" as string]: "1"',
+          "className={root}",
+          'className={root} style={{ ["--dyn-unused" as string]: "1" }}',
         ),
     },
     {

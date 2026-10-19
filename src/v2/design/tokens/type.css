@@ -3,9 +3,9 @@
   /* v41: all size tokens in rem (16px root) so OS text size and 200% zoom scale them; px comments are the 100% values. */
 
   :root {
-    --f-serif: "SM Cormorant", Georgia, serif; /* display cut, ≥21px */
-    --f-text: "SM EB Garamond", Georgia, serif; /* text cut, ≤17px */
-    --f-sans: "SM Jost", system-ui, sans-serif;
+    --f-serif: "SM Cormorant", "SM Cormorant Fallback", Georgia, serif; /* display cut, ≥21px */
+    --f-text: "SM EB Garamond", "SM EB Garamond Fallback", Georgia, serif; /* text cut, ≤17px */
+    --f-sans: "SM Jost", "SM Jost Fallback", system-ui, sans-serif;
     --figs: lining-nums tabular-nums;
     /* sizes: phone → desktop (fluid between 390 and 1440) */
     --t-headline: clamp(1.3125rem, 0.86vw + 1.1rem, 1.6875rem);

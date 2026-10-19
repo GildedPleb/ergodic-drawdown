@@ -1,36 +1,46 @@
 @layer primitives {
+  /* One field column (m5): label | field, hint captioned under the field, error full width. */
   .root {
-    display: flex;
+    display: grid;
     flex: 1 1 auto;
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr) var(--field-col);
     align-items: center;
-    justify-content: space-between;
-    gap: var(--s-2);
+    column-gap: var(--s-3);
+    row-gap: var(--s-1);
     min-inline-size: 0;
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-small);
   }
 
+  /* M1: row labels are EB Garamond 400 at --t-row. */
   .label {
-    flex: 0 1 auto;
     min-inline-size: 0;
     color: var(--text-muted);
+    font-family: var(--f-text);
+    font-size: var(--t-row);
+    font-weight: 400;
+    line-height: var(--lh-row);
     overflow-wrap: anywhere;
   }
 
+  .field {
+    display: grid;
+    row-gap: var(--s-1);
+    min-inline-size: 0;
+  }
+
+  /* M1: values are Jost 500 at --t-value, lining + tabular. m10: fields fill --surface. */
   .control {
-    box-sizing: content-box;
-    flex: none;
-    inline-size: var(--dyn-field-chars);
+    inline-size: 100%;
     min-block-size: var(--hit);
     padding-block: 0;
     padding-inline: var(--s-2);
     border: var(--rule-hair) solid var(--control-line);
     border-radius: var(--radius-0);
-    background: var(--raised);
+    background: var(--surface);
     color: var(--text);
-    font: inherit;
+    font-family: var(--f-sans);
+    font-size: var(--t-value);
+    font-weight: 500;
     font-variant-numeric: lining-nums tabular-nums;
     text-align: end;
   }
@@ -40,7 +50,16 @@
     outline-offset: var(--focus-offset);
   }
 
-  /* Invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
+  /* M6: the caption is live text, so --text-muted. */
+  .hint {
+    color: var(--text-muted);
+    font-family: var(--f-sans);
+    font-size: var(--t-small);
+    font-weight: 500;
+    text-align: end;
+  }
+
+  /* M2: invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
   .root[data-invalid="true"] .control {
     border: var(--rule-strong) solid var(--invalid);
   }
@@ -49,12 +68,10 @@
     border-color: var(--control-line);
   }
 
-  .root[data-disabled="true"] {
-    color: var(--disabled);
-  }
-
+  /* M4: disabled has a shape cue (dashed single rule), not colour alone. */
   .root[data-disabled="true"] .control {
-    color: var(--disabled);
+    border-style: dashed;
+    color: var(--text-muted);
     cursor: not-allowed;
   }
 
@@ -64,10 +81,13 @@
 
   .error {
     display: flex;
-    flex: 1 0 100%;
+    grid-column: 1 / -1;
     align-items: flex-start;
     gap: var(--s-1);
     color: var(--invalid);
+    font-family: var(--f-sans);
+    font-size: var(--t-small);
+    font-weight: 500;
   }
 
   .errorIcon {

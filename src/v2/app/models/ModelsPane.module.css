@@ -1,4 +1,5 @@
 @layer app {
+  /* M3: frameless pane; the SectionLabel carries the structure. */
   .root {
     display: flex;
     flex-direction: column;
@@ -6,43 +7,37 @@
     gap: var(--s-3);
     padding-block: var(--s-3);
     padding-inline: var(--s-4);
-    border: var(--rule-hair) solid var(--hairline);
-    background: var(--surface);
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-small);
   }
 
-  .title {
-    font-family: var(--f-sans);
-    font-size: var(--t-section);
-    font-weight: 600;
-    letter-spacing: var(--tr-section);
-    text-transform: uppercase;
-    color: var(--accent);
-  }
-
-  .row {
+  /* m5: one field column. */
+  .fields {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--s-2);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
   }
 
-  .label {
+  .group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--s-3);
+  }
+
+  /* M1: row labels in EB Garamond 400 at --t-row. */
+  .groupLabel {
     color: var(--text-muted);
-    white-space: nowrap;
+    font-family: var(--f-text);
+    font-size: var(--t-row);
+    font-weight: 400;
+    line-height: var(--lh-row);
   }
 
   .options {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: var(--s-2);
-  }
-
-  .hint {
-    color: var(--text-faint);
   }
 }

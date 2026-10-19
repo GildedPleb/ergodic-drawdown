@@ -195,3 +195,22 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 - **`--invalid`** (semantic, both themes) = the same palette entry as `--text` (dark `--linen-75`, linen `--umber-800`). Invalid is full contrast and **never a colour signal**: orange is bitcoin, and there is no red for errors. A field's invalid state is a `--rule-strong` border in `--invalid`, a ⚠ SVG icon (Icon `warning`), and a plain-language message (the cause and the next step) wired with `aria-describedby` and `aria-invalid`. Form: mirror this in `gen_sem.py`.
 - **Walk dots** (`--walk-up` / `--walk-down`, LabelGlyphs only) are SVG `<circle>`s. No CSS `border-radius` anywhere; `--radius-0` stays the only radius.
 - **Native picker font exception.** The closed Select face draws emoji labels through LabelGlyphs and passes the strict SM-only font check. The **open native OS picker** is browser/OS chrome and may show the system emoji for `🟢🟢🟢🔴`. The Playwright font check exempts only the native `<select>`/`<option>` subtree (which is transparent when closed).
+
+## Phase 0 review fixes (Form REVIEW.md, scope #2)
+
+- Space tokens added in `space.css` (Form: mirror in the p3 generator):
+  `--glyph-dot: max(0.5rem, 0.7em)` (walk dots, ≥8px), `--glyph-gap: 0.12em`,
+  `--icon-size: 1em`, `--field-col: 9rem` (the single field column, m5),
+  `--section-rule-len: 70%` / `--group-rule-len: 45%` (SectionLabel hairlines).
+- Field faces (M1): row labels `--f-text` 400 at `--t-row`; values `--f-sans` 500 at `--t-value`;
+  hints `--text-muted` (M6); fields filled `--surface` (m10). No Jost 400 anywhere.
+- Disabled shape cue (M4): Select / NumberField use a dashed single rule (Select hides the chevron),
+  TickToggle drops the inner rule and dashes the outer one. Text stays `--text-muted`.
+- Tick box off state (M5): both rules in `--control-line`.
+- Fonts: size-matched local fallbacks (`SM Jost Fallback` → Arial/Liberation Sans,
+  `SM EB Garamond Fallback` → Georgia/Gelasio, `SM Cormorant Fallback` → Times/Liberation Serif)
+  with `size-adjust` and ascent/descent overrides measured from the SM cuts (m11). Runtime failure
+  is `document.fonts.load` + `check` (fonts/status.ts, M8).
+- One `.sr-only` utility in `base.css`; `VisuallyHidden` is its only component wrapper (B2).
+- R11 budget rebaselined (forced: SectionLabel, VisuallyHidden, fallback faces, field states):
+  source 28,020 → 33,109 B, built gzip 4,281 → 4,891 B.

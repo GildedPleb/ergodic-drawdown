@@ -55,7 +55,10 @@ export const TickToggle = ({
           <Icon name="check" />
         </span>
       </span>
-      <span className={labelCls}>{checked ? "ON" : "OFF"}</span>
+      {/* m3: the state is aria-checked; the ON/OFF word is visual only. */}
+      <span className={labelCls} aria-hidden="true">
+        {checked ? "ON" : "OFF"}
+      </span>
       <span className={labelCls}>{label}</span>
     </button>
   );
