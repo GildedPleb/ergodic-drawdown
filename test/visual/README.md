@@ -1,8 +1,10 @@
-# Visual regression (Playwright)
+# Visual and browser checks (Playwright)
 
-**Not in the merge gate.** Screenshots hit `/design/:story` on the redesign deploy preview (not Storybook).
+**Not in the merge gate.** Every check runs on `/design/<group>/<story>` in a flag-on production build (the app route, not Storybook). `storybook.pw.ts` is the one Storybook check and runs only when `STORYBOOK_URL` is set.
 
-## Matrix (Form)
+## Matrix (MVP-SPEC §4, G7)
+
+Projects are `<engine>-<viewport>` for engines Chromium and WebKit:
 
 | Viewport  | Notes           |
 | --------- | --------------- |
@@ -12,18 +14,33 @@
 | 1440×900  | desktop         |
 | 1920×1080 | wide (“1800+”)  |
 
-Themes: dark + linen. Also 200% zoom, reduced motion, axe, 44px targets, overflow, font-fallback.
+Chromium also runs `chromium-zoom200` (200% browser zoom), `chromium-text200` (root font 32px) and `chromium-reduced-motion`. Themes are part of the story id: `…/linen` themes `<html>`.
 
-Baselines: `test/visual/__screenshots__/`. Require CODEOWNERS `@GildedPleb` and the `design-approved` label after Form’s notes.
+| Spec             | Checks                                                                                                                                                                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `matrix.pw.ts`   | Per story and project: axe has 0 serious or critical issues; every hit target is at least 44×44; no sideways scroll; Chromium only: every glyph comes from an `SM` face (CDP); the screenshot. |
+| `tick-row.pw.ts` | Once per engine at 1024×768: click, Space and Enter toggle; a held Enter, Space or pointer toggles once (FL-001); disabled stays put; deep links; the linen story themes `<html>`.             |
+
+## Baselines
+
+Baselines live in `test/visual/__screenshots__/<project>/`. Generate them only in the pinned container, never on a laptop or the Grok box, because font rasterising differs:
+
+```bash
+docker run --rm -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v1.64.1-noble \
+  bash -lc 'npm i -g bun && bun install --frozen-lockfile && bun run visual:update'
+```
+
+A project with no baseline still runs every other check. It records a `baseline-pending` annotation instead of creating one. Baselines need CODEOWNERS `@GildedPleb` and the `design-approved` label after Form's notes.
 
 ## Reference phones (G8)
 
-Pixel 6a–class and iPhone SE 3. On this Linux box Playwright can run Chromium and WebKit (Linux); that is **not** iOS Safari. Real-device pass stays manual (G11).
+Playwright WebKit on Linux is not iOS Safari. The real-device pass (Pixel 6a class, iPhone SE 3) stays manual (G11). On the Grok box WebKit cannot launch: the system libraries (gtk4, libsoup3, gstreamer-bad and others) are missing and there is no root. Run the WebKit projects in the container above.
 
 ## Local
 
 ```bash
-bunx playwright install chromium
-VITE_DESIGN_ROUTE=1 bun run build && bun run preview
-PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 bun run visual
+bunx playwright install chromium webkit
+bun run visual                      # builds with VITE_DESIGN_ROUTE=1 and serves on 127.0.0.1:4173
+bun run visual -- --project='chromium-*'
+PLAYWRIGHT_BASE_URL=https://<deploy-preview> bun run visual   # against a preview
 ```

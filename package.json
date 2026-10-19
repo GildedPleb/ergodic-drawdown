@@ -23,6 +23,7 @@
     "css:size": "bun scripts/v2/measure-css-size.ts",
     "design:absent": "bun scripts/v2/check-design-route-absent.ts",
     "visual": "playwright test -c test/visual/playwright.config.ts",
+    "visual:update": "VISUAL_UPDATE=1 playwright test -c test/visual/playwright.config.ts --update-snapshots",
     "models:snapshot": "bun scripts/v2/snapshot-old-ui.ts"
   },
   "dependencies": {
@@ -43,6 +44,7 @@
     "styled-reset": "^5.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "^1.64.1",
     "@storybook/react": "10.6.2",
     "@storybook/react-vite": "10.6.2",

@@ -32,6 +32,7 @@ coverage/
 golden/bun/
 golden/node/
 tmp/
-tmp/
 /tmp/
 storybook-static/
+test-results/
+playwright-report/
