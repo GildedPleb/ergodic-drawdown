@@ -1,4 +1,3 @@
-import { bandConfig } from "../../../contexts/computed/distribution";
 import { createDataSet } from "../../../helpers";
 
 /**
@@ -23,12 +22,27 @@ export type PriceBands = {
 };
 
 /**
- * The engine's own dataset labels, built by main's createDataSet from main's price/quantile band
- * config (no English copied here): label at a cutoff, e.g. 0.05 → "5th Percentile Bitcoin Price".
+ * main: src/contexts/computed/distribution.ts `bandConfig("price", "quantile")`, mirrored (Rule 0:
+ * back-end files stay byte-identical, so v2 keeps its own copy; the G12 source test re-reads the
+ * file and fails on any drift). Only the fields that shape the dataset labels are used.
  */
-const PRICE_QUANTILES = bandConfig("price", "quantile");
+export const PRICE_QUANTILE_BAND = {
+  color: { blue: 50, green: 145, red: 246 },
+  cutoffs: [0, 0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99, 1],
+  midLabel: "Bitcoin Price",
+  type: "quantile",
+  yAxisID: "y",
+} as const;
+
+/**
+ * The engine's own dataset labels, built by main's (already exported) createDataSet from that
+ * config: label at a cutoff, e.g. 0.05 → "5th Percentile Bitcoin Price".
+ */
+const CUTOFFS: number[] = [...PRICE_QUANTILE_BAND.cutoffs];
+const PRICE_QUANTILES = { ...PRICE_QUANTILE_BAND, cutoffs: CUTOFFS };
 const ENGINE_LABELS = createDataSet({
   ...PRICE_QUANTILES,
+  color: { ...PRICE_QUANTILE_BAND.color },
   quantiles: PRICE_QUANTILES.cutoffs.map(() => []),
 }).map((d) => d.label);
 const labelAt = (cutoff: number): string =>

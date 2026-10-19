@@ -196,6 +196,8 @@ Campaign: (meanings live in the beautify skill)
 
 Long-lived branch from `golden-baselines`. Do not merge to `main` until the user signs off. Do not change the old UI outside `src/v2`.
 
+- Rule 0 (`docs/design/v32-ref/V32-BUILD.md`): the back end is unchanged and the front end is all new. Back-end files are byte-identical to main; no edits of any kind, including export/visibility; v2 mirrors via G12 source tests.
+
 - Entry on this branch: `index.html` → `src/v2/app/main.tsx`. Old `src/main.tsx` stays for mergeability.
 - Tokens/fonts/primitives: `src/v2/design/**` (CODEOWNERS `@GildedPleb`). Baseline changes also need the `design-approved` label after Form's notes.
 - Gallery: Storybook 10.6 (`bun run storybook`) on our Vite 8. Stories are plain CSF 3 with no Storybook imports.

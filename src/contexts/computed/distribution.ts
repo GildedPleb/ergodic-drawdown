@@ -19,7 +19,7 @@ interface BandConfig {
   yAxisID: "y" | "y1";
 }
 
-export const bandConfig = (character: Character, kind: BandKind): BandConfig => {
+const bandConfig = (character: Character, kind: BandKind): BandConfig => {
   if (character === "price") {
     return kind === "quantile"
       ? {

@@ -4,7 +4,13 @@ import { expect, test } from "bun:test";
 import { createEngine } from "../../src/engine/engine";
 import { DEFAULT_INFLATION, engineConfig, SIMULATION_SEED } from "../../src/v2/app/engine/config";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
-import { bandRange, endValue, type PriceBands, priceBands } from "../../src/v2/app/world/bands";
+import {
+  bandRange,
+  endValue,
+  PRICE_QUANTILE_BAND,
+  type PriceBands,
+  priceBands,
+} from "../../src/v2/app/world/bands";
 import { inProcessWorker } from "../golden/in-process";
 import {
   axisTicks,
@@ -180,4 +186,37 @@ test("G12-style: DEFAULT_INFLATION re-reads main's drawdown default", async () =
     main,
   );
   expect(Number(found?.[1])).toBe(DEFAULT_INFLATION);
+});
+
+/** Drift between v2's PRICE_QUANTILE_BAND and main's bandConfig("price", "quantile") source. */
+const bandDrift = (text: string): string[] => {
+  const block =
+    /character === "price"\) \{\s*return kind === "quantile"\s*\?\s*\{([\s\S]*?)\}\s*:/.exec(
+      text,
+    )?.[1] ?? "";
+  const color = /color: \{ blue: (\d+), green: (\d+), red: (\d+) \}/.exec(block);
+  const read = {
+    color: { blue: Number(color?.[1]), green: Number(color?.[2]), red: Number(color?.[3]) },
+    cutoffs: (/cutoffs: \[([^\]]*)\]/.exec(block)?.[1] ?? "").split(",").map(Number),
+    midLabel: /midLabel: "([^"]*)"/.exec(block)?.[1],
+    type: /type: "(\w+)"/.exec(block)?.[1],
+    yAxisID: /yAxisID: "(\w+)"/.exec(block)?.[1],
+  };
+  const mine = { ...PRICE_QUANTILE_BAND, cutoffs: [...PRICE_QUANTILE_BAND.cutoffs] };
+  return Object.entries(read)
+    .filter(([key, value]) => {
+      const want: unknown = Object.entries(mine).find(([k]) => k === key)?.[1];
+      return JSON.stringify(value) !== JSON.stringify(want);
+    })
+    .map(([key]) => key);
+};
+
+test("G12-style: v2's price band mirrors main's bandConfig(price, quantile); seeded edits are red", async () => {
+  const main = await file(`${import.meta.dir}/../../src/contexts/computed/distribution.ts`).text();
+  expect(bandDrift(main)).toEqual([]);
+  expect(bandDrift(main.replace("0.05, 0.25", "0.06, 0.25"))).toEqual(["cutoffs"]);
+  expect(bandDrift(main.replace('midLabel: "Bitcoin Price"', 'midLabel: "BTC"'))).toEqual([
+    "midLabel",
+  ]);
+  expect(bandDrift(main.replace("blue: 50,", "blue: 51,"))).toEqual(["color"]);
 });
