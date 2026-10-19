@@ -1,3 +1,16 @@
+import {
+  FLICK,
+  gesture,
+  isTap,
+  RUBBER,
+  rubberBand,
+  snapStop,
+  stopsFor,
+  toggleStop,
+  velocity,
+} from "../../src/v2/app/shell/drag";
+import { strings } from "../../src/v2/app/strings";
+import { attachDrag } from "../../src/v2/app/shell/attachDrag";
 import { paneOf } from "../../src/v2/app/shell/panes";
 import { expect, test } from "bun:test";
 
@@ -244,4 +257,213 @@ test("1L.2: the pane last clicked, tapped or tabbed into is the active pane", ()
   expect(paneOf(at(null), "plans")).toBe("plans");
   expect(paneOf(null, "models")).toBe("models");
   expect(paneOf(at("bogus"), "models")).toBe("models");
+});
+
+// §1L.5: the sheet follows the finger.
+const STOPS = [
+  ["closed", 70],
+  ["half", 194],
+  ["full", 388],
+] as const;
+
+test("1L.5: inside the stops the edge tracks the pointer 1:1; past them it moves a third", () => {
+  expect(rubberBand(200, 70, 388)).toBe(200);
+  expect(rubberBand(388, 70, 388)).toBe(388);
+  expect(rubberBand(448, 70, 388)).toBe(408);
+  expect(rubberBand(40, 70, 388)).toBe(60);
+  expect(RUBBER).toBe(1 / 3);
+});
+
+test("1L.5: under 6px of movement is a tap", () => {
+  expect([isTap(0, 0), isTap(3, 4), isTap(5.9, 0), isTap(6, 0), isTap(0, -7)]).toEqual([
+    true,
+    true,
+    true,
+    false,
+    false,
+  ]);
+});
+
+test("1L.5: release velocity comes from the last 100ms of samples (px/ms, + = growing)", () => {
+  const s = [
+    { t: 0, size: 100 },
+    { t: 50, size: 120 },
+    { t: 150, size: 160 },
+    { t: 200, size: 200 },
+  ];
+  expect(velocity(s, 200)).toBe(0.8); // 120 → 200 over 100ms
+  expect(velocity(s, 400)).toBe(0); // held still before release
+  expect(velocity([{ t: 0, size: 100 }], 0)).toBe(0);
+  expect(velocity([], 10)).toBe(0);
+});
+
+test("1L.5: release snaps to the nearest stop; a flick ≥0.5px/ms snaps in its direction", () => {
+  expect(snapStop(150, 0, STOPS)).toBe("half");
+  expect(snapStop(120, 0.2, STOPS)).toBe("closed");
+  expect(snapStop(300, -0.49, STOPS)).toBe("full");
+  // Flicks: from just above half upward goes full; from just below half downward goes closed.
+  expect(snapStop(200, FLICK, STOPS)).toBe("full");
+  expect(snapStop(190, -FLICK, STOPS)).toBe("closed");
+  expect(snapStop(120, 0.9, STOPS)).toBe("half");
+  expect(snapStop(300, -2, STOPS)).toBe("half");
+  // Past the ends a flick outward stays at the end.
+  expect(snapStop(400, 1, STOPS)).toBe("full");
+  expect(snapStop(60, -1, STOPS)).toBe("closed");
+  // The landscape panel has two stops.
+  expect(
+    snapStop(200, 0, [
+      ["closed", 64],
+      ["full", 460],
+    ]),
+  ).toBe("closed");
+  expect(
+    snapStop(200, 0.6, [
+      ["closed", 64],
+      ["full", 460],
+    ]),
+  ).toBe("full");
+});
+
+test("1L.5: tap and keys toggle closed ↔ open; each position is announced", () => {
+  expect([toggleStop("closed"), toggleStop("half"), toggleStop("full")]).toEqual([
+    "full",
+    "closed",
+    "closed",
+  ]);
+  expect([strings.dock.sheet.closed, strings.dock.sheet.half, strings.dock.sheet.full]).toEqual([
+    "Sheet closed",
+    "Sheet half open",
+    "Sheet open",
+  ]);
+});
+
+test("1L.5: a gesture under 6px is a tap; past it the sheet follows the pointer 1:1", () => {
+  const g = gesture(
+    { x: 100, y: 500, t: 0, size: 70, at: "closed" },
+    false,
+    stopsFor(false, 70, 388),
+  );
+  expect(g.move(102, 497, 10)).toBe(null);
+  expect(g.dragging()).toBe(false);
+  expect(g.move(100, 400, 400)).toBe(170); // 100px up: 100px taller, no lag
+  expect(g.move(100, 300, 800)).toBe(270);
+  expect(g.dragging()).toBe(true);
+  expect(g.release(1000, false)).toBe("half"); // held still: nearest (270 is 76 from half, 118 from full)
+});
+
+test("1L.5: release: slow lands on the nearest stop, a flick in its direction, cancel stays", () => {
+  const stops = stopsFor(false, 70, 388);
+  expect(stops).toEqual([
+    ["closed", 70],
+    ["half", 194],
+    ["full", 388],
+  ]);
+  const slow = gesture({ x: 0, y: 500, t: 0, size: 70, at: "closed" }, false, stops);
+  slow.move(0, 380, 500);
+  expect(slow.release(900, false)).toBe("half");
+  const flick = gesture({ x: 0, y: 500, t: 0, size: 70, at: "closed" }, false, stops);
+  flick.move(0, 480, 10);
+  flick.move(0, 440, 60); // 40px in 50ms = 0.8 px/ms upward, still below half
+  expect(flick.release(70, false)).toBe("half");
+  const cancel = gesture({ x: 0, y: 500, t: 0, size: 194, at: "half" }, false, stops);
+  cancel.move(0, 300, 100);
+  expect(cancel.release(120, true)).toBe("half");
+  const tap = gesture({ x: 0, y: 500, t: 0, size: 194, at: "half" }, false, stops);
+  expect(tap.release(50, false)).toBe(null);
+  // Past full it rubber-bands a third.
+  const over = gesture({ x: 0, y: 500, t: 0, size: 388, at: "full" }, false, stops);
+  expect(over.move(0, 470, 50)).toBe(398);
+  // The landscape panel: leftward grows it, two stops.
+  const panel = gesture(
+    { x: 780, y: 100, t: 0, size: 64, at: "closed" },
+    true,
+    stopsFor(true, 64, 460),
+  );
+  expect(panel.move(680, 100, 300)).toBe(164);
+  expect(panel.release(700, false)).toBe("closed");
+});
+
+const ptr = (type: string, x: number, y: number, t: number, id = 1): Event => {
+  const e = Object.assign(new Event(type, { cancelable: true }), {
+    pointerId: id,
+    clientX: x,
+    clientY: y,
+    button: 0,
+  });
+  Object.defineProperty(e, "timeStamp", { value: t });
+  return e;
+};
+
+/** A document stand-in. */
+const fakeDoc = (): EventTarget & { at: (e: Event) => void } => {
+  const doc = new EventTarget();
+  return Object.assign(doc, {
+    at: (e: Event): void => {
+      doc.dispatchEvent(e);
+    },
+  });
+};
+
+test("1L.5 wiring: a slow drag tracks every move 1:1, then rests on the nearest stop", () => {
+  const doc = fakeDoc();
+  const log: string[] = [];
+  const grab = {
+    at: "closed",
+    horizontal: false,
+    size: 70,
+    closed: 70,
+    full: 388,
+    ownsTap: true,
+  } as const;
+  const detach = attachDrag(doc, {
+    grab: () => grab,
+    begin: (s) => log.push(`begin ${String(s)}`),
+    track: (s) => log.push(`track ${String(s)}`),
+    rest: (n, d) => log.push(`rest ${n} ${String(d)}`),
+  });
+  doc.at(ptr("pointerdown", 100, 700, 0));
+  doc.at(ptr("pointermove", 100, 698, 10)); // under 6px: nothing yet
+  doc.at(ptr("pointermove", 100, 650, 300));
+  doc.at(ptr("pointermove", 100, 600, 600));
+  doc.at(ptr("pointermove", 100, 600, 700, 2)); // another pointer: ignored
+  doc.at(ptr("pointerup", 100, 600, 900));
+  expect(log).toEqual(["begin 70", "track 120", "track 170", "rest half true"]);
+  // The click that ends a drag is swallowed; the next one is not.
+  const click = new Event("click", { cancelable: true });
+  doc.dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
+  const again = new Event("click", { cancelable: true });
+  doc.dispatchEvent(again);
+  expect(again.defaultPrevented).toBe(false);
+  detach();
+  doc.at(ptr("pointerdown", 100, 700, 1000));
+  doc.at(ptr("pointermove", 100, 500, 1100));
+  expect(log.length).toBe(4);
+});
+
+test("1L.5 wiring: a tap off a button toggles; on a button its click does; off-strip is ignored", () => {
+  const doc = fakeDoc();
+  const rests: string[] = [];
+  let owns = false;
+  let on = true;
+  attachDrag(doc, {
+    grab: () =>
+      on ? { at: "full", horizontal: true, size: 460, closed: 64, full: 460, ownsTap: owns } : null,
+    begin: () => undefined,
+    track: () => undefined,
+    rest: (n, d) => rests.push(`${n} ${String(d)}`),
+  });
+  doc.at(ptr("pointerdown", 500, 100, 0));
+  doc.at(ptr("pointerup", 503, 100, 80));
+  owns = true;
+  doc.at(ptr("pointerdown", 500, 100, 200));
+  doc.at(ptr("pointerup", 500, 100, 260));
+  // A cancelled drag rests where it started.
+  doc.at(ptr("pointerdown", 500, 100, 300));
+  doc.at(ptr("pointermove", 700, 100, 350));
+  doc.at(ptr("pointercancel", 700, 100, 360));
+  on = false;
+  doc.at(ptr("pointerdown", 500, 100, 400));
+  doc.at(ptr("pointerup", 500, 100, 420));
+  expect(rests).toEqual(["closed false", "full true"]);
 });

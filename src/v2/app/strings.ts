@@ -64,6 +64,8 @@ export const strings = {
     settings: "Settings",
     label: "Panes",
     grab: { open: "Open the Models sheet", close: "Close the Models sheet" },
+    /** §1L.5: the sheet's position, announced after every move. */
+    sheet: { closed: "Sheet closed", half: "Sheet half open", full: "Sheet open" },
   },
   fields: {
     /** Clamp (Gap 11): the value used is shown, not silently swapped. */

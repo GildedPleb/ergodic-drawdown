@@ -17,7 +17,15 @@ export type WorldLayerProps = {
   /** §1h Chart · no data: "slow" and "failed" put a caption over the empty frame. */
   phase?: InputsPhase;
   onRetry?: () => void;
+  /**
+   * §1L.5: the sheet is being dragged. The box resizes live (ResizeObserver: once per frame); if
+   * a redraw took longer than a frame, the last drawing stays, scaled to the box, until release.
+   */
+  live?: boolean;
 };
+
+/** One frame: a redraw slower than this waits for the drag's release. */
+const FRAME_MS = 16;
 
 /** The empty frame's caption (Form n11): text, and on failure a quiet "Try again" button. */
 const Status = ({ phase, onRetry }: { phase: InputsPhase; onRetry: () => void }): JSX.Element => {
@@ -52,11 +60,13 @@ export const WorldLayer = ({
   label,
   phase = "ready",
   onRetry = noRetry,
+  live = false,
 }: WorldLayerProps): JSX.Element => {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [fonts, setFonts] = useState(0);
+  const lastDraw = useRef(0);
 
   useEffect(() => {
     const el = box.current;
@@ -78,13 +88,16 @@ export const WorldLayer = ({
   useEffect(() => {
     const c = canvas.current;
     if (c === null || size.w === 0 || size.h === 0) return;
+    if (live && lastDraw.current > FRAME_MS) return;
+    const t0 = performance.now();
     const dpr = window.devicePixelRatio || 1;
     c.width = Math.round(size.w * dpr);
     c.height = Math.round(size.h * dpr);
     const ctx = c.getContext("2d");
     if (ctx === null) return;
     drawWorld(ctx, readPaint(c), { width: size.w, height: size.h, dpr, now, horizon }, bands);
-  }, [bands, now, horizon, size, fonts]);
+    lastDraw.current = performance.now() - t0;
+  }, [bands, now, horizon, size, fonts, live]);
 
   const root = styles["root"] ?? "world-root";
   const front = styles["front"] ?? "world-front";

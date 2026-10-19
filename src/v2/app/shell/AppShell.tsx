@@ -1,7 +1,8 @@
 import type { JSX } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Dock, type DockTab } from "../../design/primitives/Dock";
+import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
 import { useWorld } from "../engine/useWorld";
 import { ModelsSheet } from "../models/ModelsSheet";
@@ -11,12 +12,15 @@ import { endValue, outOfRange } from "../world/bands";
 import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
+import { toggleStop } from "./drag";
 import { type Pane, paneOf } from "./panes";
+import { useSheet } from "./useSheetDrag";
 import { SIDE_PANEL, useMedia } from "./useMedia";
 
 /** R7: variant keys and values. */
 export const variants = {
-  sheet: ["half", "open"] as const,
+  sheet: ["closed", "half", "full"] as const,
+  dragging: ["true", "false"] as const,
   column: ["open", "closed"] as const,
   corner: ["start", "end"] as const,
 };
@@ -37,11 +41,30 @@ const HIDDEN = { shown: false } as const;
 export const AppShell = (): JSX.Element => {
   const [now] = useState(() => Date.now());
   const [values, setValues] = useState<ModelsValues>(defaultModelsValues);
-  const [open, setOpen] = useState(false);
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
+  const rootRef = useRef<HTMLDivElement>(null);
   const sheet = useRef<HTMLElement>(null);
+  const area = useRef<HTMLDivElement>(null);
+  const fullProbe = useRef<HTMLSpanElement>(null);
+  const railProbe = useRef<HTMLSpanElement>(null);
+  const refs = useMemo(
+    () => ({ root: rootRef, sheet, area, full: fullProbe, rail: railProbe }),
+    [],
+  );
+  // §1L.5: closed / half / full, dragged, tapped or keyed; every change is announced.
+  const { stop, go, dragging, dyn } = useSheet(refs, side);
+  const open = stop !== "closed";
+  const moved = useRef(false);
+  const [said, setSaid] = useState("");
+  useEffect(() => {
+    if (!moved.current) {
+      moved.current = true;
+      return;
+    }
+    setSaid(strings.dock.sheet[stop]);
+  }, [stop]);
   // §1L.2: the pane last clicked, tapped or tabbed into draws its layer and selects its tab.
   const [pane, setPane] = useState<Pane>("models");
   const world = useWorld(values, now);
@@ -62,7 +85,7 @@ export const AppShell = (): JSX.Element => {
   const spoken = ends === null ? idle : strings.headline.spoken(...ends);
 
   const setSheet = (next: boolean): void => {
-    setOpen(next);
+    go(next ? toggleStop("closed") : "closed");
     if (!next) setColumn(false);
   };
 
@@ -98,8 +121,7 @@ export const AppShell = (): JSX.Element => {
     if (!open) return undefined;
     const onKey = (event: globalThis.KeyboardEvent): void => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
-      setOpen(false);
-      setColumn(false);
+      setSheet(false);
       document.getElementById("tab-models")?.focus();
     };
     document.addEventListener("keydown", onKey);
@@ -133,12 +155,26 @@ export const AppShell = (): JSX.Element => {
   const cols = styles["cols"] ?? "shell-cols";
   const col = styles["col"] ?? "shell-col";
   const reserved = styles["reserved"] ?? "shell-reserved";
+  const edge = styles["edge"] ?? "shell-edge";
+  const announce = styles["announce"] ?? "shell-announce";
+  const probe = styles["probe"] ?? "shell-probe";
+  const railProbeCls = styles["railProbe"] ?? "shell-rail-probe";
 
-  const sheetState: (typeof variants.sheet)[number] = open ? "open" : "half";
+  const sheetState: (typeof variants.sheet)[number] = stop;
+  const dragState: (typeof variants.dragging)[number] = dragging ? "true" : "false";
+  const px = `${String(dyn)}px`;
   const columnState: (typeof variants.column)[number] = side && column ? "open" : "closed";
 
   return (
-    <div className={root} data-sheet={sheetState} data-column={columnState} data-active-pane={pane}>
+    <div
+      ref={rootRef}
+      className={root}
+      data-sheet={sheetState}
+      data-dragging={dragState}
+      data-column={columnState}
+      data-active-pane={pane}
+      style={{ "--dyn-sheet": px, "--dyn-panel": px }}
+    >
       <main className={columnCls}>
         <header className={header}>
           <div className={headerRow}>
@@ -167,22 +203,27 @@ export const AppShell = (): JSX.Element => {
             now={now}
             horizon={world.horizon}
             label={spoken}
+            live={dragging}
             phase={world.phase}
             onRetry={world.retry}
           />
         </div>
       </main>
-      <div className={dockArea}>
+      <div ref={area} className={dockArea}>
+        <span ref={fullProbe} className={probe} aria-hidden="true" />
+        <span ref={railProbe} className={railProbeCls} aria-hidden="true" />
+        {/* Landscape: the panel is grabbed from its bevelled left edge (44px strip). */}
+        <span className={edge} data-grab="edge" aria-hidden="true" />
         <section ref={sheet} id={SHEET_ID} className={sheetCls} aria-label={strings.dock.models}>
           <span className={corner} data-corner="start" aria-hidden="true" />
           <span className={corner} data-corner="end" aria-hidden="true" />
-          <div className={beat}>
+          <div className={beat} data-grab="strip">
             <p className={beatText}>{sentence}</p>
             <span className={slot} aria-hidden="true" />
           </div>
-          <div className={dockRow}>
+          <div className={dockRow} data-grab="strip">
             <Dock
-              orientation={side && !open ? "rail" : "row"}
+              orientation={side && !open && !dragging ? "rail" : "row"}
               label={strings.dock.label}
               tabs={TABS}
               selected={pane}
@@ -212,7 +253,7 @@ export const AppShell = (): JSX.Element => {
           </div>
         </section>
         {/* After the sheet, outside its bevel clip: the point sits across the top hairline. */}
-        <div className={grab}>
+        <div className={grab} data-grab="logo">
           <GrabPoint
             label={open ? strings.dock.grab.close : strings.dock.grab.open}
             expanded={open}
@@ -222,6 +263,9 @@ export const AppShell = (): JSX.Element => {
             }}
           />
         </div>
+        <p className={announce} role="status">
+          <VisuallyHidden>{said}</VisuallyHidden>
+        </p>
       </div>
     </div>
   );

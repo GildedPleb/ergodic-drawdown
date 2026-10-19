@@ -38,7 +38,15 @@ test("R7: exported variants are the data-* values the components render", () => 
     "true",
     "false",
   ]);
-  expect([...shell.sheet, ...shell.column]).toEqual(["half", "open", "open", "closed"]);
+  expect([...shell.sheet, ...shell.dragging, ...shell.column]).toEqual([
+    "closed",
+    "half",
+    "full",
+    "true",
+    "false",
+    "open",
+    "closed",
+  ]);
   expect([...ledger.open, ...slider.disabled]).toEqual(["true", "false", "true", "false"]);
   expect([...select.placement, ...select.state]).toEqual(["down", "up", "on", "off"]);
 });

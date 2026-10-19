@@ -86,6 +86,42 @@
     z-index: var(--z-dock);
   }
 
+  /* Hidden probes the drag measures its stops with (full / open panel, and the rail). */
+  .probe,
+  .railProbe {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .probe {
+    inline-size: var(--panel-w);
+    block-size: var(--sheet-open-phone);
+  }
+
+  .railProbe {
+    inline-size: var(--rail-w);
+    block-size: 0;
+  }
+
+  .announce {
+    position: absolute;
+  }
+
+  /* §1L.5 grab strips: no browser panning, so the pointer drives the sheet 1:1. */
+  .grab,
+  .beat,
+  .dockRow,
+  .edge {
+    touch-action: none;
+  }
+
+  .edge {
+    display: none;
+  }
+
   /* The sheet: --surface clipped to the bevel (no shadow, Gap 6); ::before is the 1px --accent
      hairline between the chamfers; two corner diagonals at .7. The grab point is a sibling, so
      the clip never cuts it. */
@@ -159,6 +195,7 @@
   .beat {
     display: flex;
     align-items: flex-start;
+    min-block-size: var(--hit);
   }
 
   .beatText {
@@ -202,30 +239,70 @@
     display: none;
   }
 
-  .root[data-sheet="half"] .dockRow {
+  .dockRow {
+    min-block-size: var(--hit);
+  }
+
+  .root[data-sheet="closed"] .dockRow {
     display: none;
   }
 
-  .root[data-sheet="open"] .dockRow {
+  .root[data-sheet="half"] .dockRow,
+  .root[data-sheet="full"] .dockRow,
+  .root[data-dragging="true"] .dockRow {
     display: block;
   }
 
-  .root[data-sheet="open"] .beat {
+  .root[data-sheet="half"] .beat,
+  .root[data-sheet="full"] .beat,
+  .root[data-dragging="true"] .beat {
     display: none;
   }
 
-  .root[data-sheet="open"] .sheet {
+  /* §1L.5 stops: full is the existing cap, half is half of it, closed is the dock only. */
+  .root[data-sheet="half"] .sheet {
+    block-size: var(--sheet-half-phone);
+  }
+
+  .root[data-sheet="full"] .sheet {
     block-size: var(--sheet-open-phone);
   }
 
-  .root[data-sheet="open"] .body {
+  .root[data-sheet="half"] .body,
+  .root[data-sheet="full"] .body,
+  .root[data-dragging="true"] .body {
     display: block;
     flex: 1;
     min-block-size: 0;
     padding-block-start: var(--s-3);
   }
 
+  /* While dragging, the edge is wherever the pointer put it. */
+  .root[data-dragging="true"] .sheet {
+    block-size: var(--dyn-sheet);
+  }
+
+  .root[data-dragging="false"] .sheet {
+    will-change: auto;
+  }
+
   @media (min-width: 39.75rem) {
+    .probe {
+      block-size: var(--sheet-open);
+    }
+
+    .root[data-sheet="half"] .sheet {
+      block-size: var(--sheet-half);
+    }
+
+    .root[data-sheet="full"] .sheet {
+      block-size: var(--sheet-open);
+    }
+
+    .root[data-dragging="true"] .sheet {
+      block-size: var(--dyn-sheet);
+    }
+
     .header {
       padding-inline: var(--shell-m);
     }
@@ -277,12 +354,8 @@
       display: none;
     }
 
-    .root[data-sheet="half"] .dockRow {
+    .root[data-sheet="closed"] .dockRow {
       display: block;
-    }
-
-    .root[data-sheet="open"] .sheet {
-      block-size: var(--sheet-open);
     }
 
     /* §1L.2: three equal columns, Models | Plans | Stats; Models scrolls inside the 40vh cap. */
@@ -332,18 +405,37 @@
       padding: 0;
     }
 
-    .root[data-sheet="open"] .dockArea {
+    .root[data-sheet="half"] .dockArea,
+    .root[data-sheet="full"] .dockArea {
       inline-size: var(--panel-w);
     }
 
+    .root[data-dragging="true"] .dockArea {
+      inline-size: var(--dyn-panel);
+    }
+
     .sheet,
-    .root[data-sheet="open"] .sheet {
+    .root[data-sheet="half"] .sheet,
+    .root[data-sheet="full"] .sheet,
+    .root[data-dragging="true"] .sheet {
       block-size: 100%;
       padding: var(--rail-pad);
     }
 
-    .root[data-sheet="open"] .sheet {
+    .root[data-sheet="half"] .sheet,
+    .root[data-sheet="full"] .sheet,
+    .root[data-dragging="true"] .sheet {
       padding: var(--panel-pad);
+    }
+
+    /* The bevelled left edge: a 44px grab strip, half outside the panel. */
+    .edge {
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: var(--edge-grab-offset);
+      z-index: var(--z-overlay);
+      display: block;
+      inline-size: var(--hit);
     }
 
     .sheet {
@@ -374,7 +466,7 @@
       display: none;
     }
 
-    .root[data-sheet="half"] .dockRow {
+    .root[data-sheet="closed"] .dockRow {
       display: block;
       block-size: 100%;
     }
@@ -385,22 +477,6 @@
 
     .reserved {
       display: none;
-    }
-  }
-
-  @media (prefers-reduced-motion: no-preference) and (orientation: landscape) and (max-height: 500px) {
-    .root[data-sheet="open"] .dockArea {
-      animation: panel-in var(--dur-panel) var(--ease-out);
-    }
-  }
-
-  @keyframes panel-in {
-    from {
-      transform: translateX(calc(100% - var(--rail-w)));
-    }
-
-    to {
-      transform: none;
     }
   }
 }
