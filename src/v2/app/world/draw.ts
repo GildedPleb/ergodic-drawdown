@@ -79,10 +79,18 @@ const remPx = (value: string, root: number): number => {
 };
 
 /** Token values from the canvas's computed style (both themes follow the token files). */
-export const readPaint = (canvas: Element): Paint => {
-  const css = getComputedStyle(canvas);
+export const readPaint = (canvas: Element): Paint =>
+  paintFrom(
+    getComputedStyle(canvas),
+    Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16,
+  );
+
+/** The Paint for a computed style and the root font size in px. */
+export const paintFrom = (
+  css: { getPropertyValue: (name: string) => string },
+  root: number,
+): Paint => {
   const v = (name: string): string => css.getPropertyValue(name).trim();
-  const root = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   const sans = v("--f-sans");
   return {
     hairline: v("--hairline"),

@@ -47,14 +47,15 @@ export const AppShell = (): JSX.Element => {
   const rootRef = useRef<HTMLDivElement>(null);
   const sheet = useRef<HTMLElement>(null);
   const area = useRef<HTMLDivElement>(null);
-  const fullProbe = useRef<HTMLSpanElement>(null);
+  const capProbe = useRef<HTMLSpanElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const railProbe = useRef<HTMLSpanElement>(null);
   const refs = useMemo(
-    () => ({ root: rootRef, sheet, area, full: fullProbe, rail: railProbe }),
+    () => ({ root: rootRef, sheet, area, cap: capProbe, rail: railProbe, header: headerRef }),
     [],
   );
   // §1L.5: closed / half / full, dragged, tapped or keyed; every change is announced.
-  const { stop, go, dragging, dyn } = useSheet(refs, side);
+  const { stop, go, dragging, dyn, full } = useSheet(refs, side);
   const open = stop !== "closed";
   const moved = useRef(false);
   const [said, setSaid] = useState("");
@@ -173,10 +174,10 @@ export const AppShell = (): JSX.Element => {
       data-dragging={dragState}
       data-column={columnState}
       data-active-pane={pane}
-      style={{ "--dyn-sheet": px, "--dyn-panel": px }}
+      style={{ "--dyn-sheet": px, "--dyn-panel": px, "--dyn-full": `${String(full)}px` }}
     >
       <main className={columnCls}>
-        <header className={header}>
+        <header ref={headerRef} className={header}>
           <div className={headerRow}>
             <span className={logo}>
               <span className={mark}>
@@ -210,7 +211,7 @@ export const AppShell = (): JSX.Element => {
         </div>
       </main>
       <div ref={area} className={dockArea}>
-        <span ref={fullProbe} className={probe} aria-hidden="true" />
+        <span ref={capProbe} className={probe} aria-hidden="true" />
         <span ref={railProbe} className={railProbeCls} aria-hidden="true" />
         {/* Landscape: the panel is grabbed from its bevelled left edge (44px strip). */}
         <span className={edge} data-grab="edge" aria-hidden="true" />

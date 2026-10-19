@@ -12,8 +12,10 @@ export type SheetRefs = {
   sheet: RefObject<HTMLElement | null>;
   /** The dock area (the landscape panel: its width is the dragged size). Holds the grab strips. */
   area: RefObject<HTMLDivElement | null>;
-  /** Hidden probes: the full sheet (block) and open panel (inline); the rail (inline). */
-  full: RefObject<HTMLSpanElement | null>;
+  /** Hidden probes: the cap (block: the half stop) and open panel (inline); the rail (inline). */
+  cap: RefObject<HTMLSpanElement | null>;
+  /** The header: a full sheet reaches its lower edge. */
+  header: RefObject<HTMLElement | null>;
   rail: RefObject<HTMLSpanElement | null>;
 };
 
@@ -24,12 +26,24 @@ export type Sheet = {
   dragging: boolean;
   /** The size at the drag's start (the JSX value of --dyn-*; live moves write it directly). */
   dyn: number;
+  /** The full stop in px: from the header's lower edge to the bottom (--dyn-full). */
+  full: number;
+};
+
+/** A full sheet runs from the header's lower edge to the bottom of the shell. */
+type Boxed = { current: { getBoundingClientRect: () => { bottom: number } } | null };
+
+export const fullOf = (refs: { root: Boxed; header: Boxed }): number => {
+  const root = refs.root.current?.getBoundingClientRect();
+  const head = refs.header.current?.getBoundingClientRect();
+  return root === undefined || head === undefined ? 0 : Math.max(0, root.bottom - head.bottom);
 };
 
 const reduced = (): boolean => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Buttons and tabs handle their own taps (a click); a tap anywhere else on a strip toggles. */
-const ownsTap = (el: Element): boolean => el.closest('button, [role="tab"], a') !== null;
+export const ownsTap = (el: { closest: (sel: string) => unknown }): boolean =>
+  el.closest('button, [role="tab"], a') !== null;
 
 const sizeOf = (refs: SheetRefs, side: boolean): number =>
   (side ? refs.area.current?.offsetWidth : refs.sheet.current?.offsetHeight) ?? 0;
@@ -47,6 +61,7 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
   const [dragging, setDragging] = useState(false);
   const [dyn, setDyn] = useState(0);
   const [tick, setTick] = useState(0);
+  const [full, setFull] = useState(0);
   const from = useRef<number | null>(null);
   const closed = useRef(0);
 
@@ -74,6 +89,18 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
     });
   }, [tick, stop, side, refs]);
 
+  useEffect(() => {
+    const root = refs.root.current;
+    if (root === null || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => {
+      setFull(fullOf(refs));
+    });
+    observer.observe(root);
+    return () => {
+      observer.disconnect();
+    };
+  }, [refs]);
+
   useEffect(
     () =>
       attachDrag(document, {
@@ -84,13 +111,15 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
           const { side: horizontal, stop: at } = live.current;
           const size = sizeOf(refs, horizontal);
           if (at === "closed" && !horizontal) closed.current = size;
-          const probe = refs.full.current;
+          const probe = refs.cap.current;
+          const cap = (horizontal ? probe?.offsetWidth : probe?.offsetHeight) ?? size;
           return {
             at,
             horizontal,
             size,
             closed: horizontal ? (refs.rail.current?.offsetWidth ?? size) : closed.current,
-            full: (horizontal ? probe?.offsetWidth : probe?.offsetHeight) ?? size,
+            cap,
+            full: horizontal ? cap : fullOf(refs),
             ownsTap: ownsTap(target),
           };
         },
@@ -114,5 +143,5 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
     [refs],
   );
 
-  return { stop, go, dragging, dyn };
+  return { stop, go, dragging, dyn, full };
 };

@@ -51,24 +51,28 @@ export const snapStop = (
   return best[0];
 };
 
-/** A tap on the grab point, Enter or Space: closed opens fully, anything else closes. */
-export const toggleStop = (s: Stop): Stop => (s === "closed" ? "full" : "closed");
+/** A tap on the grab point, Enter or Space: closed opens to the cap (half), anything else closes. */
+export const toggleStop = (s: Stop): Stop => (s === "closed" ? "half" : "closed");
 
-/** The stops a drag snaps between: the panel has two, the bottom sheet three (half = full / 2). */
+/**
+ * The stops a drag snaps between. Item 5 (Form): the bottom sheet's half is the existing cap
+ * (46vh phone / 40vh desktop) and full reaches the header; the landscape panel has rail and open.
+ */
 export const stopsFor = (
   horizontal: boolean,
   closed: number,
+  cap: number,
   full: number,
 ): (readonly [Stop, number])[] =>
   horizontal
     ? [
         ["closed", closed],
-        ["full", full],
+        ["full", cap],
       ]
     : [
         ["closed", closed],
-        ["half", full / 2],
-        ["full", full],
+        ["half", cap],
+        ["full", Math.max(cap, full)],
       ];
 
 export type Gesture = {

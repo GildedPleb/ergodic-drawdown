@@ -259,13 +259,13 @@
     display: none;
   }
 
-  /* §1L.5 stops: full is the existing cap, half is half of it, closed is the dock only. */
+  /* Item 5 stops: closed is the dock only, half is the existing cap, full reaches the header. */
   .root[data-sheet="half"] .sheet {
-    block-size: var(--sheet-half-phone);
+    block-size: var(--sheet-open-phone);
   }
 
   .root[data-sheet="full"] .sheet {
-    block-size: var(--sheet-open-phone);
+    block-size: var(--dyn-full);
   }
 
   .root[data-sheet="half"] .body,
@@ -282,8 +282,14 @@
     block-size: var(--dyn-sheet);
   }
 
-  .root[data-dragging="false"] .sheet {
-    will-change: auto;
+  /* A mouse drag selects no text on the way. */
+  .root[data-dragging="true"] {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .root[data-dragging="false"] .grab {
+    cursor: grab;
   }
 
   @media (min-width: 39.75rem) {
@@ -292,10 +298,6 @@
     }
 
     .root[data-sheet="half"] .sheet {
-      block-size: var(--sheet-half);
-    }
-
-    .root[data-sheet="full"] .sheet {
       block-size: var(--sheet-open);
     }
 

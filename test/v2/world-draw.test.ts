@@ -415,3 +415,20 @@ test("B2: bands that are past a double from the start draw the frame and the cap
   }
   expect(draw(693, bands, 1).includes(OUT)).toBe(false);
 });
+
+test("paintFrom reads the tokens off a computed style (rem → px at the root size)", async () => {
+  const { paintFrom } = await import("../../src/v2/app/world/draw");
+  const tokens: Record<string, string> = {
+    "--surface": " #111 ",
+    "--t-chart": "0.75rem",
+    "--t-chart-serif": "0.8125rem",
+    "--line-median": "2px",
+    "--chart-end-lines": "2",
+    "--f-sans": "SM Jost",
+    "--f-text": "SM EB Garamond",
+  };
+  const p = paintFrom({ getPropertyValue: (k: string) => tokens[k] ?? "" }, 16);
+  expect([p.surface, p.split, p.serifPx, p.median, p.casing]).toEqual(["#111", true, 13, 2, 1.5]);
+  expect(p.chart).toBe("500 12px SM Jost");
+  expect(p.serifUpright).toBe("400 13px SM EB Garamond");
+});

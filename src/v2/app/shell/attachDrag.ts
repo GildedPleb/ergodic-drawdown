@@ -4,9 +4,10 @@ import { gesture, type Stop, stopsFor, toggleStop } from "./drag";
 type Grab = {
   at: Stop;
   horizontal: boolean;
-  /** The sheet's height (or the panel's width) now, the closed and the full size. */
+  /** The sheet's height (or the panel's width) now; closed, the cap (half / open panel), full. */
   size: number;
   closed: number;
+  cap: number;
   full: number;
   /** A button or tab under the pointer handles its own tap (its click). */
   ownsTap: boolean;
@@ -53,7 +54,7 @@ export const attachDrag = (doc: EventTarget, hooks: DragHooks): (() => void) => 
     const g = gesture(
       { x: down.clientX, y: down.clientY, t: down.timeStamp, size: grab.size, at },
       horizontal,
-      stopsFor(horizontal, grab.closed, grab.full),
+      stopsFor(horizontal, grab.closed, grab.cap, grab.full),
     );
     const onMove = (move: Event): void => {
       if (!isPointer(move) || move.pointerId !== down.pointerId) return;

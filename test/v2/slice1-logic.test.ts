@@ -11,6 +11,7 @@ import {
 } from "../../src/v2/app/shell/drag";
 import { strings } from "../../src/v2/app/strings";
 import { attachDrag } from "../../src/v2/app/shell/attachDrag";
+import { fullOf, ownsTap } from "../../src/v2/app/shell/useSheetDrag";
 import { paneOf } from "../../src/v2/app/shell/panes";
 import { expect, test } from "bun:test";
 
@@ -324,9 +325,9 @@ test("1L.5: release snaps to the nearest stop; a flick ≥0.5px/ms snaps in its 
   ).toBe("full");
 });
 
-test("1L.5: tap and keys toggle closed ↔ open; each position is announced", () => {
+test("1L.5: tap and keys toggle closed ↔ half (the existing cap); each position is announced", () => {
   expect([toggleStop("closed"), toggleStop("half"), toggleStop("full")]).toEqual([
-    "full",
+    "half",
     "closed",
     "closed",
   ]);
@@ -341,7 +342,7 @@ test("1L.5: a gesture under 6px is a tap; past it the sheet follows the pointer 
   const g = gesture(
     { x: 100, y: 500, t: 0, size: 70, at: "closed" },
     false,
-    stopsFor(false, 70, 388),
+    stopsFor(false, 70, 194, 388),
   );
   expect(g.move(102, 497, 10)).toBe(null);
   expect(g.dragging()).toBe(false);
@@ -352,7 +353,12 @@ test("1L.5: a gesture under 6px is a tap; past it the sheet follows the pointer 
 });
 
 test("1L.5: release: slow lands on the nearest stop, a flick in its direction, cancel stays", () => {
-  const stops = stopsFor(false, 70, 388);
+  // Item 5 (Form): half is the existing cap (46vh / 40vh), full is up to the header.
+  const stops = stopsFor(false, 70, 194, 388);
+  expect(stopsFor(true, 64, 460, 999)).toEqual([
+    ["closed", 64],
+    ["full", 460],
+  ]);
   expect(stops).toEqual([
     ["closed", 70],
     ["half", 194],
@@ -377,7 +383,7 @@ test("1L.5: release: slow lands on the nearest stop, a flick in its direction, c
   const panel = gesture(
     { x: 780, y: 100, t: 0, size: 64, at: "closed" },
     true,
-    stopsFor(true, 64, 460),
+    stopsFor(true, 64, 460, 460),
   );
   expect(panel.move(680, 100, 300)).toBe(164);
   expect(panel.release(700, false)).toBe("closed");
@@ -412,6 +418,7 @@ test("1L.5 wiring: a slow drag tracks every move 1:1, then rests on the nearest 
     horizontal: false,
     size: 70,
     closed: 70,
+    cap: 194,
     full: 388,
     ownsTap: true,
   } as const;
@@ -448,7 +455,17 @@ test("1L.5 wiring: a tap off a button toggles; on a button its click does; off-s
   let on = true;
   attachDrag(doc, {
     grab: () =>
-      on ? { at: "full", horizontal: true, size: 460, closed: 64, full: 460, ownsTap: owns } : null,
+      on
+        ? {
+            at: "full",
+            horizontal: true,
+            size: 460,
+            closed: 64,
+            cap: 460,
+            full: 460,
+            ownsTap: owns,
+          }
+        : null,
     begin: () => undefined,
     track: () => undefined,
     rest: (n, d) => rests.push(`${n} ${String(d)}`),
@@ -466,4 +483,19 @@ test("1L.5 wiring: a tap off a button toggles; on a button its click does; off-s
   doc.at(ptr("pointerdown", 500, 100, 400));
   doc.at(ptr("pointerup", 500, 100, 420));
   expect(rests).toEqual(["closed false", "full true"]);
+});
+
+const boxed = (bottom: number): Parameters<typeof fullOf>[0]["root"] => ({
+  current: { getBoundingClientRect: () => ({ bottom }) },
+});
+
+test("item 5: the full stop runs from the header's lower edge to the shell's bottom", () => {
+  expect(fullOf({ root: boxed(844), header: boxed(46) })).toBe(798);
+  expect(fullOf({ root: boxed(40), header: boxed(46) })).toBe(0);
+  expect(fullOf({ root: { current: null }, header: boxed(46) })).toBe(0);
+});
+
+test("item 5: buttons, tabs and links take their own taps; the bare strip toggles", () => {
+  expect(ownsTap({ closest: () => ({}) })).toBe(true);
+  expect(ownsTap({ closest: () => null })).toBe(false);
 });
