@@ -42,3 +42,9 @@ test("the chart's spoken sentence names units as words; the shown one abbreviate
     strings.headline.spoken(...ends).endsWith("between $2.42 million and $29.5 billion."),
   ).toBe(true);
 });
+
+test("n18: the kicker counts futures in the singular for one sample", () => {
+  expect(strings.headline.kicker(1, "CAGR")).toBe("From today \u00B7 1 future \u00B7 CAGR");
+  expect(strings.headline.kicker(2, "CAGR")).toBe("From today \u00B7 2 futures \u00B7 CAGR");
+  expect(strings.headline.kicker(1000, "CAGR")).toBe("From today \u00B7 1,000 futures \u00B7 CAGR");
+});

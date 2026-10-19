@@ -19,7 +19,7 @@ export const strings = {
   headline: {
     /** Desktop kicker above the headline sentence. */
     kicker: (samples: number, model: string): string =>
-      `From today \u00B7 ${count(samples)} futures \u00B7 ${model}`,
+      `From today \u00B7 ${count(samples)} ${samples === 1 ? "future" : "futures"} \u00B7 ${model}`,
     /** The model headline sentence (.dh on desktop, half sheet on phone, chart aria-label). */
     sentence: (median: number, year: number, low: number, high: number): string =>
       `Bitcoin\u2019s median price reaches ${fmtUSD(median)} by ${year}; 9 in 10 futures end between ${fmtUSD(low)} and ${fmtUSD(high)}.`,
