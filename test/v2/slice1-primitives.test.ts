@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { Dock } from "../../src/v2/design/primitives/Dock";
-import { GrabPoint } from "../../src/v2/design/primitives/GrabPoint";
+import { FanDiamond, GrabPoint } from "../../src/v2/design/primitives/GrabPoint";
 import { LedgerRow } from "../../src/v2/design/primitives/LedgerRow";
 import { RadioList } from "../../src/v2/design/primitives/RadioList";
 import { Slider } from "../../src/v2/design/primitives/Slider";
@@ -56,4 +56,19 @@ test("LedgerRow: the editor is in place only when open", () => {
 test("GrabPoint: a named button reporting the sheet's expanded state", () => {
   const out = html(createElement(GrabPoint, { label: "Open", expanded: false }));
   expect(out.includes('aria-label="Open" aria-expanded="false"')).toBe(true);
+});
+
+test("1L.1: the fan-diamond's fan opens to the right, rotated in the SVG source (no transform)", () => {
+  const out = html(createElement(FanDiamond));
+  expect(out.includes("transform")).toBe(false);
+  const lines = [
+    ...out.matchAll(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g),
+  ].map((m) => m.slice(1).map(Number));
+  expect(lines.length).toBe(7);
+  // Every fan line starts at the diamond's left point and ends on its right half.
+  for (const [x1, y1, x2] of lines) {
+    expect([x1, y1]).toEqual([0, 13]);
+    expect((x2 ?? 0) >= 13).toBe(true);
+  }
+  expect(lines.some(([, , x2, y2]) => x2 === 26 && y2 === 13)).toBe(true);
 });
