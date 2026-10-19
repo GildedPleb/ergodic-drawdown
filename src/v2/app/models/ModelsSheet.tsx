@@ -21,6 +21,13 @@ const noun = (name: string): { name: string; plural: boolean } => ({
   plural: name.endsWith("s"),
 });
 
+/**
+ * Gap 10 (Rule 0): the old input accepted 1–100, but the engine's buffers stop at
+ * MAX_EPOCH_COUNT (controls.epochs.max = 30) and a larger count fails the simulation. Clamp to
+ * what the engine runs.
+ */
+const EPOCH_BOUNDS = { min: controls.epochs.accept.min, max: controls.epochs.max };
+
 export type Field = "variable" | "minMaxMultiple" | "volatility" | "samples" | "epochs";
 
 type EditorProps = {
@@ -267,7 +274,7 @@ export const ModelsSheet = ({
             id="v2-epochs"
             label={controls.epochs.label}
             value={values.epochCount}
-            bounds={controls.epochs.accept}
+            bounds={EPOCH_BOUNDS}
             parse={controls.epochs.parse}
             step={1}
             emptyValue={controls.epochs.emptyValue}

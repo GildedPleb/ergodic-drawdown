@@ -16,8 +16,8 @@ test("R10: seeded violations fail", () => {
       path: SHELL_TSX,
       edit: (c) =>
         c.replace(
-          "<div className={columnCls}>",
-          '<div className={columnCls} style={{ color: "red" }}>',
+          "<main className={columnCls}>",
+          '<main className={columnCls} style={{ color: "red" }}>',
         ),
     },
     {
@@ -45,8 +45,8 @@ test("R10: seeded violations fail", () => {
       path: SHELL_TSX,
       edit: (c) =>
         c.replace(
-          "<div className={columnCls}>",
-          "<div className={columnCls} style={Object.create(null)}>",
+          "<main className={columnCls}>",
+          "<main className={columnCls} style={Object.create(null)}>",
         ),
     },
   ];

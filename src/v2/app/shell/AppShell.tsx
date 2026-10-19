@@ -107,6 +107,7 @@ export const AppShell = (): JSX.Element => {
   const beatText = styles["beatText"] ?? "shell-beat-text";
   const slot = styles["slot"] ?? "shell-slot";
   const dockRow = styles["dockRow"] ?? "shell-dock-row";
+  const heading = styles["heading"] ?? "shell-heading";
   const body = styles["body"] ?? "shell-body";
   const cols = styles["cols"] ?? "shell-cols";
   const col = styles["col"] ?? "shell-col";
@@ -116,7 +117,7 @@ export const AppShell = (): JSX.Element => {
 
   return (
     <div className={root} data-sheet={sheetState} data-column={columnState}>
-      <div className={columnCls}>
+      <main className={columnCls}>
         <header className={header}>
           <div className={headerRow}>
             <span className={logo}>
@@ -131,14 +132,17 @@ export const AppShell = (): JSX.Element => {
           </div>
         </header>
         <div className={top}>
-          <h1 className={title}>{strings.headline.phoneTitle}</h1>
           <p className={kicker}>{strings.headline.kicker(values.samples, values.model)}</p>
-          <p className={dh}>{sentence}</p>
+          {/* One h1 at every size: the phone title, or the sentence where the headline shows. */}
+          <h1 className={heading}>
+            <span className={title}>{strings.headline.phoneTitle}</span>
+            <span className={dh}>{sentence}</span>
+          </h1>
         </div>
         <div className={chart}>
           <WorldLayer bands={bands} now={now} horizon={world.horizon} label={sentence} />
         </div>
-      </div>
+      </main>
       <div className={dockArea}>
         <section ref={sheet} id={SHEET_ID} className={sheetCls} aria-label={strings.dock.models}>
           <span className={corner} data-corner="start" aria-hidden="true" />

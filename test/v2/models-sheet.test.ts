@@ -17,7 +17,7 @@ const render = (patch: Partial<ModelsValues> = {}): string =>
     }),
   );
 
-const editor = (field: "volatility" | "samples"): string =>
+const editor = (field: "volatility" | "samples" | "epochs"): string =>
   renderToStaticMarkup(
     createElement(ModelsSheet, {
       values: defaultModelsValues(),
@@ -30,6 +30,10 @@ test("Models sheet: an open row edits in place, with a slider only when both bou
   expect(editor("volatility").includes('role="slider"')).toBe(true);
   expect(editor("samples").includes('role="slider"')).toBe(false);
   expect(editor("samples").includes('id="v2-samples"')).toBe(true);
+});
+
+test("Models sheet: epochs clamp to the engine's 30, not the old input's 100 (Gap 10)", () => {
+  expect(editor("epochs").includes('aria-valuemax="30"')).toBe(true);
 });
 
 const radios = (html: string): string[] =>
