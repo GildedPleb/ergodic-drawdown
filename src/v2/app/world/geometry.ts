@@ -15,19 +15,52 @@ export const plotBox = (width: number, height: number): PlotBox => ({
 
 export type LogDomain = { lo: number; hi: number };
 
-/** Fit lo/hi to the whole p5–p95 range, rounded out to decades (at least one decade tall). */
-export const decadeDomain = (low: number, high: number): LogDomain => {
-  const lo = 10 ** Math.floor(Math.log10(Math.max(low, 0.01)));
-  let hi = 10 ** Math.ceil(Math.log10(Math.max(high, 0.01)));
-  if (hi <= lo) hi = lo * 10;
-  return { lo, hi };
+/** Margin above and below the data, as a share of its log span (Form, Slice 1 follow-up). */
+const FIT_MARGIN = 0.05;
+/** Narrowest log span fitted (a factor of 2), so a flat or near-flat range never over-zooms. */
+const MIN_LOG_SPAN = Math.log10(2);
+
+/**
+ * Fit the log axis to the data: the p5–p95 range plus 5% of its log span on each side, not
+ * rounded out to decades. A range narrower than a factor of 2 is widened about its log centre.
+ */
+export const fitDomain = (low: number, high: number): LogDomain => {
+  const a = Math.log10(Math.max(Math.min(low, high), 0.01));
+  const b = Math.log10(Math.max(low, high, 0.01));
+  const mid = (a + b) / 2;
+  const half = Math.max(b - a, MIN_LOG_SPAN) / 2;
+  const pad = half * 2 * FIT_MARGIN;
+  return { lo: 10 ** (mid - half - pad), hi: 10 ** (mid + half + pad) };
 };
 
-/** Every decade from lo to hi inclusive: the gridlines and $ labels. */
-export const decades = ({ lo, hi }: LogDomain): number[] => {
+const inside = ({ lo, hi }: LogDomain, v: number): boolean =>
+  v >= lo * (1 - 1e-9) && v <= hi * (1 + 1e-9);
+
+/** m × 10^k for every k that reaches the domain, inside it. */
+const steps = (domain: LogDomain, mantissas: readonly number[]): number[] => {
   const out: number[] = [];
-  for (let v = lo; v <= hi * 1.000_001; v *= 10) out.push(Number(v.toPrecision(12)));
+  const first = Math.floor(Math.log10(domain.lo));
+  const last = Math.ceil(Math.log10(domain.hi));
+  for (let k = first; k <= last; k++) {
+    for (const m of mantissas) {
+      const v = Number((m * 10 ** k).toPrecision(12));
+      if (inside(domain, v)) out.push(v);
+    }
+  }
   return out;
+};
+
+/**
+ * $ gridlines: the decades inside the domain. A range with no decade in it falls back to the
+ * 1-2-5 steps inside it ($20M, $50M), and if none of those either, to whole multiples of the
+ * decade ($60M, $70M); the factor-of-2 minimum span guarantees at least one of these.
+ */
+export const axisTicks = (domain: LogDomain): number[] => {
+  for (const mantissas of [[1], [1, 2, 5], [1, 2, 3, 4, 5, 6, 7, 8, 9]]) {
+    const ticks = steps(domain, mantissas);
+    if (ticks.length > 0) return ticks;
+  }
+  return [];
 };
 
 /** ly(v) = Bt − (Bt−T)·(ln v − ln lo)/(ln hi − ln lo). */

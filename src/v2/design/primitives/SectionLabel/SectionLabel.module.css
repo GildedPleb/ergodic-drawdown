@@ -30,6 +30,10 @@
     flex-basis: var(--section-rule-len);
   }
 
+  .root[data-level="group"] {
+    block-size: var(--group-label-h);
+  }
+
   .root[data-level="group"] .rule {
     flex-basis: var(--group-rule-len);
   }

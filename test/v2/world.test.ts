@@ -7,8 +7,8 @@ import { defaultModelsValues } from "../../src/v2/app/models/values";
 import { bandRange, endValue, type PriceBands, priceBands } from "../../src/v2/app/world/bands";
 import { inProcessWorker } from "../golden/in-process";
 import {
-  decadeDomain,
-  decades,
+  axisTicks,
+  fitDomain,
   endYear,
   lx,
   ly,
@@ -25,13 +25,41 @@ test("plot box is the v32 frame: L34, R=W−44, T18, Bt=H−34", () => {
   expect(box).toEqual({ L: 34, R: 346, T: 18, Bt: 659 });
 });
 
-test("log domain rounds p5–p95 out to whole decades, at least one tall", () => {
-  expect(decadeDomain(41_000, 3_100_000)).toEqual({ lo: 10_000, hi: 10_000_000 });
-  expect(decadeDomain(100_000, 100_000)).toEqual({ lo: 100_000, hi: 1_000_000 });
+const near = (a: number, b: number): boolean => Math.abs(a / b - 1) < 1e-9;
+
+test("axis fit: the data's p5–p95 range plus 5% of its log span each side, not whole decades", () => {
+  // $100k–$100M is a 3-decade span: 0.15 decades of margin each side.
+  const d = fitDomain(1e5, 1e8);
+  expect(near(d.lo, 10 ** 4.85) && near(d.hi, 10 ** 8.15)).toBe(true);
+  // Argument order and the ≤0 guard do not matter.
+  expect(fitDomain(1e8, 1e5)).toEqual(d);
+  expect(fitDomain(-5, 1).lo > 0).toBe(true);
 });
 
-test("one gridline per decade, ends included", () => {
-  expect(decades({ lo: 10_000, hi: 10_000_000 })).toEqual([1e4, 1e5, 1e6, 1e7]);
+test("axis fit: a range narrower than ×2 widens to ×2 about its log centre, then the margin", () => {
+  const d = fitDomain(59e6, 77.6e6);
+  const centre = Math.sqrt(59e6 * 77.6e6);
+  expect(near(d.lo * d.hi, centre * centre)).toBe(true);
+  expect(near(Math.log10(d.hi / d.lo), Math.log10(2) * 1.1)).toBe(true);
+  // A flat series gets the same ×2 window.
+  const flat = fitDomain(1e6, 1e6);
+  expect(near(Math.log10(flat.hi / flat.lo), Math.log10(2) * 1.1)).toBe(true);
+});
+
+test("gridlines only at the decades inside the fitted range: no empty $1B above, no $10k below", () => {
+  // $150k–$60M: the margin reaches $110k–$81M, so $100k and $100M stay off.
+  expect(axisTicks(fitDomain(1.5e5, 6e7))).toEqual([1e6, 1e7]);
+  expect(axisTicks(fitDomain(64_000, 1.1e8))).toEqual([1e5, 1e6, 1e7, 1e8]);
+  expect(axisTicks({ lo: 1e4, hi: 1e7 })).toEqual([1e4, 1e5, 1e6, 1e7]);
+});
+
+test("no decade inside: 1-2-5 steps, then whole multiples of the decade", () => {
+  // $59M–$77.6M (Form's default-data example) contains no decade: ×2 window ≈ $46M–$99M → $50M.
+  expect(axisTicks(fitDomain(59e6, 77.6e6))).toEqual([5e7]);
+  // $22M–$45M: no decade and no 1-2-5 step → $30M and $40M.
+  expect(axisTicks({ lo: 22e6, hi: 45e6 })).toEqual([3e7, 4e7]);
+  // $1.1M–$4.9M: 1-2-5 gives $2M.
+  expect(axisTicks({ lo: 1.1e6, hi: 4.9e6 })).toEqual([2e6]);
 });
 
 test("ly maps lo to Bt and hi to T; lx maps today to L and the horizon to R", () => {
@@ -106,13 +134,13 @@ const withEdges = (p5: Float64Array, p95: Float64Array): PriceBands => ({
   p95,
 });
 
-test("bandRange skips Infinity and NaN, so decades() stays finite (Keel)", () => {
+test("bandRange skips Infinity and NaN, so the axis stays finite (Keel)", () => {
   const bands = withEdges(
     band(Number.NaN, 50_000, Number.NEGATIVE_INFINITY, 0),
     band(Number.POSITIVE_INFINITY, 2e6, Number.NaN),
   );
   expect(bandRange(bands)).toEqual({ low: 50_000, high: 2e6 });
-  expect(decades(decadeDomain(50_000, 2e6))).toEqual([1e4, 1e5, 1e6, 1e7]);
+  expect(axisTicks(fitDomain(50_000, 2e6))).toEqual([1e5, 1e6]);
 });
 
 test("bandRange with no finite values falls back to $1–$1", () => {

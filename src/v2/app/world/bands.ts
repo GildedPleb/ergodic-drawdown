@@ -85,7 +85,7 @@ export const priceBands = (datasets: readonly LabelledSeries[] | undefined): Pri
 export const bandRange = (bands: PriceBands): { low: number; high: number } => {
   let low = Number.POSITIVE_INFINITY;
   let high = 0;
-  // Non-finite values are skipped: an Infinity here would make decades() loop forever (Keel).
+  // Non-finite values are skipped: an Infinity here would make the axis loop forever (Keel).
   for (const v of bands.p5) if (Number.isFinite(v) && v > 0 && v < low) low = v;
   for (const v of bands.p95) if (Number.isFinite(v) && v > high) high = v;
   return { low: Number.isFinite(low) ? low : 1, high: Math.max(high, 1) };

@@ -204,17 +204,16 @@ export const fmtUSDRange = (low: number, high: number): string => {
   return `${lead}${a.slice(lead.length)}${EN}${b.slice(lead.length)}`;
 };
 
-/** Spoken $ range, in step with fmtUSDRange; a shared minus is repeated. */
+/**
+ * Spoken $ range, in step with fmtUSDRange but never shortened: each end is spoken in full, with
+ * its own currency, sign and unit word (Form): "$400 thousand to $3.1 million". Equal ends
+ * collapse to one value, as on screen.
+ */
 export const nameUSDRange = (low: number, high: number): string => {
   if (!Number.isFinite(low) || !Number.isFinite(high)) return NOT_AVAILABLE;
-  const shown = fmtUSDRange(low, high);
-  if (shown.startsWith(`${MINUS}$`) && shown.includes(EN)) {
-    const [from = "", to = ""] = shown.slice(2).split(EN);
-    return speakUnits(`minus $${from} to minus $${to}`);
-  }
-  return speakUnits(
-    shown.replaceAll(MINUS, "minus ").replaceAll("<", "less than ").replaceAll(EN, " to "),
-  );
+  const [lo, hi] = low <= high ? [low, high] : [high, low];
+  if (fmtUSD(lo) === fmtUSD(hi)) return nameUSD(lo);
+  return `${nameUSD(lo)} to ${nameUSD(hi)}`;
 };
 
 export const fmtBTCChange = (from: number, to: number, options?: FormatOptions): string =>

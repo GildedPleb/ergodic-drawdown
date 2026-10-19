@@ -40,7 +40,7 @@ test("R7: exported variants are the data-* values the components render", () => 
     "false",
   ]);
   expect([...shell.sheet, ...shell.column]).toEqual(["half", "open", "open", "closed"]);
-  expect([...sheet.layout]).toEqual(["stack", "columns"]);
+  expect([...sheet.layout, ...sheet.sub]).toEqual(["stack", "columns", "space", "none"]);
   expect([...ledger.open, ...radio.state, ...slider.disabled]).toEqual([
     "true",
     "false",

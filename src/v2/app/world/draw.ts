@@ -10,8 +10,8 @@ import { strings } from "../strings";
 import type { PriceBands } from "./bands";
 import { bandRange, endValue } from "./bands";
 import {
-  decadeDomain,
-  decades,
+  fitDomain,
+  axisTicks,
   endYear,
   lx,
   ly,
@@ -152,29 +152,42 @@ const DESCENT = 4;
 
 /**
  * Where the end label sits (Form m2): right-aligned 12px inside the plot (clear of the $ tick
- * labels in the right margin), just above the p95 band's end so it never sits on the fan, and
- * nudged off any decade gridline it would strike through. Too close to the top: below p5 instead.
+ * labels in the right margin), above the band wherever the label spans it, else below the band,
+ * never on the caption / Today rows,
+ * and nudged off any gridline it would strike through. The band is read over the label's own
+ * width, not just its last point, so a peak just before the end never runs through the text.
  */
 export const endLabelAt = (
   box: PlotBox,
   domain: LogDomain,
-  high: number,
-  low: number,
-  short: boolean,
+  band: { p5: Float64Array; p95: Float64Array; horizon: number },
+  width: number,
+  short = false,
 ): { x: number; y: number } => {
+  // Never on the caption / Today rows (Today's baseline is T+24), except on a short chart.
+  const ceiling = short ? box.T + CAP : box.T + 36;
   const x = box.R - 12;
-  const top = short ? box.T + CAP : box.T + 36;
+  const from = Math.max(0, Math.floor(((x - width - box.L) / (box.R - box.L)) * band.horizon));
+  let top = box.Bt;
+  let bottom = box.T;
+  for (let i = from; i < band.p95.length; i++) {
+    const hi = band.p95[i];
+    const lo = band.p5[i];
+    if (hi !== undefined && Number.isFinite(hi) && hi > 0) top = Math.min(top, ly(hi, box, domain));
+    if (lo !== undefined && Number.isFinite(lo) && lo > 0) {
+      bottom = Math.max(bottom, ly(lo, box, domain));
+    }
+  }
   const clear = (y: number): number => {
-    for (const v of decades(domain)) {
+    for (const v of axisTicks(domain)) {
       const g = ly(v, box, domain);
       if (g >= y - CAP - 2 && g <= y + DESCENT + 2) return g - DESCENT - 2;
     }
     return y;
   };
-  const above = clear(ly(Number.isFinite(high) ? high : domain.hi, box, domain) - 8);
-  if (above >= top) return { x, y: above };
-  const below = ly(Number.isFinite(low) ? low : domain.lo, box, domain) + CAP + 6;
-  return { x, y: Math.min(clear(below), box.Bt - DESCENT) };
+  const above = clear(top - 6);
+  if (above >= ceiling) return { x, y: above };
+  return { x, y: Math.min(clear(bottom + CAP + 6), box.Bt - DESCENT) };
 };
 
 export type Frame = { width: number; height: number; dpr: number; now: number; horizon: number };
@@ -191,7 +204,7 @@ export const drawWorld = (
   const box = plotBox(width, height);
   const horizon = bands?.weeks ?? horizonWeeks;
   const range = bands === null ? null : bandRange(bands);
-  const domain = range === null ? DEFAULT_DOMAIN : decadeDomain(range.low, range.high);
+  const domain = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
   const frame = { box, domain, horizon };
   const short = height < SHORT;
 
@@ -200,7 +213,7 @@ export const drawWorld = (
   x.textAlign = "left";
   x.textBaseline = "alphabetic";
   x.lineWidth = 1;
-  for (const v of decades(domain)) {
+  for (const v of axisTicks(domain)) {
     const y = ly(v, box, domain);
     x.strokeStyle = p.hairline;
     x.setLineDash([1, 3]);
@@ -288,7 +301,13 @@ export const drawWorld = (
       const label = short
         ? fmtUSD(mid)
         : strings.chart.endLabel(mid, endValue(bands.p5), endValue(bands.p95));
-      const at = endLabelAt(box, domain, endValue(bands.p95), endValue(bands.p5), short);
+      const at = endLabelAt(
+        box,
+        domain,
+        { p5: bands.p5, p95: bands.p95, horizon },
+        x.measureText(label).width,
+        short,
+      );
       x.fillText(label, at.x, at.y);
     }
   }

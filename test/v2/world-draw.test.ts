@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { priceBands, type PriceBands } from "../../src/v2/app/world/bands";
 import { type Ctx2D, drawWorld, endLabelAt, type Paint } from "../../src/v2/app/world/draw";
-import { decadeDomain, decades, ly, plotBox } from "../../src/v2/app/world/geometry";
+import { axisTicks, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
 
 const NOW = new Date(2026, 9, 19).getTime();
 const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -96,23 +96,28 @@ test("short canvas (H<150) keeps only the $ axis values and the end value", () =
   expect(texts.includes("$1.2M")).toBe(true);
 });
 
-test("m2: the end label sits inside the plot, 12px clear of the $ ticks, and off every gridline", () => {
+const flat = (n: number, v: number): Float64Array => new Float64Array(n).fill(v);
+
+test("m2: the end label sits inside the plot, 12px clear of the $ ticks, above the band and off every gridline", () => {
   const box = plotBox(1392, 717);
-  const domain = decadeDomain(50_000, 200_000_000);
-  // p95 ends 8px under the $100M line: left alone the label's cap height would cross it.
-  const lineY = ly(1e8, box, domain);
-  const at = endLabelAt(box, domain, 9.4e7, 6e7, false);
+  const domain = fitDomain(50_000, 2e9);
+  // p95 ends just under the $100M line: left alone the label's cap height would cross it.
+  const band = { p5: flat(100, 6e7), p95: flat(100, 9.4e7), horizon: 99 };
+  const at = endLabelAt(box, domain, band, 180);
   expect(at.x).toBe(box.R - 12);
-  for (const v of decades(domain)) {
+  for (const v of axisTicks(domain)) {
     const g = ly(v, box, domain);
     expect(g <= at.y - 12 || g >= at.y + 6).toBe(true);
   }
-  expect(at.y < lineY).toBe(true);
+  expect(at.y < ly(9.4e7, box, domain)).toBe(true);
 });
 
-test("m2: with no room above the band the label drops below p5", () => {
+test("m2: a peak under the label's span (not only the last point) sends it below the band", () => {
   const box = plotBox(1392, 717);
-  const domain = decadeDomain(50_000, 100_000_000);
-  const at = endLabelAt(box, domain, domain.hi, 6e7, false);
-  expect(at.y > ly(6e7, box, domain)).toBe(true);
+  const domain = fitDomain(50_000, 1e8);
+  const p95 = flat(100, 3e7);
+  p95[95] = domain.hi; // a peak inside the label's width, at the top of the domain
+  const band = { p5: flat(100, 2e7), p95, horizon: 99 };
+  const at = endLabelAt(box, domain, band, 180);
+  expect(at.y > ly(2e7, box, domain)).toBe(true);
 });

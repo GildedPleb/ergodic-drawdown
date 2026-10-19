@@ -26,6 +26,16 @@
     block-size: 100%;
   }
 
+  /* Form follow-up 3: first rows on one line. The section label keeps its text at the top and
+     takes the group sub-label's room (row + gap) below it. */
+  .section[data-sub="space"] > :first-child {
+    padding-block-end: var(--sub-label-space);
+  }
+
+  .section[data-sub="none"] > :first-child {
+    padding-block-end: 0;
+  }
+
   .root[data-layout="columns"] .section {
     align-content: start;
     min-block-size: 0;

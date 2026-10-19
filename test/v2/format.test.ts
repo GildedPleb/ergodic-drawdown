@@ -278,7 +278,7 @@ test("V32 Gap 5: a $ range has one prefix and an en dash, each end in its own un
     [fmtUSDRange(-5, 10), "−$5 to $10"],
     [fmtUSDRange(-10, -5), "−$10–5"],
     [fmtUSDRange(Number.NaN, 5), "—"],
-    [nameUSDRange(400_000, 3_100_000), "$400 thousand to 3.1 million"],
+    [nameUSDRange(400_000, 3_100_000), "$400 thousand to $3.1 million"],
     [nameUSDRange(-10, -5), "minus $10 to minus $5"],
     [nameUSDRange(-5, 10), "minus $5 to $10"],
     [nameUSDRange(Number.NaN, 5), "not available"],
@@ -307,7 +307,11 @@ test("Slice 1 review (5): the spoken form says the unit as a word", () => {
     [nameUSD(85_400), "$85.4 thousand"],
     [nameUSD(-29_533_000_000), "minus $29.5 billion"],
     [nameUSD(9_950), "$9,950"],
-    [nameUSDRange(59_500_000, 29_533_000_000), "$59.5 million to 29.5 billion"],
+    [nameUSDRange(59_500_000, 29_533_000_000), "$59.5 million to $29.5 billion"],
+    [nameUSDRange(3_100_000, 400_000), "$400 thousand to $3.1 million"],
+    [nameUSDRange(85_400, 85_400), "$85.4 thousand"],
+    [nameUSDRange(240, 1_040), "$240 to $1,040"],
+    [nameUSDRange(0.004, 5), "less than $0.01 to $5"],
     [nameUSDRange(-2e9, -1e9), "minus $2 billion to minus $1 billion"],
   ]);
 });

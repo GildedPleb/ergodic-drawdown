@@ -83,6 +83,8 @@ const Editor = (p: EditorProps): JSX.Element => {
 /** R7: variant keys and values. */
 export const variants = {
   layout: ["stack", "columns"] as const,
+  /** "space": reserve a group sub-label's room under the section label (desktop columns). */
+  sub: ["space", "none"] as const,
 };
 
 export type ModelsSheetProps = {
@@ -176,12 +178,16 @@ export const ModelsSheet = ({
       </LedgerRow>
     ) : null;
 
+  // Form follow-up 3: in columns, Price model and Simulation leave WALK STRATEGY's room so all
+  // three first rows share one line.
+  const reserve: (typeof variants.sub)[number] = layout === "columns" ? "space" : "none";
+
   return (
     <div className={root} data-layout={layout}>
       {/* Form m1: no visible pane title; the sheet keeps its h2 for headings navigation. */}
       <VisuallyHidden as="h2">{modelsPaneSchema.title}</VisuallyHidden>
 
-      <section className={section} aria-labelledby="sec-price-model">
+      <section className={section} data-sub={reserve} aria-labelledby="sec-price-model">
         <SectionLabel text={strings.sections.priceModel} as="h3" id="sec-price-model" />
         <RadioList
           labelledBy="sec-price-model"
@@ -196,7 +202,7 @@ export const ModelsSheet = ({
         {minMaxRow}
       </section>
 
-      <section className={section} aria-labelledby="sec-prices-move">
+      <section className={section} data-sub="none" aria-labelledby="sec-prices-move">
         <SectionLabel text={strings.sections.pricesMove} as="h3" id="sec-prices-move" />
         <SectionLabel text={controls.walk.label} level="group" id="grp-walk" />
         <RadioList
@@ -248,7 +254,7 @@ export const ModelsSheet = ({
         </div>
       </section>
 
-      <section className={section} aria-labelledby="sec-simulation">
+      <section className={section} data-sub={reserve} aria-labelledby="sec-simulation">
         <SectionLabel text={strings.sections.simulation} as="h3" id="sec-simulation" />
         <LedgerRow
           id="row-samples"
