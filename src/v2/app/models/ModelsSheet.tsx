@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { MAX_EPOCH_COUNT } from "../../../constants";
 import { useState } from "react";
 
 import { LedgerRow } from "../../design/primitives/LedgerRow";
@@ -23,10 +24,9 @@ const noun = (name: string): { name: string; plural: boolean } => ({
 
 /**
  * Gap 10 (Rule 0): the old input accepted 1–100, but the engine's buffers stop at
- * MAX_EPOCH_COUNT (controls.epochs.max = 30) and a larger count fails the simulation. Clamp to
- * what the engine runs.
+ * MAX_EPOCH_COUNT and a larger count fails the simulation. Clamp to what the engine runs.
  */
-const EPOCH_BOUNDS = { min: controls.epochs.accept.min, max: controls.epochs.max };
+const EPOCH_BOUNDS = { min: controls.epochs.accept.min, max: MAX_EPOCH_COUNT };
 
 export type Field = "variable" | "minMaxMultiple" | "volatility" | "samples" | "epochs";
 

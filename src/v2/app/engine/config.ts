@@ -13,7 +13,7 @@ import type { ModelsValues } from "../models/values";
 /** main: src/contexts/model.tsx `simulationSeed` (G12 source test re-reads it). */
 export const SIMULATION_SEED = 1;
 /** main: src/contexts/drawdown.tsx default inflation (unused until Plans). */
-const DEFAULT_INFLATION = 8;
+export const DEFAULT_INFLATION = 8;
 
 export type WorldInputs = {
   currentPrice: number;

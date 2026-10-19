@@ -72,14 +72,20 @@ test("Models sheet: CAGR shows the variable and +/- rows; Power Law removes them
   expect(rows(render({ model: "CAGR", variable: 50 }))).toEqual([true, true]);
 });
 
-test("Models sheet imports only design primitives, its module, schema, values and strings", async () => {
+test("Models sheet imports only design primitives, its module, schema, values, strings and main's constants", async () => {
   const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
   const imports = [...src.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1] ?? "");
   const bad = imports.filter(
     (s) =>
       s !== "react" &&
       !s.startsWith("../../design/primitives/") &&
-      !["./ModelsSheet.module.css", "./schema", "./values", "../strings"].includes(s),
+      ![
+        "./ModelsSheet.module.css",
+        "./schema",
+        "./values",
+        "../strings",
+        "../../../constants",
+      ].includes(s),
   );
   expect(bad).toEqual([]);
 });

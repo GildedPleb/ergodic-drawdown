@@ -1,6 +1,11 @@
+import { file } from "bun";
 import { expect, test } from "bun:test";
 
-import { bandRange, endValue, priceBands } from "../../src/v2/app/world/bands";
+import { createEngine } from "../../src/engine/engine";
+import { DEFAULT_INFLATION, engineConfig, SIMULATION_SEED } from "../../src/v2/app/engine/config";
+import { defaultModelsValues } from "../../src/v2/app/models/values";
+import { bandRange, endValue, type PriceBands, priceBands } from "../../src/v2/app/world/bands";
+import { inProcessWorker } from "../golden/in-process";
 import {
   decadeDomain,
   decades,
@@ -80,9 +85,7 @@ test("band range spans min p5 to max p95; end value is the horizon's last point"
   expect(endValue(bands.p95)).toBe(3_100_000);
 });
 
-test("engine config: Models values map onto main's EngineConfig fields, price quantiles only", async () => {
-  const { engineConfig, SIMULATION_SEED } = await import("../../src/v2/app/engine/config");
-  const { defaultModelsValues } = await import("../../src/v2/app/models/values");
+test("engine config: Models values map onto main's EngineConfig fields, price quantiles only", () => {
   const inputs = { currentBlock: 1, currentPrice: 2, halvings: {}, interim: [], now: NOW };
   const config = engineConfig({ ...defaultModelsValues(), epochCount: 7, walk: "Saw" }, inputs);
   expect(config?.epochs).toBe(7);
@@ -90,4 +93,63 @@ test("engine config: Models values map onto main's EngineConfig fields, price qu
   expect(config?.seed).toBe(SIMULATION_SEED);
   expect(config?.render.renderPriceDistribution).toBe("Quantile");
   expect(engineConfig({ ...defaultModelsValues(), model: "Nope" }, inputs)).toBe(null);
+});
+
+const band = (...v: number[]): Float64Array => Float64Array.from(v);
+const withEdges = (p5: Float64Array, p95: Float64Array): PriceBands => ({
+  start: 0,
+  weeks: p5.length - 1,
+  p5,
+  p25: p5,
+  p50: p5,
+  p75: p95,
+  p95,
+});
+
+test("bandRange skips Infinity and NaN, so decades() stays finite (Keel)", () => {
+  const bands = withEdges(
+    band(Number.NaN, 50_000, Number.NEGATIVE_INFINITY, 0),
+    band(Number.POSITIVE_INFINITY, 2e6, Number.NaN),
+  );
+  expect(bandRange(bands)).toEqual({ low: 50_000, high: 2e6 });
+  expect(decades(decadeDomain(50_000, 2e6))).toEqual([1e4, 1e5, 1e6, 1e7]);
+});
+
+test("bandRange with no finite values falls back to $1–$1", () => {
+  const bands = withEdges(band(Number.NaN), band(Number.POSITIVE_INFINITY));
+  expect(bandRange(bands)).toEqual({ low: 1, high: 1 });
+});
+
+test("priceBands reads a real engine snapshot (labels come from main's createDataSet)", async () => {
+  const engine = createEngine({ worker: inProcessWorker() });
+  const config = engineConfig(
+    { ...defaultModelsValues(), samples: 20, epochCount: 1 },
+    {
+      currentBlock: 840_000,
+      currentPrice: 64_000,
+      halvings: {
+        "210000": 1_354_116_278,
+        "420000": 1_468_082_773,
+        "630000": 1_589_225_023,
+        "840000": 1_713_571_767,
+      },
+      interim: [],
+      now: 1_760_000_000_000,
+    },
+  );
+  if (config === null) throw new Error("default values are engine names");
+  engine.set(config);
+  expect(await engine.settled()).toBe("quiet");
+  const bands = priceBands(engine.get().dataProperties?.datasets);
+  engine.dispose();
+  expect(bands === null).toBe(false);
+  expect((bands?.p95[10] ?? 0) >= (bands?.p5[10] ?? 1)).toBe(true);
+});
+
+test("G12-style: DEFAULT_INFLATION re-reads main's drawdown default", async () => {
+  const main = await file(`${import.meta.dir}/../../src/contexts/drawdown.tsx`).text();
+  const found = /const \[inflation, setInflation\] = useState<number>\((\d+(?:\.\d+)?)\)/.exec(
+    main,
+  );
+  expect(Number(found?.[1])).toBe(DEFAULT_INFLATION);
 });

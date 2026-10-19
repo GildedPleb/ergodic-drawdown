@@ -1,3 +1,6 @@
+import { bandConfig } from "../../../contexts/computed/distribution";
+import { createDataSet } from "../../../helpers";
+
 /**
  * Price-band adapter: reads the engine's existing quantile datasets (cutoffs
  * [0,.01,.05,.25,.5,.75,.95,.99,1], src/contexts/computed/distribution.ts) out of the snapshot's
@@ -19,12 +22,24 @@ export type PriceBands = {
   p95: Float64Array;
 };
 
+/**
+ * The engine's own dataset labels, built by main's createDataSet from main's price/quantile band
+ * config (no English copied here): label at a cutoff, e.g. 0.05 → "5th Percentile Bitcoin Price".
+ */
+const PRICE_QUANTILES = bandConfig("price", "quantile");
+const ENGINE_LABELS = createDataSet({
+  ...PRICE_QUANTILES,
+  quantiles: PRICE_QUANTILES.cutoffs.map(() => []),
+}).map((d) => d.label);
+const labelAt = (cutoff: number): string =>
+  ENGINE_LABELS[PRICE_QUANTILES.cutoffs.indexOf(cutoff)] ?? `missing cutoff ${String(cutoff)}`;
+
 const LABELS = {
-  p5: "5th Percentile Bitcoin Price",
-  p25: "25th Percentile Bitcoin Price",
-  p50: "Median Bitcoin Price",
-  p75: "75th Percentile Bitcoin Price",
-  p95: "95th Percentile Bitcoin Price",
+  p5: labelAt(0.05),
+  p25: labelAt(0.25),
+  p50: labelAt(0.5),
+  p75: labelAt(0.75),
+  p95: labelAt(0.95),
 } as const;
 
 const isPoint = (p: unknown): p is Point =>
@@ -70,8 +85,9 @@ export const priceBands = (datasets: readonly LabelledSeries[] | undefined): Pri
 export const bandRange = (bands: PriceBands): { low: number; high: number } => {
   let low = Number.POSITIVE_INFINITY;
   let high = 0;
-  for (const v of bands.p5) if (v > 0 && v < low) low = v;
-  for (const v of bands.p95) if (v > high) high = v;
+  // Non-finite values are skipped: an Infinity here would make decades() loop forever (Keel).
+  for (const v of bands.p5) if (Number.isFinite(v) && v > 0 && v < low) low = v;
+  for (const v of bands.p95) if (Number.isFinite(v) && v > high) high = v;
   return { low: Number.isFinite(low) ? low : 1, high: Math.max(high, 1) };
 };
 
