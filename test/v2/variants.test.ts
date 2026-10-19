@@ -5,7 +5,7 @@ import { variants as shell } from "../../src/v2/app/shell/AppShell";
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
 import { variants as ledger } from "../../src/v2/design/primitives/LedgerRow/LedgerRow";
-import { variants as radio } from "../../src/v2/design/primitives/RadioList/RadioList";
+import { variants as select } from "../../src/v2/design/primitives/Select/Select";
 import { variants as slider } from "../../src/v2/design/primitives/Slider/Slider";
 import { variants as cluster } from "../../src/v2/design/primitives/Cluster/Cluster";
 import { variants as grid } from "../../src/v2/design/primitives/Grid/Grid";
@@ -41,12 +41,6 @@ test("R7: exported variants are the data-* values the components render", () => 
   ]);
   expect([...shell.sheet, ...shell.column]).toEqual(["half", "open", "open", "closed"]);
   expect([...sheet.layout, ...sheet.sub]).toEqual(["stack", "columns", "space", "none"]);
-  expect([...ledger.open, ...radio.state, ...slider.disabled]).toEqual([
-    "true",
-    "false",
-    "on",
-    "off",
-    "true",
-    "false",
-  ]);
+  expect([...ledger.open, ...slider.disabled]).toEqual(["true", "false", "true", "false"]);
+  expect([...select.placement, ...select.state]).toEqual(["down", "up", "on", "off"]);
 });

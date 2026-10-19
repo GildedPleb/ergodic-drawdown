@@ -67,7 +67,7 @@ export const AppShell = (): JSX.Element => {
   useEffect(() => {
     if (!side || !open) return undefined;
     // Opening the panel moves focus into it (§1i); the column reflow waits for the slide.
-    sheet.current?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus();
+    sheet.current?.querySelector<HTMLElement>('[role="combobox"]')?.focus();
     const done = window.setTimeout(() => {
       setColumn(true);
     }, 400);

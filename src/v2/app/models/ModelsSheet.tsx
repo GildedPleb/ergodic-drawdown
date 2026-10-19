@@ -5,9 +5,9 @@ import { useState } from "react";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
 import type { Bounds } from "../../design/primitives/NumberField";
-import { RadioList } from "../../design/primitives/RadioList";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
+import { Select } from "../../design/primitives/Select";
 import { Slider } from "../../design/primitives/Slider";
 import { TickToggle } from "../../design/primitives/TickToggle";
 import { strings } from "../strings";
@@ -194,7 +194,8 @@ export const ModelsSheet = ({
 
       <section className={section} data-sub={reserve} aria-labelledby="sec-price-model">
         <SectionLabel text={strings.sections.priceModel} as="h3" id="sec-price-model" />
-        <RadioList
+        <Select
+          id="v2-model"
           labelledBy="sec-price-model"
           options={modelsPaneSchema.modelOrder}
           value={values.model}
@@ -210,7 +211,8 @@ export const ModelsSheet = ({
       <section className={section} data-sub="none" aria-labelledby="sec-prices-move">
         <SectionLabel text={strings.sections.pricesMove} as="h3" id="sec-prices-move" />
         <SectionLabel text={controls.walk.label} level="group" id="grp-walk" />
-        <RadioList
+        <Select
+          id="v2-walk"
           labelledBy="grp-walk"
           options={modelsPaneSchema.walks}
           value={values.walk}

@@ -61,6 +61,7 @@ const MATRIX_GROUPS: Record<string, string> = {
   "label-glyphs": "LabelGlyphs",
   amount: "Amount",
   "section-label": "SectionLabel",
+  select: "Select",
 };
 
 const kebab = (name: string): string => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();

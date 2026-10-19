@@ -1,0 +1,126 @@
+@layer primitives {
+  .root {
+    position: relative;
+    min-inline-size: 0;
+  }
+
+  /* Closed: one field row in the Certificate style, the height of a number-field row. */
+  .field {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-block-size: var(--hit);
+    padding-inline: var(--s-3);
+    border: var(--rule-double) double var(--control-line);
+    border-radius: var(--radius-0);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--f-sans);
+    font-size: var(--t-row);
+    font-weight: 500;
+    line-height: var(--lh-row);
+    cursor: pointer;
+  }
+
+  .field:hover {
+    background: var(--hover);
+  }
+
+  .field:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  .value {
+    flex: 1;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .caret {
+    flex: none;
+    inline-size: var(--radio-box);
+    block-size: var(--radio-box);
+    fill: var(--accent);
+  }
+
+  /* Open: square, the double rule, the sheet's surface, as wide as the field. */
+  .list {
+    position: absolute;
+    inset-inline: 0;
+    z-index: var(--z-overlay);
+    max-block-size: var(--dyn-list-max);
+    overflow-y: auto;
+    padding: 0;
+    list-style: none;
+    border: var(--rule-double) double var(--control-line);
+    background: var(--surface);
+  }
+
+  .root[data-placement="down"] .list {
+    inset-block-start: 100%;
+  }
+
+  .root[data-placement="up"] .list {
+    inset-block-end: 100%;
+  }
+
+  .list[hidden] {
+    display: none;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    min-block-size: var(--hit);
+    padding: var(--row-pad);
+    border-block-end: 1px solid var(--hairline);
+    border-inline-start: var(--rule-double) solid transparent;
+    color: var(--text);
+    font-family: var(--f-sans);
+    font-size: var(--t-row);
+    font-weight: 500;
+    line-height: var(--lh-row);
+    cursor: pointer;
+  }
+
+  /* The active option (aria-activedescendant) is the keyboard focus: a stronger tint plus an
+     accent rule at the start edge, so it never relies on a 5% hover wash. */
+  .option[data-active="true"] {
+    border-inline-start-color: var(--accent);
+    background: var(--selected);
+  }
+
+  .option[data-active="false"] {
+    background: transparent;
+  }
+
+  .option[data-active="false"]:hover {
+    background: var(--hover);
+  }
+
+  .option[data-state="on"] {
+    font-weight: 600;
+  }
+
+  .option[data-state="off"] {
+    font-weight: 500;
+  }
+
+  /* ■ marks the current value: a filled 9px square, never colour alone (weight 600 too). */
+  .mark {
+    flex: none;
+    inline-size: var(--radio-box);
+    block-size: var(--radio-box);
+  }
+
+  .option[data-state="on"] .mark {
+    background: var(--accent);
+  }
+
+  .text {
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+}

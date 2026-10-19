@@ -12,7 +12,7 @@ import * as IconStories from "../../design/primitives/Icon/Icon.stories";
 import * as LabelGlyphsStories from "../../design/primitives/LabelGlyphs/LabelGlyphs.stories";
 import * as LedgerRowStories from "../../design/primitives/LedgerRow/LedgerRow.stories";
 import * as NumberFieldStories from "../../design/primitives/NumberField/NumberField.stories";
-import * as RadioListStories from "../../design/primitives/RadioList/RadioList.stories";
+import * as SelectStories from "../../design/primitives/Select/Select.stories";
 import * as SectionLabelStories from "../../design/primitives/SectionLabel/SectionLabel.stories";
 import * as SliderStories from "../../design/primitives/Slider/Slider.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
@@ -39,8 +39,8 @@ const GROUPS: Record<string, StoryModule> = {
   "label-glyphs": LabelGlyphsStories,
   "ledger-row": LedgerRowStories,
   "number-field": NumberFieldStories,
-  "radio-list": RadioListStories,
   "section-label": SectionLabelStories,
+  select: SelectStories,
   slider: SliderStories,
   stack: StackStories,
   "tick-toggle": TickToggleStories,

@@ -34,10 +34,20 @@ for (const id of FIELD_STORIES) {
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       const control = id.startsWith("tick-row/")
         ? page.getByRole("switch")
-        : page.getByRole("spinbutton");
-      if (id.endsWith("/focus")) {
+        : id.startsWith("select/")
+          ? page.getByRole("combobox")
+          : page.getByRole("spinbutton");
+      if (id.endsWith("/focus") || id === "select/open") {
         await page.keyboard.press("Tab");
         await expect(control).toBeFocused();
+      }
+      if (id === "select/hover") await control.hover();
+      if (id === "select/open") {
+        // 1L.3: APG select-only combobox; ↓ opens on the value, axe then checks the open listbox.
+        await page.keyboard.press("ArrowDown");
+        await expect(control).toHaveAttribute("aria-expanded", "true");
+        await expect(page.getByRole("listbox")).toBeVisible();
+        await expect(control).toHaveAttribute("aria-activedescendant", "story-select-opt-3");
       }
       if (id.endsWith("/invalid")) {
         await expect(control).toHaveAttribute("aria-invalid", "true");
@@ -54,8 +64,9 @@ for (const id of FIELD_STORIES) {
       }
       if (id === "models-sheet/emoji-walk") {
         // B2: the engine's emoji walk selected; SVG circles, spoken name, no emoji text node.
-        await expect(page.getByRole("radio", { name: "3 up, 1 down" })).toBeChecked();
-        await expect(page.locator("svg circle")).toHaveCount(4);
+        const walk = page.locator("#v2-walk");
+        await expect(walk.getByRole("img", { name: "3 up, 1 down" })).toBeVisible();
+        await expect(walk.locator("svg circle")).toHaveCount(4);
       }
       await expectNoEmojiText(page);
       await expectAxeClean(page);

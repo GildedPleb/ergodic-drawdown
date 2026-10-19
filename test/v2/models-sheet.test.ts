@@ -55,27 +55,31 @@ test("Models sheet: epochs clamp to the engine's 30, not the old input's 100 (Ga
   expect(editor("epochs").includes('aria-valuemax="30"')).toBe(true);
 });
 
-const radios = (html: string): string[] =>
-  [
-    ...html.matchAll(
-      /role="radio"[^>]*>(?:<span[^>]*><\/span>)?<span[^>]*>(.*?)<\/span><\/button>/g,
-    ),
-  ].map((m) => (m[1] ?? "").replace(/<[^>]+>/g, "").replace(/^$/, "svg"));
+/** Option text per listbox: plain names, or the LabelGlyphs data-text of an SVG label. */
+const optionsOf = (html: string, id: string): string[] => {
+  const list = new RegExp(`id="${id}-list"[^>]*>(.*?)</ul>`).exec(html)?.[1] ?? "";
+  return [
+    ...list.matchAll(/role="option"[^>]*>(?:<span[^>]*><\/span>)<span[^>]*>(.*?)<\/span><\/li>/g),
+  ].map((m) => /data-text="([^"]+)"/.exec(m[1] ?? "")?.[1] ?? m[1] ?? "");
+};
 
-test("Models sheet: one radio row per model and per walk, in the back end's order", () => {
+test("1L.3: price model and walk are Certificate Selects whose options are the engine's names", () => {
   const html = render();
-  const names = radios(html);
-  expect(names.slice(0, 7)).toEqual(modelsPaneSchema.modelOrder);
-  expect(names.length).toBe(modelsPaneSchema.modelOrder.length + modelsPaneSchema.walks.length);
+  expect(html.includes('role="radio"')).toBe(false);
+  expect((html.match(/role="combobox"/g) ?? []).length).toBe(2);
+  expect(optionsOf(html, "v2-model")).toEqual([...modelsPaneSchema.modelOrder]);
+  expect(optionsOf(html, "v2-walk")).toEqual([...modelsPaneSchema.walks]);
+  expect(html.includes('id="v2-model" class')).toBe(true);
+  expect(html.includes('aria-labelledby="sec-price-model"')).toBe(true);
+  expect(html.includes('aria-labelledby="grp-walk"')).toBe(true);
 });
 
-test("Models sheet: the defaults are the checked radios", () => {
-  const checked = [
-    ...render().matchAll(
-      /aria-checked="true"[^>]*>(?:<span[^>]*><\/span>)<span[^>]*>(.*?)<\/span>/g,
-    ),
+test("1L.3: the defaults are the Selects' values (■ on the current option)", () => {
+  const html = render();
+  const on = [
+    ...html.matchAll(/data-state="on"[^>]*>(?:<span[^>]*><\/span>)<span[^>]*>(.*?)<\/span>/g),
   ];
-  expect(checked.map((m) => m[1])).toEqual([
+  expect(on.map((m) => m[1])).toEqual([
     modelsPaneSchema.defaultModel,
     modelsPaneSchema.defaultWalk,
   ]);
