@@ -5,7 +5,7 @@
  * or without data (the empty state).
  */
 
-import { fmtUSD } from "../../design/format/money";
+import { fmtUSD, sciRuns } from "../../design/format/money";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
 import { bandRange, endValue, firstPastTop, outOfRange } from "./bands";
@@ -70,6 +70,8 @@ export type Paint = {
   casing: number;
   chart: string;
   serif: string;
+  /** The same face upright: scientific exponents inside italic labels (Form). */
+  serifUpright: string;
   section: string;
 };
 
@@ -106,6 +108,7 @@ export const readPaint = (canvas: Element): Paint => {
     // margin (R = W−44) and would clip.
     chart: `500 ${remPx(v("--t-chart"), root)}px ${sans}`,
     serif: `italic 400 ${remPx(v("--t-chart-serif"), root)}px ${v("--f-text")}`,
+    serifUpright: `400 ${remPx(v("--t-chart-serif"), root)}px ${v("--f-text")}`,
     serifPx: remPx(v("--t-chart-serif"), root) || 13,
     section: `600 ${remPx(v("--t-section"), root)}px ${sans}`,
   };
@@ -236,6 +239,44 @@ export const endLabelAt = (
   };
 };
 
+/** Width of a label whose scientific exponents are set upright (Form): each run in its own font. */
+const runsWidth = (x: Ctx2D, text: string, font: string, upright: string): number => {
+  let w = 0;
+  for (const run of sciRuns(text)) {
+    x.font = run.sup ? upright : font;
+    w += x.measureText(run.text).width;
+  }
+  x.font = font;
+  return w;
+};
+
+/** fillText, right-aligned at `right`, with every exponent run in the upright face. */
+const fillRunsRight = (
+  x: Ctx2D,
+  text: string,
+  right: number,
+  y: number,
+  font: string,
+  upright: string,
+): void => {
+  const runs = sciRuns(text);
+  if (runs.length === 1 && runs[0]?.sup === false) {
+    x.font = font;
+    x.fillText(text, right, y);
+    return;
+  }
+  const align = x.textAlign;
+  let at = right - runsWidth(x, text, font, upright);
+  x.textAlign = "left";
+  for (const run of runs) {
+    x.font = run.sup ? upright : font;
+    x.fillText(run.text, at, y);
+    at += x.measureText(run.text).width;
+  }
+  x.font = font;
+  x.textAlign = align;
+};
+
 /**
  * The end label, anchored to the end of the median (§1b line 124). Out of range (n10), the caption
  * goes on the line under it; when the end itself ran past a double there is no number to show, so
@@ -269,7 +310,7 @@ const drawEndLabel = (
   if (all.length === 0) return;
   x.font = p.serif;
   x.textAlign = "right";
-  const textWidth = Math.max(...all.map((line) => x.measureText(line).width));
+  const textWidth = Math.max(...all.map((line) => runsWidth(x, line, p.serif, p.serifUpright)));
   const at: LabelPlace = endsFinite
     ? endLabelAt(
         box,
@@ -293,7 +334,7 @@ const drawEndLabel = (
   }
   all.forEach((line, k) => {
     x.fillStyle = k < lines.length ? p.price : p.muted;
-    x.fillText(line, at.x, at.y + k * LABEL_LINE);
+    fillRunsRight(x, line, at.x, at.y + k * LABEL_LINE, p.serif, p.serifUpright);
   });
   if (at.leader === null) return;
   // A muted hairline on a surface casing from the plate's lower edge, so it reads across the band;

@@ -11,6 +11,7 @@ import {
   nameBTCRange,
   nameUSD,
   nameUSDRange,
+  sciRuns,
 } from "../../src/v2/design/format/money";
 
 const check = (rows: [string, string][]): void => {
@@ -364,4 +365,36 @@ test("n4 revision: scientific amounts are spoken in words, currency on both ends
     ],
     [nameUSDRange(1e21, 1.004e21), "1.00 times ten to the 21 dollars"],
   ]);
+});
+
+test("Form: sciRuns splits money text into upright exponent runs and the rest", () => {
+  expect(sciRuns("$1.23\u00D710\u00B2\u00B9\u20134.56\u00D710\u00B3\u2070\u2078")).toEqual([
+    { text: "$1.23\u00D710", sup: false },
+    { text: "\u00B2\u00B9", sup: true },
+    { text: "\u20134.56\u00D710", sup: false },
+    { text: "\u00B3\u2070\u2078", sup: true },
+  ]);
+  expect(sciRuns("$67.8M")).toEqual([{ text: "$67.8M", sup: false }]);
+  expect(sciRuns("10\u207B\u00B3")).toEqual([
+    { text: "10", sup: false },
+    { text: "\u207B\u00B3", sup: true },
+  ]);
+});
+
+test("Form: an Amount's scientific exponent is its own run, set upright even under an italic parent", async () => {
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { Amount } = await import("../../src/v2/design/primitives/Amount/Amount");
+  const html = renderToStaticMarkup(createElement(Amount, { value: 1.234e21, unit: "usd" }));
+  expect(
+    /aria-hidden="true">\$1\.23\u00D710<span class="[^"]+" data-sup="true">\u00B2\u00B9<\/span><\/span>/.test(
+      html,
+    ),
+  ).toBe(true);
+  expect(html.includes(">1.23 times ten to the 21 dollars<")).toBe(true);
+  const { file } = await import("bun");
+  const css = await file(
+    `${import.meta.dir}/../../src/v2/design/primitives/Amount/Amount.module.css`,
+  ).text();
+  expect(/\.exp\s*\{[^}]*font-style:\s*normal;/.test(css)).toBe(true);
 });

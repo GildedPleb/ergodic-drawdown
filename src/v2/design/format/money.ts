@@ -127,6 +127,26 @@ const TIMES = "\u00D7";
 const superscript = (n: number): string =>
   Array.from(String(n), (c) => (c === "-" ? "\u207B" : (SUPER[Number(c)] ?? c))).join("");
 
+/**
+ * Form (2026-10-19): a scientific exponent is always set in the UPRIGHT face, even inside an
+ * italic label (no font patch: EB Garamond italic has no superior figures). Renderers split the
+ * display text into runs and set each `sup` run upright.
+ */
+export type TextRun = { text: string; sup: boolean };
+const SUP_RUN = /[\u2070\u00B9\u00B2\u00B3\u2074-\u2079\u207B]+/gu;
+
+export const sciRuns = (text: string): TextRun[] => {
+  const runs: TextRun[] = [];
+  let at = 0;
+  for (const m of text.matchAll(SUP_RUN)) {
+    if (m.index > at) runs.push({ text: text.slice(at, m.index), sup: false });
+    runs.push({ text: m[0], sup: true });
+    at = m.index + m[0].length;
+  }
+  if (at < text.length || runs.length === 0) runs.push({ text: text.slice(at), sup: false });
+  return runs;
+};
+
 /** 3 significant figures as [x.yz, exponent], rounded half-up; undefined below 10²¹. */
 const sciParts = (d: Dec): [string, number] | undefined => {
   let lead = leadExp(d);

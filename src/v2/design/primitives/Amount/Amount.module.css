@@ -6,6 +6,11 @@
     white-space: nowrap;
   }
 
+  /* Form: a scientific exponent is always upright, even under an italic parent. */
+  .exp {
+    font-style: normal;
+  }
+
   .root[data-unit="btc"] {
     color: var(--btc);
   }

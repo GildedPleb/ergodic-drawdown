@@ -30,6 +30,7 @@ const PAINT: Paint = {
   casing: 1.5,
   chart: "500 12px SM Jost",
   serif: "italic 400 13px SM EB Garamond",
+  serifUpright: "400 13px SM EB Garamond",
   serifPx: 13,
   section: "600 11.5px SM Jost",
 };
@@ -38,12 +39,22 @@ const noop = (): void => undefined;
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
-type Op = { op: string; x: number; y: number; w?: number; h?: number; style: string; t?: string };
+type Op = {
+  op: string;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  style: string;
+  t?: string;
+  font?: string;
+};
 
 /** A 2D context that records every fillText (texts) and every paint op in order (ops). */
-const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[] } => {
+const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[]; measured: Op[] } => {
   const texts: string[] = [];
   const ops: Op[] = [];
+  const measured: Op[] = [];
   const style = (): string => str(ctx.fillStyle);
   const ctx: Ctx2D = {
     setTransform: noop,
@@ -67,9 +78,12 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[] } => {
     setLineDash: noop,
     fillText: (t: string, x: number, y: number) => {
       texts.push(t);
-      ops.push({ op: "fillText", x, y, style: style(), t });
+      ops.push({ op: "fillText", x, y, style: style(), t, font: ctx.font });
     },
-    measureText: (t: string) => ({ width: t.length * 6 }),
+    measureText: (t: string) => {
+      measured.push({ op: "measureText", x: 0, y: 0, style: "", t, font: ctx.font });
+      return { width: t.length * 6 };
+    },
     font: "",
     textAlign: "left",
     textBaseline: "alphabetic",
@@ -79,7 +93,7 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[] } => {
     fillStyle: "",
     globalAlpha: 1,
   };
-  return { ctx, texts, ops };
+  return { ctx, texts, ops, measured };
 };
 
 const draw = (h: number, b: PriceBands | null, horizon: number, split = false): string[] => {
@@ -290,6 +304,35 @@ test("n4 revision: every gridline is labelled up to the 10³⁰⁸ clamp, scient
     if (v >= 1e18) expect(label?.x).toBe(box.R - 4);
   }
   expect(ops.some((o) => o.t === "$1.00\u00D710\u00B3\u2070\u2078")).toBe(true);
+});
+
+test("Form: a scientific exponent inside the italic end label is measured and drawn in the upright face", () => {
+  const { ctx, ops, measured } = recorder();
+  const b = pack([1e21, 1e21], [1.234e21, 1.234e21], [1.5e21, 1.5e21]);
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1 }, b);
+  const runs = ops.filter(
+    (o) => o.op === "fillText" && o.y === ops.find((q) => q.t?.startsWith("\u20BF price"))?.y,
+  );
+  expect(runs.map((o) => o.t)).toEqual([
+    "\u20BF price \u00B7 $1.23\u00D710",
+    "\u00B2\u00B9",
+    " \u00B7 $1.00\u00D710",
+    "\u00B2\u00B9",
+    "\u20131.50\u00D710",
+    "\u00B2\u00B9",
+  ]);
+  expect(runs.map((o) => o.font)).toEqual(
+    [0, 1, 0, 1, 0, 1].map((k) => (k ? PAINT.serifUpright : PAINT.serif)),
+  );
+  // Runs sit side by side, left-aligned from the label's right edge minus the whole width.
+  const widths = runs.map((o) => (o.t ?? "").length * 6);
+  const right = (runs.at(-1)?.x ?? 0) + (widths.at(-1) ?? 0);
+  expect(right).toBe(plotBox(1440, 900).R - 12);
+  runs.forEach((o, k) => {
+    if (k > 0) expect(o.x).toBe((runs[k - 1]?.x ?? 0) + (widths[k - 1] ?? 0));
+  });
+  const sup = measured.filter((m) => m.t === "\u00B2\u00B9");
+  expect(sup.length > 0 && sup.every((m) => m.font === PAINT.serifUpright)).toBe(true);
 });
 
 test("B2: bands that are past a double from the start draw the frame and the caption, no end label", () => {
