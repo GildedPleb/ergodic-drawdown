@@ -7,7 +7,7 @@ import { useWorld } from "../engine/useWorld";
 import { ModelsSheet } from "../models/ModelsSheet";
 import { defaultModelsValues, type ModelsValues } from "../models/values";
 import { strings } from "../strings";
-import { endValue } from "../world/bands";
+import { endValue, outOfRange } from "../world/bands";
 import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
@@ -45,8 +45,9 @@ export const AppShell = (): JSX.Element => {
   const world = useWorld(values, now);
 
   const { bands } = world;
+  const overflow = bands !== null && outOfRange(bands);
   const ends =
-    bands === null
+    bands === null || overflow
       ? null
       : ([
           endValue(bands.p50),
@@ -54,8 +55,9 @@ export const AppShell = (): JSX.Element => {
           endValue(bands.p5),
           endValue(bands.p95),
         ] as const);
-  const sentence = ends === null ? strings.headline.pending : strings.headline.sentence(...ends);
-  const spoken = ends === null ? strings.headline.pending : strings.headline.spoken(...ends);
+  const idle = overflow ? strings.headline.outOfRange : strings.headline.pending;
+  const sentence = ends === null ? idle : strings.headline.sentence(...ends);
+  const spoken = ends === null ? idle : strings.headline.spoken(...ends);
 
   const setSheet = (next: boolean): void => {
     setOpen(next);

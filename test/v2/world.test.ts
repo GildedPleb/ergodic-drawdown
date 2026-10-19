@@ -4,9 +4,12 @@ import { expect, test } from "bun:test";
 import { createEngine } from "../../src/engine/engine";
 import { DEFAULT_INFLATION, engineConfig, SIMULATION_SEED } from "../../src/v2/app/engine/config";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
+import { MS_PER_WEEK, MS_PER_YEAR, WEEKS_PER_EPOCH } from "../../src/constants";
+import cagrModel from "../../src/data/models/cagr";
 import {
   bandRange,
   endValue,
+  outOfRange,
   PRICE_QUANTILE_BAND,
   type PriceBands,
   priceBands,
@@ -14,7 +17,10 @@ import {
 import { inProcessWorker } from "../golden/in-process";
 import {
   axisTicks,
+  DEFAULT_DOMAIN,
   fitDomain,
+  MAX_DECADE_PASSES,
+  validDomain,
   endYear,
   lx,
   ly,
@@ -146,12 +152,105 @@ test("bandRange skips Infinity and NaN, so the axis stays finite (Keel)", () => 
     band(Number.POSITIVE_INFINITY, 2e6, Number.NaN),
   );
   expect(bandRange(bands)).toEqual({ low: 50_000, high: 2e6 });
+  expect(outOfRange(bands)).toBe(true); // p95 ends on NaN: no honest end value
   expect(axisTicks(fitDomain(50_000, 2e6))).toEqual([1e5, 1e6]);
 });
 
-test("bandRange with no finite values falls back to $1–$1", () => {
-  const bands = withEdges(band(Number.NaN), band(Number.POSITIVE_INFINITY));
-  expect(bandRange(bands)).toEqual({ low: 1, high: 1 });
+test("B2: all-Infinity (or NaN) bands leave nothing to fit: no range, out of range", () => {
+  const inf = withEdges(band(Number.POSITIVE_INFINITY), band(Number.POSITIVE_INFINITY));
+  expect(bandRange(inf)).toBe(null);
+  expect(outOfRange(inf)).toBe(true);
+  expect(outOfRange(withEdges(band(Number.NaN), band(Number.NaN)))).toBe(true);
+  expect(outOfRange(withEdges(band(50_000, 60_000), band(2e6, 3e6)))).toBe(false);
+});
+
+test("B2: huge, degenerate and non-finite bounds fit a finite domain; ticks are capped", () => {
+  for (const [low, high] of [
+    [1, 1e300],
+    [1, Number.MAX_VALUE],
+    [1e-300, 1e300],
+    [Number.MIN_VALUE, Number.MAX_VALUE],
+    [Number.MAX_VALUE, Number.MAX_VALUE],
+    [1e308, 1e308],
+    [0, 0],
+    [-5, 1e6],
+    [Number.NaN, 1e6],
+    [1e6, Number.POSITIVE_INFINITY],
+    [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+    [Number.NaN, Number.NaN],
+  ] as const) {
+    const domain = fitDomain(low, high);
+    expect({ low, high, valid: validDomain(domain) }).toEqual({ low, high, valid: true });
+    const ticks = axisTicks(domain);
+    expect(ticks.length > 0 && ticks.length <= MAX_DECADE_PASSES).toBe(true);
+    expect(ticks.every((v) => Number.isFinite(v) && v >= domain.lo * 0.999)).toBe(true);
+  }
+  expect(axisTicks({ lo: Number.NaN, hi: 1 })).toEqual([]);
+  expect(axisTicks({ lo: 1, hi: Number.POSITIVE_INFINITY })).toEqual([]);
+  expect(axisTicks({ lo: 5, hi: 5 })).toEqual([]);
+  expect(fitDomain(Number.NaN, Number.NaN)).toEqual({ lo: 0.01, hi: 10 ** (-2 + Math.log10(2)) });
+  expect(validDomain(DEFAULT_DOMAIN)).toBe(true);
+});
+
+/**
+ * The CAGR band the engine draws for R and epochs (main's own cagrModel min/max price per week),
+ * with the engine's overflow tail: once a week overflows, it and every later week are NaN (what
+ * the real engine returned for these inputs: e.g. 1e6 at 30 epochs, 3950 of 6110 weeks finite).
+ */
+const cagrBands = (variable: number, epochs: number): PriceBands => {
+  const weeks = epochs * WEEKS_PER_EPOCH;
+  const { minMaxMultiple } = defaultModelsValues();
+  // main's cagrModel is memoised per week (slow for 6,000 weeks in a ~1 s suite): its formula is
+  // applied here and checked against the model itself on sampled weeks.
+  const growth = 1 + variable / 100;
+  const at = (pick: "minPrice" | "maxPrice"): Float64Array => {
+    const start = pick === "minPrice" ? 64_000 / minMaxMultiple : 64_000 * minMaxMultiple;
+    const out = new Float64Array(weeks + 1);
+    let broken = false;
+    for (let week = 0; week <= weeks; week++) {
+      const v = start * growth ** ((week * MS_PER_WEEK) / MS_PER_YEAR);
+      if (week % 997 === 0) {
+        const model = cagrModel[pick]({
+          currentBlock: 0,
+          currentPrice: 64_000,
+          minMaxMultiple,
+          now: 0,
+          variable,
+          week,
+        });
+        if (!Object.is(model, v)) throw new Error(`cagr formula drifted at week ${week}`);
+      }
+      broken ||= !Number.isFinite(v);
+      out[week] = broken ? Number.NaN : v;
+    }
+    return out;
+  };
+  const p5 = at("minPrice");
+  const p95 = at("maxPrice");
+  const p50 = p5.map((v, i) => Math.sqrt(v * (p95[i] ?? Number.NaN)));
+  return { start: 0, weeks, p5, p25: p5, p50, p75: p95, p95 };
+};
+
+test("B2: CAGR R 1e6 and 1e9 at 30 epochs, 1e300 at 10: out of range, finite axis, fast", () => {
+  for (const [variable, epochs] of [
+    [1e6, 30],
+    [1e9, 30],
+    [1e300, 10],
+  ] as const) {
+    const started = performance.now();
+    const bands = cagrBands(variable, epochs);
+    expect({ variable, out: outOfRange(bands) }).toEqual({ variable, out: true });
+    const range = bandRange(bands);
+    const domain = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
+    expect(validDomain(domain)).toBe(true);
+    expect(axisTicks(domain).length <= MAX_DECADE_PASSES).toBe(true);
+    expect(performance.now() - started < 100).toBe(true);
+  }
+  // A large rate that stays finite still draws: 1e4 % over 10 epochs ends near $1e79.
+  const big = cagrBands(1e4, 10);
+  expect(outOfRange(big)).toBe(false);
+  const range = bandRange(big);
+  expect(validDomain(fitDomain(range?.low ?? 0, range?.high ?? 0))).toBe(true);
 });
 
 test("priceBands reads a real engine snapshot (labels come from main's createDataSet)", async () => {

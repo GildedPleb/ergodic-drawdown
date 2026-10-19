@@ -171,3 +171,19 @@ test("never mid-chart: when above and below are both far from the end, it goes t
   expect(at.leader?.y2).toBe(ly(3.5e7, box, domain));
   expect((at.leader?.y1 ?? 0) > at.y + LABEL_LINE).toBe(true);
 });
+
+test("B2: overflowed bands draw the frame and the out-of-range message, no end label or trace", () => {
+  const inf = Float64Array.from([1e5, Number.POSITIVE_INFINITY]);
+  const nan = Float64Array.from([1e5, Number.NaN]);
+  for (const b of [
+    { start: NOW, weeks: 1, p5: inf, p25: inf, p50: inf, p75: inf, p95: inf },
+    { start: NOW, weeks: 1, p5: nan, p25: nan, p50: nan, p75: nan, p95: nan },
+  ]) {
+    const texts = draw(693, b, 1);
+    expect(texts.includes("Prices here run past what the chart can draw.")).toBe(true);
+    expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
+    expect(texts.includes("THE WORLD \u00B7 \u20BF PRICE")).toBe(true);
+    expect(texts.some((t) => t.startsWith("$"))).toBe(false);
+  }
+  expect(draw(693, bands, 1).includes("Prices here run past what the chart can draw.")).toBe(false);
+});

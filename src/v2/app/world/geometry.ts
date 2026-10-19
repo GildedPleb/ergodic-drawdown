@@ -15,6 +15,21 @@ export const plotBox = (width: number, height: number): PlotBox => ({
 
 export type LogDomain = { lo: number; hi: number };
 
+/** The chart's empty / fallback domain ($10k–$10M). */
+export const DEFAULT_DOMAIN: LogDomain = { lo: 1e4, hi: 1e7 };
+
+/**
+ * The log10 range the axis may span (Probe B2): $0.01 up to the largest power of ten a double
+ * holds (10^308). Every bound is clamped here before it is turned back into dollars, so no
+ * transform can overflow to Infinity.
+ */
+const LOG_FLOOR = -2;
+const LOG_CEIL = Math.floor(Math.log10(Number.MAX_VALUE));
+
+/** Clamp a log10 value to the chartable range; NaN (from ≤0 or NaN input) goes to the floor. */
+const clampLog = (v: number): number =>
+  Number.isNaN(v) ? LOG_FLOOR : Math.min(LOG_CEIL, Math.max(LOG_FLOOR, v));
+
 /** Margin above and below the data, as a share of its log span (Form, Slice 1 follow-up). */
 const FIT_MARGIN = 0.05;
 /** Narrowest log span fitted (a factor of 2), so a flat or near-flat range never over-zooms. */
@@ -23,25 +38,50 @@ const MIN_LOG_SPAN = Math.log10(2);
 /**
  * Fit the log axis to the data: the p5–p95 range plus 5% of its log span on each side, not
  * rounded out to decades. A range narrower than a factor of 2 is widened about its log centre.
+ * Probe B2: every step is clamped in log space ($0.01–10^308) before converting back, a span
+ * squeezed against a bound is widened away from it, and a result that is still not finite,
+ * positive and increasing falls back to DEFAULT_DOMAIN.
  */
 export const fitDomain = (low: number, high: number): LogDomain => {
-  const a = Math.log10(Math.max(Math.min(low, high), 0.01));
-  const b = Math.log10(Math.max(low, high, 0.01));
-  const mid = (a + b) / 2;
-  const half = Math.max(b - a, MIN_LOG_SPAN) / 2;
+  const a = clampLog(Math.log10(Math.min(low, high)));
+  const b = clampLog(Math.log10(Math.max(low, high)));
+  const mid = (Math.min(a, b) + Math.max(a, b)) / 2;
+  const half = Math.max(Math.abs(b - a), MIN_LOG_SPAN) / 2;
   const pad = half * 2 * FIT_MARGIN;
-  return { lo: 10 ** (mid - half - pad), hi: 10 ** (mid + half + pad) };
+  let lo = clampLog(mid - half - pad);
+  let hi = clampLog(mid + half + pad);
+  if (hi - lo < MIN_LOG_SPAN) {
+    if (hi >= LOG_CEIL) lo = hi - MIN_LOG_SPAN;
+    else hi = lo + MIN_LOG_SPAN;
+  }
+  const domain = { lo: 10 ** lo, hi: 10 ** hi };
+  return validDomain(domain) ? domain : DEFAULT_DOMAIN;
 };
+
+/** Finite, positive and increasing: the only domains ly() and axisTicks() accept. */
+export const validDomain = ({ lo, hi }: LogDomain): boolean =>
+  Number.isFinite(lo) && Number.isFinite(hi) && lo > 0 && hi > lo;
 
 const inside = ({ lo, hi }: LogDomain, v: number): boolean =>
   v >= lo * (1 - 1e-9) && v <= hi * (1 + 1e-9);
 
-/** m × 10^k for every k that reaches the domain, inside it. */
+/**
+ * Hard cap on decade passes (Probe B2, Keel: 12 or fewer). A domain spanning more decades than
+ * this is thinned to every n-th decade, so the loop never runs more than 12 times whatever the
+ * domain, and never draws more than 12 × 9 gridlines.
+ */
+export const MAX_DECADE_PASSES = 12;
+
+/** m × 10^k for every k that reaches the domain (thinned to ≤12 decades), inside it. */
 const steps = (domain: LogDomain, mantissas: readonly number[]): number[] => {
   const out: number[] = [];
+  if (!validDomain(domain)) return out;
   const first = Math.floor(Math.log10(domain.lo));
   const last = Math.ceil(Math.log10(domain.hi));
-  for (let k = first; k <= last; k++) {
+  const stride = Math.max(1, Math.ceil((last - first + 1) / MAX_DECADE_PASSES));
+  for (let pass = 0; pass < MAX_DECADE_PASSES; pass++) {
+    const k = first + pass * stride;
+    if (k > last) break;
     for (const m of mantissas) {
       const v = Number((m * 10 ** k).toPrecision(12));
       if (inside(domain, v)) out.push(v);

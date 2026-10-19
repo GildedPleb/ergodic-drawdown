@@ -95,15 +95,29 @@ export const priceBands = (datasets: readonly LabelledSeries[] | undefined): Pri
   };
 };
 
-/** Smallest p5 and largest p95 over the horizon (positive values only): the axis domain input. */
-export const bandRange = (bands: PriceBands): { low: number; high: number } => {
+/**
+ * Smallest p5 and largest p95 over the horizon (finite, positive values only): the axis domain
+ * input. Non-finite values are dropped before fitting (Keel, Probe B2); null when nothing finite
+ * is left.
+ */
+export const bandRange = (bands: PriceBands): { low: number; high: number } | null => {
   let low = Number.POSITIVE_INFINITY;
   let high = 0;
-  // Non-finite values are skipped: an Infinity here would make the axis loop forever (Keel).
   for (const v of bands.p5) if (Number.isFinite(v) && v > 0 && v < low) low = v;
   for (const v of bands.p95) if (Number.isFinite(v) && v > high) high = v;
-  return { low: Number.isFinite(low) ? low : 1, high: Math.max(high, 1) };
+  if (!Number.isFinite(low) || high <= 0) return null;
+  return { low, high: Math.max(high, low) };
 };
+
+/**
+ * Probe B2: the engine overflows (Infinity, then NaN) when a valid but huge setting (CAGR R of 1e6
+ * at 30 epochs, 1e300 at 10) drives prices past a double. The bands are "out of range" when the
+ * horizon's end (median, p5 or p95) is not finite, or nothing finite is left: the chart and the
+ * headline then show a defined message instead of a number from an earlier week.
+ */
+export const outOfRange = (bands: PriceBands): boolean =>
+  bandRange(bands) === null ||
+  [bands.p5, bands.p50, bands.p95].some((band) => !Number.isFinite(band.at(-1) ?? Number.NaN));
 
 /** The last finite value of a band (the end label and the headline read the horizon's end). */
 export const endValue = (band: Float64Array): number => {

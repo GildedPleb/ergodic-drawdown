@@ -8,8 +8,9 @@
 import { fmtUSD } from "../../design/format/money";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
-import { bandRange, endValue } from "./bands";
+import { bandRange, endValue, outOfRange } from "./bands";
 import {
+  DEFAULT_DOMAIN,
   fitDomain,
   axisTicks,
   endYear,
@@ -70,7 +71,6 @@ export type Paint = {
 };
 
 const SHORT = 150;
-const DEFAULT_DOMAIN: LogDomain = { lo: 1e4, hi: 1e7 };
 
 const remPx = (value: string, root: number): number => {
   const n = Number.parseFloat(value);
@@ -237,12 +237,15 @@ export const drawWorld = (
   x: Ctx2D,
   p: Paint,
   { width, height, dpr, now, horizon: horizonWeeks }: Frame,
-  bands: PriceBands | null,
+  engineBands: PriceBands | null,
 ): void => {
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   x.clearRect(0, 0, width, height);
   const box = plotBox(width, height);
-  const horizon = bands?.weeks ?? horizonWeeks;
+  const horizon = engineBands?.weeks ?? horizonWeeks;
+  // Probe B2: overflowed bands draw the frame and a message, never a trace or a number.
+  const overflow = engineBands !== null && outOfRange(engineBands);
+  const bands = overflow ? null : engineBands;
   const range = bands === null ? null : bandRange(bands);
   const domain = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
   const frame = { box, domain, horizon };
@@ -253,7 +256,8 @@ export const drawWorld = (
   x.textAlign = "left";
   x.textBaseline = "alphabetic";
   x.lineWidth = 1;
-  for (const v of axisTicks(domain)) {
+  // No $ scale in the out-of-range state: there is nothing on it to read.
+  for (const v of overflow ? [] : axisTicks(domain)) {
     const y = ly(v, box, domain);
     x.strokeStyle = p.hairline;
     x.setLineDash([1, 3]);
@@ -378,6 +382,14 @@ export const drawWorld = (
         x.lineWidth = 1;
       }
     }
+  }
+
+  // Out of range (Probe B2): a centred message in the plot instead of the bands.
+  if (overflow) {
+    x.font = p.serif;
+    x.textAlign = "center";
+    x.fillStyle = p.muted;
+    x.fillText(strings.chart.outOfRange, (box.L + box.R) / 2, (box.T + box.Bt) / 2);
   }
 
   // Caption.

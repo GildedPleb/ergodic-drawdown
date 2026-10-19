@@ -28,12 +28,17 @@ export const strings = {
       `Bitcoin\u2019s median price reaches ${nameUSD(median)} by ${year}; 9 in 10 futures end between ${nameUSD(low)} and ${nameUSD(high)}.`,
     /** Before the engine returns: no headline number (§1h empty). */
     pending: "Bitcoin\u2019s price, across the futures the model draws.",
+    /** The engine's prices overflowed (Probe B2): said plainly, with what to do. */
+    outOfRange:
+      "At these settings Bitcoin\u2019s price grows past any number we can show. Try a smaller value.",
     /** Phone h1. */
     phoneTitle: "Bitcoin\u2019s price",
   },
   chart: {
     today: (monthYear: string): string => `Today \u00B7 ${monthYear}`,
     caption: "THE WORLD \u00B7 \u20BF PRICE",
+    /** Drawn in the plot when the bands are out of range (Probe B2). */
+    outOfRange: "Prices here run past what the chart can draw.",
     endLabel: (median: number, low: number, high: number): string =>
       `\u20BF price \u00B7 ${fmtUSD(median)} \u00B7 ${fmtUSDRange(low, high)}`,
     /** Narrow charts (<480px): the same label on two lines, value then range. */
