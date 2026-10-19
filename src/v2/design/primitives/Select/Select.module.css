@@ -26,12 +26,12 @@
     overflow-wrap: anywhere;
   }
 
+  /* Face and native control share one grid cell; the control is in flow so it sets the 44px hit. */
   .field {
-    position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     flex: 1 1 auto;
     min-inline-size: 0;
-    min-block-size: var(--hit);
     border: var(--rule-hair) solid var(--control-line);
     border-radius: var(--radius-0);
     background: var(--raised);
@@ -43,8 +43,8 @@
   }
 
   .face {
+    grid-area: 1 / 1;
     display: flex;
-    flex: 1 1 auto;
     align-items: center;
     justify-content: space-between;
     gap: var(--s-2);
@@ -67,12 +67,11 @@
     color: var(--accent);
   }
 
-  /* The native control: transparent, covering the face, so it owns pointer, keys and pickers. */
+  /* The native control: transparent, over the face (later in the cell), so it owns pointer, keys and pickers. */
   .control {
-    position: absolute;
-    inset: 0;
+    grid-area: 1 / 1;
     inline-size: 100%;
-    block-size: 100%;
+    min-block-size: var(--hit);
     padding: 0;
     border: 0;
     border-radius: var(--radius-0);
@@ -82,8 +81,9 @@
     appearance: none;
   }
 
+  /* Invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
   .root[data-invalid="true"] .field {
-    border-color: var(--danger-floor);
+    border: var(--rule-strong) solid var(--invalid);
   }
 
   .root[data-invalid="false"] .field {
@@ -103,7 +103,15 @@
   }
 
   .error {
+    display: flex;
     flex: 1 0 100%;
-    color: var(--danger-floor);
+    align-items: flex-start;
+    gap: var(--s-1);
+    color: var(--invalid);
+  }
+
+  .errorIcon {
+    display: inline-flex;
+    flex: none;
   }
 }

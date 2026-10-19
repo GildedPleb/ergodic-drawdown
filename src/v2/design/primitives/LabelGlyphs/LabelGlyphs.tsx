@@ -6,56 +6,71 @@ import styles from "./LabelGlyphs.module.css";
 const UP = "\u{1F7E2}";
 const DOWN = "\u{1F534}";
 
+/** Codepoints LabelGlyphs draws as SVG instead of a font glyph. */
+export const GLYPH_MAP: ReadonlyMap<string, "up" | "down"> = new Map([
+  [UP, "up"],
+  [DOWN, "down"],
+]);
+
 /** R7: variant keys and values. */
 export const variants = {
   tone: ["up", "down"] as const,
 };
 
 export type LabelGlyphsProps = {
-  /** Exact string kept in data, accessible name, and copy/paste. */
+  /** Exact string kept in data and in the accessible name. */
   text: string;
 };
 
 /**
- * Maps known codepoints to filled squares at cap height; other characters render as plain text.
- * The string itself stays exact in a visually hidden span; drawn glyphs are aria-hidden.
- * --walk-up / --walk-down may only be used here.
+ * Maps known codepoints to filled SVG circles at cap height, spaced like letters; every other
+ * character renders as plain text. A label without mapped codepoints is plain text. A label with
+ * them is one role="img" whose accessible name is the exact string, so the emoji never reaches a
+ * text node (no emoji font, the font check stays strict). --walk-up / --walk-down only live here.
  */
 export const LabelGlyphs = ({ text }: LabelGlyphsProps): JSX.Element => {
   const root = styles["root"] ?? "label-glyphs-root";
-  const hidden = styles["visuallyHidden"] ?? "label-glyphs-hidden";
-  const glyphs = styles["glyphs"] ?? "label-glyphs-row";
   const dot = styles["dot"] ?? "label-glyphs-dot";
+
+  const chars = Array.from(text);
+  if (!chars.some((ch) => GLYPH_MAP.has(ch))) return <>{text}</>;
 
   const style = {
     ["--dyn-glyph-size" as string]: "0.7em",
-    ["--dyn-glyph-gap" as string]: "0.2em",
+    ["--dyn-glyph-gap" as string]: "0.12em",
   } satisfies CSSProperties;
 
-  // Mapped codepoints draw as glyphs; any other run stays as text so mixed labels still read.
   const parts: JSX.Element[] = [];
   let run = "";
   const flush = (): void => {
     if (run.length > 0) parts.push(<span key={`t${parts.length}`}>{run}</span>);
     run = "";
   };
-  for (const ch of Array.from(text)) {
-    const tone = ch === UP ? "up" : ch === DOWN ? "down" : undefined;
+  for (const ch of chars) {
+    const tone = GLYPH_MAP.get(ch);
     if (tone === undefined) {
       run += ch;
       continue;
     }
     flush();
-    parts.push(<span key={`g${parts.length}`} className={dot} data-tone={tone} />);
+    parts.push(
+      <svg
+        key={`g${parts.length}`}
+        className={dot}
+        data-tone={tone}
+        viewBox="0 0 10 10"
+        focusable="false"
+        aria-hidden="true"
+      >
+        <circle cx="5" cy="5" r="5" />
+      </svg>,
+    );
   }
   flush();
 
   return (
-    <span className={root} style={style}>
-      <span className={hidden}>{text}</span>
-      <span className={glyphs} aria-hidden="true">
-        {parts}
-      </span>
+    <span className={root} style={style} role="img" aria-label={text} data-text={text}>
+      {parts}
     </span>
   );
 };

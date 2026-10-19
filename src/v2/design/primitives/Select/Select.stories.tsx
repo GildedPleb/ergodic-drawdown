@@ -3,7 +3,13 @@ import { useState } from "react";
 
 import { Select } from "./Select";
 
-/** Plain CSF 3, no Storybook/Ladle imports. Stateful so the native picker really changes value. */
+/**
+ * Plain CSF 3, no Storybook/Ladle imports. Stateful so the native picker really changes value.
+ *
+ * Font exception (Form + Keel): the closed face draws emoji labels through LabelGlyphs and is held
+ * to the strict SM-only font check. The OPEN native picker is OS chrome: its option list may show
+ * the system emoji for "🟢🟢🟢🔴". The font check exempts the native <select>/<option> subtree only.
+ */
 export default { title: "Primitives/Select" };
 
 const WALKS = ["Bubble", "Random", "Vote Count", "🟢🟢🟢🔴"] as const;
@@ -45,7 +51,10 @@ export const Default = (): ReactElement => <Live />;
 export const Focus = (): ReactElement => <Live />;
 export const Disabled = (): ReactElement => <Live disabled />;
 export const Invalid = (): ReactElement => (
-  <Live invalid error="Choose a walk the engine supports." />
+  <Live
+    invalid
+    error="This walk is not available for the chosen model. Pick another walk from the list."
+  />
 );
 export const LongText = (): ReactElement => (
   <Live

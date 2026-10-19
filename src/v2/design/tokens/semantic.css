@@ -7,6 +7,7 @@
     --surface: var(--ink-900);
     --raised: var(--ink-850);
     --text: var(--linen-75);
+    --invalid: var(--linen-75); /* = --text: invalid is full contrast, never a colour signal */
     --text-muted: var(--stone-350);
     --text-faint: var(--stone-525);
     --hairline: var(--ink-775);
@@ -88,6 +89,7 @@
     --surface: var(--linen-150);
     --raised: var(--linen-200);
     --text: var(--umber-800);
+    --invalid: var(--umber-800); /* = --text: invalid is full contrast, never a colour signal */
     --text-muted: var(--umber-675);
     --text-faint: var(--umber-550);
     --hairline: var(--linen-225);

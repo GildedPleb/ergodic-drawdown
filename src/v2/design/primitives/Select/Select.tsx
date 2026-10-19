@@ -26,7 +26,10 @@ export type SelectProps = {
   autoComplete?: string | undefined;
   disabled?: boolean;
   invalid?: boolean;
-  /** Shown under the field when invalid; wired with aria-describedby. */
+  /**
+   * Plain-language message shown with a ⚠ icon when invalid: the cause and the next step
+   * ("Volatility must be 0 to 1. Enter a number from 0 to 1."). Wired with aria-describedby.
+   */
   error?: string | undefined;
 };
 
@@ -59,6 +62,7 @@ export const Select = ({
   const face = styles["face"] ?? "select-face";
   const faceValue = styles["value"] ?? "select-value";
   const caret = styles["caret"] ?? "select-caret";
+  const errorIcon = styles["errorIcon"] ?? "field-error-icon";
   const errorCls = styles["error"] ?? "select-error";
 
   const autoId = useId();
@@ -114,7 +118,10 @@ export const Select = ({
       </span>
       {showError ? (
         <span className={errorCls} id={errorId}>
-          {error}
+          <span className={errorIcon}>
+            <Icon name="warning" />
+          </span>
+          <span>{error}</span>
         </span>
       ) : null}
     </div>

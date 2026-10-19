@@ -46,7 +46,11 @@ export const Default = (): ReactElement => <Live />;
 export const Focus = (): ReactElement => <Live />;
 export const Disabled = (): ReactElement => <Live disabled />;
 export const Invalid = (): ReactElement => (
-  <Live initial={4} invalid error="Volatility must be between 0 and 1." />
+  <Live
+    initial={4}
+    invalid
+    error="Volatility is above 1, the most the model allows. Enter a number from 0 to 1."
+  />
 );
 export const LongText = (): ReactElement => (
   <Live

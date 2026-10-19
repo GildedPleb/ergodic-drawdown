@@ -57,7 +57,10 @@ const resolve = (id: string): Story | undefined => {
 export const DesignRoute = ({ story }: { story: string }): JSX.Element => {
   const main = styles["main"] ?? "design-main";
   const render = resolve(story);
-  const linen = story.endsWith("/linen");
+  // `…/linen` stories, or any story with ?theme=linen (the visual matrix shoots both themes).
+  const linen =
+    story.endsWith("/linen") ||
+    new URLSearchParams(window.location.search).get("theme") === "linen";
   useEffect(() => {
     // Themes apply on <html> so the page ground matches the story (m4).
     document.documentElement.dataset["theme"] = linen ? "linen" : "dark";

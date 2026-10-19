@@ -2,7 +2,7 @@ import type { CSSProperties, JSX } from "react";
 
 import styles from "./Icon.module.css";
 
-type IconName = "check" | "square" | "chevron";
+type IconName = "check" | "square" | "chevron" | "warning";
 
 export type IconProps = {
   name: IconName;
@@ -13,6 +13,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   check: <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />,
   square: <rect x="3" y="3" width="10" height="10" />,
   chevron: <path d="M4 6.5 8 10.5 12 6.5" />,
+  warning: <path d="M8 1.5 15 14H1ZM8 6v4M8 11.75v.5" />,
 };
 
 /** SVG icon primitive — currentColor, text-sized (1em). Never font glyphs. */

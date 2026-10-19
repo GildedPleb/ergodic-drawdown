@@ -37,7 +37,12 @@ export const expectNoOverflow = async (page: Page): Promise<void> => {
   expect(scroll).toBeLessThanOrEqual(client);
 };
 
-/** G7 (Chromium, CDP): every rendered glyph comes from an SM face. */
+/**
+ * G7 (Chromium, CDP): every rendered glyph comes from an SM face.
+ * One documented exception (TOKENS.md, Form + Keel): the native <select>/<option> subtree. It is
+ * transparent when closed (the Select face draws the value through LabelGlyphs) and, open, it is
+ * OS chrome that may show system emoji. Everything else stays strict.
+ */
 export const expectOnlySmFonts = async (page: Page): Promise<void> => {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("DOM.enable");
@@ -45,9 +50,16 @@ export const expectOnlySmFonts = async (page: Page): Promise<void> => {
   const { root } = await cdp.send("DOM.getDocument", { depth: -1 });
   const textParents: number[] = [];
   const visit = (
-    node: { nodeId: number; nodeType: number; nodeValue?: string; children?: unknown[] },
+    node: {
+      nodeId: number;
+      nodeType: number;
+      nodeName?: string;
+      nodeValue?: string;
+      children?: unknown[];
+    },
     parent: number,
   ): void => {
+    if (node.nodeName === "SELECT") return; // native picker exception (see above)
     if (node.nodeType === 3 && (node.nodeValue ?? "").trim().length > 0) textParents.push(parent);
     for (const c of (node.children ?? []) as (typeof node)[]) visit(c, node.nodeId);
   };
@@ -63,7 +75,7 @@ export const expectOnlySmFonts = async (page: Page): Promise<void> => {
 export const gotoStory = async (
   page: Page,
   id: string,
-  opts: { text200?: boolean } = {},
+  opts: { text200?: boolean; theme?: "dark" | "linen" } = {},
 ): Promise<void> => {
   if (opts.text200 === true) {
     await page.addInitScript(() => {
@@ -72,7 +84,7 @@ export const gotoStory = async (
       });
     });
   }
-  await page.goto(`/design/${id}`);
+  await page.goto(`/design/${id}${opts.theme === "linen" ? "?theme=linen" : ""}`);
   await page.locator(`main[data-story="${id}"]`).waitFor();
   await page.evaluate(async () => {
     await document.fonts.ready;

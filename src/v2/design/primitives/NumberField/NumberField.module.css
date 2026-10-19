@@ -40,8 +40,9 @@
     outline-offset: var(--focus-offset);
   }
 
+  /* Invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
   .root[data-invalid="true"] .control {
-    border-color: var(--danger-floor);
+    border: var(--rule-strong) solid var(--invalid);
   }
 
   .root[data-invalid="false"] .control {
@@ -62,7 +63,15 @@
   }
 
   .error {
+    display: flex;
     flex: 1 0 100%;
-    color: var(--danger-floor);
+    align-items: flex-start;
+    gap: var(--s-1);
+    color: var(--invalid);
+  }
+
+  .errorIcon {
+    display: inline-flex;
+    flex: none;
   }
 }
