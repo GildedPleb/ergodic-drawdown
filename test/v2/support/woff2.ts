@@ -67,7 +67,12 @@ const KNOWN_TAGS = [
   "Sill",
 ];
 
-export type Woff2Info = { codepoints: Set<number>; gsubFeatures: Set<string> };
+export type Woff2Info = {
+  codepoints: Set<number>;
+  gsubFeatures: Set<string>;
+  /** head.unitsPerEm and OS/2 sTypoAscender / sTypoDescender (font units). */
+  vertical: { unitsPerEm: number; ascender: number; descender: number };
+};
 
 const tagAt = (view: DataView, offset: number): string =>
   String.fromCodePoint(
@@ -177,8 +182,16 @@ export const readWoff2 = (bytes: Uint8Array): Woff2Info => {
   const cmap = tables.find((t) => t.tag === "cmap");
   if (cmap === undefined) throw new Error("no cmap table");
   const gsub = tables.find((t) => t.tag === "GSUB");
+  const headTable = tables.find((t) => t.tag === "head");
+  const os2 = tables.find((t) => t.tag === "OS/2");
+  if (headTable === undefined || os2 === undefined) throw new Error("no head or OS/2 table");
   return {
     codepoints: readCmap(view, cmap.offset),
     gsubFeatures: gsub === undefined ? new Set() : readGsubFeatures(view, gsub.offset),
+    vertical: {
+      unitsPerEm: view.getUint16(headTable.offset + 18),
+      ascender: view.getInt16(os2.offset + 68),
+      descender: view.getInt16(os2.offset + 70),
+    },
   };
 };

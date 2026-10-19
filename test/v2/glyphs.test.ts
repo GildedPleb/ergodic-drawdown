@@ -62,3 +62,17 @@ test("fonts are subset: G8 budgets (≤90 KB preload, ≤150 KB all faces)", asy
   expect(total).toBeLessThanOrEqual(150_000);
   expect(manifest.preloadBytes).toBeLessThanOrEqual(90_000);
 });
+
+test("optical-offset tokens are the shipped faces' (typoAscender − |typoDescender|) / 2 / upm", async () => {
+  const css = await file(`${import.meta.dir}/../../src/v2/design/tokens/type.css`).text();
+  const token = (name: string): number =>
+    Number(new RegExp(`--optical-offset-${name}:\\s*([\\d.]+)`).exec(css)?.[1]);
+  for (const [name, face] of [
+    ["jost", "SMJost-500.woff2"],
+    ["garamond", "SMEBGaramond-400.woff2"],
+  ] as const) {
+    const bytes = new Uint8Array(await file(`${fontsDir}/${face}`).arrayBuffer());
+    const { unitsPerEm, ascender, descender } = readWoff2(bytes).vertical;
+    expect(token(name)).toBe((ascender + descender) / 2 / unitsPerEm);
+  }
+});

@@ -1,7 +1,13 @@
 import { expect, test } from "bun:test";
 
 import { priceBands, type PriceBands } from "../../src/v2/app/world/bands";
-import { type Ctx2D, drawWorld, endLabelAt, type Paint } from "../../src/v2/app/world/draw";
+import {
+  type Ctx2D,
+  drawWorld,
+  endLabelAt,
+  LABEL_LINE,
+  type Paint,
+} from "../../src/v2/app/world/draw";
 import { axisTicks, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
 
 const NOW = new Date(2026, 9, 19).getTime();
@@ -17,6 +23,7 @@ const PAINT: Paint = {
   outer: 0.1,
   inner: 0.16,
   edgeAlpha: 0.55,
+  split: false,
   edge: 0.75,
   median: 2,
   casing: 1.5,
@@ -58,9 +65,9 @@ const recorder = (): { ctx: Ctx2D; texts: string[] } => {
   return { ctx, texts };
 };
 
-const draw = (h: number, b: PriceBands | null, horizon: number): string[] => {
+const draw = (h: number, b: PriceBands | null, horizon: number, split = false): string[] => {
   const { ctx, texts } = recorder();
-  drawWorld(ctx, PAINT, { width: 390, height: h, dpr: 1, now: NOW, horizon }, b);
+  drawWorld(ctx, { ...PAINT, split }, { width: 390, height: h, dpr: 1, now: NOW, horizon }, b);
   return texts;
 };
 
@@ -97,13 +104,23 @@ test("short canvas (H<150) keeps only the $ axis values and the end value", () =
 });
 
 const flat = (n: number, v: number): Float64Array => new Float64Array(n).fill(v);
+const LINE1 = { width: 180, lines: 1 };
+const LINES2 = { width: 100, lines: 2 };
+
+test("narrow charts (split) draw the end label on two lines: value, then range", () => {
+  const texts = draw(693, bands, 1, true);
+  expect(texts.includes("\u20BF price \u00B7 $1.2M")).toBe(true);
+  expect(texts.includes("$400k\u20132M")).toBe(true);
+  expect(texts.some((t) => t.includes("\u00B7 $1.2M \u00B7"))).toBe(false);
+});
 
 test("m2: the end label sits inside the plot, 12px clear of the $ ticks, above the band and off every gridline", () => {
   const box = plotBox(1392, 717);
   const domain = fitDomain(50_000, 2e9);
   // p95 ends just under the $100M line: left alone the label's cap height would cross it.
-  const band = { p5: flat(100, 6e7), p95: flat(100, 9.4e7), horizon: 99 };
-  const at = endLabelAt(box, domain, band, 180);
+  const band = { p5: flat(100, 6e7), p95: flat(100, 9.4e7), end: 7.5e7, horizon: 99 };
+  const at = endLabelAt(box, domain, band, LINE1);
+  expect(at.mode).toBe("above");
   expect(at.x).toBe(box.R - 12);
   for (const v of axisTicks(domain)) {
     const g = ly(v, box, domain);
@@ -117,7 +134,40 @@ test("m2: a peak under the label's span (not only the last point) sends it below
   const domain = fitDomain(50_000, 1e8);
   const p95 = flat(100, 3e7);
   p95[95] = domain.hi; // a peak inside the label's width, at the top of the domain
-  const band = { p5: flat(100, 2e7), p95, horizon: 99 };
-  const at = endLabelAt(box, domain, band, 180);
+  const band = { p5: flat(100, 2e7), p95, end: 2.5e7, horizon: 99 };
+  const at = endLabelAt(box, domain, band, LINE1);
+  expect(at.mode).toBe("below");
   expect(at.y > ly(2e7, box, domain)).toBe(true);
+});
+
+test("two lines below the band: both lines fit inside the plot, near the end, off every gridline", () => {
+  const box = plotBox(358, 400);
+  const domain = fitDomain(50_000, 1e8);
+  const p95 = flat(100, 3e7);
+  p95[97] = domain.hi;
+  const band = { p5: flat(100, 2e7), p95, end: 2.5e7, horizon: 99 };
+  const at = endLabelAt(box, domain, band, LINES2);
+  expect(at.mode).toBe("below");
+  expect(at.leader).toBe(null);
+  expect(at.y + LABEL_LINE + 4 <= box.Bt).toBe(true);
+  for (const v of axisTicks(domain)) {
+    const g = ly(v, box, domain);
+    for (const b of [at.y, at.y + LABEL_LINE]) expect(g <= b - 12 || g >= b + 6).toBe(true);
+  }
+});
+
+test("never mid-chart: when above and below are both far from the end, it goes top-right with a leader", () => {
+  const box = plotBox(358, 400);
+  const domain = fitDomain(50_000, 1e8);
+  const p95 = flat(100, 4e7);
+  p95[96] = domain.hi; // a peak under the label: above would hit the caption rows
+  const p5 = flat(100, 3e7);
+  p5[95] = 60_000; // a trough under the label: below would sit far from the point it names
+  const at = endLabelAt(box, domain, { p5, p95, end: 3.5e7, horizon: 99 }, LINES2);
+  expect(at.mode).toBe("corner");
+  expect(at.x).toBe(box.R - 12);
+  expect(at.y >= box.T + 36).toBe(true);
+  expect(at.leader?.x2).toBe(box.R);
+  expect(at.leader?.y2).toBe(ly(3.5e7, box, domain));
+  expect((at.leader?.y1 ?? 0) > at.y + LABEL_LINE).toBe(true);
 });

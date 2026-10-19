@@ -36,6 +36,11 @@ export const strings = {
     caption: "THE WORLD \u00B7 \u20BF PRICE",
     endLabel: (median: number, low: number, high: number): string =>
       `\u20BF price \u00B7 ${fmtUSD(median)} \u00B7 ${fmtUSDRange(low, high)}`,
+    /** Narrow charts (<480px): the same label on two lines, value then range. */
+    endLabelLines: (median: number, low: number, high: number): [string, string] => [
+      `\u20BF price \u00B7 ${fmtUSD(median)}`,
+      fmtUSDRange(low, high),
+    ],
   },
   sections: {
     priceModel: "Price model",

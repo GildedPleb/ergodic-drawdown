@@ -57,6 +57,8 @@ export type Paint = {
   accent: string;
   outer: number;
   inner: number;
+  /** End label on two lines (WorldLayer's container query, chart narrower than 30rem). */
+  split: boolean;
   /** p5 / p95 hairline edge: alpha and width. */
   edgeAlpha: number;
   edge: number;
@@ -93,6 +95,7 @@ export const readPaint = (canvas: Element): Paint => {
     outer: Number.parseFloat(v("--fan-focus-outer")) || 0.1,
     inner: Number.parseFloat(v("--fan-focus-inner")) || 0.16,
     edgeAlpha: Number.parseFloat(v("--fan-edge-outer-a")) || 0.55,
+    split: v("--chart-end-lines") === "2",
     edge: remPx(v("--line-fan-edge-outer"), root) || 1,
     median: remPx(v("--line-median"), root) || 2,
     casing: remPx(v("--line-casing"), root) || 1.5,
@@ -149,25 +152,46 @@ const stroke = (
 /** Text box around an alphabetic baseline: cap height above, descent below (chart sizes). */
 const CAP = 10;
 const DESCENT = 4;
+/** One end-label line, baseline to baseline. */
+export const LABEL_LINE = CAP + DESCENT + 2;
+
+export type LabelPlace = {
+  /** Right edge (text is right-aligned) and the first line's baseline. */
+  x: number;
+  y: number;
+  mode: "above" | "below" | "corner";
+  /** Corner only: a short leader from the label to the end of the median line. */
+  leader: { x1: number; y1: number; x2: number; y2: number } | null;
+};
 
 /**
- * Where the end label sits (Form m2): right-aligned 12px inside the plot (clear of the $ tick
- * labels in the right margin), above the band wherever the label spans it, else below the band,
- * never on the caption / Today rows,
- * and nudged off any gridline it would strike through. The band is read over the label's own
- * width, not just its last point, so a peak just before the end never runs through the text.
+ * Where the end label sits (Form m2 + Slice 1 follow-up): right-aligned 12px inside the plot
+ * (clear of the $ ticks), anchored to the end of the median line.
+ * 1. Above the band, read over the label's own width, if it clears the caption / Today rows.
+ * 2. Else below the band, the same way.
+ * Either only counts if the label stays near the point it names: its nearest edge within
+ * NEAR of the median's end (a sixth of the plot height, at least two label lines), so it
+ * never floats mid-chart.
+ * 3. Else top-right inside the plot, with a short leader line to the end of the line.
+ * Every line is nudged off any gridline it would strike through.
  */
 export const endLabelAt = (
   box: PlotBox,
   domain: LogDomain,
-  band: { p5: Float64Array; p95: Float64Array; horizon: number },
-  width: number,
+  band: { p5: Float64Array; p95: Float64Array; end: number; horizon: number },
+  label: { width: number; lines: number },
   short = false,
-): { x: number; y: number } => {
+): LabelPlace => {
   // Never on the caption / Today rows (Today's baseline is T+24), except on a short chart.
   const ceiling = short ? box.T + CAP : box.T + 36;
   const x = box.R - 12;
-  const from = Math.max(0, Math.floor(((x - width - box.L) / (box.R - box.L)) * band.horizon));
+  const span = (label.lines - 1) * LABEL_LINE;
+  const near = Math.max(2 * LABEL_LINE, (box.Bt - box.T) / 6);
+  const endY = ly(Number.isFinite(band.end) && band.end > 0 ? band.end : domain.lo, box, domain);
+  const from = Math.max(
+    0,
+    Math.floor(((x - label.width - box.L) / (box.R - box.L)) * band.horizon),
+  );
   let top = box.Bt;
   let bottom = box.T;
   for (let i = from; i < band.p95.length; i++) {
@@ -178,16 +202,32 @@ export const endLabelAt = (
       bottom = Math.max(bottom, ly(lo, box, domain));
     }
   }
+  const ticks = axisTicks(domain).map((v) => ly(v, box, domain));
+  // Shift a block (first baseline y) up off any gridline one of its lines would cross.
   const clear = (y: number): number => {
-    for (const v of axisTicks(domain)) {
-      const g = ly(v, box, domain);
-      if (g >= y - CAP - 2 && g <= y + DESCENT + 2) return g - DESCENT - 2;
+    for (let k = 0; k < label.lines; k++) {
+      const b = y + k * LABEL_LINE;
+      const g = ticks.find((t) => t >= b - CAP - 2 && t <= b + DESCENT + 2);
+      if (g !== undefined) return clear(y - (b + DESCENT + 2 - g) - 0.01);
     }
     return y;
   };
-  const above = clear(top - 6);
-  if (above >= ceiling) return { x, y: above };
-  return { x, y: Math.min(clear(bottom + CAP + 6), box.Bt - DESCENT) };
+  const above = clear(top - 6 - DESCENT - span);
+  if (above >= ceiling && endY - (above + span + DESCENT) <= near) {
+    return { x, y: above, mode: "above", leader: null };
+  }
+  const below = clear(bottom + 6 + CAP);
+  if (below + span + DESCENT <= box.Bt && below - CAP - endY <= near) {
+    return { x, y: below, mode: "below", leader: null };
+  }
+  const corner = clear(ceiling);
+  const blockBottom = corner + span + DESCENT;
+  return {
+    x,
+    y: corner,
+    mode: "corner",
+    leader: { x1: x - 2, y1: blockBottom + 3, x2: box.R, y2: endY },
+  };
 };
 
 export type Frame = { width: number; height: number; dpr: number; now: number; horizon: number };
@@ -298,17 +338,45 @@ export const drawWorld = (
       x.font = p.serif;
       x.textAlign = "right";
       x.fillStyle = p.price;
-      const label = short
-        ? fmtUSD(mid)
-        : strings.chart.endLabel(mid, endValue(bands.p5), endValue(bands.p95));
+      const low = endValue(bands.p5);
+      const high = endValue(bands.p95);
+      const lines = short
+        ? [fmtUSD(mid)]
+        : p.split
+          ? strings.chart.endLabelLines(mid, low, high)
+          : [strings.chart.endLabel(mid, low, high)];
+      const textWidth = Math.max(...lines.map((line) => x.measureText(line).width));
       const at = endLabelAt(
         box,
         domain,
-        { p5: bands.p5, p95: bands.p95, horizon },
-        x.measureText(label).width,
+        { p5: bands.p5, p95: bands.p95, end: mid, horizon },
+        { width: textWidth, lines: lines.length },
         short,
       );
-      x.fillText(label, at.x, at.y);
+      lines.forEach((line, k) => {
+        x.fillText(line, at.x, at.y + k * LABEL_LINE);
+      });
+      if (at.leader !== null) {
+        // A muted hairline on a surface casing, so it reads across the band; it stops short of
+        // the median's end so the point it names stays clear.
+        const { x1, y1, x2, y2 } = at.leader;
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        const stop = len > 0 ? Math.max(0, len - p.median - p.casing) / len : 0;
+        const ex = x1 + (x2 - x1) * stop;
+        const ey = y1 + (y2 - y1) * stop;
+        for (const [style, w] of [
+          [p.surface, 1 + 2 * p.casing],
+          [p.muted, 1],
+        ] as const) {
+          x.strokeStyle = style;
+          x.lineWidth = w;
+          x.beginPath();
+          x.moveTo(x1, y1);
+          x.lineTo(ex, ey);
+          x.stroke();
+        }
+        x.lineWidth = 1;
+      }
     }
   }
 

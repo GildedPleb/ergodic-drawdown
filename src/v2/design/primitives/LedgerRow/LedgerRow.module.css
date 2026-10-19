@@ -3,9 +3,11 @@
     display: grid;
   }
 
+  /* Centred like RadioList rows; label and value then shift onto the Jost row-size baseline
+     with the optical-offset tokens, so a ledger row and a radio row read on one line. */
   .row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: var(--s-3);
     min-block-size: var(--hit);
@@ -43,6 +45,9 @@
     font-weight: 400;
     line-height: var(--lh-row);
     overflow-wrap: break-word;
+    transform: translateY(
+      calc((var(--optical-offset-jost) - var(--optical-offset-garamond)) * 1em)
+    );
   }
 
   .value {
@@ -51,7 +56,9 @@
     font-size: var(--t-value);
     font-weight: 500;
     font-variant-numeric: var(--figs);
+    line-height: var(--lh-row);
     text-align: end;
+    transform: translateY(calc(var(--optical-offset-jost) * (var(--t-row) - var(--t-value))));
   }
 
   /* --rule-double frame: 1px line, 2px gap, 1px line, square corners, on --selected. */

@@ -6,6 +6,12 @@
     --f-serif: "SM Cormorant", "SM Cormorant Fallback", Georgia, serif; /* display cut, ≥21px */
     --f-text: "SM EB Garamond", "SM EB Garamond Fallback", Georgia, serif; /* text cut, ≤17px */
     --f-sans: "SM Jost", "SM Jost Fallback", system-ui, sans-serif;
+    /* Optical offsets: how far each face's baseline sits below the centre of its line box, as a
+       fraction of the font size: (typoAscender − |typoDescender|) / 2 / unitsPerEm, read from the
+       shipped WOFF2 (test/v2/glyphs.test.ts re-reads them). Rows that centre mixed faces
+       and sizes shift each text by the difference, so they all share one baseline. */
+    --optical-offset-jost: 0.3475; /* (1070 − 375) / 2 / 1000 */
+    --optical-offset-garamond: 0.3545; /* (1007 − 298) / 2 / 1000 */
     --figs: lining-nums tabular-nums;
     /* sizes: phone → desktop (fluid between 390 and 1440) */
     --t-headline: clamp(1.3125rem, 0.86vw + 1.1rem, 1.6875rem);

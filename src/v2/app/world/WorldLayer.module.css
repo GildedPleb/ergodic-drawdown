@@ -2,6 +2,7 @@
   /* #w: fills the chart box; each layer covers it (ly-front now, ly-back in Slice 2), so the
      canvas never feeds its own size back into the layout. */
   .root {
+    container: world / inline-size;
     position: relative;
     inline-size: 100%;
     block-size: 100%;
@@ -16,8 +17,17 @@
   }
 
   .canvas {
+    --chart-end-lines: 1;
+
     display: block;
     inline-size: 100%;
     block-size: 100%;
+  }
+
+  /* Narrow charts: the end label splits onto two lines (value, then range); draw.ts reads it. */
+  @container world (max-width: 30rem) {
+    .canvas {
+      --chart-end-lines: 2;
+    }
   }
 }
