@@ -2,7 +2,12 @@ import { file } from "bun";
 import { expect, test } from "bun:test";
 
 import { createEngine } from "../../src/engine/engine";
-import { DEFAULT_INFLATION, engineConfig, SIMULATION_SEED } from "../../src/v2/app/engine/config";
+import {
+  DEFAULT_INFLATION,
+  engineConfig,
+  inputsReady,
+  SIMULATION_SEED,
+} from "../../src/v2/app/engine/config";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
 import { MS_PER_WEEK, MS_PER_YEAR, WEEKS_PER_EPOCH } from "../../src/constants";
 import cagrModel from "../../src/data/models/cagr";
@@ -318,4 +323,20 @@ test("G12-style: v2's price band mirrors main's bandConfig(price, quantile); see
     "midLabel",
   ]);
   expect(bandDrift(main.replace("blue: 50,", "blue: 51,"))).toEqual(["color"]);
+});
+
+test("the first engine submit waits for a finite, non-zero price and block height", () => {
+  const ready = { currentPrice: 64_000, currentBlock: 840_000 };
+  expect(inputsReady(ready)).toBe(true);
+  for (const held of [
+    { currentPrice: 0, currentBlock: 0 }, // cold load: nothing fetched yet
+    { currentPrice: 64_000, currentBlock: 0 }, // price landed, block height not yet
+    { currentPrice: 0, currentBlock: 840_000 },
+    { currentPrice: Number.NaN, currentBlock: 840_000 },
+    { currentPrice: Number.POSITIVE_INFINITY, currentBlock: 840_000 },
+    { currentPrice: 64_000, currentBlock: Number.NaN },
+    { currentPrice: -1, currentBlock: 840_000 },
+  ]) {
+    expect({ ...held, ready: inputsReady(held) }).toEqual({ ...held, ready: false });
+  }
 });

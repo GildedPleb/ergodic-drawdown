@@ -4,7 +4,7 @@ import { WEEKS_PER_EPOCH } from "../../../constants";
 import { useEngineSelector, useEngineSet } from "../../../hooks/use-engine";
 import type { ModelsValues } from "../models/values";
 import { priceBands, type PriceBands } from "../world/bands";
-import { engineConfig } from "./config";
+import { engineConfig, inputsReady } from "./config";
 import { useWorldInputs } from "./inputs";
 
 export type World = {
@@ -32,6 +32,8 @@ export const useWorld = (values: ModelsValues, now: number): World => {
   const datasets = useEngineSelector(selectDatasets);
 
   useLayoutEffect(() => {
+    // Hold every submit (in practice the first) until price and block height are real.
+    if (!inputsReady(inputs)) return;
     const config = engineConfig(values, inputs);
     if (config !== null) set(config);
   }, [values, inputs, set]);

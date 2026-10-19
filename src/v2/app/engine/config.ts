@@ -23,6 +23,17 @@ export type WorldInputs = {
   now: number;
 };
 
+/**
+ * The engine gets its first config only once a real current price and block height have landed
+ * (finite and above zero). Before that, its "Current Price/Block Not Zero" gate would only throw
+ * and log; the chart shows its empty state meanwhile (§1h). The engine itself is unchanged.
+ */
+export const inputsReady = (inputs: Pick<WorldInputs, "currentPrice" | "currentBlock">): boolean =>
+  Number.isFinite(inputs.currentPrice) &&
+  inputs.currentPrice > 0 &&
+  Number.isFinite(inputs.currentBlock) &&
+  inputs.currentBlock > 0;
+
 /** null when a value the engine needs is not one of its names (never, with the G12 schema). */
 export const engineConfig = (values: ModelsValues, inputs: WorldInputs): EngineConfig | null => {
   const { model, walk } = values;
