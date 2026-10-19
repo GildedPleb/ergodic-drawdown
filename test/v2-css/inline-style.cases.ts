@@ -15,7 +15,10 @@ test("R10: seeded violations fail", () => {
       name: "inline style={{color}}",
       path: SHELL_TSX,
       edit: (c) =>
-        c.replace("<main className={main}>", '<main className={main} style={{ color: "red" }}>'),
+        c.replace(
+          "<div className={columnCls}>",
+          '<div className={columnCls} style={{ color: "red" }}>',
+        ),
     },
     {
       name: "custom property not named --dyn-*",
@@ -41,7 +44,10 @@ test("R10: seeded violations fail", () => {
       name: "style from a call",
       path: SHELL_TSX,
       edit: (c) =>
-        c.replace("<main className={main}>", "<main className={main} style={Object.create(null)}>"),
+        c.replace(
+          "<div className={columnCls}>",
+          "<div className={columnCls} style={Object.create(null)}>",
+        ),
     },
   ];
   expect(greenSeeds(seeds, checkInlineStyle, "R10")).toEqual([]);

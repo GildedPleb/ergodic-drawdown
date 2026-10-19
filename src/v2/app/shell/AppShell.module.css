@@ -1,0 +1,389 @@
+@layer app {
+  /* Phone (one column, bottom sheet) is the base; dock mode (NC ≥ 2, W ≥ 636px) and the
+     phone-landscape right panel are the two @media blocks below (viewport media live only here). */
+  .root {
+    display: flex;
+    flex-direction: column;
+    block-size: var(--shell-h);
+    overflow: hidden;
+    background: var(--ground);
+    color: var(--text);
+  }
+
+  .column {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+
+  .header {
+    padding-inline: var(--shell-gutter);
+  }
+
+  .headerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--shell-head-pad-phone);
+    border-block-end: 1px solid var(--rule);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--shell-logo-gap);
+    font-family: var(--f-text);
+    font-size: var(--t-logo);
+    font-weight: 400;
+    line-height: var(--shell-head-row);
+    letter-spacing: var(--tr-logo);
+  }
+
+  .mark {
+    display: block;
+    flex: none;
+    inline-size: var(--shell-logo-mark);
+    block-size: var(--shell-logo-mark);
+  }
+
+  .math {
+    color: var(--accent);
+    font-weight: 400;
+  }
+
+  .top {
+    padding: var(--shell-top-pad-phone);
+  }
+
+  .title {
+    padding-block: var(--s-1) var(--s-0);
+    font-family: var(--f-serif);
+    font-size: var(--t-title);
+    font-weight: 500;
+    line-height: var(--lh-title);
+  }
+
+  .kicker,
+  .dh {
+    display: none;
+  }
+
+  .chart {
+    flex: 1;
+    min-block-size: 0;
+    padding-block-end: var(--sheet-gap);
+  }
+
+  .dockArea {
+    position: relative;
+    z-index: var(--z-dock);
+  }
+
+  /* The sheet: --surface clipped to the bevel (no shadow, Gap 6); ::before is the 1px --accent
+     hairline between the chamfers; two corner diagonals at .7. The grab point is a sibling, so
+     the clip never cuts it. */
+  .sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: var(--sheet-pad-phone);
+    background: var(--surface);
+    clip-path: polygon(
+      var(--sheet-ch) 0,
+      calc(100% - var(--sheet-ch)) 0,
+      100% var(--sheet-ch),
+      100% 100%,
+      0 100%,
+      0 var(--sheet-ch)
+    );
+  }
+
+  .sheet::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: var(--sheet-ch);
+    block-size: 1px;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  .corner {
+    position: absolute;
+    inset-block-start: 0;
+    inline-size: var(--sheet-ch);
+    block-size: var(--sheet-ch);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .corner[data-corner="start"] {
+    inset-inline-start: 0;
+    background-image: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 0.7px),
+      var(--accent) 50%,
+      transparent calc(50% + 0.7px)
+    );
+  }
+
+  .corner[data-corner="end"] {
+    inset-inline-end: 0;
+    background-image: linear-gradient(
+      to bottom left,
+      transparent calc(50% - 0.7px),
+      var(--accent) 50%,
+      transparent calc(50% + 0.7px)
+    );
+  }
+
+  /* The grab point sits centred across the top hairline; it never moves or scales. */
+  .grab {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 0;
+  }
+
+  /* Phone half: the headline beside the reserved 🔍 slot. */
+  .beat {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .beatText {
+    flex: 1;
+    min-inline-size: 0;
+    padding-block: var(--beat-space);
+    overflow: hidden;
+    font-family: var(--f-text);
+    font-size: var(--t-beat);
+    font-weight: 400;
+    line-height: var(--lh-beat);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .slot {
+    flex: none;
+    inline-size: var(--dock-icon-box);
+    block-size: var(--dock-icon-box);
+    visibility: hidden;
+  }
+
+  .body {
+    display: none;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    block-size: 100%;
+  }
+
+  .col {
+    min-block-size: 0;
+    overflow: auto;
+    padding-block-end: var(--s-5);
+  }
+
+  .root[data-sheet="half"] .dockRow {
+    display: none;
+  }
+
+  .root[data-sheet="open"] .dockRow {
+    display: block;
+  }
+
+  .root[data-sheet="open"] .beat {
+    display: none;
+  }
+
+  .root[data-sheet="open"] .sheet {
+    block-size: var(--sheet-open-phone);
+  }
+
+  .root[data-sheet="open"] .body {
+    display: block;
+    flex: 1;
+    min-block-size: 0;
+    padding-block-start: var(--s-3);
+  }
+
+  @media (min-width: 39.75rem) {
+    .header {
+      padding-inline: var(--shell-m);
+    }
+
+    .headerRow {
+      padding: var(--shell-head-pad) 0 var(--shell-head-pad-end);
+    }
+
+    .top {
+      padding: var(--shell-head-pad) var(--shell-m) 0;
+    }
+
+    .title {
+      display: none;
+    }
+
+    .kicker {
+      display: block;
+      padding-inline-start: var(--shell-top-indent);
+      color: var(--accent);
+      font-family: var(--f-sans);
+      font-size: var(--t-kicker);
+      font-weight: 600;
+      line-height: var(--lh-kicker);
+      letter-spacing: var(--tr-kicker);
+      text-transform: uppercase;
+    }
+
+    .dh {
+      display: block;
+      padding-block-start: var(--s-1);
+      padding-inline-start: var(--shell-top-indent);
+      font-family: var(--f-serif);
+      font-size: var(--t-dh);
+      font-weight: 500;
+      line-height: var(--lh-dh);
+    }
+
+    .chart {
+      padding-inline: var(--shell-m-half);
+    }
+
+    .dockArea {
+      padding-inline: var(--shell-m);
+    }
+
+    .sheet {
+      padding: var(--sheet-pad);
+    }
+
+    .beat {
+      display: none;
+    }
+
+    .root[data-sheet="half"] .dockRow {
+      display: block;
+    }
+
+    .root[data-sheet="open"] .sheet {
+      block-size: var(--sheet-open);
+    }
+
+    .cols {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--sheet-cols-gap);
+    }
+  }
+
+  /* Phone landscape (V32-BUILD §1e): the sheet becomes a right panel, a 64px rail when closed. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .root {
+      flex-direction: row;
+    }
+
+    .root[data-column="closed"] .column {
+      padding-inline-end: var(--rail-w);
+    }
+
+    .root[data-column="open"] .column {
+      padding-inline-end: var(--panel-w);
+    }
+
+    .chart {
+      padding: 0;
+    }
+
+    /* 390px tall: the headline keeps to one line (the full sentence is the chart's name). */
+    .kicker,
+    .dh {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dockArea {
+      position: fixed;
+      inset-block: 0;
+      inset-inline-end: 0;
+      z-index: var(--z-panel);
+      inline-size: var(--rail-w);
+      padding: 0;
+    }
+
+    .root[data-sheet="open"] .dockArea {
+      inline-size: var(--panel-w);
+    }
+
+    .sheet,
+    .root[data-sheet="open"] .sheet {
+      block-size: 100%;
+      padding: var(--rail-pad);
+    }
+
+    .root[data-sheet="open"] .sheet {
+      padding: var(--panel-pad);
+    }
+
+    .sheet {
+      clip-path: polygon(
+        var(--sheet-ch) 0,
+        100% 0,
+        100% 100%,
+        var(--sheet-ch) 100%,
+        0 calc(100% - var(--sheet-ch)),
+        0 var(--sheet-ch)
+      );
+    }
+
+    .sheet::before {
+      inset-block: var(--sheet-ch);
+      inset-inline: 0 auto;
+      inline-size: 1px;
+      block-size: auto;
+    }
+
+    .corner[data-corner="end"] {
+      inset-block: auto 0;
+      inset-inline: 0 auto;
+    }
+
+    .grab,
+    .beat {
+      display: none;
+    }
+
+    .root[data-sheet="half"] .dockRow {
+      display: block;
+      block-size: 100%;
+    }
+
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (orientation: landscape) and (max-height: 500px) {
+    .root[data-sheet="open"] .dockArea {
+      animation: panel-in var(--dur-panel) var(--ease-out);
+    }
+  }
+
+  @keyframes panel-in {
+    from {
+      transform: translateX(calc(100% - var(--rail-w)));
+    }
+
+    to {
+      transform: none;
+    }
+  }
+}

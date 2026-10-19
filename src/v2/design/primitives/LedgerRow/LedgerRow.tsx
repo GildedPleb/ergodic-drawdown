@@ -40,6 +40,8 @@ export const LedgerRow = ({
 
   const onEditorKey = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key !== "Escape") return;
+    // Handled: the sheet's Esc (a document listener) checks defaultPrevented and stays open.
+    event.preventDefault();
     event.stopPropagation();
     onToggle(false);
     row.current?.focus();

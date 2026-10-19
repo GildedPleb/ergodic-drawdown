@@ -32,11 +32,9 @@ for (const id of FIELD_STORIES) {
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       // Form nit: one h1 per story page.
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-      const control = id.startsWith("select/")
-        ? page.getByRole("combobox")
-        : id.startsWith("tick-row/")
-          ? page.getByRole("switch")
-          : page.getByRole("spinbutton");
+      const control = id.startsWith("tick-row/")
+        ? page.getByRole("switch")
+        : page.getByRole("spinbutton");
       if (id.endsWith("/focus")) {
         await page.keyboard.press("Tab");
         await expect(control).toBeFocused();
@@ -50,22 +48,14 @@ for (const id of FIELD_STORIES) {
         await expect(message).toContainText(/\. (Enter|Pick)/); // cause, then the next step
       }
       if (id.endsWith("/disabled")) await expect(control).toBeDisabled();
-      if (id === "select/emoji-label") {
-        await expect(control).toHaveValue("🟢🟢🟢🔴");
-        await expect(page.locator("svg circle")).toHaveCount(4);
-      }
-      if (id === "select/labelled-by-heading") {
-        await expect(control).toHaveAccessibleName("Model");
-      }
       if (id === "number-field/emoji-label") {
-        await expect(page.getByRole("img", { name: "🟢🟢🟢🔴 volatility:" })).toBeVisible();
+        await expect(page.getByRole("img", { name: "3 up, 1 down, volatility:" })).toBeVisible();
         await expect(control).toHaveAccessibleName("🟢🟢🟢🔴 volatility:");
       }
-      if (id === "models-pane/emoji-walk") {
-        // B2: the engine's emoji walk selected; exact value, SVG circles, no emoji text node.
-        await expect(page.locator("#v2-walk")).toHaveValue("🟢🟢🟢🔴");
+      if (id === "models-sheet/emoji-walk") {
+        // B2: the engine's emoji walk selected; SVG circles, spoken name, no emoji text node.
+        await expect(page.getByRole("radio", { name: "3 up, 1 down" })).toBeChecked();
         await expect(page.locator("svg circle")).toHaveCount(4);
-        await expect(page.locator("#v2-model")).toHaveAccessibleName("Model");
       }
       await expectNoEmojiText(page);
       await expectAxeClean(page);

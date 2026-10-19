@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import { variants as shell } from "../../src/v2/app/shell/AppShell";
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
 import { variants as ledger } from "../../src/v2/design/primitives/LedgerRow/LedgerRow";
@@ -10,7 +11,6 @@ import { variants as grid } from "../../src/v2/design/primitives/Grid/Grid";
 import { variants as glyphs } from "../../src/v2/design/primitives/LabelGlyphs/LabelGlyphs";
 import { variants as numberField } from "../../src/v2/design/primitives/NumberField/NumberField";
 import { variants as sectionLabel } from "../../src/v2/design/primitives/SectionLabel/SectionLabel";
-import { variants as select } from "../../src/v2/design/primitives/Select/Select";
 import { variants as stack } from "../../src/v2/design/primitives/Stack/Stack";
 import { variants as tick } from "../../src/v2/design/primitives/TickToggle/TickToggle";
 import { space } from "../../src/v2/design/tokens/tokens";
@@ -26,9 +26,6 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...glyphs.tone]).toEqual(["up", "down"]);
   expect([...grid.columns]).toEqual(["1", "2", "3", "4"]);
   expect([...cluster.align, ...cluster.justify].length).toBe(7);
-  expect([...select.invalid]).toEqual(["true", "false"]);
-  expect([...select.disabled]).toEqual(["true", "false"]);
-  expect([...select.label]).toEqual(["visible", "external"]);
   expect([...numberField.invalid]).toEqual(["true", "false"]);
   expect([...numberField.disabled]).toEqual(["true", "false"]);
   expect([...sectionLabel.level]).toEqual(["section", "group"]);
@@ -41,6 +38,7 @@ test("R7: exported variants are the data-* values the components render", () => 
     "true",
     "false",
   ]);
+  expect([...shell.sheet, ...shell.column]).toEqual(["half", "open", "open", "closed"]);
   expect([...ledger.open, ...radio.state, ...slider.disabled]).toEqual([
     "true",
     "false",

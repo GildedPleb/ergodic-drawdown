@@ -1,0 +1,25 @@
+@layer app {
+  .root {
+    display: grid;
+    gap: var(--s-5);
+    min-inline-size: 0;
+  }
+
+  .title {
+    color: var(--text);
+    font-family: var(--f-serif);
+    font-size: var(--t-pane);
+    font-weight: 500;
+    line-height: var(--lh-display);
+  }
+
+  .section {
+    display: grid;
+    gap: var(--s-2);
+    min-inline-size: 0;
+  }
+
+  .group {
+    display: grid;
+  }
+}

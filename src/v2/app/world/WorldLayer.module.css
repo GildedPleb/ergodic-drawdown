@@ -1,0 +1,23 @@
+@layer app {
+  /* #w: fills the chart box; each layer covers it (ly-front now, ly-back in Slice 2), so the
+     canvas never feeds its own size back into the layout. */
+  .root {
+    position: relative;
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .front {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-chart);
+  }
+
+  .canvas {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}

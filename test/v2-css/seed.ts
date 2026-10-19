@@ -17,7 +17,7 @@ export const STACK_TSX = "design/primitives/Stack/Stack.tsx";
 export const SEMANTIC = "design/tokens/semantic.css";
 export const MOTION = "design/tokens/motion-etc.css";
 export const BASE = "design/base/base.css";
-export const SHELL_TSX = "app/Shell.tsx";
+export const SHELL_TSX = "app/shell/AppShell.tsx";
 
 /** Insert a declaration into the first `.root {` block of a module. */
 export const addDecl =

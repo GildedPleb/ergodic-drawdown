@@ -23,7 +23,8 @@ const PREV = new Set(["ArrowUp", "ArrowLeft"]);
 /**
  * Certificate radio list (V32-BUILD §1f): one 44px ledger row per option, a 9px square with a 1px
  * --accent border filled when selected, plus weight 600 and the --selected row: never colour
- * alone. Arrow keys move and select; a held arrow previews and commits once, on release (FL-001).
+ * alone. Text is Jost so weight 600 is a shipped face (EB Garamond ships 400 only; Form N6:
+ * no synthetic weights). Arrow keys move and select; a held arrow previews and commits once, on release (FL-001).
  * Option text is the back end's, drawn through LabelGlyphs (the 🟢🔴 walk is SVG, never emoji).
  */
 export const RadioList = ({

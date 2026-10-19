@@ -10,7 +10,7 @@ test("bare /design and /design/ show the story index, not the app", async ({ pag
   for (const path of ["/design", "/design/"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1, name: "Design stories" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "models-pane/linen" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "models-sheet/linen" })).toBeVisible();
     await expect(page.locator("#v2-model")).toHaveCount(0);
   }
 });
@@ -23,8 +23,8 @@ test("unknown and too-deep paths say No story", async ({ page }) => {
   }
 });
 
-test("models-pane/linen themes <html> linen", async ({ page }) => {
-  await page.goto("/design/models-pane/linen");
+test("models-sheet/linen themes <html> linen", async ({ page }) => {
+  await page.goto("/design/models-sheet/linen");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "linen");
   await expect(page.locator("#v2-model")).toBeVisible();
 });

@@ -28,3 +28,11 @@ export const defaultModelsValues = (): ModelsValues => ({
   samples: controls.samples.default,
   epochCount: controls.epochs.default,
 });
+
+/** main's setModel: a model with a variable resets it to that model's default. */
+export const choosePatch = (name: string): Partial<ModelsValues> => {
+  const meta = modelsPaneSchema.models.find((m) => m.name === name);
+  return meta !== undefined && meta.varInput !== ""
+    ? { model: name, variable: meta.default }
+    : { model: name };
+};

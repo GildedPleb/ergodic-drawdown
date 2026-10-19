@@ -25,10 +25,34 @@ export type SliderProps = {
 const KEYS = new Set(["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft", "PageUp", "PageDown"]);
 const ENDS = new Set(["Home", "End"]);
 
-const snap = (n: number, min: number, max: number, step: number): number => {
+export const snap = (n: number, min: number, max: number, step: number): number => {
   const stepped = min + Math.round((n - min) / step) * step;
   const decimals = (String(step).split(".")[1] ?? "").length;
   return Math.min(max, Math.max(min, Number(stepped.toFixed(decimals))));
+};
+
+/** The preview after a key: arrows step, Page keys step ×10, Home/End jump; null = not ours. */
+export const keyStep = (
+  key: string,
+  draft: number,
+  { min, max, step }: { min: number; max: number; step: number },
+): number | null => {
+  if (ENDS.has(key)) return key === "Home" ? min : max;
+  if (!KEYS.has(key)) return null;
+  const dir = ["ArrowUp", "ArrowRight", "PageUp"].includes(key) ? 1 : -1;
+  const size = key.startsWith("Page") ? step * 10 : step;
+  return snap(draft + dir * size, min, max, step);
+};
+
+/** The value under a pointer at clientX on a track box; null when the box has no width. */
+export const trackValue = (
+  clientX: number,
+  box: { left: number; width: number } | undefined,
+  { min, max, step }: { min: number; max: number; step: number },
+): number | null => {
+  if (box === undefined || box.width === 0) return null;
+  const t = (clientX - box.left) / box.width;
+  return snap(min + t * (max - min), min, max, step);
 };
 
 const pct = (n: number, min: number, max: number): string =>
@@ -62,25 +86,16 @@ export const Slider = ({
     if (n !== value) onCommit?.(n);
   };
 
-  const fromPointer = (event: PointerEvent<HTMLDivElement>): number => {
-    const box = track.current?.getBoundingClientRect();
-    if (box === undefined || box.width === 0) return draft;
-    const t = (event.clientX - box.left) / box.width;
-    return snap(min + t * (max - min), min, max, step);
-  };
+  const range = { min, max, step };
+  const fromPointer = (event: PointerEvent<HTMLDivElement>): number =>
+    trackValue(event.clientX, track.current?.getBoundingClientRect(), range) ?? draft;
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (disabled) return;
-    if (ENDS.has(event.key)) {
-      event.preventDefault();
-      setDraft(event.key === "Home" ? min : max);
-      return;
-    }
-    if (!KEYS.has(event.key)) return;
+    const next = keyStep(event.key, draft, range);
+    if (next === null) return;
     event.preventDefault();
-    const dir = ["ArrowUp", "ArrowRight", "PageUp"].includes(event.key) ? 1 : -1;
-    const size = event.key.startsWith("Page") ? step * 10 : step;
-    setDraft((d) => snap(d + dir * size, min, max, step));
+    setDraft(next);
   };
 
   const onKeyUp = (event: KeyboardEvent<HTMLDivElement>): void => {

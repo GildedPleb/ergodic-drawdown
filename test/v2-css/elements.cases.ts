@@ -26,24 +26,24 @@ test("G4: a raw control in app fails", () => {
     path: SHELL_TSX,
     edit: (c) =>
       c.replace(
-        "{children}",
-        '{children}<button type="button">x</button><div onClick={() => {}} />',
+        "{strings.headline.phoneTitle}",
+        '{strings.headline.phoneTitle}<button type="button">x</button><div onClick={() => {}} />',
       ),
   });
   expect(checkElements(tree).length).toBe(2);
 });
 
-test("G4: a raw <select> or <input> in the Models pane fails (no exception entry)", () => {
+test("G4: a raw <select> or <input> in the Models sheet fails (no exception entry)", () => {
   expect(Object.keys(PENDING_RAW_CONTROLS)).toEqual([]);
-  const pane = "app/models/ModelsPane.tsx";
+  const pane = "app/models/ModelsSheet.tsx";
   for (const raw of ['<select value="a" onChange={() => {}} />', '<input type="number" />']) {
     const tree = apply({
       name: raw,
       path: pane,
       edit: (c) =>
         c.replace(
-          "<SectionLabel text={modelsPaneSchema.title} id={headingId} />",
-          `<SectionLabel text={modelsPaneSchema.title} id={headingId} />${raw}`,
+          "<h2 className={title}>{modelsPaneSchema.title}</h2>",
+          `<h2 className={title}>{modelsPaneSchema.title}</h2>${raw}`,
         ),
     });
     expect(checkElements(tree).length).toBe(1);
@@ -65,7 +65,7 @@ test("G4: no string literal puts ₿ after a digit", () => {
   const tree = apply({
     name: "suffix",
     path: SHELL_TSX,
-    edit: (c) => c.replace("{children}", "{children}13.1 ₿"),
+    edit: (c) => c.replace("{strings.headline.phoneTitle}", "{strings.headline.phoneTitle}13.1 ₿"),
   });
   expect(checkSuffixBtc(tree).length).toBe(1);
 });

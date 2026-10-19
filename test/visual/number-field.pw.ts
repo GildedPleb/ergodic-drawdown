@@ -10,7 +10,7 @@ test.beforeEach(({ browserName }, info) => {
 });
 
 test("held ArrowUp steps the draft and commits once on release", async ({ page }) => {
-  await gotoStory(page, "models-pane/default");
+  await gotoStory(page, "models-sheet/default");
   const epochs = page.locator("#v2-epochs");
   const hint = page.locator("#v2-epochs-hint");
   await epochs.focus();
@@ -28,7 +28,7 @@ test("held ArrowUp steps the draft and commits once on release", async ({ page }
 });
 
 test("the wheel over a focused field changes nothing", async ({ page }) => {
-  await gotoStory(page, "models-pane/default");
+  await gotoStory(page, "models-sheet/default");
   const vol = page.locator("#v2-vol");
   await vol.focus();
   await vol.hover();
@@ -47,7 +47,7 @@ for (const [id, typed, settled] of [
   test(`${id} "${typed}" is invalid with a message, then settles to ${settled}`, async ({
     page,
   }) => {
-    await gotoStory(page, "models-pane/default");
+    await gotoStory(page, "models-sheet/default");
     const field = page.locator(id);
     await field.fill(typed);
     await expect(field).toHaveAttribute("aria-invalid", "true");
@@ -60,7 +60,7 @@ for (const [id, typed, settled] of [
 }
 
 test("blank samples settle to main's 1000; Historic halvings stay in 2–3", async ({ page }) => {
-  await gotoStory(page, "models-pane/default");
+  await gotoStory(page, "models-sheet/default");
   const samples = page.locator("#v2-samples");
   await samples.fill("");
   await samples.blur();
@@ -77,7 +77,7 @@ test("blank samples settle to main's 1000; Historic halvings stay in 2–3", asy
 test("Form N1: the variable follows each model's own range across Historic → CAGR → Historic", async ({
   page,
 }) => {
-  await gotoStory(page, "models-pane/default");
+  await gotoStory(page, "models-sheet/default");
   const model = page.locator("#v2-model");
   const variable = page.locator("#v2-variable");
   await model.selectOption("Historic");

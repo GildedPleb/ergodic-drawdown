@@ -40,6 +40,7 @@
     min-inline-size: 0;
     font-family: var(--f-text);
     font-size: var(--t-row);
+    font-weight: 400;
     line-height: var(--lh-row);
     overflow-wrap: break-word;
   }

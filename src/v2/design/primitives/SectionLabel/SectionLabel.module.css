@@ -7,8 +7,10 @@
     min-inline-size: 0;
   }
 
+  /* The hairlines give way first; the words keep to one line unless the pane is narrower. */
   .text {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
+    max-inline-size: 100%;
     color: var(--accent);
     font-family: var(--f-sans);
     font-size: var(--t-section);

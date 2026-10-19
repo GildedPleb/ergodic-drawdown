@@ -27,7 +27,7 @@ test("R1: seeded violations fail", () => {
       name: "foreign importer",
       path: SHELL_TSX,
       edit: (c) =>
-        `import foreign from "../design/primitives/TickToggle/TickToggle.module.css";\nvoid foreign;\n${c}`,
+        `import foreign from "../../design/primitives/TickToggle/TickToggle.module.css";\nvoid foreign;\n${c}`,
     },
     {
       name: "computed styles[expr]",

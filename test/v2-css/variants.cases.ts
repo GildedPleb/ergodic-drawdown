@@ -51,7 +51,7 @@ test("R7: seeded violations fail", () => {
     {
       name: "string className",
       path: SHELL_TSX,
-      edit: (c) => c.replace("className={main}", 'className="main"'),
+      edit: (c) => c.replace("className={columnCls}", 'className="column"'),
     },
     {
       name: "literal data-* value outside variants",

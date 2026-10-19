@@ -10,8 +10,8 @@ export const TICK_ROW_STORIES = [
 ] as const;
 
 /**
- * Form B1 + N5: every TickToggle (tick-row), Select, NumberField, LabelGlyphs, Amount and SectionLabel story plus the models
- * pane, in both themes, at 390×844 and 1440×900, in Chromium and WebKit
+ * Form B1 + N5: every TickToggle (tick-row), NumberField, LabelGlyphs, Amount and SectionLabel story plus the models
+ * sheet, in both themes, at 390×844 and 1440×900, in Chromium and WebKit
  * (test/v2/story-coverage.test.ts fails if a story is missing here).
  */
 export const FIELD_STORIES = [
@@ -23,14 +23,6 @@ export const FIELD_STORIES = [
   "tick-row/disabled",
   "tick-row/long-text",
   "tick-row/linen",
-  "select/default",
-  "select/focus",
-  "select/disabled",
-  "select/invalid",
-  "select/long-text",
-  "select/labelled-by-heading",
-  "select/emoji-label",
-  "select/linen",
   "number-field/default",
   "number-field/focus",
   "number-field/disabled",
@@ -55,9 +47,10 @@ export const FIELD_STORIES = [
   "section-label/group",
   "section-label/long-text",
   "section-label/linen",
-  "models-pane/default",
-  "models-pane/emoji-walk",
-  "models-pane/linen",
+  "models-sheet/default",
+  "models-sheet/emoji-walk",
+  "models-sheet/linen",
+  "models-sheet/editing",
 ] as const;
 
 export const FIELD_THEMES = ["dark", "linen"] as const;
@@ -65,4 +58,4 @@ export const FIELD_THEMES = ["dark", "linen"] as const;
 export const FIELD_VIEWPORTS = ["390x844", "1440x900"] as const;
 
 /** Form N2: the Models pane also runs in the 200% zoom and 200% OS-text projects. */
-export const ZOOM_STORIES = ["models-pane/default"] as const;
+export const ZOOM_STORIES = ["models-sheet/default"] as const;

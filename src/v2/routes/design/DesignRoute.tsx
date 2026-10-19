@@ -1,7 +1,8 @@
 import type { JSX } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import { ModelsPane } from "../../app/models";
+import { type Field, ModelsSheet } from "../../app/models/ModelsSheet";
+import { defaultModelsValues, type ModelsValues } from "../../app/models/values";
 import * as AmountStories from "../../design/primitives/Amount/Amount.stories";
 import * as ClusterStories from "../../design/primitives/Cluster/Cluster.stories";
 import * as DockStories from "../../design/primitives/Dock/Dock.stories";
@@ -13,7 +14,6 @@ import * as LedgerRowStories from "../../design/primitives/LedgerRow/LedgerRow.s
 import * as NumberFieldStories from "../../design/primitives/NumberField/NumberField.stories";
 import * as RadioListStories from "../../design/primitives/RadioList/RadioList.stories";
 import * as SectionLabelStories from "../../design/primitives/SectionLabel/SectionLabel.stories";
-import * as SelectStories from "../../design/primitives/Select/Select.stories";
 import * as SliderStories from "../../design/primitives/Slider/Slider.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
 import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
@@ -41,7 +41,6 @@ const GROUPS: Record<string, StoryModule> = {
   "number-field": NumberFieldStories,
   "radio-list": RadioListStories,
   "section-label": SectionLabelStories,
-  select: SelectStories,
   slider: SliderStories,
   stack: StackStories,
   "tick-toggle": TickToggleStories,
@@ -51,13 +50,38 @@ const GROUPS: Record<string, StoryModule> = {
 /** Contract aliases (MVP-SPEC P0.10 uses /design/tick-row/<state>). */
 const ALIASES: Record<string, string> = { "tick-row": "tick-toggle" };
 
+/** The Models sheet with live state (no engine): every control really commits. */
+const Sheet = ({
+  initial,
+  editing,
+}: {
+  initial?: Partial<ModelsValues>;
+  editing?: Field;
+}): JSX.Element => {
+  const [values, setValues] = useState<ModelsValues>(() => ({
+    ...defaultModelsValues(),
+    ...initial,
+  }));
+  return (
+    <ModelsSheet
+      initialEditing={editing}
+      values={values}
+      onChange={(patch) => {
+        setValues((v) => ({ ...v, ...patch }));
+      }}
+    />
+  );
+};
+
 const STORIES = new Map<string, Story>([
-  ["models-pane", () => <ModelsPane />],
-  ["models-pane/default", () => <ModelsPane />],
+  ["models-sheet", () => <Sheet />],
+  ["models-sheet/default", () => <Sheet />],
   // B2: the engine's emoji walk selected; the fonts check must see no emoji text node.
-  ["models-pane/emoji-walk", () => <ModelsPane initial={{ walk: "🟢🟢🟢🔴" }} />],
-  // Probe m3: the pane in linen (the …/linen suffix themes <html>).
-  ["models-pane/linen", () => <ModelsPane />],
+  ["models-sheet/emoji-walk", () => <Sheet initial={{ walk: "🟢🟢🟢🔴" }} />],
+  // Probe m3: the sheet in linen (the …/linen suffix themes <html>).
+  ["models-sheet/linen", () => <Sheet />],
+  // The in-place editor open: NumberField + slider in the --rule-double frame.
+  ["models-sheet/editing", () => <Sheet editing="volatility" />],
 ]);
 for (const [group, mod] of Object.entries(GROUPS)) {
   for (const [name, value] of Object.entries(mod)) {

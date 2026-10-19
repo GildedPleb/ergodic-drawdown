@@ -6,7 +6,7 @@ import { expect, test } from "bun:test";
 const prim = `${import.meta.dir}/../../src/v2/design/primitives`;
 
 test("invalid is never a colour signal: --rule-strong border in --invalid, no --danger-floor", async () => {
-  for (const c of ["Select", "NumberField"]) {
+  for (const c of ["NumberField"]) {
     const css = await file(`${prim}/${c}/${c}.module.css`).text();
     expect(css.includes("--danger-floor")).toBe(false);
     expect(css.includes("border: var(--rule-strong) solid var(--invalid);")).toBe(true);

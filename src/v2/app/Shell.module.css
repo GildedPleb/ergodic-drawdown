@@ -1,9 +1,0 @@
-@layer app {
-  .main {
-    min-block-size: 100%;
-    padding: var(--s-7);
-    font-family: var(--f-sans);
-    color: var(--text);
-    background: var(--ground);
-  }
-}
