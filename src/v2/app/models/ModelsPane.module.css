@@ -1,0 +1,81 @@
+@layer app {
+  .root {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+    margin: 0;
+    padding-block: var(--s-3);
+    padding-inline: var(--s-4);
+    border: var(--rule-hair) solid var(--hairline);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--f-sans);
+    font-size: var(--t-small);
+  }
+
+  .title {
+    margin: 0;
+    font-family: var(--f-sans);
+    font-size: var(--t-section);
+    font-weight: 600;
+    letter-spacing: var(--tr-section);
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-2);
+    margin: 0;
+  }
+
+  .label {
+    margin: 0;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .select,
+  .input {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    margin: 0;
+    padding-block: var(--s-1);
+    padding-inline: var(--s-2);
+    border: var(--rule-hair) solid var(--control-line);
+    border-radius: var(--radius-0);
+    background: var(--raised);
+    color: var(--text);
+    font: inherit;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .input {
+    inline-size: var(--dyn-input-w, 100%);
+    flex: 0 0 auto;
+    text-align: end;
+  }
+
+  .select:focus-visible,
+  .input:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2);
+    margin: 0;
+  }
+
+  .hint {
+    margin: 0;
+    color: var(--text-faint);
+  }
+}

@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import { Stack } from "../../design/primitives/Stack";
 import { Amount } from "../../design/primitives/Amount";
 import { TickToggle } from "../../design/primitives/TickToggle";
+import { ModelsPane } from "../../app/models";
 import styles from "./DesignRoute.module.css";
 
 const STORIES: Record<string, () => JSX.Element> = {
@@ -13,6 +14,8 @@ const STORIES: Record<string, () => JSX.Element> = {
   "tick-toggle-off": () => <TickToggle label="Compare" checked={false} />,
   "tick-toggle-disabled": () => <TickToggle label="Compare" checked={false} disabled />,
   "amount-btc": () => <Amount value={13.1} unit="btc" />,
+  "models-pane": () => <ModelsPane />,
+  "models-pane-default": () => <ModelsPane />,
   "tick-toggle-linen": () => (
     <div data-theme="linen">
       <TickToggle label="Compare" checked />

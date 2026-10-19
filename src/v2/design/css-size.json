@@ -1,5 +1,5 @@
 {
-  "totalBytes": 20329,
+  "totalBytes": 21946,
   "files": {
     "design/tokens/palette.css": 2034,
     "design/tokens/semantic.css": 6119,
@@ -15,9 +15,10 @@
     "design/primitives/TickToggle/TickToggle.module.css": 1497,
     "design/primitives/LabelGlyphs/LabelGlyphs.module.css": 749,
     "app/Shell.module.css": 182,
+    "app/models/ModelsPane.module.css": 1617,
     "routes/design/DesignRoute.module.css": 248
   },
-  "measuredAt": "2026-10-19T16:49:02.424Z",
+  "measuredAt": "2026-10-19T16:52:40.129Z",
   "phase0BaselineBytes": 17228,
   "budgetSet": false,
   "note": "17228 is the Phase 0 baseline. Budget not set yet (Keel). Current totalBytes is a measurement only."

@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import "../design/base/base.css";
 import "../design/tokens/tokens.css";
 import { Shell } from "./Shell";
+import { ModelsPane } from "./models";
 
 const rootElement = document.querySelector("#root");
 if (rootElement === null) throw new Error("Missing #root");
@@ -26,7 +27,7 @@ if (designMatch !== null) {
   root.render(
     <React.StrictMode>
       <Shell>
-        <p>StackMath v2 shell (Phase 0). Dock and Models come later.</p>
+        <ModelsPane />
       </Shell>
     </React.StrictMode>,
   );
