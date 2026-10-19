@@ -6,12 +6,14 @@ import styles from "./Amount.module.css";
 export type AmountProps = {
   value: number;
   unit: "btc" | "usd";
+  /** Exact sats (detail views); ₿ only. */
+  detail?: boolean;
 };
 
 /** ₿ prefix + orange / $ + green. Tabular lining. No space after ₿. */
-export const Amount = ({ value, unit }: AmountProps): JSX.Element => {
+export const Amount = ({ value, unit, detail = false }: AmountProps): JSX.Element => {
   const root = styles["root"] ?? "amount-root";
-  const text = unit === "btc" ? fmtBTC(value) : fmtUSD(value);
+  const text = unit === "btc" ? fmtBTC(value, { detail }) : fmtUSD(value);
   return (
     <span className={root} data-unit={unit}>
       {text}

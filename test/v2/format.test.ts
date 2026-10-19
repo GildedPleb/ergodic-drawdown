@@ -8,46 +8,138 @@ import {
   hasSuffixBtc,
 } from "../../src/v2/design/format/money";
 
-test("fmtBTC prefixes with no space", () => {
-  expect(fmtBTC(13.1)).toBe("₿13.1");
-  expect(fmtBTC(1.2)).toBe("₿1.2");
-  expect(`${fmtBTC(1.2)}/yr`).toBe("₿1.2/yr");
+const check = (rows: [string, string][]): void => {
+  for (const [got, want] of rows) expect(got).toBe(want);
+};
+
+test("G3 SYSTEM §6 examples", () => {
+  check([
+    [fmtBTC(13.1), "₿13.1"],
+    [fmtBTC(-0.4), "−₿0.4"],
+    [`${fmtBTC(1.2)}/yr`, "₿1.2/yr"],
+    [fmtBTCChange(0.4, 0.7), "₿0.4 → ₿0.7"],
+    [fmtBTCRange(0.4, 0.7), "₿0.4–0.7"],
+    [fmtBTC(0.42), "₿0.42"],
+    [fmtBTC(0.0021), "₿0.0021"],
+    [fmtBTC(0.0000055), "₿0.0000055"],
+    [fmtUSD(90_000), "$90k"],
+    [fmtUSD(1_200_000), "$1.2M"],
+    [fmtUSD(240), "$240"],
+    [fmtUSD(4.5), "$4.50"],
+  ]);
 });
 
-test("fmtBTC negative uses U+2212 before the sign", () => {
-  expect(fmtBTC(-0.4)).toBe("−₿0.4");
+test("G3 ₿ precision: whole sats, 1 decimal at ₿1+, 2 sig figs below", () => {
+  check([
+    [fmtBTC(13), "₿13"],
+    [fmtBTC(13.14), "₿13.1"],
+    [fmtBTC(13.15), "₿13.2"],
+    [fmtBTC(1234.56), "₿1,234.6"],
+    [fmtBTC(0.425), "₿0.43"],
+    [fmtBTC(0.0995), "₿0.1"],
+    [fmtBTC(0.000000014), "₿0.00000001"],
+    [fmtBTC(0.000000016), "₿0.00000002"],
+  ]);
 });
 
-test("fmtBTC below one uses two significant figures", () => {
-  expect(fmtBTC(0.42)).toBe("₿0.42");
-  expect(fmtBTC(0.05)).toBe("₿0.05");
+test("G3 edge: zero and negative zero", () => {
+  check([
+    [fmtBTC(0), "₿0"],
+    [fmtBTC(-0), "₿0"],
+    [fmtUSD(0), "$0"],
+    [fmtUSD(-0), "$0"],
+  ]);
 });
 
-test("fmtBTC at least one uses one decimal and trims .0", () => {
-  expect(fmtBTC(13)).toBe("₿13");
-  expect(fmtBTC(13.14)).toBe("₿13.1");
+test("G3 edge: half a sat rounds up; under half a sat is <₿0.00000001 with no sign", () => {
+  check([
+    [fmtBTC(0.000000005), "₿0.00000001"],
+    [fmtBTC(-0.000000005), "−₿0.00000001"],
+    [fmtBTC(0.0000000049), "<₿0.00000001"],
+    [fmtBTC(1e-9), "<₿0.00000001"],
+    [fmtBTC(-1e-9), "<₿0.00000001"],
+  ]);
 });
 
-test("fmtBTC under half a sat", () => {
-  expect(fmtBTC(1e-10)).toBe("<₿0.00000001");
+test("G3 edge: 0.99999999 next to the ₿1 boundary", () => {
+  check([
+    [fmtBTC(0.99999999), "₿1"],
+    [fmtBTC(0.995), "₿1"],
+    [fmtBTC(0.994), "₿0.99"],
+    [fmtBTC(0.99999999, { detail: true }), "₿0.99999999"],
+    [fmtBTC(1), "₿1"],
+    [fmtBTC(1.05), "₿1.1"],
+  ]);
 });
 
-test("fmtBTCRange one prefix en dash", () => {
-  expect(fmtBTCRange(0.4, 0.7)).toBe("₿0.4–0.7");
+test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding", () => {
+  check([
+    [fmtUSD(999.5), "$1k"],
+    [fmtUSD(999.49), "$999"],
+    [fmtUSD(9.995), "$10"],
+    [fmtUSD(9.994), "$9.99"],
+    [fmtUSD(10), "$10"],
+    [fmtUSD(1_000), "$1k"],
+    [fmtUSD(1_250), "$1.3k"],
+    [fmtUSD(9_950), "$10k"],
+    [fmtUSD(999_500), "$1M"],
+    [fmtUSD(12_340_000), "$12M"],
+    [fmtUSD(2_500_000_000), "$2,500M"],
+    [fmtUSD(0.004), "<$0.01"],
+    [fmtUSD(-4.5), "−$4.50"],
+    [fmtUSD(-90_000), "−$90k"],
+  ]);
 });
 
-test("fmtBTCChange uses arrow", () => {
-  expect(fmtBTCChange(0.4, 0.7)).toBe("₿0.4 → ₿0.7");
+test("G3 edge: NaN and ±Infinity are an em dash (Form)", () => {
+  for (const v of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    expect(fmtBTC(v)).toBe("—");
+    expect(fmtUSD(v)).toBe("—");
+    expect(fmtBTCRange(v, 1)).toBe("—");
+    expect(fmtBTCRange(0, v)).toBe("—");
+  }
 });
 
-test("fmtUSD caps decimals and keeps cents under $10", () => {
-  expect(fmtUSD(4.5)).toBe("$4.50");
-  expect(fmtUSD(80000)).toBe("$80k");
-  expect(fmtUSD(-400)).toBe("−$400");
+test("G3 edge: ranges (equal ends, ₿1 boundary, negative, crossing zero)", () => {
+  check([
+    [fmtBTCRange(0.4, 0.4), "₿0.4"],
+    [fmtBTCRange(0.4, 0.40000001), "₿0.4"],
+    [fmtBTCRange(0.42, 1.3), "₿0.42–1.3"],
+    [fmtBTCRange(0.99999999, 1.2), "₿1–1.2"],
+    [fmtBTCRange(-0.7, -0.4), "−₿0.7–0.4"],
+    [fmtBTCRange(-0.4, 0.7), "−₿0.4–₿0.7"],
+    [fmtBTCRange(0, 0.7), "₿0–0.7"],
+    [fmtBTCRange(1e-9, 0.7), "<₿0.00000001–₿0.7"],
+  ]);
 });
 
-test("hasSuffixBtc detects forbidden forms", () => {
-  expect(hasSuffixBtc("13.1 ₿")).toBe(true);
+test("G3 detail mode shows exact sats", () => {
+  check([
+    [fmtBTC(0.00000546, { detail: true }), "₿0.00000546"],
+    [fmtBTC(0.42, { detail: true }), "₿0.42"],
+    [fmtBTC(1.23456789, { detail: true }), "₿1.23456789"],
+    [fmtBTC(-0.123456785, { detail: true }), "−₿0.12345679"],
+  ]);
+});
+
+test("G3 fonts-failed mode prefixes BTC (story 197)", () => {
+  const ff = { fontsFailed: true };
+  check([
+    [fmtBTC(13.1, ff), "BTC\u00A013.1"],
+    [fmtBTC(-0.4, ff), "−BTC\u00A00.4"],
+    [fmtBTCRange(0.4, 0.7, ff), "BTC\u00A00.4–0.7"],
+    [fmtBTCRange(-0.4, 0.7, ff), "−BTC\u00A00.4–BTC\u00A00.7"],
+    [fmtBTCChange(0.4, 0.7, ff), "BTC\u00A00.4 → BTC\u00A00.7"],
+  ]);
+  expect(fmtBTC(13.1, ff).includes("₿")).toBe(false);
+});
+
+test("no output ever puts ₿ after a digit", () => {
+  const samples = [0, 1e-9, 5e-9, 0.42, 0.99999999, 13.1, -0.4, 1234.5];
+  for (const v of samples) {
+    expect(hasSuffixBtc(fmtBTC(v))).toBe(false);
+    expect(hasSuffixBtc(fmtBTCRange(-v, v))).toBe(false);
+  }
   expect(hasSuffixBtc("13.1₿")).toBe(true);
-  expect(hasSuffixBtc("₿13.1")).toBe(false);
+  expect(hasSuffixBtc("13.1 ₿")).toBe(true);
 });
