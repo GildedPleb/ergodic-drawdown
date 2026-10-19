@@ -6,6 +6,32 @@
   *::after {
     box-sizing: border-box;
   }
+
+  /* UA margins live here so components never declare margin (R6). */
+  :where(
+    body,
+    h1,
+    h2,
+    h3,
+    h4,
+    p,
+    figure,
+    blockquote,
+    dl,
+    dd,
+    ul,
+    ol,
+    button,
+    input,
+    select,
+    textarea
+  ) {
+    margin: 0;
+  }
+
+  :where(button, input, select, textarea) {
+    font: inherit;
+  }
 }
 
 @layer base {
@@ -22,7 +48,6 @@
   }
 
   :where(body) {
-    margin: 0;
     min-block-size: 100%;
   }
 

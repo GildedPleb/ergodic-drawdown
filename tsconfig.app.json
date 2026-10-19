@@ -25,5 +25,5 @@
     "isolatedModules": true
   },
   "include": ["src", "test"],
-  "exclude": ["test/visual", ".storybook"]
+  "exclude": ["test/visual", ".storybook", "test/v2-css"]
 }

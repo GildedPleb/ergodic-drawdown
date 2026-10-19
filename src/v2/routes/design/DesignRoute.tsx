@@ -1,32 +1,63 @@
 import type { JSX } from "react";
+import { useEffect } from "react";
 
-import { Stack } from "../../design/primitives/Stack";
-import { Amount } from "../../design/primitives/Amount";
-import { TickToggle } from "../../design/primitives/TickToggle";
 import { ModelsPane } from "../../app/models";
+import * as AmountStories from "../../design/primitives/Amount/Amount.stories";
+import * as ClusterStories from "../../design/primitives/Cluster/Cluster.stories";
+import * as GridStories from "../../design/primitives/Grid/Grid.stories";
+import * as IconStories from "../../design/primitives/Icon/Icon.stories";
+import * as LabelGlyphsStories from "../../design/primitives/LabelGlyphs/LabelGlyphs.stories";
+import * as StackStories from "../../design/primitives/Stack/Stack.stories";
+import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
 import styles from "./DesignRoute.module.css";
 
-const STORIES: Record<string, () => JSX.Element> = {
-  "tick-row": () => <TickToggle label="Compare" checked={false} />,
-  "tick-toggle": () => <TickToggle label="Compare" checked={false} />,
-  "tick-toggle-default": () => <TickToggle label="Compare" checked={false} />,
-  "tick-toggle-on": () => <TickToggle label="Compare" checked />,
-  "tick-toggle-off": () => <TickToggle label="Compare" checked={false} />,
-  "tick-toggle-disabled": () => <TickToggle label="Compare" checked={false} disabled />,
-  "amount-btc": () => <Amount value={13.1} unit="btc" />,
-  "models-pane": () => <ModelsPane />,
-  "models-pane-default": () => <ModelsPane />,
-  "tick-toggle-linen": () => (
-    <div data-theme="linen">
-      <TickToggle label="Compare" checked />
-    </div>
-  ),
+type Story = () => JSX.Element;
+type StoryModule = Record<string, unknown>;
+
+const isStory = (value: unknown): value is Story => typeof value === "function";
+
+const kebab = (name: string): string => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+
+/** The same CSF exports Storybook renders, so /design and the gallery cannot drift. */
+const GROUPS: Record<string, StoryModule> = {
+  amount: AmountStories,
+  cluster: ClusterStories,
+  grid: GridStories,
+  icon: IconStories,
+  "label-glyphs": LabelGlyphsStories,
+  stack: StackStories,
+  "tick-toggle": TickToggleStories,
 };
 
-/** /design/:story ground truth. Playwright targets this, not Storybook. */
+/** Contract aliases (MVP-SPEC P0.10 uses /design/tick-row/<state>). */
+const ALIASES: Record<string, string> = { "tick-row": "tick-toggle" };
+
+const STORIES = new Map<string, Story>([["models-pane", () => <ModelsPane />]]);
+for (const [group, mod] of Object.entries(GROUPS)) {
+  for (const [name, value] of Object.entries(mod)) {
+    if (name === "default" || !isStory(value)) continue;
+    STORIES.set(`${group}/${kebab(name)}`, value);
+    if (name === "Default") STORIES.set(group, value);
+  }
+}
+
+export const storyIds = (): string[] => [...STORIES.keys()].toSorted();
+
+const resolve = (id: string): Story | undefined => {
+  const [group = "", rest] = id.split("/", 2);
+  const real = ALIASES[group] ?? group;
+  return STORIES.get(rest === undefined ? real : `${real}/${rest}`);
+};
+
+/** /design/:group[/:story] ground truth. Playwright targets this, not Storybook. */
 export const DesignRoute = ({ story }: { story: string }): JSX.Element => {
   const main = styles["main"] ?? "design-main";
-  const render = STORIES[story];
+  const render = resolve(story);
+  const linen = story.endsWith("/linen");
+  useEffect(() => {
+    // Themes apply on <html> so the page ground matches the story (m4).
+    document.documentElement.dataset["theme"] = linen ? "linen" : "dark";
+  }, [linen]);
   if (render === undefined) {
     return (
       <main className={main}>
@@ -34,9 +65,10 @@ export const DesignRoute = ({ story }: { story: string }): JSX.Element => {
       </main>
     );
   }
+  const Render = render;
   return (
-    <main className={main}>
-      <Stack>{render()}</Stack>
+    <main className={main} data-story={story}>
+      <Render />
     </main>
   );
 };

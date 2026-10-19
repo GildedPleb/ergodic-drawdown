@@ -12,7 +12,9 @@ if (rootElement === null) throw new Error("Missing #root");
 const root = ReactDOM.createRoot(rootElement);
 
 const designEnabled = import.meta.env.VITE_DESIGN_ROUTE === "1";
-const designMatch = designEnabled ? /^\/design\/([^/]+)\/?$/.exec(window.location.pathname) : null;
+const designMatch = designEnabled
+  ? /^\/design\/([^/]+(?:\/[^/]+)?)\/?$/.exec(window.location.pathname)
+  : null;
 
 if (designMatch !== null) {
   const story = designMatch[1] ?? "tick-toggle";

@@ -3,7 +3,6 @@
     display: inline-flex;
     align-items: baseline;
     gap: 0;
-    margin: 0;
     font: inherit;
     line-height: 1;
     position: relative;
@@ -14,7 +13,6 @@
     inline-size: 1px;
     block-size: 1px;
     padding: 0;
-    margin: 0;
     overflow: hidden;
     white-space: nowrap;
     border: 0;
@@ -23,12 +21,12 @@
   .glyphs {
     display: inline-flex;
     align-items: center;
-    gap: var(--dyn-glyph-gap, 0);
+    gap: var(--dyn-glyph-gap);
   }
 
   .dot {
-    inline-size: var(--dyn-glyph-size, 1px);
-    block-size: var(--dyn-glyph-size, 1px);
+    inline-size: var(--dyn-glyph-size);
+    block-size: var(--dyn-glyph-size);
     border-radius: var(--radius-0);
     flex: none;
   }

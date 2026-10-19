@@ -1,26 +1,41 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+/**
+ * R11: measure v2 CSS. Source bytes (gated in the 1 s suite at +5%) and the built gzip of the emitted CSS
+ * (re-measured per PR). `--write` re-baselines css-budget.json; do that once, on purpose.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 
-const root = join(import.meta.dir, "../../src/v2");
-const walk = (dir: string): string[] => {
-  const out: string[] = [];
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) out.push(...walk(p));
-    else if (name.endsWith(".css")) out.push(p);
+import { build, type Rollup } from "vite";
+
+import { cssSourceBytes } from "./css/rules";
+import { loadTree, REPO, V2 } from "./css/tree";
+
+const sourceBytes = cssSourceBytes(loadTree());
+const result = await build({ root: REPO, logLevel: "silent", build: { write: false } });
+const outputs: Rollup.RollupOutput[] = Array.isArray(result)
+  ? result
+  : "output" in result
+    ? [result]
+    : [];
+let builtGzipBytes = 0;
+for (const out of outputs) {
+  for (const item of out.output) {
+    if (item.type === "asset" && item.fileName.endsWith(".css"))
+      builtGzipBytes += gzipSync(item.source).byteLength;
   }
-  return out;
-};
-let total = 0;
-const files: Record<string, number> = {};
-for (const f of walk(root)) {
-  const n = readFileSync(f).byteLength;
-  files[f.slice(root.length + 1)] = n;
-  total += n;
 }
-const out = { totalBytes: total, files, measuredAt: new Date().toISOString() };
-writeFileSync(
-  join(import.meta.dir, "../../src/v2/design/css-size.json"),
-  `${JSON.stringify(out, null, 2)}\n`,
-);
-console.log(`v2 CSS source total: ${total} bytes`);
+const path = join(V2, "design/css-budget.json");
+const current = { sourceBytes, builtGzipBytes };
+if (process.argv.includes("--write")) {
+  const record = { ...current, ratchet: 1.05, measuredAt: new Date().toISOString().slice(0, 10) };
+  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  console.log(`wrote ${path}`);
+} else {
+  const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+  const base =
+    typeof raw === "object" && raw !== null && "builtGzipBytes" in raw ? raw.builtGzipBytes : 0;
+  const limit = typeof base === "number" ? Math.floor(base * 1.05) : 0;
+  console.log(JSON.stringify({ current, builtGzipLimit: limit }));
+  if (builtGzipBytes > limit) process.exit(1);
+}

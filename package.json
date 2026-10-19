@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun scripts/update-weekly-prices.ts && tsc -b && vite build",
     "dev": "bun scripts/update-weekly-prices.ts && vite",
-    "lint": "oxlint -D correctness -D suspicious -D typescript/no-misused-promises -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts",
+    "lint": "oxlint -D correctness -D suspicious -D typescript/no-misused-promises -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts && bun scripts/v2/css/stylelint-gate.ts",
     "format": "oxfmt --check",
     "knip": "knip --treat-config-hints-as-errors && bun run design:absent",
     "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then lefthook install; fi",
@@ -19,7 +19,8 @@
     "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build -o storybook-static",
     "tokens": "bun scripts/v2/generate-tokens.ts",
-    "css:enforce": "bun scripts/v2/css-enforce.ts",
+    "css:enforce": "bun scripts/v2/css/cli.ts",
+    "css:size": "bun scripts/v2/measure-css-size.ts",
     "design:absent": "bun scripts/v2/check-design-route-absent.ts",
     "visual": "playwright test -c test/visual/playwright.config.ts",
     "models:snapshot": "bun scripts/v2/snapshot-old-ui.ts"
@@ -53,10 +54,13 @@
     "@vitejs/plugin-react": "^6.1.2",
     "knip": "^6.41.0",
     "lefthook": "2.2.1",
+    "oxc-parser": "0.153.0",
     "oxfmt": "*",
     "oxlint": "*",
     "oxlint-tsgolint": "*",
+    "postcss": "8.5.31",
     "storybook": "10.6.2",
+    "stylelint": "17.16.0",
     "typescript": ">=7.0.0",
     "vite": "^8.3.4"
   },

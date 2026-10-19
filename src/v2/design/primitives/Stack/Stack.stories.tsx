@@ -2,31 +2,36 @@ import type { ReactElement } from "react";
 
 import { Stack } from "./Stack";
 
-export default { title: "Primitives/Stack" };
+/** Plain CSF 3, no Storybook/Ladle imports. */
+export default { title: "Layout/Stack" };
 
 export const Default = (): ReactElement => (
   <Stack>
     <span>One</span>
     <span>Two</span>
+    <span>Three</span>
   </Stack>
 );
 export const Focus = (): ReactElement => (
-  <Stack>
-    <span>One</span>
-    <span>Two</span>
+  <Stack gap="1">
+    <button type="button">One</button>
+    <button type="button">Two</button>
   </Stack>
 );
 export const LongText = (): ReactElement => (
-  <Stack>
+  <Stack gap="6">
     <span>
       A longer line that should wrap to two lines before truncating in constrained layouts.
     </span>
+    <span>Two</span>
   </Stack>
 );
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
-    <Stack pad>
-      <span>Linen theme</span>
+    <Stack gap="4">
+      <span>One</span>
+      <span>Two</span>
+      <span>Three</span>
     </Stack>
   </div>
 );

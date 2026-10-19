@@ -1,6 +1,5 @@
 @layer app {
   .main {
-    margin: 0;
     min-block-size: 100%;
     padding: var(--s-7);
     font-family: var(--f-sans);

@@ -6,6 +6,11 @@ import styles from "./LabelGlyphs.module.css";
 const UP = "\u{1F7E2}";
 const DOWN = "\u{1F534}";
 
+/** R7: variant keys and values. */
+export const variants = {
+  tone: ["up", "down"] as const,
+};
+
 export type LabelGlyphsProps = {
   /** Exact string kept in data, accessible name, and copy/paste. */
   text: string;

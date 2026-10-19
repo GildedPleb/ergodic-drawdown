@@ -4,7 +4,6 @@
     min-block-size: 100%;
     padding-block: var(--s-7);
     padding-inline: var(--s-7);
-    margin: 0;
     background: var(--ground);
     color: var(--text);
     font-family: var(--f-sans);

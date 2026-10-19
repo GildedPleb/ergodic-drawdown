@@ -49,7 +49,7 @@
   }
   .t-caption {
     font: italic 400 var(--t-caption)/var(--lh-caption) var(--f-text);
-    color: var(--muted);
+    color: var(--text-muted);
     font-variant-numeric: var(--figs);
   }
   .t-value {
@@ -58,7 +58,7 @@
   }
   .t-readout {
     font: 600 var(--t-readout)/1.2 var(--f-sans);
-    color: var(--gold);
+    color: var(--accent);
     font-variant-numeric: var(--figs);
   }
   .t-tab {
@@ -70,18 +70,18 @@
     font: 600 var(--t-section)/1 var(--f-sans);
     letter-spacing: var(--tr-section);
     text-transform: uppercase;
-    color: var(--gold);
+    color: var(--accent);
   }
   .t-group {
     font: 600 var(--t-group)/1 var(--f-sans);
     letter-spacing: var(--tr-group);
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--text-muted);
   }
   .t-small {
     font: 500 var(--t-small)/1.2 var(--f-sans);
     letter-spacing: var(--tr-small);
-    color: var(--muted);
+    color: var(--text-muted);
   }
   .t-chart {
     font: 500 var(--t-chart) var(--f-sans);

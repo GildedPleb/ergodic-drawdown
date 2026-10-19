@@ -3,9 +3,14 @@ import type { JSX } from "react";
 import { fmtBTC, fmtUSD } from "../../format/money";
 import styles from "./Amount.module.css";
 
+/** R7: variant keys and values. */
+export const variants = {
+  unit: ["btc", "usd"] as const,
+};
+
 export type AmountProps = {
   value: number;
-  unit: "btc" | "usd";
+  unit: (typeof variants.unit)[number];
   /** Exact sats (detail views); ₿ only. */
   detail?: boolean;
 };

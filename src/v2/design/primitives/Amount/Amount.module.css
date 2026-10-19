@@ -1,6 +1,5 @@
 @layer primitives {
   .root {
-    margin: 0;
     font-family: var(--f-sans);
     font-variant-numeric: lining-nums tabular-nums;
     font-weight: 500;

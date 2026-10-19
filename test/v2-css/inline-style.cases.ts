@@ -1,0 +1,47 @@
+import { expect, test } from "bun:test";
+
+import { checkInlineStyle } from "../../scripts/v2/css/rules";
+import { greenSeeds, realTree, type Seed, SHELL_TSX, STACK_TSX } from "./seed";
+
+const ICON_TSX = "design/primitives/Icon/Icon.tsx";
+
+test("R10: inline styles carry only --dyn-* properties that the component's module consumes", () => {
+  expect(checkInlineStyle(realTree)).toEqual([]);
+});
+
+test("R10: seeded violations fail", () => {
+  const seeds: Seed[] = [
+    {
+      name: "inline style={{color}}",
+      path: SHELL_TSX,
+      edit: (c) =>
+        c.replace("<main className={main}>", '<main className={main} style={{ color: "red" }}>'),
+    },
+    {
+      name: "custom property not named --dyn-*",
+      path: ICON_TSX,
+      edit: (c) => c.replaceAll("--dyn-icon-size", "--icon-size"),
+    },
+    {
+      name: "--dyn-* not consumed by the module",
+      path: ICON_TSX,
+      edit: (c) =>
+        c.replace(
+          '"--dyn-icon-size" as string]: "1em"',
+          '"--dyn-icon-size" as string]: "1em", ["--dyn-unused" as string]: "1"',
+        ),
+    },
+    {
+      name: "spread into style",
+      path: STACK_TSX,
+      edit: (c) => c.replace("data-gap={gap}", "data-gap={gap} style={{ ...{} }}"),
+    },
+    {
+      name: "style from a call",
+      path: SHELL_TSX,
+      edit: (c) =>
+        c.replace("<main className={main}>", "<main className={main} style={Object.create(null)}>"),
+    },
+  ];
+  expect(greenSeeds(seeds, checkInlineStyle, "R10")).toEqual([]);
+});
