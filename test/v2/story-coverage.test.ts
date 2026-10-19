@@ -56,6 +56,7 @@ test("Select and NumberField primitives exist with stories", async () => {
 
 /** Form B1: the visual matrix shoots every story of these groups (plus the models pane). */
 const MATRIX_GROUPS: Record<string, string> = {
+  "tick-row": "TickToggle",
   select: "Select",
   "number-field": "NumberField",
   "label-glyphs": "LabelGlyphs",
@@ -65,12 +66,12 @@ const MATRIX_GROUPS: Record<string, string> = {
 
 const kebab = (name: string): string => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 
-test("Form B1: FIELD_STORIES lists every Select, NumberField, LabelGlyphs, Amount and SectionLabel story", async () => {
+test("Form B1/N5: FIELD_STORIES lists every TickToggle, Select, NumberField, LabelGlyphs, Amount and SectionLabel story", async () => {
   // Read as text: test/visual is the Playwright project, outside the app tsconfig.
   const stories = await file(`${import.meta.dir}/../visual/stories.ts`).text();
   const block = /FIELD_STORIES = \[([\s\S]*?)\] as const/.exec(stories)?.[1] ?? "";
   const FIELD_STORIES = [...block.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "");
-  const want: string[] = ["models-pane/default", "models-pane/emoji-walk"];
+  const want: string[] = ["models-pane/default", "models-pane/emoji-walk", "models-pane/linen"];
   for (const [group, c] of Object.entries(MATRIX_GROUPS)) {
     const text = await file(`${primitives}/${c}/${c}.stories.tsx`).text();
     for (const m of text.matchAll(/export const (\w+)/g))

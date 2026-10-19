@@ -19,7 +19,8 @@
     font-size: var(--t-row);
     font-weight: 400;
     line-height: var(--lh-row);
-    overflow-wrap: anywhere;
+    /* Form N2: words wrap whole, never one letter per line. */
+    overflow-wrap: normal;
   }
 
   .field {
@@ -93,5 +94,13 @@
   .errorIcon {
     display: inline-flex;
     flex: none;
+  }
+
+  /* Form N2: in a narrow container (the Models pane at 200% zoom) the label stacks above the
+     full-width field. 16rem tracks the root size, so OS text at 200% stacks too. */
+  @container (max-width: 16rem) {
+    .root {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }

@@ -193,6 +193,20 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 ## v2 repo additions (Form + Keel rulings, 2026-10-19)
 
 - **`--invalid`** (semantic, both themes) = the same palette entry as `--text` (dark `--linen-75`, linen `--umber-800`). Invalid is full contrast and **never a colour signal**: orange is bitcoin, and there is no red for errors. A field's invalid state is a `--rule-strong` border in `--invalid`, a ⚠ SVG icon (Icon `warning`), and a plain-language message (the cause and the next step) wired with `aria-describedby` and `aria-invalid`. Form: mirror this in `gen_sem.py`.
+
+  `--invalid` contrast (from Form p3 `contrast.txt`; old = new only where the ground is unchanged):
+
+  | Theme | On       | Old   | New   | Floor | Result |
+  | ----- | -------- | ----- | ----- | ----- | ------ |
+  | dark  | ground   | 15.35 | 15.35 | 4.5   | ok     |
+  | dark  | surface  | 14.08 | 14.08 | 4.5   | ok     |
+  | dark  | raised   | 12.63 | 12.63 | 4.5   | ok     |
+  | dark  | selected | 10.53 | 12.65 | 4.5   | ok     |
+  | linen | ground   | 9.98  | 9.98  | 4.5   | ok     |
+  | linen | surface  | 9.08  | 9.08  | 4.5   | ok     |
+  | linen | raised   | 7.98  | 7.98  | 4.5   | ok     |
+  | linen | selected | 7.51  | 9.60  | 4.5   | ok     |
+
 - **Walk dots** (`--walk-up` / `--walk-down`, LabelGlyphs only) are SVG `<circle>`s. No CSS `border-radius` anywhere; `--radius-0` stays the only radius.
 - **Native picker font exception.** The closed Select face draws emoji labels through LabelGlyphs and passes the strict SM-only font check. The **open native OS picker** is browser/OS chrome and may show the system emoji for `🟢🟢🟢🔴`. The Playwright font check exempts only the native `<select>`/`<option>` subtree (which is transparent when closed).
 

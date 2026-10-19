@@ -26,7 +26,8 @@
     font-size: var(--t-row);
     font-weight: 400;
     line-height: var(--lh-row);
-    overflow-wrap: anywhere;
+    /* Form N2: words wrap whole, never one letter per line. */
+    overflow-wrap: normal;
   }
 
   /* Face and native control share one grid cell; the in-flow control sets the 44px hit (M7).
@@ -70,7 +71,7 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   .caret {
@@ -137,5 +138,12 @@
   .errorIcon {
     display: inline-flex;
     flex: none;
+  }
+
+  /* Form N2: stack the label above the field in a narrow container (see NumberField). */
+  @container (max-width: 16rem) {
+    .root[data-label="visible"] {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }

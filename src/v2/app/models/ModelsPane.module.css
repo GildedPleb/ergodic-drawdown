@@ -1,6 +1,8 @@
 @layer app {
   /* M3: frameless pane; the SectionLabel carries the structure. */
   .root {
+    /* Form N2: fields respond to the pane's width, not the viewport. */
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -18,11 +20,13 @@
     gap: var(--s-3);
   }
 
+  /* Form N3: the clamp group uses the same label | field column; Max over Min in the column. */
   .group {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) var(--field-col);
     align-items: center;
     column-gap: var(--s-3);
+    row-gap: var(--s-1);
   }
 
   /* M1: row labels in EB Garamond 400 at --t-row. */
@@ -36,8 +40,14 @@
 
   .options {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--s-2);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-1);
+  }
+
+  @container (max-width: 16rem) {
+    .group {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }

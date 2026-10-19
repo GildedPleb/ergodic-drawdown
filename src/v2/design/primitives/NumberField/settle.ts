@@ -48,6 +48,11 @@ export type SettleController = {
   sync: (next: number) => void;
   /** The draft is non-empty and would not commit (settle only): show the Invalid state. */
   rejected: () => boolean;
+  /**
+   * Show text without committing (held arrow-key repeats, FL-001): the value commits once, on
+   * release, through `change`. A blur before release settles as usual.
+   */
+  preview: (text: string) => void;
 };
 
 /** main renders a NaN state as an empty number field. */
@@ -58,8 +63,11 @@ export const createSettledNumber = (initial: number, options: SettleOptions): Se
   let committed = initial;
   const parse = (text: string): number => parseNumber(text, options.parse);
 
+  // Form N1: the rule is read from `options` at call time, never captured at creation, so a field
+  // that stays mounted across a model switch follows the current model's range.
   if (options.rule.kind === "live") {
-    const { apply } = options.rule;
+    const apply = (n: number): number | undefined =>
+      options.rule.kind === "live" ? options.rule.apply(n) : n;
     return {
       blur: () => {
         draft = show(committed);
@@ -78,11 +86,16 @@ export const createSettledNumber = (initial: number, options: SettleOptions): Se
         draft = show(next);
       },
       rejected: () => false,
+      preview: (text) => {
+        draft = text;
+      },
     };
   }
 
-  const { accept } = options.rule;
-  const emptyValue = options.rule.emptyValue ?? null;
+  const accept = (n: number): boolean =>
+    options.rule.kind === "settle" ? options.rule.accept(n) : true;
+  const emptyValueOf = (): number | null =>
+    options.rule.kind === "settle" ? (options.rule.emptyValue ?? null) : null;
 
   const editing = (): boolean => {
     if (draft === "") return true;
@@ -98,6 +111,7 @@ export const createSettledNumber = (initial: number, options: SettleOptions): Se
 
   const commitDraft = (): void => {
     if (draft === "") {
+      const emptyValue = emptyValueOf();
       if (emptyValue !== null) {
         draft = String(emptyValue);
         commitIfChanged(emptyValue);
@@ -132,5 +146,8 @@ export const createSettledNumber = (initial: number, options: SettleOptions): Se
       draft = String(next);
     },
     rejected: () => draft !== "" && editing(),
+    preview: (text) => {
+      draft = text;
+    },
   };
 };

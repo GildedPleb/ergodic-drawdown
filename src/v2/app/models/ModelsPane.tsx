@@ -152,6 +152,8 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
         />
         {showVariable ? (
           <NumberField
+            // Form N1: a new model is a new field (draft reset, as main's setVariable(default)).
+            key={values.model}
             id="v2-variable"
             label={modelMeta?.varInput ?? ""}
             step={controls.variable.step}

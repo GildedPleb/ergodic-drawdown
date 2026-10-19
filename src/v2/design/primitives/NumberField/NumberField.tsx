@@ -8,6 +8,7 @@ import styles from "./NumberField.module.css";
 import {
   createSettledNumber,
   type NumberParse,
+  parseNumber,
   type NumberRule,
   type SettleController,
   type SettleOptions,
@@ -114,6 +115,7 @@ export const NumberField = ({
   }
   const settle = controller.current;
   const [draft, setDraft] = useState(() => settle.draft());
+  const held = useRef(false);
   const [rejected, setRejected] = useState(() => settle.rejected());
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export const NumberField = ({
     refresh();
   };
   const blur = (): void => {
+    held.current = false;
     settle.blur();
     refresh();
   };
@@ -143,11 +146,28 @@ export const NumberField = ({
     }
     if ((event.key === "ArrowUp" || event.key === "ArrowDown") && step !== undefined) {
       event.preventDefault();
-      const base = Number.isNaN(valueRef.current) ? (min ?? 0) : valueRef.current;
+      // FL-001: a held key steps the visible draft but commits once, on release (onKeyUp).
+      const shown = parseNumber(settle.draft(), parse);
+      const current = event.repeat && Number.isFinite(shown) ? shown : valueRef.current;
+      const base = Number.isNaN(current) ? (min ?? 0) : current;
       let next = base + (event.key === "ArrowUp" ? step : -step);
       if (max !== undefined) next = Math.min(max, next);
       if (min !== undefined) next = Math.max(min, next);
-      change(next.toFixed(Math.max(decimalsOf(step), decimalsOf(base))));
+      const text = next.toFixed(Math.max(decimalsOf(step), decimalsOf(base)));
+      if (event.repeat) {
+        held.current = true;
+        settle.preview(text);
+        refresh();
+      } else {
+        change(text);
+      }
+    }
+  };
+
+  const onKeyUp = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if ((event.key === "ArrowUp" || event.key === "ArrowDown") && held.current) {
+      held.current = false;
+      change(settle.draft());
     }
   };
 
@@ -189,6 +209,7 @@ export const NumberField = ({
           }}
           onBlur={blur}
           onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
         />
         {hint === undefined ? null : (
           <span className={hintCls} id={hintId}>

@@ -46,6 +46,8 @@ const STORIES = new Map<string, Story>([
   ["models-pane/default", () => <ModelsPane />],
   // B2: the engine's emoji walk selected; the fonts check must see no emoji text node.
   ["models-pane/emoji-walk", () => <ModelsPane initial={{ walk: "🟢🟢🟢🔴" }} />],
+  // Probe m3: the pane in linen (the …/linen suffix themes <html>).
+  ["models-pane/linen", () => <ModelsPane />],
 ]);
 for (const [group, mod] of Object.entries(GROUPS)) {
   for (const [name, value] of Object.entries(mod)) {
@@ -58,7 +60,9 @@ for (const [group, mod] of Object.entries(GROUPS)) {
 export const storyIds = (): string[] => [...STORIES.keys()].toSorted();
 
 const resolve = (id: string): Story | undefined => {
-  const [group = "", rest] = id.split("/", 2);
+  const parts = id.split("/");
+  if (parts.length > 2 || parts.some((p) => p === "")) return undefined;
+  const [group = "", rest] = parts;
   const real = ALIASES[group] ?? group;
   return STORIES.get(rest === undefined ? real : `${real}/${rest}`);
 };
@@ -75,6 +79,21 @@ export const DesignRoute = ({ story }: { story: string }): JSX.Element => {
     // Themes apply on <html> so the page ground matches the story (m4).
     document.documentElement.dataset["theme"] = linen ? "linen" : "dark";
   }, [linen]);
+  if (story === "") {
+    // Bare /design: the story index.
+    return (
+      <main className={main} data-story="">
+        <h1>Design stories</h1>
+        <ul>
+          {storyIds().map((id) => (
+            <li key={id}>
+              <a href={`/design/${id}`}>{id}</a>
+            </li>
+          ))}
+        </ul>
+      </main>
+    );
+  }
   if (render === undefined) {
     return (
       <main className={main}>

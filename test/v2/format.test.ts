@@ -28,7 +28,8 @@ test("G3 SYSTEM §6 examples", () => {
     [fmtUSD(90_000), "$90k"],
     [fmtUSD(1_200_000), "$1.2M"],
     [fmtUSD(240), "$240"],
-    [fmtUSD(4.5), "$4.50"],
+    [fmtUSD(4.5), "$5"],
+    [fmtUSD(0.45), "$0.45"],
   ]);
 });
 
@@ -75,23 +76,28 @@ test("G3 edge: 0.99999999 next to the ₿1 boundary", () => {
   ]);
 });
 
-test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding, k/M at 3 significant figures (m9)", () => {
+test("G3 edge: $999.5 → $1k, $9.995 → $10, unit chosen after rounding, full digits below $10k, k/M at 3 significant figures from $10k (G3 ruling 2)", () => {
   check([
-    [fmtUSD(999.5), "$1k"],
+    [fmtUSD(999.5), "$1,000"],
     [fmtUSD(999.49), "$999"],
     [fmtUSD(9.995), "$10"],
-    [fmtUSD(9.994), "$9.99"],
+    [fmtUSD(9.994), "$10"],
     [fmtUSD(10), "$10"],
-    [fmtUSD(1_000), "$1k"],
-    [fmtUSD(1_250), "$1.25k"],
-    [fmtUSD(9_950), "$9.95k"],
+    [fmtUSD(1_000), "$1,000"],
+    [fmtUSD(1_250), "$1,250"],
+    [fmtUSD(9_950), "$9,950"],
+    [fmtUSD(9_999.4), "$9,999"],
+    [fmtUSD(9_999.5), "$10,000"],
+    [fmtUSD(9_999.99), "$10,000"],
+    [fmtUSD(10_000), "$10k"],
     [fmtUSD(99_950), "$100k"],
     [fmtUSD(85_400), "$85.4k"],
     [fmtUSD(999_500), "$1M"],
     [fmtUSD(12_340_000), "$12.3M"],
     [fmtUSD(2_500_000_000), "$2,500M"],
     [fmtUSD(0.004), "<$0.01"],
-    [fmtUSD(-4.5), "−$4.50"],
+    [fmtUSD(-4.5), "−$5"],
+    [fmtUSD(-0.45), "−$0.45"],
     [fmtUSD(-90_000), "−$90k"],
   ]);
 });
@@ -105,12 +111,12 @@ test("G3 edge: NaN and ±Infinity are an em dash (Form)", () => {
   }
 });
 
-test("G3 / Form m9: ranges use the wider end's precision (equal ends, ₿1 boundary, negative, crossing zero)", () => {
+test("G3 / Form m9: ranges: wider end's precision, raw-value zero crossing, tiny ends keep their digits (equal ends, ₿1 boundary, negative, crossing zero)", () => {
   check([
     [fmtBTCRange(0.4, 0.4), "₿0.4"],
     [fmtBTCRange(0.4, 0.40000001), "₿0.4"],
     [fmtBTCRange(0.42, 1.3), "₿0.4–1.3"],
-    [fmtBTCRange(0.0021, 0.42), "₿0–0.42"],
+    [fmtBTCRange(0.0021, 0.42), "₿0.0021–0.42"],
     [fmtBTCRange(0.99999999, 1.2), "₿1–1.2"],
     [fmtBTCRange(-0.7, -0.4), "−₿0.7–0.4"],
     [fmtBTCRange(-0.4, -0.7), "−₿0.7–0.4"],
@@ -120,7 +126,8 @@ test("G3 / Form m9: ranges use the wider end's precision (equal ends, ₿1 bound
     [fmtBTCRange(0, 0.7), "₿0–0.7"],
     [fmtBTCRange(1, 13), "₿1–13"],
     [fmtBTCRange(1e-9, 0.7), "₿0–0.7"],
-    [fmtBTCRange(-0.0021, 0.42), "₿0–0.42"],
+    [fmtBTCRange(-0.0021, 0.42), "−₿0.0021 to ₿0.42"],
+    [fmtBTCRange(0.42, -0.0021), "−₿0.0021 to ₿0.42"],
   ]);
 });
 
@@ -129,6 +136,7 @@ test("G3 Form: cross-zero never puts an en dash beside a minus", () => {
     [-0.4, 0.7],
     [-13.1, 2],
     [-0.21, 0.42],
+    [-0.0021, 0.42],
   ] as const) {
     const r = fmtBTCRange(lo, hi);
     expect(r.includes("\u2013\u2212")).toBe(false);
@@ -147,10 +155,11 @@ test("G3 Form: no trailing .0 for ₿ or $", () => {
     [fmtUSD(1), "$1"],
     [fmtUSD(13), "$13"],
     [fmtUSD(13.1), "$13"],
-    [fmtUSD(4.1), "$4.10"],
+    [fmtUSD(4.1), "$4"],
     [fmtUSD(4), "$4"],
-    [fmtUSD(1_000), "$1k"],
-    [fmtUSD(1_040), "$1.04k"],
+    [fmtUSD(1_000), "$1,000"],
+    [fmtUSD(1_040), "$1,040"],
+    [fmtUSD(10_000), "$10k"],
     [fmtUSD(1_000_000), "$1M"],
     [fmtUSD(-1), "−$1"],
   ]);
@@ -187,7 +196,12 @@ test("G3 Form: accessible name is always 'bitcoin 0.7', regardless of display", 
     [nameBTC(0.00000546, { detail: true }), "bitcoin 0.00000546"],
     [nameBTCRange(0.4, 0.7), "bitcoin 0.4 to 0.7"],
     [nameBTCRange(-0.4, 0.7), "minus bitcoin 0.4 to bitcoin 0.7"],
-    [nameUSD(-4.5), "minus $4.50"],
+    // Probe m2: a same-sign negative range repeats the sign when spoken.
+    [nameBTCRange(-0.7, -0.4), "minus bitcoin 0.7 to minus 0.4"],
+    [nameBTCRange(-0.0021, 0.42), "minus bitcoin 0.0021 to bitcoin 0.42"],
+    [nameBTCRange(1e-9, 0.7), "bitcoin 0 to 0.7"],
+    [nameUSD(-4.5), "minus $5"],
+    [nameUSD(-0.45), "minus $0.45"],
   ]);
   expect(nameBTC(0.7)).toBe(nameBTC(0.7, { detail: false }));
   for (const v of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
@@ -222,4 +236,33 @@ test("Amount: fonts-failed display is 'BTC 0.7' but the spoken name stays 'bitco
   const na = renderToStaticMarkup(createElement(Amount, { value: Number.NaN, unit: "btc" }));
   expect((na ?? "").includes(">not available<")).toBe(true);
   expect((na ?? "").includes('aria-hidden="true">—<')).toBe(true);
+});
+
+test("Form G3 2026-10-19: whole dollars from $1 below $10,000; cents only below $1; $9,999.99 never $10k", () => {
+  check([
+    [fmtUSD(12), "$12"],
+    [fmtUSD(12.345), "$12"],
+    [fmtUSD(1_040), "$1,040"],
+    [fmtUSD(9_950), "$9,950"],
+    [fmtUSD(9_999.99), "$10,000"],
+    [fmtUSD(10_000), "$10k"],
+    [fmtUSD(85_400), "$85.4k"],
+    [fmtUSD(1_234_567), "$1.23M"],
+    [fmtUSD(0.45), "$0.45"],
+    [fmtUSD(0.5), "$0.50"],
+    [fmtUSD(0.999), "$1"],
+    [fmtUSD(1), "$1"],
+    [fmtUSD(0.004), "<$0.01"],
+  ]);
+  for (const v of [1, 4.5, 12.345, 999.99, 9_999.99]) expect(fmtUSD(v).includes(".")).toBe(false);
+});
+
+test("Form G3 2026-10-19: a same-sign range with an end below 1 sat stays compact", () => {
+  check([
+    [fmtBTCRange(1e-9, 0.7), "₿0–0.7"],
+    [fmtBTCRange(0.7, 1e-9), "₿0–0.7"],
+    [nameBTCRange(1e-9, 0.7), "bitcoin 0 to 0.7"],
+    [fmtBTCRange(-0.7, -1e-9), "−₿0.7–0"],
+    [nameBTCRange(-0.7, -1e-9), "minus bitcoin 0.7 to minus 0"],
+  ]);
 });

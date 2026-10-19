@@ -34,7 +34,9 @@ for (const id of FIELD_STORIES) {
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       const control = id.startsWith("select/")
         ? page.getByRole("combobox")
-        : page.getByRole("spinbutton");
+        : id.startsWith("tick-row/")
+          ? page.getByRole("switch")
+          : page.getByRole("spinbutton");
       if (id.endsWith("/focus")) {
         await page.keyboard.press("Tab");
         await expect(control).toBeFocused();

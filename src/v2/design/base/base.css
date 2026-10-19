@@ -40,11 +40,17 @@
     background: var(--ground);
     color: var(--text);
     font-family: var(--f-sans);
+    /* Form N6: unset text uses a shipped weight (Jost 500), never 400 or a synthetic 700. */
+    font-weight: 500;
     font-variant-numeric: lining-nums tabular-nums;
   }
 
   :where(html[data-theme="linen"]) {
     color-scheme: light;
+  }
+
+  :where(h1, h2, h3, h4, h5, h6, b, strong, th) {
+    font-weight: 600;
   }
 
   :where(body) {

@@ -12,12 +12,12 @@ if (rootElement === null) throw new Error("Missing #root");
 const root = ReactDOM.createRoot(rootElement);
 
 const designEnabled = import.meta.env.VITE_DESIGN_ROUTE === "1";
-const designMatch = designEnabled
-  ? /^\/design\/([^/]+(?:\/[^/]+)?)\/?$/.exec(window.location.pathname)
-  : null;
+// Probe m3: with the flag on, every /design path (bare, unknown or too deep) goes to the design
+// route, which shows a story, the story index (bare /design) or "No story"; never the app.
+const designMatch = designEnabled ? /^\/design(?:\/(.*))?$/.exec(window.location.pathname) : null;
 
 if (designMatch !== null) {
-  const story = designMatch[1] ?? "tick-toggle";
+  const story = (designMatch[1] ?? "").replace(/\/+$/, "");
   void import("../routes/design/DesignRoute").then(({ DesignRoute }) => {
     root.render(
       <React.StrictMode>

@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { useState } from "react";
 
+import { SectionLabel } from "../SectionLabel";
 import { Select } from "./Select";
 
 /**
@@ -63,7 +64,7 @@ export const LabelledByHeading = (): ReactElement => {
   const [value, setValue] = useState("Power Law Regression Median");
   return (
     <section>
-      <h2 id="story-model-heading">Model</h2>
+      <SectionLabel text="Model" id="story-model-heading" />
       <Select
         labelledBy="story-model-heading"
         options={["Power Law Regression Median", "CAGR", "Historic"]}

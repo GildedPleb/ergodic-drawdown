@@ -54,6 +54,11 @@
     --thumb-w: 5px;
     --thumb-h: 1.125rem; /* 18px at 100%; rem so it scales with text */
   }
+  /* Probe m4: recompute the sheet shadow inside every themed subtree, so a nested
+     [data-theme="linen"] uses its own --shadow-ink instead of inheriting the dark value. */
+  [data-theme] {
+    --shadow-sheet: 0 -18px 40px var(--shadow-ink);
+  }
   @media (prefers-reduced-motion: reduce) {
     :root {
       --dur-fast: 0ms;

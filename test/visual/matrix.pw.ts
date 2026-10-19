@@ -9,7 +9,7 @@ import {
   expectTapTargets,
   gotoStory,
 } from "./checks";
-import { TICK_ROW_STORIES } from "./stories";
+import { TICK_ROW_STORIES, ZOOM_STORIES } from "./stories";
 
 for (const id of TICK_ROW_STORIES) {
   test(`${id}: axe, tap targets, overflow, fonts, screenshot`, async ({
@@ -36,5 +36,41 @@ for (const id of TICK_ROW_STORIES) {
       if (process.env["VISUAL_UPDATE"] !== "1") return;
     }
     await expect(page).toHaveScreenshot(name, { fullPage: true });
+  });
+}
+
+// Form N2: the Models pane at 200% zoom (720×450 CSS px) and 200% OS text, plus the 390 @ 200%
+// case (195×422): labels stack above fields, words stay whole, nothing scrolls sideways.
+for (const id of ZOOM_STORIES) {
+  test(`${id}: reflow at 200% zoom / text (axe, tap targets, overflow)`, async ({ page }, info) => {
+    test.skip(
+      !["chromium-zoom200", "chromium-text200"].includes(info.project.name),
+      "zoom and OS-text projects only",
+    );
+    await gotoStory(page, id, { text200: info.project.name === "chromium-text200" });
+    await expectAxeClean(page);
+    await expectTapTargets(page);
+    await expectNoOverflow(page);
+  });
+
+  test(`${id}: at 195 CSS px wide nothing scrolls sideways and labels keep whole words`, async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "chromium-zoom200", "the 390 @ 200% case runs once");
+    await page.setViewportSize({ width: 195, height: 422 });
+    await gotoStory(page, id);
+    await expectNoOverflow(page);
+    // Stacked: each label is as wide as its field, so no label is a one-letter column.
+    for (const sel of ["#v2-vol", "#v2-epochs", "#v2-samples", "#v2-walk"]) {
+      const label = page.locator(`label[for="${sel.slice(1)}"]`);
+      const box = await label.boundingBox();
+      expect((box?.width ?? 0) >= 100).toBe(true);
+    }
+    const lines = await page.locator('label[for="v2-walk"]').evaluate((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getClientRects().length;
+    });
+    expect(lines <= 2).toBe(true); // "Walk Strategy:" on at most 2 lines
   });
 }

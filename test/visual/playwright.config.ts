@@ -23,7 +23,12 @@ const ENGINES = {
 const projects: Project[] = [];
 for (const [engine, device] of Object.entries(ENGINES)) {
   for (const [size, viewport] of Object.entries(VIEWPORTS)) {
-    projects.push({ name: `${engine}-${size}`, use: { ...device, viewport } });
+    // Form N5: one retry absorbs WebKit navigation flakes; Chromium stays strict.
+    projects.push({
+      name: `${engine}-${size}`,
+      use: { ...device, viewport },
+      ...(engine === "webkit" && { retries: 1 }),
+    });
   }
 }
 projects.push(

@@ -14,19 +14,15 @@ import { createRoot } from "react-dom/client";
 import { expect, test } from "bun:test";
 
 import { parseCanonicalInteger, useSettledNumber } from "../../src/components/input/settled-number";
-import {
-  DEFAULT_EPOCH_COUNT,
-  DEFAULT_SIMULATION_COUNT,
-  MAX_SAMPLE_COUNT,
-} from "../../src/constants";
-import { inputLabels } from "../../src/content";
 import { modelsPaneSchema } from "../../src/v2/app/models";
 import {
   createSettledNumber,
+  type NumberRule,
   normalizeNumberText,
   parseCanonicalInteger as parseCanonicalIntegerV2,
   parseNumber,
 } from "../../src/v2/design/primitives/NumberField/settle";
+import { oldUiDiffs, type Read } from "./support/old-ui-source";
 
 /** A typed text, or "<blur>". */
 type Step = string;
@@ -148,107 +144,218 @@ test("Form B3 cases: epoch 100 ok, samples 0 ok, empty samples → 1000, vol 4 /
 });
 
 /**
- * Form B3 / parity diff 7: the G12 schema must not be self-referential. Every literal main keeps
- * inline in its Models-pane components (steps, accept ranges, emptyValue, parse, the +/- floor,
- * defaults, the default walk) is read back here from main's own source and compared with the schema.
+ * Probe M1: main's source literals vs the G12 schema, then seeded mutations of main's source that
+ * must each turn the comparison red (the gate can see drift; it is not circular).
  */
-const src = (p: string): Promise<string> => file(`${import.meta.dir}/../../src/${p}`).text();
-const CONSTANTS: Record<string, number> = {
-  DEFAULT_EPOCH_COUNT,
-  DEFAULT_SIMULATION_COUNT,
-  MAX_SAMPLE_COUNT,
-};
+const read: Read = (p) => file(`${import.meta.dir}/../../src/${p}`).text();
 
-const num = (token: string | undefined): number => {
-  if (token === undefined) throw new Error("no match in main's source");
-  const known = CONSTANTS[token];
-  return known ?? Number(token);
-};
+test("G12: every copied value matches main's source (components, contexts, constants, content, models)", async () => {
+  expect(await oldUiDiffs(read, modelsPaneSchema)).toEqual([]);
+});
 
-const one = (text: string, re: RegExp): RegExpExecArray => {
-  const m = re.exec(text);
-  if (m === null) throw new Error(`main's source no longer matches ${re}`);
-  return m;
-};
+const MUTATIONS: readonly { name: string; path: string; from: string | RegExp; to: string }[] = [
+  {
+    name: "Bubble volatility step",
+    path: "components/input/volatility.tsx",
+    from: /\? 0\.005 :/,
+    to: "? 0.01 :",
+  },
+  {
+    name: "volatility max attr",
+    path: "components/input/volatility.tsx",
+    from: 'max="1"',
+    to: 'max="2"',
+  },
+  {
+    name: "volatility accept",
+    path: "components/input/volatility.tsx",
+    from: "next <= 1,",
+    to: "next <= 2,",
+  },
+  { name: "+/- step", path: "components/input/model.tsx", from: 'step=".1"', to: 'step=".5"' },
+  { name: "+/- min", path: "components/input/model.tsx", from: 'min="1.01"', to: 'min="1.5"' },
+  {
+    name: "+/- floor",
+    path: "components/input/model.tsx",
+    from: "value < 1.01",
+    to: "value < 1.5",
+  },
+  { name: "variable step", path: "components/input/model.tsx", from: 'step="1"', to: 'step="2"' },
+  {
+    name: "variable range filter removed",
+    path: "components/input/model.tsx",
+    from: "value <= modelMap[model].rangeMax && ",
+    to: "",
+  },
+  {
+    name: "default volatility",
+    path: "contexts/model.tsx",
+    from: "useState<number>(0.1)",
+    to: "useState<number>(0.2)",
+  },
+  {
+    name: "default walk",
+    path: "contexts/model.tsx",
+    from: 'useState<WalkTypes>("Bubble")',
+    to: 'useState<WalkTypes>("Random")',
+  },
+  {
+    name: "default clamp top",
+    path: "contexts/model.tsx",
+    from: "[clampTop, setClampTop] = useState<boolean>(false)",
+    to: "[clampTop, setClampTop] = useState<boolean>(true)",
+  },
+  {
+    name: "default samples constant",
+    path: "constants.ts",
+    from: "DEFAULT_SIMULATION_COUNT = 1000",
+    to: "DEFAULT_SIMULATION_COUNT = 2000",
+  },
+  {
+    name: "samples emptyValue",
+    path: "components/input/samples.tsx",
+    from: "emptyValue: 1000",
+    to: "emptyValue: 500",
+  },
+  {
+    name: "samples min attr",
+    path: "components/input/samples.tsx",
+    from: 'min="1"',
+    to: 'min="0"',
+  },
+  {
+    name: "epoch accept",
+    path: "components/input/epoch.tsx",
+    from: "next <= 100",
+    to: "next <= 30",
+  },
+  { name: "walk label", path: "content.ts", from: 'walk: "Walk Strategy:"', to: 'walk: "Walk:"' },
+  { name: "model title", path: "content.ts", from: 'model: "Model",', to: 'model: "Models",' },
+  {
+    name: "Historic rangeMax",
+    path: "data/models/historic.ts",
+    from: "rangeMax: 3,",
+    to: "rangeMax: 4,",
+  },
+  {
+    name: "Historic rangeMin",
+    path: "data/models/historic.ts",
+    from: "rangeMin: 2,",
+    to: "rangeMin: 1,",
+  },
+  {
+    name: "Historic default",
+    path: "data/models/historic.ts",
+    from: "default: 2,",
+    to: "default: 3,",
+  },
+  {
+    name: "Historic label",
+    path: "data/models/historic.ts",
+    from: '"Previous Halvings"',
+    to: '"Halvings"',
+  },
+  { name: "CAGR rangeMin", path: "data/models/cagr.ts", from: "rangeMin: 0,", to: "rangeMin: 1," },
+  {
+    name: "CAGR rangeMax",
+    path: "data/models/cagr.ts",
+    from: "rangeMax: Infinity,",
+    to: "rangeMax: 100,",
+  },
+  { name: "CAGR default", path: "data/models/cagr.ts", from: "default: 50,", to: "default: 40," },
+];
 
-const settled = (text: string) => {
-  const accept = one(text, /accept: \(next\) => next >= ([\w.]+) && next <= ([\w.]+)/);
-  const parse = one(text, /parse: (Number\.parseFloat|parseCanonicalInteger)/)[1];
-  const empty = /emptyValue: ([\w.]+)/.exec(text)?.[1];
-  return {
-    accept: { min: num(accept[1]), max: num(accept[2]) },
-    parse: parse === "parseCanonicalInteger" ? "int" : "float",
-    emptyValue: empty === undefined ? null : num(empty),
-  };
-};
-
-const attr = (text: string, name: string): number =>
-  num(
-    one(text, new RegExp(`\\b${name}=(?:"([\\w.]+)"|\\{([\\w.]+)\\})`))
-      .slice(1)
-      .find(Boolean),
-  );
-
-test("volatility, samples and epoch acceptance match main's useSettledNumber calls", async () => {
-  const vol = await src("components/input/volatility.tsx");
-  const samples = await src("components/input/samples.tsx");
-  const epoch = await src("components/input/epoch.tsx");
-  for (const [text, control] of [
-    [vol, c.volatility],
-    [samples, c.samples],
-    [epoch, c.epochs],
-  ] as const) {
-    const s = settled(text);
-    expect(control.accept).toEqual(s.accept);
-    expect(control.parse).toBe(s.parse);
-    expect(control.emptyValue).toBe(s.emptyValue);
-    expect(control.min).toBe(attr(text, "min"));
+test("G12 seeded mutations: each change to main's source turns the comparison red", async () => {
+  const green: string[] = [];
+  for (const m of MUTATIONS) {
+    const original = await read(m.path);
+    const mutated = original.replace(m.from, m.to);
+    expect({ seed: m.name, applied: mutated !== original }).toEqual({
+      seed: m.name,
+      applied: true,
+    });
+    const diffs = await oldUiDiffs(
+      (p) => (p === m.path ? Promise.resolve(mutated) : read(p)),
+      modelsPaneSchema,
+    );
+    if (diffs.length === 0) green.push(m.name);
   }
-  expect(c.volatility.max).toBe(attr(vol, "max"));
-  expect(c.samples.max).toBe(attr(samples, "max"));
-  expect(c.epochs.max).toBe(attr(epoch, "max"));
-  const step = one(vol, /walk === "(\w+)" \? ([\d.]+) : ([\d.]+)/);
-  expect(step[1]).toBe("Bubble");
-  expect(c.volatility.stepBubble).toBe(num(step[2]));
-  expect(c.volatility.stepOther).toBe(num(step[3]));
+  expect(green).toEqual([]);
 });
 
-test("model variable and +/- rules, steps and floor match main's model.tsx", async () => {
-  const model = await src("components/input/model.tsx");
-  one(model, /value <= modelMap\[model\]\.rangeMax && value >= modelMap\[model\]\.rangeMin/);
-  expect(c.variable.rule).toBe("live-range");
-  const floor = one(model, /if \(value < ([\d.]+)\) setMinMaxMultiple\(([\d.]+)\)/);
-  expect(c.minMaxMultiple.floor).toBe(num(floor[1]));
-  expect(c.minMaxMultiple.floor).toBe(num(floor[2]));
-  expect(c.minMaxMultiple.min).toBe(
-    num(one(model, /id="minMaxMultiple"[\s\S]*?min="([\d.]+)"/)[1]),
-  );
-  expect(c.minMaxMultiple.step).toBe(
-    Number(one(model, /id="minMaxMultiple"[\s\S]*?step="([\d.]+)"/)[1]),
-  );
-  expect(c.variable.step).toBe(num(one(model, /id="modelVariable"[\s\S]*?step="([\d.]+)"/)[1]));
-});
+/**
+ * Form ruling 1: the variable field ignores keystrokes outside the selected model's
+ * rangeMin…rangeMax (main's handleVariable condition, read from main's source and evaluated here),
+ * for Historic ("Previous Halvings", 2–3) and CAGR ("R (%)", 0–∞).
+ */
+const mainVariableAccept = async (): Promise<
+  (value: number, min: number, max: number) => boolean
+> => {
+  const text = await read("components/input/model.tsx");
+  // main: `if (value <= modelMap[model].rangeMax && value >= modelMap[model].rangeMin)`.
+  const m =
+    /if \(value (<=?) modelMap\[model\]\.rangeMax && value (>=?) modelMap\[model\]\.rangeMin\)/.exec(
+      text,
+    );
+  if (m === null) throw new Error("main's handleVariable condition moved");
+  const inclusiveMax = m[1] === "<=";
+  const inclusiveMin = m[2] === ">=";
+  return (v, min, max) =>
+    (inclusiveMax ? v <= max : v < max) && (inclusiveMin ? v >= min : v > min);
+};
 
-test("defaults and the default walk match main's ModelProvider useState calls", async () => {
-  const ctx = await src("contexts/model.tsx");
-  const state = (name: string): string =>
-    one(ctx, new RegExp(`\\[${name}, set\\w+\\] = useState<\\w+>\\(([^)]+)\\)`))[1] ?? "";
+const variableRun = (min: number, max: number, initial: number, steps: readonly string[]) => {
+  let value = initial;
+  const commits: number[] = [];
+  const field = createSettledNumber(initial, {
+    rule: { kind: "live", apply: (x) => (x <= max && x >= min ? x : undefined) },
+    parse: "float",
+    commit: (x) => {
+      commits.push(x);
+      value = x;
+    },
+    getValue: () => value,
+  });
+  const drafts = steps.map((s) => {
+    if (s === "<blur>") field.blur();
+    else field.change(s);
+    return field.draft();
+  });
+  return { commits, drafts, value };
+};
 
-  expect(modelsPaneSchema.defaultWalk).toBe(JSON.parse(state("walk")));
-  expect(c.minMaxMultiple.default).toBe(num(state("minMaxMultiple")));
-  expect(c.volatility.default).toBe(num(state("volatility")));
-  expect(c.variable.default).toBe(num(state("variable")));
-  expect(c.samples.default).toBe(num(state("samples")));
-  expect(c.epochs.default).toBe(num(state("epochCount")));
-  expect(c.clamp.topDefault).toBe(state("clampTop") === "true");
-  expect(c.clamp.bottomDefault).toBe(state("clampBottom") === "true");
-});
+for (const name of ["Historic", "CAGR"] as const) {
+  test(`${name} variable field: v2 accepts exactly what main's range condition accepts`, async () => {
+    const accept = await mainVariableAccept();
+    const row = modelsPaneSchema.models.find((m) => m.name === name);
+    if (row === undefined) throw new Error(`${name} missing`);
+    const min = row.rangeMin === "Infinity" ? Infinity : row.rangeMin;
+    const max = row.rangeMax === "Infinity" ? Infinity : row.rangeMax;
+    const seq = ["1", "2", "3", "4", "", "-1", "2.5", "NaN", "50", "1e3", "<blur>"];
+    const v2 = variableRun(min, max, row.default, seq);
+    // main: controlled input, value={variable}; a rejected keystroke leaves the committed value.
+    let value = row.default;
+    const commits: number[] = [];
+    const drafts = seq.map((s) => {
+      if (s !== "<blur>") {
+        const parsed = Number.parseFloat(s);
+        if (accept(parsed, min, max)) {
+          value = parsed;
+          commits.push(parsed);
+        }
+      }
+      return Number.isNaN(value) ? "" : String(value);
+    });
+    expect({ commits: v2.commits, drafts: v2.drafts }).toEqual({ commits, drafts });
+  });
+}
 
-test("labels come from main's content.ts (walk label included)", () => {
-  expect(c.walk.label).toBe(inputLabels.walk);
-  expect(c.volatility.label).toBe(inputLabels.vol);
-  expect(c.epochs.label).toBe(inputLabels.epoch);
-  expect(c.samples.label).toBe(inputLabels.samples);
+test("Historic keeps Previous Halvings inside 2–3; CAGR accepts any R ≥ 0", () => {
+  const h = variableRun(2, 3, 2, ["4", "1", "3", "<blur>"]);
+  expect(h.commits).toEqual([3]);
+  expect(h.value).toBe(3);
+  const cagr = variableRun(0, Infinity, 50, ["-5", "120", "<blur>"]);
+  expect(cagr.commits).toEqual([120]);
 });
 
 /** Form m7: our own Postel-liberal number parser in front of main's parse. */
@@ -270,4 +377,43 @@ test("int mode keeps main's canonical-integer rule", () => {
   expect(Number.isNaN(parseCanonicalIntegerV2("1.5"))).toBe(true);
   expect(Number.isNaN(parseNumber("NaN", "int"))).toBe(true);
   expect(parseNumber("10,000", "int")).toBe(10_000);
+});
+
+/**
+ * Form N1: the variable rule follows the CURRENT model, also when the field stays mounted (the
+ * controller reads options.rule at call time). Historic → CAGR → Historic; each model's own range,
+ * not main's first-model stale closure.
+ */
+const modelRule = (name: string): NumberRule => {
+  const row = modelsPaneSchema.models.find((m) => m.name === name);
+  if (row === undefined) throw new Error(name);
+  const lo = row.rangeMin === "Infinity" ? Infinity : row.rangeMin;
+  const hi = row.rangeMax === "Infinity" ? Infinity : row.rangeMax;
+  return { kind: "live" as const, apply: (x: number) => (x <= hi && x >= lo ? x : undefined) };
+};
+test("variable range follows the current model across Historic → CAGR → Historic", () => {
+  let value = 2;
+  const commits: number[] = [];
+  const options = {
+    rule: modelRule("Historic"),
+    parse: "float" as const,
+    commit: (x: number) => {
+      commits.push(x);
+      value = x;
+    },
+    getValue: () => value,
+  };
+  const field = createSettledNumber(2, options);
+  field.change("5");
+  field.change("9");
+  expect(commits).toEqual([]);
+  options.rule = modelRule("CAGR"); // switch while mounted
+  field.change("75");
+  field.change("0");
+  expect(commits).toEqual([75, 0]);
+  options.rule = modelRule("Historic");
+  field.change("5");
+  field.change("9");
+  field.change("3");
+  expect(commits).toEqual([75, 0, 3]);
 });

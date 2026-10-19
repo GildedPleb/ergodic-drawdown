@@ -10,11 +10,19 @@ export const TICK_ROW_STORIES = [
 ] as const;
 
 /**
- * Form B1: every Select, NumberField, LabelGlyphs, Amount and SectionLabel story plus the models
+ * Form B1 + N5: every TickToggle (tick-row), Select, NumberField, LabelGlyphs, Amount and SectionLabel story plus the models
  * pane, in both themes, at 390×844 and 1440×900, in Chromium and WebKit
  * (test/v2/story-coverage.test.ts fails if a story is missing here).
  */
 export const FIELD_STORIES = [
+  // Form N5: the 7 tick-row stories in both themes too.
+  "tick-row/default",
+  "tick-row/off",
+  "tick-row/on",
+  "tick-row/focus",
+  "tick-row/disabled",
+  "tick-row/long-text",
+  "tick-row/linen",
   "select/default",
   "select/focus",
   "select/disabled",
@@ -48,8 +56,12 @@ export const FIELD_STORIES = [
   "section-label/linen",
   "models-pane/default",
   "models-pane/emoji-walk",
+  "models-pane/linen",
 ] as const;
 
 export const FIELD_THEMES = ["dark", "linen"] as const;
 
 export const FIELD_VIEWPORTS = ["390x844", "1440x900"] as const;
+
+/** Form N2: the Models pane also runs in the 200% zoom and 200% OS-text projects. */
+export const ZOOM_STORIES = ["models-pane/default"] as const;

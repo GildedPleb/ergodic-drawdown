@@ -3,8 +3,8 @@
  *
  * All rounding is half-up on the decimal value (via 15 significant digits and BigInt), never on
  * binary floats, so `$9.995` rounds to `$10` and exactly half a sat rounds up to 1 sat.
- * The unit (sats / ₿ tenths, cents / dollars / k / M) is chosen after rounding, so `$999.5` → `$1k`
- * and `0.99999999` → `₿1`.
+ * The ₿ unit (sats / tenths) is chosen after rounding, so `0.99999999` → `₿1`. Dollars: cents only
+ * below $1, whole dollars below $10,000 (raw value), k/M at 3 significant figures from $10,000.
  *
  * Form G3 rulings (v2.2): zero is `₿0` / `$0`; no trailing `.0` (`₿1`, `₿13`, `$1`, `$1k`);
  * NaN / ±∞ is an em dash whose accessible name is "not available"; fonts-failed prefixes
@@ -97,13 +97,17 @@ const threeSig = (u: Dec, allowOver = false): string | undefined => {
   return fixed(n, decimals);
 };
 
-const usdBody = (d: Dec): string => {
+/**
+ * Form G3 (2026-10-19): cents only below $1 (2 decimals: `$0.45`); whole dollars from $1 up to
+ * (not including) $10,000, decided on the raw value (`$12`, `$1,040`, `$9,950`, `$9,999.99` →
+ * `$10,000`, never `$10k`); from $10,000, k/M at 3 significant figures (`$85.4k`, `$1.23M`).
+ */
+const usdBody = (d: Dec, raw: number): string => {
   const cents = roundTo(d, 2);
   if (cents === 0n) return "<$0.01";
-  if (cents < 1_000n) return `$${fixed(cents, 2, cents % 100n !== 0n)}`;
-  const dollars = roundTo(d, 0);
-  if (dollars < 1_000n) return `$${dollars.toString()}`;
-  // k and M: 3 significant figures ($85,400 → $85.4k); the unit is chosen after rounding.
+  if (raw < 1) return cents < 100n ? `$${fixed(cents, 2, true)}` : "$1";
+  if (raw < 10_000) return `$${group(roundTo(d, 0).toString())}`;
+  // k and M: 3 significant figures; the unit is chosen after rounding ($999,950 → $1M).
   const k = threeSig({ digits: d.digits, exp: d.exp - 3 });
   if (k !== undefined) return `$${k}k`;
   return `$${threeSig({ digits: d.digits, exp: d.exp - 6 }, true) ?? ""}M`;
@@ -112,25 +116,41 @@ const usdBody = (d: Dec): string => {
 export const fmtUSD = (x: number): string => {
   if (!Number.isFinite(x)) return EM;
   if (x === 0) return "$0";
-  const body = usdBody(toDec(Math.abs(x)));
+  const body = usdBody(toDec(Math.abs(x)), Math.abs(x));
   return x < 0 && !body.startsWith("<") ? `${MINUS}${body}` : body;
 };
 
 /**
- * Both ends share the precision of the wider end (BOOK §5): `₿0.4–1.3`, not `₿0.42–1.3`.
- * Same sign: one prefix, en dash, no spaces, number-line order: `₿0.4–0.7`, `−₿0.7–0.4` (one sign
- * covers both, larger magnitude first). Equal ends collapse to one value. Crossing zero: the word
- * "to" with ₿ repeated, `−₿0.4 to ₿0.7`, never an en dash beside a minus.
+ * Ranges (BOOK §5, Form G3 ruling 2):
+ * - Crossing zero is decided from the RAW values, before rounding; a crossing range always uses
+ *   the word "to" with ₿ repeated: `−₿0.4 to ₿0.7`, never an en dash beside a minus.
+ * - Both ends share the wider end's precision (`₿0.4–1.3`), except that a non-zero end which
+ *   would round to 0 keeps its own significant digits, capped at sat precision:
+ *   `−₿0.0021 to ₿0.42`, `₿0.0021–0.42`.
+ * - A same-sign end below sat precision stays compact as 0: `₿0–0.7`.
+ * - Same sign: one prefix, en dash, no spaces, number-line order: `₿0.4–0.7`, `−₿0.7–0.4` (one sign
+ *   covers both; the spoken name repeats it). Equal ends collapse to one value.
  */
 export const fmtBTCRange = (low: number, high: number, options?: FormatOptions): string => {
   if (!Number.isFinite(low) || !Number.isFinite(high)) return EM;
   const [lo, hi] = low <= high ? [low, high] : [high, low];
   const prefix = btcPrefix(options);
+  const crosses = lo < 0 && hi > 0;
   const wide = toDec(Math.max(Math.abs(lo), Math.abs(hi)));
   const shared =
     options?.detail === true || roundTo(wide, 8) === 0n ? undefined : btcDecimals(wide);
-  const a = shared === undefined ? fmtBTC(lo, options) : btcAt(lo, shared, prefix);
-  const b = shared === undefined ? fmtBTC(hi, options) : btcAt(hi, shared, prefix);
+  const end = (x: number): string => {
+    if (shared === undefined || x === 0) return fmtBTC(x, options);
+    const d = toDec(Math.abs(x));
+    if (roundTo(d, shared) !== 0n) return btcAt(x, shared, prefix);
+    // Would round to 0 at the shared precision: own significant digits, capped at sats.
+    if (roundTo(d, 8) !== 0n) return fmtBTC(x, options);
+    // Same sign: compact, keeping the shared sign so the range stays one-signed (−₿0.7–0).
+    return crosses ? fmtBTC(x, options) : `${x < 0 ? MINUS : ""}${prefix}0`;
+  };
+  const a = end(lo);
+  const b = end(hi);
+  if (crosses) return `${a} to ${b}`;
   if (a === b) return a;
   const negA = a.startsWith(MINUS);
   const negB = b.startsWith(MINUS);
@@ -164,10 +184,20 @@ export const nameBTC = (x: number, options?: Pick<FormatOptions, "detail">): str
     ? speakBtc(fmtBTC(x, { detail: options?.detail === true }), BTC)
     : NOT_AVAILABLE;
 
-export const nameBTCRange = (low: number, high: number): string =>
-  Number.isFinite(low) && Number.isFinite(high)
-    ? speakBtc(fmtBTCRange(low, high), BTC)
-    : NOT_AVAILABLE;
+/**
+ * Spoken range, in step with the display but never ambiguous: a same-sign negative range repeats
+ * the sign ("minus bitcoin 0.7 to minus 0.4"), so it cannot be heard as −0.7 to +0.4 (Probe m2).
+ */
+export const nameBTCRange = (low: number, high: number): string => {
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return NOT_AVAILABLE;
+  const shown = fmtBTCRange(low, high);
+  const lead = MINUS + BTC;
+  if (shown.startsWith(lead) && shown.includes(EN)) {
+    const [from = "", to = ""] = shown.slice(lead.length).split(EN);
+    return `minus bitcoin ${from} to minus ${to}`;
+  }
+  return speakBtc(shown, BTC);
+};
 
 /** Accessible name for a $ amount; NaN / ±∞ → "not available". */
 export const nameUSD = (x: number): string =>

@@ -13,6 +13,11 @@
     vertical-align: baseline;
   }
 
+  /* Form N7: no trailing gap after the last dot. */
+  .dot:last-child {
+    padding-inline-end: 0;
+  }
+
   .dot[data-tone="up"] {
     fill: var(--walk-up);
   }

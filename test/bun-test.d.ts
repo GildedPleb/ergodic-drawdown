@@ -40,3 +40,11 @@ declare module "bun:test" {
 declare module "node:zlib" {
   export function brotliDecompressSync(buffer: Uint8Array): Uint8Array;
 }
+
+declare module "node:child_process" {
+  export function spawnSync(
+    command: string,
+    args: readonly string[],
+    options: { cwd?: string; encoding: "utf8" },
+  ): { status: number | null; stdout: string };
+}
