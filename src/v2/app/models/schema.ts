@@ -4,7 +4,6 @@
 import { buildOldUiModelsSnapshot, type ModelsPaneSnapshot } from "./from-old-ui";
 
 export type { ModelsPaneSnapshot };
-export { buildOldUiModelsSnapshot };
 
 /** Canonical v2 Models pane option set + defaults. */
 export const modelsPaneSchema: ModelsPaneSnapshot = buildOldUiModelsSnapshot();

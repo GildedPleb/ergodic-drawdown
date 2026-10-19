@@ -3,7 +3,6 @@ import { useId } from "react";
 
 import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
-import { focusNextOnEnter } from "../NumberField/enter";
 import styles from "./Select.module.css";
 
 /** R7: variant keys and values. */
@@ -115,7 +114,6 @@ export const Select = ({
           disabled={disabled}
           value={value}
           onChange={handle}
-          onKeyDown={focusNextOnEnter}
         >
           {items.map((o) => (
             <option key={o.value} value={o.value}>

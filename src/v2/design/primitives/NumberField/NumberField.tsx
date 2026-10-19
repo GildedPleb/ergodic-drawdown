@@ -3,228 +3,232 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
-import { focusNextOnEnter } from "./enter";
-import styles from "./NumberField.module.css";
 import {
-  createSettledNumber,
+  type Bounds,
   type NumberParse,
   parseNumber,
-  type NumberRule,
-  type SettleController,
-  type SettleOptions,
-} from "./settle";
+  resolveEntry,
+  showNumber,
+  stepValue,
+} from "./entry";
+import styles from "./NumberField.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
   invalid: ["true", "false"] as const,
   disabled: ["true", "false"] as const,
+  label: ["visible", "hidden"] as const,
 };
-
-export type { NumberRule } from "./settle";
 
 export type NumberFieldProps = {
   label: string;
-  /** The committed value (the app state). */
+  /** The row above already shows the label (a ledger row editor): keep it for assistive tech only. */
+  labelHidden?: boolean;
+  /** The committed value (app state). Only in-range, finite values ever reach `onCommit`. */
   value: number;
-  /** Called with each value main would commit (see settle.ts). */
   onCommit?: (next: number) => void;
-  /** main's acceptance rule for this field. Default: settle, accept every number. */
-  rule?: NumberRule;
-  /** "float" (parseFloat) or "int" (main's canonical integer). */
+  /** "float" or "int" (whole numbers only). */
   parse?: NumberParse;
-  /** Bounds and step for arrow keys and aria-value*; acceptance is the rule's job. */
-  min?: number | undefined;
-  max?: number | undefined;
-  step?: number | undefined;
-  id?: string | undefined;
-  name?: string | undefined;
-  autoComplete?: string | undefined;
-  disabled?: boolean;
-  /** Force the Invalid state (otherwise it follows a rejected draft). */
-  invalid?: boolean;
-  /**
-   * Plain-language message shown with ⚠ while invalid: the cause, the next step and the
-   * reassurance. A function receives the value still in use. Wired with aria-describedby.
-   */
-  error?: string | ((current: number) => string) | undefined;
+  /** The back end's accepted range, read on every commit (a model switch takes effect at once). */
+  bounds?: Bounds;
+  /** What an empty field commits; null: empty is invalid. */
+  emptyValue?: number | null;
+  /** Arrow-key step (PgUp/PgDn step ×10). */
+  step?: number;
+  /** Message after a clamp, e.g. "Volatility goes from 0 to 1. We used 1." */
+  clampMessage?: (used: number, bounds: Bounds) => string;
+  /** Message for unparseable text: cause → what to enter → reassurance (gets the value in use). */
+  invalidMessage?: (current: number) => string;
   /** Caption under the field (e.g. "(~40 years)"). */
   hint?: string | undefined;
-  /** Text already typed at mount (stories and tests: show a draft such as a rejected "4"). */
+  id?: string | undefined;
+  disabled?: boolean;
+  /** Stories and tests: text typed after mount, then committed (e.g. "abc" or "4"). */
   initialText?: string | undefined;
 };
 
-const finite = (n: number | undefined): number | undefined =>
-  n !== undefined && Number.isFinite(n) ? n : undefined;
+const STEP_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown"]);
+const ANY: Bounds = { min: Number.NEGATIVE_INFINITY, max: Number.POSITIVE_INFINITY };
+const finite = (n: number): number | undefined => (Number.isFinite(n) ? n : undefined);
 
-const decimalsOf = (n: number): number => {
-  const s = String(n);
-  const dot = s.indexOf(".");
-  return dot === -1 ? 0 : s.length - dot - 1;
-};
+type Status = { kind: "ok" } | { kind: "clamped"; used: number } | { kind: "invalid" };
 
 /**
- * A text input (m7: inputMode keypads, no browser spinners, our own Postel-liberal parser) with
- * spinbutton semantics and arrow-key steps, committing exactly what main's inputs commit (B3).
+ * A number field that passes Probe's M3 / FL-001 gate (V32-BUILD §1g): typing edits a draft and
+ * never commits; Enter, blur, or releasing a held step key commits once; out-of-range values clamp
+ * to the nearest bound with a visible, politely announced message; unparseable text shows the
+ * invalid state (no orange or red) and keeps the last valid value; the wheel acts only with focus.
  */
 export const NumberField = ({
   label,
+  labelHidden = false,
   value,
   onCommit,
-  rule = { kind: "settle", accept: () => true },
   parse = "float",
-  min,
-  max,
+  bounds = ANY,
+  emptyValue = null,
   step,
-  id,
-  name,
-  autoComplete = "off",
-  disabled = false,
-  invalid,
-  error,
+  clampMessage,
+  invalidMessage,
   hint,
+  id,
+  disabled = false,
   initialText,
 }: NumberFieldProps): JSX.Element => {
-  const root = styles["root"] ?? "number-root";
-  const labelCls = styles["label"] ?? "number-label";
-  const field = styles["field"] ?? "number-field";
-  const control = styles["control"] ?? "number-control";
-  const hintCls = styles["hint"] ?? "number-hint";
-  const errorIcon = styles["errorIcon"] ?? "field-error-icon";
-  const errorCls = styles["error"] ?? "number-error";
-
   const autoId = useId();
   const controlId = id ?? `number-${autoId}`;
-  const errorId = `${controlId}-error`;
+  const messageId = `${controlId}-message`;
   const hintId = `${controlId}-hint`;
 
-  const valueRef = useRef(value);
-  valueRef.current = value;
-  const options = useRef<SettleOptions>({
-    rule,
-    parse,
-    commit: (n) => onCommit?.(n),
-    getValue: () => valueRef.current,
-  });
-  options.current.rule = rule;
-  options.current.parse = parse;
-  options.current.commit = (n) => onCommit?.(n);
-  const controller = useRef<SettleController | null>(null);
-  if (controller.current === null) {
-    controller.current = createSettledNumber(value, options.current);
-    if (initialText !== undefined) controller.current.change(initialText);
-  }
-  const settle = controller.current;
-  const [draft, setDraft] = useState(() => settle.draft());
+  const input = useRef<HTMLInputElement | null>(null);
+  const [draft, setDraft] = useState(() => showNumber(value));
+  const [status, setStatus] = useState<Status>({ kind: "ok" });
+  const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value });
+  live.current = { bounds, draft, emptyValue, onCommit, parse, step, value };
   const held = useRef(false);
-  const [rejected, setRejected] = useState(() => settle.rejected());
+
+  const commit = (text: string): void => {
+    const now = live.current;
+    const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue);
+    if (result.kind === "invalid") {
+      setStatus({ kind: "invalid" });
+      return;
+    }
+    if (result.value !== now.value) now.onCommit?.(result.value);
+    setDraft(showNumber(result.value));
+    setStatus(result.kind === "clamped" ? { kind: "clamped", used: result.value } : { kind: "ok" });
+  };
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+
+  const stepFrom = (direction: 1 | -1, big: boolean): string | undefined => {
+    const now = live.current;
+    if (now.step === undefined) return undefined;
+    const shown = parseNumber(now.draft, now.parse);
+    const base = Number.isNaN(shown) ? now.value : shown;
+    return showNumber(stepValue(base, direction, now.step, now.bounds, big));
+  };
+
+  // The engine value changed elsewhere (a model switch resets the variable): show it unless the
+  // person is mid-edit in this field.
+  useEffect(() => {
+    if (document.activeElement === input.current) return;
+    setDraft(showNumber(value));
+  }, [value]);
 
   useEffect(() => {
-    settle.sync(value);
-    setDraft(settle.draft());
-    setRejected(settle.rejected());
-  }, [settle, value]);
+    if (initialText !== undefined) commitRef.current(initialText);
+  }, [initialText]);
 
-  const refresh = (): void => {
-    setDraft(settle.draft());
-    setRejected(settle.rejected());
-  };
-  const change = (text: string): void => {
-    settle.change(text);
-    refresh();
-  };
-  const blur = (): void => {
-    held.current = false;
-    settle.blur();
-    refresh();
-  };
+  // React's onWheel is passive; a native listener can cancel the scroll, and only with focus.
+  useEffect(() => {
+    const element = input.current;
+    if (element === null) return undefined;
+    const onWheel = (event: WheelEvent): void => {
+      if (document.activeElement !== element || event.deltaY === 0) return;
+      event.preventDefault();
+      const text = stepFrom(event.deltaY < 0 ? 1 : -1, false);
+      if (text !== undefined) commitRef.current(text);
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      element.removeEventListener("wheel", onWheel);
+    };
+  });
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "Enter") {
-      blur();
-      focusNextOnEnter(event);
+      commit(draft);
       return;
     }
-    if ((event.key === "ArrowUp" || event.key === "ArrowDown") && step !== undefined) {
-      event.preventDefault();
-      // FL-001: a held key steps the visible draft but commits once, on release (onKeyUp).
-      const shown = parseNumber(settle.draft(), parse);
-      const current = event.repeat && Number.isFinite(shown) ? shown : valueRef.current;
-      const base = Number.isNaN(current) ? (min ?? 0) : current;
-      let next = base + (event.key === "ArrowUp" ? step : -step);
-      if (max !== undefined) next = Math.min(max, next);
-      if (min !== undefined) next = Math.max(min, next);
-      const text = next.toFixed(Math.max(decimalsOf(step), decimalsOf(base)));
-      if (event.repeat) {
-        held.current = true;
-        settle.preview(text);
-        refresh();
-      } else {
-        change(text);
-      }
+    if (event.key === "Escape") {
+      setDraft(showNumber(value));
+      setStatus({ kind: "ok" });
+      return;
     }
+    if (!STEP_KEYS.has(event.key)) return;
+    event.preventDefault();
+    const up = event.key === "ArrowUp" || event.key === "PageUp";
+    const text = stepFrom(up ? 1 : -1, event.key.startsWith("Page"));
+    if (text === undefined) return;
+    // FL-001: a held key steps the visible draft only; the value commits once, on release.
+    held.current = true;
+    setDraft(text);
   };
 
   const onKeyUp = (event: KeyboardEvent<HTMLInputElement>): void => {
-    if ((event.key === "ArrowUp" || event.key === "ArrowDown") && held.current) {
-      held.current = false;
-      change(settle.draft());
-    }
+    if (!STEP_KEYS.has(event.key) || !held.current) return;
+    held.current = false;
+    commit(live.current.draft);
   };
 
-  const isInvalid = invalid ?? rejected;
-  const message = typeof error === "function" ? error(value) : error;
-  const showError = isInvalid && message !== undefined;
-  const describedBy =
-    [hint === undefined ? "" : hintId, showError ? errorId : ""].filter(Boolean).join(" ") ||
-    undefined;
+  const invalid = status.kind === "invalid";
+  let message = "";
+  if (status.kind === "invalid") message = invalidMessage?.(value) ?? "";
+  if (status.kind === "clamped") message = clampMessage?.(status.used, bounds) ?? "";
+  const describedBy = [hint === undefined ? "" : hintId, message === "" ? "" : messageId]
+    .filter(Boolean)
+    .join(" ");
+
+  const labelElement = (
+    <label className={styles["label"]} htmlFor={controlId}>
+      <LabelGlyphs text={label} />
+    </label>
+  );
+  const hintElement = (
+    <span className={styles["hint"]} id={hintId}>
+      {hint}
+    </span>
+  );
+  const icon = (
+    <span className={styles["errorIcon"]}>
+      <Icon name="warning" />
+    </span>
+  );
 
   return (
     <div
-      className={root}
-      data-invalid={isInvalid ? "true" : "false"}
+      className={styles["root"]}
+      data-invalid={invalid ? "true" : "false"}
       data-disabled={disabled ? "true" : "false"}
+      data-label={labelHidden ? "hidden" : "visible"}
     >
-      <label className={labelCls} htmlFor={controlId}>
-        <LabelGlyphs text={label} />
-      </label>
-      <div className={field}>
+      {labelHidden ? null : labelElement}
+      <div className={styles["field"]}>
         <input
-          className={control}
+          ref={input}
+          className={styles["control"]}
           id={controlId}
-          name={name}
           type="text"
           role="spinbutton"
           inputMode={parse === "int" ? "numeric" : "decimal"}
-          autoComplete={autoComplete}
+          autoComplete="off"
           spellCheck={false}
-          aria-valuenow={Number.isFinite(value) ? value : undefined}
-          aria-valuemin={finite(min)}
-          aria-valuemax={finite(max)}
+          aria-label={labelHidden ? label : undefined}
+          aria-valuenow={finite(value)}
+          aria-valuemin={finite(bounds.min)}
+          aria-valuemax={finite(bounds.max)}
           value={draft}
           disabled={disabled}
-          aria-invalid={isInvalid ? true : undefined}
-          aria-describedby={describedBy}
+          aria-invalid={invalid ? true : undefined}
+          aria-describedby={describedBy === "" ? undefined : describedBy}
           onChange={(event) => {
-            change(event.target.value);
+            setDraft(event.target.value);
           }}
-          onBlur={blur}
+          onBlur={() => {
+            held.current = false;
+            if (draft !== showNumber(value) || status.kind === "invalid") commit(draft);
+          }}
           onKeyDown={onKeyDown}
           onKeyUp={onKeyUp}
         />
-        {hint === undefined ? null : (
-          <span className={hintCls} id={hintId}>
-            {hint}
-          </span>
-        )}
+        {hint === undefined ? null : hintElement}
       </div>
-      {showError ? (
-        <span className={errorCls} id={errorId}>
-          <span className={errorIcon}>
-            <Icon name="warning" />
-          </span>
-          <span>{message}</span>
-        </span>
-      ) : null}
+      {/* Always mounted so a clamp or invalid message is announced politely when it appears. */}
+      <p className={styles["message"]} id={messageId} aria-live="polite">
+        {invalid && message !== "" ? icon : null}
+        {message}
+      </p>
     </div>
   );
 };

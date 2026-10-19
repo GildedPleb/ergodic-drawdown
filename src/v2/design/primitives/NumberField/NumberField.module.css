@@ -1,9 +1,8 @@
 @layer primitives {
-  /* One field column (m5): label | field, hint captioned under the field, error full width. */
+  /* One field column (m5): label | field; the message spans both. */
   .root {
     display: grid;
     flex: 1 1 auto;
-    grid-template-columns: minmax(0, 1fr) var(--field-col);
     align-items: center;
     column-gap: var(--s-3);
     row-gap: var(--s-1);
@@ -11,7 +10,16 @@
     color: var(--text);
   }
 
-  /* M1: row labels are EB Garamond 400 at --t-row. */
+  .root[data-label="visible"] {
+    grid-template-columns: minmax(0, 1fr) var(--field-col);
+  }
+
+  /* In a ledger-row editor the row shows the label; the input carries it as its name. */
+  .root[data-label="hidden"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* M1: row labels are EB Garamond 400 at --t-row; words wrap whole (Form N2). */
   .label {
     min-inline-size: 0;
     color: var(--text-muted);
@@ -19,7 +27,6 @@
     font-size: var(--t-row);
     font-weight: 400;
     line-height: var(--lh-row);
-    /* Form N2: words wrap whole, never one letter per line. */
     overflow-wrap: normal;
   }
 
@@ -29,7 +36,7 @@
     min-inline-size: 0;
   }
 
-  /* M1: values are Jost 500 at --t-value, lining + tabular. m10: fields fill --surface. */
+  /* M1: values are Jost 500 at --t-value, lining + tabular. */
   .control {
     inline-size: 100%;
     min-block-size: var(--hit);
@@ -51,7 +58,6 @@
     outline-offset: var(--focus-offset);
   }
 
-  /* M6: the caption is live text, so --text-muted. */
   .hint {
     color: var(--text-muted);
     font-family: var(--f-sans);
@@ -60,9 +66,10 @@
     text-align: end;
   }
 
-  /* M2: invalid is never a colour signal: a strong full-contrast rule + ⚠ + message. */
+  /* §1g: invalid is never a colour signal: --invalid text, a 3px rule in --invalid, ⚠ + message. */
   .root[data-invalid="true"] .control {
     border: var(--rule-strong) solid var(--invalid);
+    color: var(--invalid);
   }
 
   .root[data-invalid="false"] .control {
@@ -80,15 +87,20 @@
     cursor: text;
   }
 
-  .error {
+  .message {
     display: flex;
     grid-column: 1 / -1;
     align-items: flex-start;
     gap: var(--s-1);
-    color: var(--invalid);
+    color: var(--text);
     font-family: var(--f-sans);
     font-size: var(--t-small);
     font-weight: 500;
+    line-height: var(--lh-caption);
+  }
+
+  .message:empty {
+    display: none;
   }
 
   .errorIcon {
@@ -96,8 +108,7 @@
     flex: none;
   }
 
-  /* Form N2: in a narrow container (the Models pane at 200% zoom) the label stacks above the
-     full-width field. 16rem tracks the root size, so OS text at 200% stacks too. */
+  /* Form N2 / §1i: below 16rem of pane width the label stacks above the field. */
   @container (max-width: 16rem) {
     .root {
       grid-template-columns: minmax(0, 1fr);

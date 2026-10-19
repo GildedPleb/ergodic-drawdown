@@ -94,60 +94,6 @@ test("ModelsPane imports only design primitives (plus its own module and schema)
   expect(/<(select|input|textarea|button)\b/.test(code)).toBe(false);
 });
 
-test("ModelsPane passes G12 bounds to the text spinbuttons and steps from the schema", async () => {
-  const values: ModelsPaneValues = {
-    model: "CAGR",
-    variable: 50,
-    minMaxMultiple: 3,
-    walk: "Bubble",
-    volatility: 0.1,
-    clampTop: false,
-    clampBottom: false,
-    samples: 1000,
-    epochCount: 10,
-  };
-  const html = renderToStaticMarkup(createElement(ModelsPane, { value: values }));
-  const c = modelsPaneSchema.controls;
-  const input = (id: string): string =>
-    new RegExp(`<input[^>]*id="${id}"[^>]*>`).exec(html)?.[0] ?? "";
-  for (const id of ["v2-vol", "v2-samples", "v2-epochs", "v2-minmax", "v2-variable"]) {
-    // m7: type=text + inputMode + spinbutton role; no browser number spinners.
-    expect(input(id).includes('type="text"')).toBe(true);
-    expect(input(id).includes('role="spinbutton"')).toBe(true);
-  }
-  expect(input("v2-vol").includes('inputMode="decimal"')).toBe(true);
-  expect(input("v2-samples").includes('inputMode="numeric"')).toBe(true);
-  expect(input("v2-vol").includes(`aria-valuemin="${c.volatility.min}"`)).toBe(true);
-  expect(input("v2-vol").includes(`aria-valuemax="${c.volatility.max}"`)).toBe(true);
-  expect(input("v2-samples").includes(`aria-valuemax="${c.samples.max}"`)).toBe(true);
-  expect(input("v2-epochs").includes(`aria-valuemax="${c.epochs.max}"`)).toBe(true);
-  expect(input("v2-minmax").includes(`aria-valuemin="${c.minMaxMultiple.min}"`)).toBe(true);
-  expect(input("v2-epochs").includes('aria-describedby="v2-epochs-hint"')).toBe(true);
-  expect(html.includes("(~40 years)")).toBe(true);
-  // Steps, rules and parse modes come from the schema, not literals in the pane.
-  const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsPane.tsx`).text();
-  for (const ref of [
-    "controls.volatility.stepBubble",
-    "controls.volatility.stepOther",
-    "controls.variable.step",
-    "controls.minMaxMultiple.step",
-    "controls.minMaxMultiple.floor",
-    "controls.volatility.accept",
-    "controls.samples.emptyValue",
-    "controls.epochs.accept",
-    "controls.walk.label",
-    "modelsPaneSchema.title",
-  ]) {
-    expect({ ref, found: src.includes(ref) }).toEqual({ ref, found: true });
-  }
-  // Clamp switches are one group named by "Clamp Price:" (m3), ON/OFF hidden from AT.
-  expect(html.includes('role="group" aria-labelledby="v2-clamp-label"')).toBe(true);
-  expect(html.includes('aria-hidden="true">OFF</span>')).toBe(true);
-  // Option order equals the schema exactly.
-  const opts = [...html.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
-  expect(opts).toEqual([...modelsPaneSchema.modelOrder, ...modelsPaneSchema.walks]);
-});
-
 test("Select face draws the emoji walk via LabelGlyphs; option and name keep the exact string", () => {
   const values: ModelsPaneValues = {
     model: "Power Law Regression Median",

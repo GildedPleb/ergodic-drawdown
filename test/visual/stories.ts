@@ -35,6 +35,7 @@ export const FIELD_STORIES = [
   "number-field/focus",
   "number-field/disabled",
   "number-field/invalid",
+  "number-field/clamped",
   "number-field/long-text",
   "number-field/emoji-label",
   "number-field/linen",

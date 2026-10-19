@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { useMemo, useState } from "react";
 
-import { NumberField, type NumberRule } from "../../design/primitives/NumberField";
+import { NumberField } from "../../design/primitives/NumberField";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Select } from "../../design/primitives/Select";
 import { TickToggle } from "../../design/primitives/TickToggle";
@@ -37,22 +37,6 @@ const defaultsFromSchema = (): ModelsPaneValues => ({
 /** Old-UI "Infinity" bounds mean no bound. */
 const bound = (v: number | string | undefined): number | undefined =>
   v === undefined || v === "Infinity" || v === "-Infinity" ? undefined : Number(v);
-
-/** main's useSettledNumber acceptance, from the G12 schema (B3). */
-const settle = (accept: { min: number; max: number }, emptyValue: number | null): NumberRule => ({
-  kind: "settle",
-  accept: (n) => n >= accept.min && n <= accept.max,
-  emptyValue,
-});
-
-const VOL_RULE = settle(controls.volatility.accept, controls.volatility.emptyValue);
-const EPOCH_RULE = settle(controls.epochs.accept, controls.epochs.emptyValue);
-const SAMPLE_RULE = settle(controls.samples.accept, controls.samples.emptyValue);
-/** main's +/-: below the floor commits the floor; anything else (NaN included) commits as typed. */
-const MINMAX_RULE: NumberRule = {
-  kind: "live",
-  apply: (n) => (n < controls.minMaxMultiple.floor ? controls.minMaxMultiple.floor : n),
-};
 
 const int = (n: number): string => n.toLocaleString("en-US");
 
@@ -104,18 +88,6 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
   );
   const rangeMin = bound(modelMeta?.rangeMin);
   const rangeMax = bound(modelMeta?.rangeMax);
-  /** main's model variable: keystrokes outside rangeMin…rangeMax are ignored. */
-  const variableRule = useMemo<NumberRule>(
-    () => ({
-      kind: "live",
-      apply: (n) =>
-        n <= (rangeMax ?? Number.POSITIVE_INFINITY) && n >= (rangeMin ?? Number.NEGATIVE_INFINITY)
-          ? n
-          : undefined,
-    }),
-    [rangeMin, rangeMax],
-  );
-
   const showVariable = modelMeta?.showVariable === true;
   const showMinMax = modelMeta?.showMinMaxMultiple === true;
   const volStep =
@@ -157,9 +129,10 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
             id="v2-variable"
             label={modelMeta?.varInput ?? ""}
             step={controls.variable.step}
-            min={rangeMin}
-            max={rangeMax}
-            rule={variableRule}
+            bounds={{
+              min: rangeMin ?? Number.NEGATIVE_INFINITY,
+              max: rangeMax ?? Number.POSITIVE_INFINITY,
+            }}
             parse={controls.variable.parse}
             value={values.variable}
             onCommit={(n) => {
@@ -172,8 +145,7 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
             id="v2-minmax"
             label="+/-"
             step={controls.minMaxMultiple.step}
-            min={controls.minMaxMultiple.min}
-            rule={MINMAX_RULE}
+            bounds={{ min: controls.minMaxMultiple.floor, max: Number.POSITIVE_INFINITY }}
             parse={controls.minMaxMultiple.parse}
             value={values.minMaxMultiple}
             onCommit={(n) => {
@@ -217,12 +189,11 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
         <NumberField
           id="v2-vol"
           label={controls.volatility.label}
-          min={controls.volatility.min}
-          max={controls.volatility.max}
+          bounds={controls.volatility.accept}
+          emptyValue={controls.volatility.emptyValue}
           step={volStep}
-          rule={VOL_RULE}
           parse={controls.volatility.parse}
-          error={volError}
+          invalidMessage={volError}
           value={values.volatility}
           onCommit={(n) => {
             set({ volatility: n });
@@ -232,12 +203,11 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
         <NumberField
           id="v2-epochs"
           label={controls.epochs.label}
-          min={controls.epochs.min}
-          max={controls.epochs.max}
+          bounds={controls.epochs.accept}
+          emptyValue={controls.epochs.emptyValue}
           step={1}
-          rule={EPOCH_RULE}
           parse={controls.epochs.parse}
-          error={epochError}
+          invalidMessage={epochError}
           hint={`(~${years} years)`}
           value={values.epochCount}
           onCommit={(n) => {
@@ -248,12 +218,11 @@ export const ModelsPane = ({ value, initial, onChange }: ModelsPaneProps): JSX.E
         <NumberField
           id="v2-samples"
           label={controls.samples.label}
-          min={controls.samples.min}
-          max={controls.samples.max}
+          bounds={controls.samples.accept}
+          emptyValue={controls.samples.emptyValue}
           step={1}
-          rule={SAMPLE_RULE}
           parse={controls.samples.parse}
-          error={sampleError}
+          invalidMessage={sampleError}
           value={values.samples}
           onCommit={(n) => {
             set({ samples: n });
