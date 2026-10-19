@@ -8,8 +8,9 @@
 import { fmtUSD } from "../../design/format/money";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
-import { bandRange, endValue, outOfRange } from "./bands";
+import { bandRange, endValue, firstPastTop, outOfRange } from "./bands";
 import {
+  coverTop,
   DEFAULT_DOMAIN,
   fitDomain,
   axisTicks,
@@ -63,6 +64,8 @@ export type Paint = {
   /** p5 / p95 hairline edge: alpha and width. */
   edgeAlpha: number;
   edge: number;
+  /** --t-chart-serif in px: the end label's em (its plate pads 0.25em 0.5em). */
+  serifPx: number;
   median: number;
   casing: number;
   chart: string;
@@ -103,6 +106,7 @@ export const readPaint = (canvas: Element): Paint => {
     // margin (R = W−44) and would clip.
     chart: `500 ${remPx(v("--t-chart"), root)}px ${sans}`,
     serif: `italic 400 ${remPx(v("--t-chart-serif"), root)}px ${v("--f-text")}`,
+    serifPx: remPx(v("--t-chart-serif"), root) || 13,
     section: `600 ${remPx(v("--t-section"), root)}px ${sans}`,
   };
 };
@@ -118,8 +122,10 @@ const trace = (
   const n = band.length;
   for (let k = 0; k < n; k++) {
     const i = reverse ? n - 1 - k : k;
-    const v = band[i] ?? domain.lo;
-    x.lineTo(lx(i, box, horizon), ly(Math.max(v, domain.lo / 10), box, domain));
+    const v = band[i] ?? Number.NaN;
+    // n10: a value past what a double holds (Infinity / NaN) is clipped at the plot's top edge.
+    const y = Number.isFinite(v) ? ly(Math.max(v, domain.lo / 10), box, domain) : box.T;
+    x.lineTo(lx(i, box, horizon), Math.max(box.T, y));
   }
 };
 
@@ -230,6 +236,88 @@ export const endLabelAt = (
   };
 };
 
+/**
+ * The end label, anchored to the end of the median (§1b line 124). Out of range (n10), the caption
+ * goes on the line under it; when the end itself ran past a double there is no number to show, so
+ * the caption stands alone at the top right. Top-right placements (m7) sit on an opaque square
+ * plate in --surface, padded 0.25em 0.5em, drawn over the band, so the band passes behind them.
+ */
+const drawEndLabel = (
+  x: Ctx2D,
+  p: Paint,
+  {
+    box,
+    domain,
+    horizon,
+    short,
+  }: { box: PlotBox; domain: LogDomain; horizon: number; short: boolean },
+  bands: PriceBands,
+  overflow: boolean,
+): void => {
+  const mid = endValue(bands.p50);
+  const low = endValue(bands.p5);
+  const high = endValue(bands.p95);
+  const endsFinite = !outOfRange(bands) && mid > 0;
+  let lines: string[] = [];
+  if (endsFinite) {
+    if (short) lines = [fmtUSD(mid)];
+    else if (p.split) lines = strings.chart.endLabelLines(mid, low, high);
+    else lines = [strings.chart.endLabel(mid, low, high)];
+  }
+  const caption = overflow && !short ? [strings.chart.outOfRange] : [];
+  const all = [...lines, ...caption];
+  if (all.length === 0) return;
+  x.font = p.serif;
+  x.textAlign = "right";
+  const textWidth = Math.max(...all.map((line) => x.measureText(line).width));
+  const at: LabelPlace = endsFinite
+    ? endLabelAt(
+        box,
+        domain,
+        { p5: bands.p5, p95: bands.p95, end: mid, horizon },
+        { width: textWidth, lines: all.length },
+        short,
+      )
+    : { x: box.R - 12, y: short ? box.T + CAP : box.T + 36, mode: "corner", leader: null };
+  const bottom = at.y + (all.length - 1) * LABEL_LINE + DESCENT;
+  if (at.mode === "corner") {
+    const padX = p.serifPx * 0.5;
+    const padY = p.serifPx * 0.25;
+    x.fillStyle = p.surface;
+    x.fillRect(
+      at.x - textWidth - padX,
+      at.y - CAP - padY,
+      textWidth + 2 * padX,
+      bottom - at.y + CAP + 2 * padY,
+    );
+  }
+  all.forEach((line, k) => {
+    x.fillStyle = k < lines.length ? p.price : p.muted;
+    x.fillText(line, at.x, at.y + k * LABEL_LINE);
+  });
+  if (at.leader === null) return;
+  // A muted hairline on a surface casing from the plate's lower edge, so it reads across the band;
+  // it stops short of the median's end so the point it names stays clear.
+  const { x1, x2, y2 } = at.leader;
+  const y1 = bottom + p.serifPx * 0.25;
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  const stop = len > 0 ? Math.max(0, len - p.median - p.casing) / len : 0;
+  const ex = x1 + (x2 - x1) * stop;
+  const ey = y1 + (y2 - y1) * stop;
+  for (const [style, w] of [
+    [p.surface, 1 + 2 * p.casing],
+    [p.muted, 1],
+  ] as const) {
+    x.strokeStyle = style;
+    x.lineWidth = w;
+    x.beginPath();
+    x.moveTo(x1, y1);
+    x.lineTo(ex, ey);
+    x.stroke();
+  }
+  x.lineWidth = 1;
+};
+
 export type Frame = { width: number; height: number; dpr: number; now: number; horizon: number };
 
 /** Paint the world layer at CSS size width×height (the caller sizes the backing store). */
@@ -243,11 +331,15 @@ export const drawWorld = (
   x.clearRect(0, 0, width, height);
   const box = plotBox(width, height);
   const horizon = engineBands?.weeks ?? horizonWeeks;
-  // Probe B2: overflowed bands draw the frame and a message, never a trace or a number.
-  const overflow = engineBands !== null && outOfRange(engineBands);
-  const bands = overflow ? null : engineBands;
+  // §1h out of range (Form n10): bands that ran past a double are clipped at the plot's top edge
+  // with a hairline, the axis rises to a decade covering the finite data, and a caption sits
+  // under the end label.
+  const bands = engineBands;
+  const clipFrom = bands === null ? -1 : firstPastTop(bands);
+  const overflow = clipFrom >= 0;
   const range = bands === null ? null : bandRange(bands);
-  const domain = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
+  const fitted = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
+  const domain = overflow && range !== null ? coverTop(fitted, range.high) : fitted;
   const frame = { box, domain, horizon };
   const short = height < SHORT;
 
@@ -256,8 +348,7 @@ export const drawWorld = (
   x.textAlign = "left";
   x.textBaseline = "alphabetic";
   x.lineWidth = 1;
-  // No $ scale in the out-of-range state: there is nothing on it to read.
-  for (const v of overflow ? [] : axisTicks(domain)) {
+  for (const v of axisTicks(domain)) {
     const y = ly(v, box, domain);
     x.strokeStyle = p.hairline;
     x.setLineDash([1, 3]);
@@ -266,11 +357,17 @@ export const drawWorld = (
     x.lineTo(box.R, y);
     x.stroke();
     x.setLineDash([]);
-    // A label that cannot fit the right margin is left off rather than clipped by the edge.
+    // A label too wide for the right margin ($1,000T and up) sits just inside the plot, right-
+    // aligned above its gridline; one wider than half the plot is left off rather than clipped.
     const text = fmtUSD(v);
-    if (x.measureText(text).width <= width - box.R - 4) {
-      x.fillStyle = p.muted;
+    const w = x.measureText(text).width;
+    x.fillStyle = p.muted;
+    if (w <= width - box.R - 4) {
       x.fillText(text, box.R + 4, y + 3);
+    } else if (w <= (box.R - box.L) / 2) {
+      x.textAlign = "right";
+      x.fillText(text, box.R - 4, y - 3);
+      x.textAlign = "left";
     }
   }
 
@@ -309,6 +406,14 @@ export const drawWorld = (
     x.lineWidth = p.median;
     stroke(x, bands.p50, frame);
     x.lineWidth = 1;
+    // n10: the clip edge, a 1px hairline along the plot's top from the first clipped week.
+    if (overflow) {
+      x.strokeStyle = p.price;
+      x.beginPath();
+      x.moveTo(lx(clipFrom, box, horizon), box.T + 0.5);
+      x.lineTo(box.R, box.T + 0.5);
+      x.stroke();
+    }
   }
 
   // Today line + time bar.
@@ -335,62 +440,8 @@ export const drawWorld = (
     x.fillText(String(endYear(now, horizon)), box.R, box.Bt + 32);
   }
 
-  // End label.
-  if (bands !== null) {
-    const mid = endValue(bands.p50);
-    if (Number.isFinite(mid) && mid > 0) {
-      x.font = p.serif;
-      x.textAlign = "right";
-      x.fillStyle = p.price;
-      const low = endValue(bands.p5);
-      const high = endValue(bands.p95);
-      const lines = short
-        ? [fmtUSD(mid)]
-        : p.split
-          ? strings.chart.endLabelLines(mid, low, high)
-          : [strings.chart.endLabel(mid, low, high)];
-      const textWidth = Math.max(...lines.map((line) => x.measureText(line).width));
-      const at = endLabelAt(
-        box,
-        domain,
-        { p5: bands.p5, p95: bands.p95, end: mid, horizon },
-        { width: textWidth, lines: lines.length },
-        short,
-      );
-      lines.forEach((line, k) => {
-        x.fillText(line, at.x, at.y + k * LABEL_LINE);
-      });
-      if (at.leader !== null) {
-        // A muted hairline on a surface casing, so it reads across the band; it stops short of
-        // the median's end so the point it names stays clear.
-        const { x1, y1, x2, y2 } = at.leader;
-        const len = Math.hypot(x2 - x1, y2 - y1);
-        const stop = len > 0 ? Math.max(0, len - p.median - p.casing) / len : 0;
-        const ex = x1 + (x2 - x1) * stop;
-        const ey = y1 + (y2 - y1) * stop;
-        for (const [style, w] of [
-          [p.surface, 1 + 2 * p.casing],
-          [p.muted, 1],
-        ] as const) {
-          x.strokeStyle = style;
-          x.lineWidth = w;
-          x.beginPath();
-          x.moveTo(x1, y1);
-          x.lineTo(ex, ey);
-          x.stroke();
-        }
-        x.lineWidth = 1;
-      }
-    }
-  }
-
-  // Out of range (Probe B2): a centred message in the plot instead of the bands.
-  if (overflow) {
-    x.font = p.serif;
-    x.textAlign = "center";
-    x.fillStyle = p.muted;
-    x.fillText(strings.chart.outOfRange, (box.L + box.R) / 2, (box.T + box.Bt) / 2);
-  }
+  // End label (plus the out-of-range caption under it).
+  if (bands !== null) drawEndLabel(x, p, { box, domain, horizon, short }, bands, overflow);
 
   // Caption.
   if (!short) {

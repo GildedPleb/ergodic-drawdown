@@ -5,13 +5,16 @@ import { useEngineSelector, useEngineSet } from "../../../hooks/use-engine";
 import type { ModelsValues } from "../models/values";
 import { priceBands, type PriceBands } from "../world/bands";
 import { engineConfig, inputsReady } from "./config";
-import { useWorldInputs } from "./inputs";
+import { type InputsPhase, useWorldInputs } from "./inputs";
 
 export type World = {
   bands: PriceBands | null;
   now: number;
   /** Weeks on the time axis: the engine's horizon, or epochs × 4 years before it returns. */
   horizon: number;
+  /** §1h Chart · no data: where the price fetch stands ("ready" once bands are drawn). */
+  phase: InputsPhase;
+  retry: () => void;
 };
 
 const selectDatasets = (s: { dataProperties: { datasets: unknown } | null }): unknown =>
@@ -28,7 +31,7 @@ const isSeriesList = (
 /** Sets the engine from the Models values and reads the price bands back. */
 export const useWorld = (values: ModelsValues, now: number): World => {
   const set = useEngineSet();
-  const inputs = useWorldInputs(now);
+  const { inputs, phase, retry } = useWorldInputs(now);
   const datasets = useEngineSelector(selectDatasets);
 
   useLayoutEffect(() => {
@@ -39,5 +42,11 @@ export const useWorld = (values: ModelsValues, now: number): World => {
   }, [values, inputs, set]);
 
   const bands = useMemo(() => (isSeriesList(datasets) ? priceBands(datasets) : null), [datasets]);
-  return { bands, now, horizon: bands?.weeks ?? values.epochCount * WEEKS_PER_EPOCH };
+  return {
+    bands,
+    now,
+    horizon: bands?.weeks ?? values.epochCount * WEEKS_PER_EPOCH,
+    phase: bands === null ? phase : "ready",
+    retry,
+  };
 };

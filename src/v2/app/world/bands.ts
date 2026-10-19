@@ -115,6 +115,21 @@ export const bandRange = (bands: PriceBands): { low: number; high: number } | nu
  * horizon's end (median, p5 or p95) is not finite, or nothing finite is left: the chart and the
  * headline then show a defined message instead of a number from an earlier week.
  */
+/**
+ * §1h "out of range" (Form, n10): the first week where any band has run past what a double holds
+ * (Infinity, then NaN, in the engine's output), or -1. From there the band is clipped at the plot's
+ * top edge with a hairline.
+ */
+export const firstPastTop = (bands: PriceBands): number => {
+  const { p5, p25, p50, p75, p95 } = bands;
+  for (let i = 0; i < p50.length; i++) {
+    for (const band of [p5, p25, p50, p75, p95]) {
+      if (!Number.isFinite(band[i] ?? Number.NaN)) return i;
+    }
+  }
+  return -1;
+};
+
 export const outOfRange = (bands: PriceBands): boolean =>
   bandRange(bands) === null ||
   [bands.p5, bands.p50, bands.p95].some((band) => !Number.isFinite(band.at(-1) ?? Number.NaN));

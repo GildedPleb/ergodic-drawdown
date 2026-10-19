@@ -72,22 +72,37 @@ const inside = ({ lo, hi }: LogDomain, v: number): boolean =>
  */
 export const MAX_DECADE_PASSES = 12;
 
-/** m × 10^k for every k that reaches the domain (thinned to ≤12 decades), inside it. */
+/**
+ * m × 10^k for every k that reaches the domain, inside it. A span wider than 12 decades is thinned
+ * to every n-th decade counted DOWN from the top one, so the highest decade inside the domain is
+ * always a tick (Form n10: the ticks never stop short of the data).
+ */
 const steps = (domain: LogDomain, mantissas: readonly number[]): number[] => {
   const out: number[] = [];
   if (!validDomain(domain)) return out;
   const first = Math.floor(Math.log10(domain.lo));
-  const last = Math.ceil(Math.log10(domain.hi));
+  const last = Math.floor(Math.log10(domain.hi * (1 + 1e-9)));
   const stride = Math.max(1, Math.ceil((last - first + 1) / MAX_DECADE_PASSES));
   for (let pass = 0; pass < MAX_DECADE_PASSES; pass++) {
-    const k = first + pass * stride;
-    if (k > last) break;
+    const k = last - pass * stride;
+    if (k < first) break;
     for (const m of mantissas) {
       const v = Number((m * 10 ** k).toPrecision(12));
       if (inside(domain, v)) out.push(v);
     }
   }
-  return out;
+  return out.toSorted((a, b) => a - b);
+};
+
+/**
+ * §1h out of range (Form n10): the axis top rises to the decade at or above the data's top, so a
+ * tick covers the data ($1,000T, $10,000T, …), capped at 10^308; only values past a double are
+ * clipped.
+ */
+export const coverTop = (domain: LogDomain, dataTop: number): LogDomain => {
+  if (!validDomain(domain) || !Number.isFinite(dataTop) || dataTop <= 0) return domain;
+  const top = 10 ** clampLog(Math.ceil(Math.log10(dataTop) - 1e-9));
+  return top > domain.hi && Number.isFinite(top) ? { lo: domain.lo, hi: top } : domain;
 };
 
 /**

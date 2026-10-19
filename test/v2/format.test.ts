@@ -294,6 +294,10 @@ test("Slice 1 review (5): money steps up to B and T at 3 significant figures, ne
     [fmtUSD(999_950_000_000), "$1T"],
     [fmtUSD(1_234_000_000_000), "$1.23T"],
     [fmtUSD(1_234_000_000_000_000), "$1,230T"],
+    [fmtUSD(45_600_000_000_000_000), "$45,600T"],
+    [fmtUSD(999_500_000_000_000), "$1,000T"],
+    [fmtUSD(3.16e46), `$31,600${",000".repeat(10)}T`],
+    [fmtUSDRange(999e12, 1.234e15), "$999T\u20131,230T"],
     [fmtUSD(-29_533_000_000), "\u2212$29.5B"],
     [fmtUSDRange(59_500_000, 29_533_000_000), "$59.5M\u201329.5B"],
   ]);
@@ -308,6 +312,10 @@ test("Slice 1 review (5): the spoken form says the unit as a word", () => {
     [nameUSD(-29_533_000_000), "minus $29.5 billion"],
     [nameUSD(9_950), "$9,950"],
     [nameUSDRange(59_500_000, 29_533_000_000), "$59.5 million to $29.5 billion"],
+    // n4: past $999T the T count grows in grouped digits, 3 significant figures, said the same way.
+    [nameUSD(1_234_000_000_000_000), "$1,230 trillion"],
+    [nameUSD(45_600_000_000_000_000), "$45,600 trillion"],
+    [nameUSDRange(999e12, 1.234e15), "$999 trillion to $1,230 trillion"],
     [nameUSDRange(3_100_000, 400_000), "$400 thousand to $3.1 million"],
     [nameUSDRange(85_400, 85_400), "$85.4 thousand"],
     [nameUSDRange(240, 1_040), "$240 to $1,040"],

@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
 
 import { modelsPaneSchema } from "../../src/v2/app/models";
-import { ModelsSheet } from "../../src/v2/app/models/ModelsSheet";
+import { ModelsSheet, SAMPLE_BOUNDS } from "../../src/v2/app/models/ModelsSheet";
+import { resolveEntry } from "../../src/v2/design/primitives/NumberField/entry";
 import { defaultModelsValues, type ModelsValues } from "../../src/v2/app/models/values";
 import { strings } from "../../src/v2/app/strings";
 import { loadCmaps, uncovered } from "./support/cmaps";
@@ -30,6 +31,24 @@ test("Models sheet: an open row edits in place, with a slider only when both bou
   expect(editor("volatility").includes('role="slider"')).toBe(true);
   expect(editor("samples").includes('role="slider"')).toBe(false);
   expect(editor("samples").includes('id="v2-samples"')).toBe(true);
+});
+
+test("m2 (Gap 10): samples clamp to 1..10,000 with the standard clamp message; 0 is never used", () => {
+  expect(SAMPLE_BOUNDS).toEqual({ min: 1, max: 10_000 });
+  expect(editor("samples").includes('aria-valuemin="1"')).toBe(true);
+  expect(resolveEntry("0", "int", SAMPLE_BOUNDS, 1000)).toEqual({
+    kind: "clamped",
+    value: 1,
+    typed: 0,
+  });
+  expect(resolveEntry("-1", "int", SAMPLE_BOUNDS, 1000)).toEqual({
+    kind: "clamped",
+    value: 1,
+    typed: -1,
+  });
+  expect(strings.fields.clamped(strings.fields.nouns.samples, 1, 10_000, 1)).toBe(
+    "Samples go from 1 to 10,000. We used 1.",
+  );
 });
 
 test("Models sheet: epochs clamp to the engine's 30, not the old input's 100 (Gap 10)", () => {

@@ -2,7 +2,20 @@ import { expect, test } from "bun:test";
 
 import type { EngineConfig } from "../../src/engine/keys";
 import { coalesce } from "../../src/v2/app/engine/coalesce";
-import { fetchInputs, type InputsIO } from "../../src/v2/app/engine/inputs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import {
+  fetchInputs,
+  INPUTS_RETRY_MS,
+  INPUTS_TIMEOUT_MS,
+  type InputsIO,
+  type InputsPhase,
+  LOADING_HOLD_MS,
+  type Timers,
+  watchInputs,
+} from "../../src/v2/app/engine/inputs";
+import { WorldLayer } from "../../src/v2/app/world/WorldLayer";
 import { engineConfig, type WorldInputs } from "../../src/v2/app/engine/config";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
 import { keyStep, snap, trackValue } from "../../src/v2/design/primitives/Slider/Slider";
@@ -57,9 +70,115 @@ test("inputs: price, block + halvings and interim each merge; only missing halvi
 test("inputs: a failed fetch merges nothing and leaves the others to land", async () => {
   const got: Partial<WorldInputs> = {};
   const failing: InputsIO = { ...io([]), price: async () => Promise.reject(new Error("down")) };
-  await fetchInputs(1, (p) => Object.assign(got, p), failing);
+  expect(await fetchInputs(1, (p) => Object.assign(got, p), failing)).toBe(false);
   expect(got.currentPrice).toBe(undefined);
   expect(got.currentBlock).toBe(840_100);
+  expect(await fetchInputs(1, () => undefined, io([]))).toBe(true);
+  const noBlock: InputsIO = { ...io([]), height: async () => Promise.reject(new Error("down")) };
+  expect(await fetchInputs(1, () => undefined, noBlock)).toBe(false);
+});
+
+/** Fake timers: `tick(ms)` fires every timer due by then, in order. */
+const fakeTimers = (): Timers & { tick: (ms: number) => void } => {
+  let t = 0;
+  const due: { at: number; fn: () => void; id: number }[] = [];
+  let next = 0;
+  return {
+    set: (fn, ms) => {
+      next += 1;
+      due.push({ at: t + ms, fn, id: next });
+      return next;
+    },
+    clear: (id) => {
+      const k = due.findIndex((d) => d.id === id);
+      if (k >= 0) due.splice(k, 1);
+    },
+    tick: (ms) => {
+      t += ms;
+      for (const d of due.filter((x) => x.at <= t).toSorted((a, b) => a.at - b.at)) {
+        due.splice(due.indexOf(d), 1);
+        d.fn();
+      }
+    },
+  };
+};
+
+const settle = async (): Promise<void> => {
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
+const noLand = (): void => undefined;
+
+test("n11: nothing for 400ms, then slow; a late price still lands ready", async () => {
+  const timers = fakeTimers();
+  const seen: InputsPhase[] = [];
+  let land: (ok: boolean) => void = noLand;
+  watchInputs(
+    async () => new Promise<boolean>((r) => (land = r)),
+    (ph) => seen.push(ph),
+    timers,
+  );
+  timers.tick(LOADING_HOLD_MS - 1);
+  expect(seen).toEqual([]);
+  timers.tick(1);
+  expect(seen).toEqual(["slow"]);
+  timers.tick(INPUTS_TIMEOUT_MS);
+  expect(seen).toEqual(["slow", "failed"]);
+  land(true);
+  await settle();
+  expect(seen).toEqual(["slow", "failed", "ready"]);
+  expect(LOADING_HOLD_MS).toBe(400);
+  expect(INPUTS_RETRY_MS > INPUTS_TIMEOUT_MS).toBe(true);
+});
+
+test("n11: a fast success never shows the caption; a failure says failed; cancel silences", async () => {
+  const timers = fakeTimers();
+  const seen: InputsPhase[] = [];
+  watchInputs(
+    async () => true,
+    (ph) => seen.push(ph),
+    timers,
+  );
+  await settle();
+  timers.tick(INPUTS_TIMEOUT_MS);
+  expect(seen).toEqual(["ready"]);
+  const failed: InputsPhase[] = [];
+  watchInputs(
+    async () => false,
+    (ph) => failed.push(ph),
+    timers,
+  );
+  await settle();
+  expect(failed).toEqual(["failed"]);
+  const quiet: InputsPhase[] = [];
+  const cancel = watchInputs(
+    async () => true,
+    (ph) => quiet.push(ph),
+    timers,
+  );
+  cancel();
+  await settle();
+  timers.tick(INPUTS_TIMEOUT_MS);
+  expect(quiet).toEqual([]);
+});
+
+const html = (phase: InputsPhase): string =>
+  renderToStaticMarkup(
+    createElement(WorldLayer, { bands: null, now: 0, horizon: 1, label: "x", phase }),
+  );
+
+test("n11: the empty frame shows Form's captions; failed adds a quiet Try again button", () => {
+  expect(html("waiting").includes('role="status"')).toBe(false);
+  expect(html("slow").includes(">Loading prices\u2026<")).toBe(true);
+  expect(html("slow").includes("<button")).toBe(false);
+  const failed = html("failed");
+  expect(
+    failed.includes("Prices couldn\u2019t load. Check your connection; the chart will try again."),
+  ).toBe(true);
+  expect(failed.includes('type="button"')).toBe(true);
+  expect(failed.includes(">Try again</button>")).toBe(true);
+  expect(html("ready").includes('role="status"')).toBe(false);
 });
 
 /** A fake engine whose runs end only when the test says so. */

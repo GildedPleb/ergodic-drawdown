@@ -29,28 +29,44 @@ const PAINT: Paint = {
   casing: 1.5,
   chart: "500 12px SM Jost",
   serif: "italic 400 13px SM EB Garamond",
+  serifPx: 13,
   section: "600 11.5px SM Jost",
 };
 
 const noop = (): void => undefined;
 
-/** A 2D context that records every fillText. */
-const recorder = (): { ctx: Ctx2D; texts: string[] } => {
+const str = (v: unknown): string => (typeof v === "string" ? v : "");
+
+type Op = { op: string; x: number; y: number; w?: number; h?: number; style: string; t?: string };
+
+/** A 2D context that records every fillText (texts) and every paint op in order (ops). */
+const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[] } => {
   const texts: string[] = [];
+  const ops: Op[] = [];
+  const style = (): string => str(ctx.fillStyle);
   const ctx: Ctx2D = {
     setTransform: noop,
     clearRect: noop,
     beginPath: noop,
-    moveTo: noop,
-    lineTo: noop,
+    moveTo: (x: number, y: number) => {
+      ops.push({ op: "moveTo", x, y, style: str(ctx.strokeStyle) });
+    },
+    lineTo: (x: number, y: number) => {
+      ops.push({ op: "lineTo", x, y, style: str(ctx.strokeStyle) });
+    },
     closePath: noop,
     stroke: noop,
-    fill: noop,
-    fillRect: noop,
+    fill: () => {
+      ops.push({ op: "fill", x: 0, y: 0, style: style() });
+    },
+    fillRect: (x: number, y: number, w: number, h: number) => {
+      ops.push({ op: "fillRect", x, y, w, h, style: style() });
+    },
     arc: noop,
     setLineDash: noop,
-    fillText: (t: string) => {
+    fillText: (t: string, x: number, y: number) => {
       texts.push(t);
+      ops.push({ op: "fillText", x, y, style: style(), t });
     },
     measureText: (t: string) => ({ width: t.length * 6 }),
     font: "",
@@ -62,7 +78,7 @@ const recorder = (): { ctx: Ctx2D; texts: string[] } => {
     fillStyle: "",
     globalAlpha: 1,
   };
-  return { ctx, texts };
+  return { ctx, texts, ops };
 };
 
 const draw = (h: number, b: PriceBands | null, horizon: number, split = false): string[] => {
@@ -172,7 +188,93 @@ test("never mid-chart: when above and below are both far from the end, it goes t
   expect((at.leader?.y1 ?? 0) > at.y + LABEL_LINE).toBe(true);
 });
 
-test("B2: overflowed bands draw the frame and the out-of-range message, no end label or trace", () => {
+const OUT = "Prices here run past what the chart can draw.";
+const PAST = Number.POSITIVE_INFINITY;
+const pack = (p5: number[], p50: number[], p95: number[]): PriceBands => ({
+  start: NOW,
+  weeks: p50.length - 1,
+  p5: Float64Array.from(p5),
+  p25: Float64Array.from(p5),
+  p50: Float64Array.from(p50),
+  p75: Float64Array.from(p95),
+  p95: Float64Array.from(p95),
+});
+const paint = (b: PriceBands | null, width = 390, height = 693): Op[] => {
+  const { ctx, ops } = recorder();
+  drawWorld(ctx, PAINT, { width, height, dpr: 1, now: NOW, horizon: b?.weeks ?? 1 }, b);
+  return ops;
+};
+
+test("m7: a top-right label sits on an opaque square --surface plate, padded 0.25em 0.5em, painted after the band", () => {
+  // The end itself ran past a double: the caption stands alone, top right, on its plate.
+  const ops = paint(pack([1e5, PAST], [1e5, PAST], [1e5, PAST]));
+  const box = plotBox(390, 693);
+  const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.surface);
+  const text = ops.find((o) => o.t === OUT);
+  const w = OUT.length * 6;
+  expect(text?.x).toBe(box.R - 12);
+  expect(plate).toEqual({
+    op: "fillRect",
+    x: box.R - 12 - w - 6.5,
+    y: box.T + 36 - 10 - 3.25,
+    w: w + 13,
+    h: 10 + 4 + 6.5,
+    style: PAINT.surface,
+  });
+  const at = (o: Op | undefined): number => (o === undefined ? -1 : ops.indexOf(o));
+  const lastFill = ops.findLastIndex((o) => o.op === "fill");
+  expect(lastFill >= 0 && lastFill < at(plate) && at(plate) < at(text)).toBe(true);
+  // Placed above or below the band, the label has no plate.
+  const box2 = plotBox(1392, 717);
+  const domain = fitDomain(50_000, 2e9);
+  const above = { p5: flat(100, 6e7), p95: flat(100, 9.4e7), end: 7.5e7, horizon: 99 };
+  expect(endLabelAt(box2, domain, above, LINE1).mode).toBe("above");
+  const placed = pack(
+    [5e4, ...flat(100, 6e7)],
+    [7.5e7, ...flat(100, 7.5e7)],
+    [2e9, ...flat(100, 9.4e7)],
+  );
+  expect(
+    paint(placed, 1392, 717).some((o) => o.op === "fillRect" && o.style === PAINT.surface),
+  ).toBe(false);
+});
+
+test("n10: values past a double are clipped at the top edge with a 1px hairline from the first clipped week", () => {
+  const box = plotBox(390, 693);
+  const ops = paint(pack([1e5, 2e5, 3e5, 4e5], [2e5, 4e5, 8e5, 1.6e6], [4e5, 1e7, PAST, PAST]));
+  // Every band path point (the Today rule at x = L aside) stays at or under the top edge.
+  const ys = ops
+    .filter((o) => (o.op === "lineTo" || o.op === "moveTo") && o.x > box.L)
+    .map((o) => o.y);
+  expect(Math.min(...ys)).toBe(box.T);
+  const hair = ops.findIndex(
+    (o) => o.op === "moveTo" && o.y === box.T + 0.5 && o.style === PAINT.price,
+  );
+  expect(ops[hair]?.x).toBe(box.L + ((box.R - box.L) * 2) / 3);
+  expect(ops[hair + 1]).toEqual({ op: "lineTo", x: box.R, y: box.T + 0.5, style: PAINT.price });
+  expect(paint(bands).some((o) => o.y === box.T + 0.5)).toBe(false);
+});
+
+test("n10: the caption sits on the line under the end label, muted; the end label keeps its numbers", () => {
+  const ops = paint(pack([1e5, 2e5, 3e5, 4e5], [2e5, 4e5, 8e5, 1.6e6], [4e5, 1e7, PAST, 3e6]));
+  const label = ops.find((o) => o.t?.startsWith("\u20BF price"));
+  const caption = ops.find((o) => o.t === OUT);
+  expect(label?.t).toBe("\u20BF price \u00B7 $1.6M \u00B7 $400k\u20133M");
+  expect(caption?.x).toBe(label?.x);
+  expect(caption?.y).toBe((label?.y ?? 0) + LABEL_LINE);
+  expect(caption?.style).toBe(PAINT.muted);
+  expect(label?.style).toBe(PAINT.price);
+});
+
+test("n10: the $ scale stays, and a tick covers the data's top ($10,000T drawn inside the plot)", () => {
+  const texts = draw(693, pack([1e5, 1e9, PAST], [1e5, 1e12, PAST], [1e5, 4.6e15, PAST]), 2);
+  expect(texts.includes("$10,000T")).toBe(true);
+  expect(texts.includes("$100T")).toBe(true);
+  expect(texts.includes(OUT)).toBe(true);
+  expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
+});
+
+test("B2: bands that are past a double from the start draw the frame and the caption, no end label", () => {
   const inf = Float64Array.from([1e5, Number.POSITIVE_INFINITY]);
   const nan = Float64Array.from([1e5, Number.NaN]);
   for (const b of [
@@ -180,10 +282,9 @@ test("B2: overflowed bands draw the frame and the out-of-range message, no end l
     { start: NOW, weeks: 1, p5: nan, p25: nan, p50: nan, p75: nan, p95: nan },
   ]) {
     const texts = draw(693, b, 1);
-    expect(texts.includes("Prices here run past what the chart can draw.")).toBe(true);
+    expect(texts.includes(OUT)).toBe(true);
     expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
     expect(texts.includes("THE WORLD \u00B7 \u20BF PRICE")).toBe(true);
-    expect(texts.some((t) => t.startsWith("$"))).toBe(false);
   }
-  expect(draw(693, bands, 1).includes("Prices here run past what the chart can draw.")).toBe(false);
+  expect(draw(693, bands, 1).includes(OUT)).toBe(false);
 });

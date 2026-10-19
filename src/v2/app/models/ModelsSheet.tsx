@@ -28,6 +28,11 @@ const noun = (name: string): { name: string; plural: boolean } => ({
  * MAX_EPOCH_COUNT and a larger count fails the simulation. Clamp to what the engine runs.
  */
 const EPOCH_BOUNDS = { min: controls.epochs.accept.min, max: MAX_EPOCH_COUNT };
+/**
+ * Gap 10 (Form, m2): samples clamp to a minimum of 1 (zero futures draws nothing, so it is never a
+ * valid result). 1 is main's own samples input `min` (G12 snapshot); the max is its accept max.
+ */
+export const SAMPLE_BOUNDS = { min: controls.samples.min, max: controls.samples.accept.max };
 
 export type Field = "variable" | "minMaxMultiple" | "volatility" | "samples" | "epochs";
 
@@ -267,7 +272,7 @@ export const ModelsSheet = ({
             id="v2-samples"
             label={controls.samples.label}
             value={values.samples}
-            bounds={controls.samples.accept}
+            bounds={SAMPLE_BOUNDS}
             parse={controls.samples.parse}
             step={1}
             emptyValue={controls.samples.emptyValue}

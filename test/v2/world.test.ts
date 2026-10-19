@@ -22,6 +22,7 @@ import {
 import { inProcessWorker } from "../golden/in-process";
 import {
   axisTicks,
+  coverTop,
   DEFAULT_DOMAIN,
   fitDomain,
   MAX_DECADE_PASSES,
@@ -68,6 +69,20 @@ test("gridlines only at the decades inside the fitted range: no empty $1B above,
   expect(axisTicks(fitDomain(1.5e5, 6e7))).toEqual([1e6, 1e7]);
   expect(axisTicks(fitDomain(64_000, 1.1e8))).toEqual([1e5, 1e6, 1e7, 1e8]);
   expect(axisTicks({ lo: 1e4, hi: 1e7 })).toEqual([1e4, 1e5, 1e6, 1e7]);
+});
+
+test("n10: thinned ticks count down from the top decade inside the domain; coverTop lifts the axis over the data", () => {
+  const ticks = axisTicks({ lo: 1e4, hi: 3e300 });
+  expect(ticks.at(-1)).toBe(1e300);
+  expect(ticks.length <= MAX_DECADE_PASSES).toBe(true);
+  expect(ticks).toEqual(ticks.toSorted((a, b) => a - b));
+  // Fitted, $2,000T's axis tops out near $2,600T: the top decade inside ($1,000T) is under the data.
+  expect(axisTicks(fitDomain(1e5, 2e15)).at(-1)).toBe(1e15);
+  const covered = coverTop(fitDomain(1e5, 2e15), 2e15);
+  expect(covered.hi).toBe(1e16);
+  expect(axisTicks(covered).at(-1)).toBe(1e16);
+  expect(coverTop({ lo: 1e4, hi: 1e7 }, 5e6)).toEqual({ lo: 1e4, hi: 1e7 });
+  expect(coverTop({ lo: 1e4, hi: 1e7 }, Number.POSITIVE_INFINITY)).toEqual({ lo: 1e4, hi: 1e7 });
 });
 
 test("no decade inside: 1-2-5 steps, then whole multiples of the decade", () => {

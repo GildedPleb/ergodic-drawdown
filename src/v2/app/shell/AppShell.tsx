@@ -145,7 +145,14 @@ export const AppShell = (): JSX.Element => {
           </h1>
         </div>
         <div className={chart}>
-          <WorldLayer bands={bands} now={now} horizon={world.horizon} label={spoken} />
+          <WorldLayer
+            bands={bands}
+            now={now}
+            horizon={world.horizon}
+            label={spoken}
+            phase={world.phase}
+            onRetry={world.retry}
+          />
         </div>
       </main>
       <div className={dockArea}>

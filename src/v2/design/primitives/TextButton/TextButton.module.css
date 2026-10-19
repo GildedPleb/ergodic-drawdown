@@ -1,0 +1,17 @@
+@layer primitives {
+  .root {
+    min-block-size: var(--hit);
+    padding: 0 var(--s-2);
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .root:focus-visible {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+}

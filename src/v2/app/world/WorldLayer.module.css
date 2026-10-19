@@ -24,6 +24,29 @@
     block-size: 100%;
   }
 
+  /* §1h no data: centred caption, no spinner. */
+  .status {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-chart);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--s-4);
+    color: var(--text-muted);
+    font-family: var(--f-text);
+    font-size: var(--t-chart-serif);
+    font-style: italic;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .retry {
+    font-style: normal;
+    pointer-events: auto;
+  }
+
   /* Narrow charts: the end label splits onto two lines (value, then range); draw.ts reads it. */
   @container world (max-width: 30rem) {
     .canvas {

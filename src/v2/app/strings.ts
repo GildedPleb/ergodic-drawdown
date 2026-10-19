@@ -37,8 +37,12 @@ export const strings = {
   chart: {
     today: (monthYear: string): string => `Today \u00B7 ${monthYear}`,
     caption: "THE WORLD \u00B7 \u20BF PRICE",
-    /** Drawn in the plot when the bands are out of range (Probe B2). */
+    /** Under the end label when the bands are clipped at the top edge (§1h, Form n10). */
     outOfRange: "Prices here run past what the chart can draw.",
+    /** §1h Chart · no data (Form n11): after 400ms with no price, then on failure or timeout. */
+    loading: "Loading prices\u2026",
+    failed: "Prices couldn\u2019t load. Check your connection; the chart will try again.",
+    tryAgain: "Try again",
     endLabel: (median: number, low: number, high: number): string =>
       `\u20BF price \u00B7 ${fmtUSD(median)} \u00B7 ${fmtUSDRange(low, high)}`,
     /** Narrow charts (<480px): the same label on two lines, value then range. */
