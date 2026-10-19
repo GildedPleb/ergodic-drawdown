@@ -70,5 +70,10 @@ export const stepValue = (
   return clampTo(Number(raw.toFixed(places)), bounds);
 };
 
+/** m6: a step that stopped on a finite bound (the field then shows its clamp message). */
+export const onBound = (n: number, bounds: Bounds): boolean =>
+  (Number.isFinite(bounds.min) && n === bounds.min) ||
+  (Number.isFinite(bounds.max) && n === bounds.max);
+
 /** Display text for a committed value (no exponent for the ranges the back end accepts). */
 export const showNumber = (n: number): string => (Number.isFinite(n) ? String(n) : "");

@@ -1,7 +1,10 @@
 import { expect, test } from "bun:test";
 
+import type { EngineConfig } from "../../src/engine/keys";
+import { coalesce } from "../../src/v2/app/engine/coalesce";
 import { fetchInputs, type InputsIO } from "../../src/v2/app/engine/inputs";
-import type { WorldInputs } from "../../src/v2/app/engine/config";
+import { engineConfig, type WorldInputs } from "../../src/v2/app/engine/config";
+import { defaultModelsValues } from "../../src/v2/app/models/values";
 import { keyStep, snap, trackValue } from "../../src/v2/design/primitives/Slider/Slider";
 
 const VOL = { min: 0, max: 1, step: 0.01 };
@@ -57,4 +60,53 @@ test("inputs: a failed fetch merges nothing and leaves the others to land", asyn
   await fetchInputs(1, (p) => Object.assign(got, p), failing);
   expect(got.currentPrice).toBe(undefined);
   expect(got.currentBlock).toBe(840_100);
+});
+
+/** A fake engine whose runs end only when the test says so. */
+const fakeEngine = (): {
+  engine: { set: (c: EngineConfig) => void; settled: () => Promise<"quiet"> };
+  seen: EngineConfig[];
+  finish: () => Promise<void>;
+} => {
+  const seen: EngineConfig[] = [];
+  let release: (() => void)[] = [];
+  return {
+    seen,
+    engine: {
+      set: (config) => {
+        seen.push(config);
+      },
+      settled: () =>
+        new Promise((resolve) => {
+          release.push(() => {
+            resolve("quiet");
+          });
+        }),
+    },
+    finish: async () => {
+      const now = release;
+      release = [];
+      for (const run of now) run();
+      await Promise.resolve();
+      await Promise.resolve();
+    },
+  };
+};
+
+test("B1: one engine job at a time; commits during a run coalesce to the latest", async () => {
+  const fake = fakeEngine();
+  const { set, jobs } = coalesce(fake.engine);
+  const inputs = { currentBlock: 1, currentPrice: 2, halvings: {}, interim: [], now: 0 };
+  const configs = [1001, 1002, 1003, 1004, 1005].flatMap(
+    (samples) => engineConfig({ ...defaultModelsValues(), samples }, inputs) ?? [],
+  );
+  for (const c of configs) set(c);
+  expect(fake.seen).toEqual([configs[0]]);
+  expect(jobs).toEqual({ requested: 5, started: 1, inFlight: 1, maxInFlight: 1 });
+  await fake.finish();
+  expect(fake.seen).toEqual([configs[0], configs[4]]);
+  await fake.finish();
+  expect(jobs).toEqual({ requested: 5, started: 2, inFlight: 0, maxInFlight: 1 });
+  for (const c of configs.slice(0, 1)) set(c);
+  expect(fake.seen.length).toBe(3);
 });

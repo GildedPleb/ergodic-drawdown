@@ -6,12 +6,14 @@ import { LabelGlyphs } from "../LabelGlyphs";
 import {
   type Bounds,
   type NumberParse,
+  onBound,
   parseNumber,
   resolveEntry,
   showNumber,
   stepValue,
 } from "./entry";
 import styles from "./NumberField.module.css";
+import { createSettle, type Settle } from "./settle";
 
 /** R7: variant keys and values. */
 export const variants = {
@@ -57,7 +59,9 @@ type Status = { kind: "ok" } | { kind: "clamped"; used: number } | { kind: "inva
  * A number field that passes Probe's M3 / FL-001 gate (V32-BUILD §1g): typing edits a draft and
  * never commits; Enter, blur, or releasing a held step key commits once; out-of-range values clamp
  * to the nearest bound with a visible, politely announced message; unparseable text shows the
- * invalid state (no orange or red) and keeps the last valid value; the wheel acts only with focus.
+ * invalid state (no orange or red) and keeps the last valid value; the wheel acts only with focus,
+ * and steps the draft only, committing once when the wheel settles (Probe B1, settle.ts). A step
+ * that lands on a bound shows the same clamp message on commit (Probe m6).
  */
 export const NumberField = ({
   label,
@@ -86,8 +90,10 @@ export const NumberField = ({
   const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value });
   live.current = { bounds, draft, emptyValue, onCommit, parse, step, value };
   const held = useRef(false);
+  // m6: the last step (key or wheel) stopped on a finite bound.
+  const atBound = useRef(false);
 
-  const commit = (text: string): void => {
+  const commit = (text: string, stepped = false): void => {
     const now = live.current;
     const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue);
     if (result.kind === "invalid") {
@@ -96,17 +102,31 @@ export const NumberField = ({
     }
     if (result.value !== now.value) now.onCommit?.(result.value);
     setDraft(showNumber(result.value));
-    setStatus(result.kind === "clamped" ? { kind: "clamped", used: result.value } : { kind: "ok" });
+    const clamped = result.kind === "clamped" || (stepped && atBound.current);
+    setStatus(clamped ? { kind: "clamped", used: result.value } : { kind: "ok" });
   };
   const commitRef = useRef(commit);
   commitRef.current = commit;
 
-  const stepFrom = (direction: 1 | -1, big: boolean): string | undefined => {
+  const settle = useRef<Settle | null>(null);
+  settle.current ??= createSettle(() => {
+    commitRef.current(live.current.draft, true);
+  });
+  const wheel = settle.current;
+
+  /** Step the draft (never the value) and remember whether the step stopped on a bound. */
+  const stepDraft = (direction: 1 | -1, big: boolean): boolean => {
     const now = live.current;
-    if (now.step === undefined) return undefined;
+    if (now.step === undefined) return false;
     const shown = parseNumber(now.draft, now.parse);
     const base = Number.isNaN(shown) ? now.value : shown;
-    return showNumber(stepValue(base, direction, now.step, now.bounds, big));
+    const next = stepValue(base, direction, now.step, now.bounds, big);
+    atBound.current = onBound(next, now.bounds);
+    const text = showNumber(next);
+    // Several notches can land before React re-renders: the next step reads this draft.
+    live.current = { ...now, draft: text };
+    setDraft(text);
+    return true;
   };
 
   // The engine value changed elsewhere (a model switch resets the variable): show it unless the
@@ -120,6 +140,13 @@ export const NumberField = ({
     if (initialText !== undefined) commitRef.current(initialText);
   }, [initialText]);
 
+  useEffect(
+    () => () => {
+      wheel.cancel();
+    },
+    [wheel],
+  );
+
   // React's onWheel is passive; a native listener can cancel the scroll, and only with focus.
   useEffect(() => {
     const element = input.current;
@@ -127,8 +154,8 @@ export const NumberField = ({
     const onWheel = (event: WheelEvent): void => {
       if (document.activeElement !== element || event.deltaY === 0) return;
       event.preventDefault();
-      const text = stepFrom(event.deltaY < 0 ? 1 : -1, false);
-      if (text !== undefined) commitRef.current(text);
+      // B1: each notch steps the draft; one commit when the wheel goes quiet (or on blur/Enter).
+      if (stepDraft(event.deltaY < 0 ? 1 : -1, false)) wheel.poke();
     };
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => {
@@ -138,10 +165,13 @@ export const NumberField = ({
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "Enter") {
-      commit(draft);
+      const stepped = wheel.pending();
+      wheel.cancel();
+      commit(live.current.draft, stepped);
       return;
     }
     if (event.key === "Escape") {
+      wheel.cancel();
       setDraft(showNumber(value));
       setStatus({ kind: "ok" });
       return;
@@ -149,17 +179,14 @@ export const NumberField = ({
     if (!STEP_KEYS.has(event.key)) return;
     event.preventDefault();
     const up = event.key === "ArrowUp" || event.key === "PageUp";
-    const text = stepFrom(up ? 1 : -1, event.key.startsWith("Page"));
-    if (text === undefined) return;
     // FL-001: a held key steps the visible draft only; the value commits once, on release.
-    held.current = true;
-    setDraft(text);
+    if (stepDraft(up ? 1 : -1, event.key.startsWith("Page"))) held.current = true;
   };
 
   const onKeyUp = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (!STEP_KEYS.has(event.key) || !held.current) return;
     held.current = false;
-    commit(live.current.draft);
+    commit(live.current.draft, true);
   };
 
   const invalid = status.kind === "invalid";
@@ -217,6 +244,7 @@ export const NumberField = ({
           }}
           onBlur={() => {
             held.current = false;
+            if (wheel.flush()) return;
             if (draft !== showNumber(value) || status.kind === "invalid") commit(draft);
           }}
           onKeyDown={onKeyDown}

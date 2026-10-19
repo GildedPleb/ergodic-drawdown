@@ -5,6 +5,7 @@ import "../design/base/base.css";
 import "../design/tokens/tokens.css";
 import { createEngine } from "../../engine/engine";
 import { EngineProvider } from "../../hooks/use-engine";
+import { coalescedEngine } from "./engine/coalesce";
 import { AppShell } from "./shell/AppShell";
 
 const rootElement = document.querySelector("#root");
@@ -31,8 +32,17 @@ if (designMatch !== null) {
     );
   });
 } else {
-  // The engine's worker pool needs SharedArrayBuffer (COOP/COEP, as on main).
-  const engine = crossOriginIsolated ? createEngine() : null;
+  // The engine's worker pool needs SharedArrayBuffer (COOP/COEP, as on main). One job at a time:
+  // configs committed while a run is in flight coalesce to the latest (Probe B1, coalesce.ts).
+  const raw = crossOriginIsolated ? createEngine() : null;
+  const coalesced = raw === null ? null : coalescedEngine(raw);
+  const engine = coalesced?.engine ?? null;
+  // Test builds only (the design-route flag): job counters for the B1 Playwright spec.
+  if (designEnabled && raw !== null && coalesced !== null) {
+    Object.assign(window, {
+      __v2engine: () => ({ ...coalesced.jobs, waves: raw.inputWaves() }),
+    });
+  }
   root.render(
     <React.StrictMode>
       {engine === null ? (

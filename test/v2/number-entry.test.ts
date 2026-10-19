@@ -6,10 +6,16 @@ import { expect, test } from "bun:test";
 import { NumberField } from "../../src/v2/design/primitives/NumberField";
 import {
   normalizeNumberText,
+  onBound,
   parseNumber,
   resolveEntry,
   stepValue,
 } from "../../src/v2/design/primitives/NumberField/entry";
+import {
+  createSettle,
+  type Timers,
+  WHEEL_SETTLE_MS,
+} from "../../src/v2/design/primitives/NumberField/settle";
 
 const VOL = { min: 0, max: 1 };
 const FLOOR = { min: 1.01, max: Number.POSITIVE_INFINITY };
@@ -63,4 +69,89 @@ test("the message slot is always mounted as a polite live region and is undescri
   expect(html.includes('id="f-message" aria-live="polite"')).toBe(true);
   expect(html.includes("aria-describedby")).toBe(false);
   expect(html.includes('aria-valuemin="0" aria-valuemax="1"')).toBe(true);
+});
+
+/** A manual clock: timers fire only when the test advances time. */
+const clock = (): { timers: Timers; advance: (ms: number) => void; live: () => number } => {
+  let now = 0;
+  let next = 1;
+  const due = new Map<number, { at: number; run: () => void }>();
+  return {
+    timers: {
+      set: (run, ms) => {
+        due.set(next, { at: now + ms, run });
+        return next++;
+      },
+      clear: (id) => {
+        due.delete(id);
+      },
+    },
+    advance: (ms) => {
+      now += ms;
+      for (const [id, t] of due) {
+        if (t.at > now) continue;
+        due.delete(id);
+        t.run();
+      }
+    },
+    live: () => due.size,
+  };
+};
+
+test("B1: 300 wheel notches 30 ms apart commit exactly once, WHEEL_SETTLE_MS after the last", () => {
+  const { timers, advance, live } = clock();
+  let commits = 0;
+  const settle = createSettle(
+    () => {
+      commits += 1;
+    },
+    WHEEL_SETTLE_MS,
+    timers,
+  );
+  for (let i = 0; i < 300; i += 1) {
+    settle.poke();
+    advance(30);
+  }
+  expect({ commits, pending: settle.pending(), timers: live() }).toEqual({
+    commits: 0,
+    pending: true,
+    timers: 1,
+  });
+  advance(WHEEL_SETTLE_MS - 31);
+  expect(commits).toBe(0);
+  advance(1);
+  expect(commits).toBe(1);
+  advance(10_000);
+  expect({ commits, pending: settle.pending() }).toEqual({ commits: 1, pending: false });
+});
+
+test("B1: blur / Enter flush a pending wheel commit at once; cancel and idle flush do nothing", () => {
+  const { timers, advance } = clock();
+  let commits = 0;
+  const settle = createSettle(
+    () => {
+      commits += 1;
+    },
+    WHEEL_SETTLE_MS,
+    timers,
+  );
+  expect(settle.flush()).toBe(false);
+  settle.poke();
+  expect(settle.flush()).toBe(true);
+  advance(WHEEL_SETTLE_MS * 2);
+  expect(commits).toBe(1);
+  settle.poke();
+  settle.cancel();
+  advance(WHEEL_SETTLE_MS * 2);
+  expect({ commits, flushed: settle.flush() }).toEqual({ commits: 1, flushed: false });
+});
+
+test("m6: a step that stops on a finite bound is a clamp; Infinity bounds never are", () => {
+  const epochs = { min: 1, max: 30 };
+  expect(onBound(stepValue(29, 1, 1, epochs), epochs)).toBe(true);
+  expect(onBound(stepValue(30, 1, 1, epochs, true), epochs)).toBe(true);
+  expect(onBound(stepValue(2, -1, 1, epochs), epochs)).toBe(true);
+  expect(onBound(stepValue(10, 1, 1, epochs), epochs)).toBe(false);
+  expect(onBound(5, FLOOR)).toBe(false);
+  expect(onBound(1.01, FLOOR)).toBe(true);
 });
