@@ -3,8 +3,10 @@ import { expect, test } from "bun:test";
 import { bandRange, priceBands, type PriceBands } from "../../src/v2/app/world/bands";
 import { fmtUSD } from "../../src/v2/design/format/money";
 import {
+  BAND_VISIBLE,
   type Ctx2D,
   drawWorld,
+  layerAlphas,
   endLabelAt,
   LABEL_LINE,
   type Paint,
@@ -21,11 +23,7 @@ const PAINT: Paint = {
   price: "#f93",
   surface: "#111",
   accent: "#fc6",
-  outer: 0.1,
-  inner: 0.16,
-  edgeAlpha: 0.55,
   split: false,
-  edge: 0.75,
   median: 2,
   casing: 1.5,
   chart: "500 12px SM Jost",
@@ -106,8 +104,19 @@ const series = (label: string, ys: number[]): { label: string; data: unknown[] }
   label,
   data: ys.map((y, i) => ({ x: NOW + i * WEEK, y })),
 });
+// p1 and p99 match p5 and p95 here, so the outer band adds no width to these placements.
 const bands = priceBands(
-  ["5th", "25th", "Median", "75th", "95th"].map((q, k) =>
+  (
+    [
+      ["1st", 0],
+      ["5th", 0],
+      ["25th", 1],
+      ["Median", 2],
+      ["75th", 3],
+      ["95th", 4],
+      ["99th", 4],
+    ] as const
+  ).map(([q, k]) =>
     series(q === "Median" ? "Median Bitcoin Price" : `${q} Percentile Bitcoin Price`, [
       1e5 * (k + 1),
       4e5 * (k + 1),
@@ -208,6 +217,8 @@ const PAST = Number.POSITIVE_INFINITY;
 const pack = (p5: number[], p50: number[], p95: number[]): PriceBands => ({
   start: NOW,
   weeks: p50.length - 1,
+  p1: Float64Array.from(p5),
+  p99: Float64Array.from(p95),
   p5: Float64Array.from(p5),
   p25: Float64Array.from(p5),
   p50: Float64Array.from(p50),
@@ -335,12 +346,67 @@ test("Form: a scientific exponent inside the italic end label is measured and dr
   expect(sup.length > 0 && sup.every((m) => m.font === PAINT.serifUpright)).toBe(true);
 });
 
+const near = (x: number, y: number): boolean => Math.abs(x - y) < 1e-12;
+
+test("1L.4: three nested fills (p1–p99, p5–p95, p25–p75) whose stacked alphas land on .06/.11/.18", () => {
+  const [a = 0, b = 0, c = 0] = layerAlphas(BAND_VISIBLE);
+  expect(near(a, 0.06)).toBe(true);
+  expect(near(1 - (1 - a) * (1 - b), 0.11)).toBe(true);
+  expect(near(1 - (1 - a) * (1 - b) * (1 - c), 0.18)).toBe(true);
+  const { ctx, ops } = recorder();
+  const alphas: number[] = [];
+  const fill = ctx.fill.bind(ctx);
+  ctx.fill = () => {
+    alphas.push(ctx.globalAlpha);
+    fill();
+  };
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1 }, bands);
+  expect(alphas.filter((v) => v < 1)).toEqual([a, b, c]);
+  expect(
+    ops
+      .filter((o) => o.op === "fill")
+      .slice(0, 3)
+      .every((o) => o.style === PAINT.price),
+  ).toBe(true);
+});
+
+test("1L.4: no outline on any band edge; only the median (and its casing) is stroked", () => {
+  const b = pack([1e5, 2e5, 3e5], [2e5, 4e5, 8e5], [4e5, 8e5, 1.6e6]);
+  const { ctx } = recorder();
+  const strokes: string[] = [];
+  const paths: number[][] = [];
+  let current: number[] = [];
+  ctx.beginPath = () => {
+    current = [];
+    paths.push(current);
+  };
+  ctx.lineTo = (_x: number, y: number) => {
+    current.push(y);
+  };
+  ctx.stroke = () => {
+    strokes.push(`${str(ctx.strokeStyle)}:${String(paths.length - 1)}`);
+  };
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 }, b);
+  const box = plotBox(1440, 900);
+  // The stroked paths with three points (band traces) are the median twice: casing, then line.
+  const traced = strokes
+    .map((s) => s.split(":"))
+    .filter(([, k]) => paths[Number(k)]?.length === 3)
+    .map(([style, k]) => [style, paths[Number(k)]?.map((y) => Math.round(y))]);
+  const domain = fitDomain(1e5, 1.6e6);
+  const median = [2e5, 4e5, 8e5].map((v) => Math.round(ly(v, box, domain)));
+  expect(traced).toEqual([
+    [PAINT.surface, median],
+    [PAINT.price, median],
+  ]);
+});
+
 test("B2: bands that are past a double from the start draw the frame and the caption, no end label", () => {
   const inf = Float64Array.from([1e5, Number.POSITIVE_INFINITY]);
   const nan = Float64Array.from([1e5, Number.NaN]);
   for (const b of [
-    { start: NOW, weeks: 1, p5: inf, p25: inf, p50: inf, p75: inf, p95: inf },
-    { start: NOW, weeks: 1, p5: nan, p25: nan, p50: nan, p75: nan, p95: nan },
+    { start: NOW, weeks: 1, p1: inf, p5: inf, p25: inf, p50: inf, p75: inf, p95: inf, p99: inf },
+    { start: NOW, weeks: 1, p1: nan, p5: nan, p25: nan, p50: nan, p75: nan, p95: nan, p99: nan },
   ]) {
     const texts = draw(693, b, 1);
     expect(texts.includes(OUT)).toBe(true);

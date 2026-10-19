@@ -57,13 +57,8 @@ export type Paint = {
   price: string;
   surface: string;
   accent: string;
-  outer: number;
-  inner: number;
   /** End label on two lines (WorldLayer's container query, chart narrower than 30rem). */
   split: boolean;
-  /** p5 / p95 hairline edge: alpha and width. */
-  edgeAlpha: number;
-  edge: number;
   /** --t-chart-serif in px: the end label's em (its plate pads 0.25em 0.5em). */
   serifPx: number;
   median: number;
@@ -97,11 +92,7 @@ export const readPaint = (canvas: Element): Paint => {
     price: v("--path-btc-price"),
     surface: v("--surface"),
     accent: v("--accent"),
-    outer: Number.parseFloat(v("--fan-focus-outer")) || 0.1,
-    inner: Number.parseFloat(v("--fan-focus-inner")) || 0.16,
-    edgeAlpha: Number.parseFloat(v("--fan-edge-outer-a")) || 0.55,
     split: v("--chart-end-lines") === "2",
-    edge: remPx(v("--line-fan-edge-outer"), root) || 1,
     median: remPx(v("--line-median"), root) || 2,
     casing: remPx(v("--line-casing"), root) || 1.5,
     // --t-chart's "×1.3 at ≥75rem" is not applied: the $ labels live in v32's fixed 44px right
@@ -131,6 +122,24 @@ const trace = (
     x.lineTo(lx(i, box, horizon), Math.max(box.T, y));
   }
 };
+
+/**
+ * §1L.4: the visible orange of the outer (p1–p99), middle (p5–p95) and inner (p25–p75) bands. The
+ * fills stack, so each layer's own alpha is solved for the compound to land on these.
+ */
+export const BAND_VISIBLE = [0.06, 0.11, 0.18] as const;
+
+/** Layer alphas a_k with 1 − Π(1 − a_i, i ≤ k) = visible_k. */
+export const layerAlphas = (visible: readonly number[]): number[] => {
+  let through = 1;
+  return visible.map((v) => {
+    const a = 1 - (1 - v) / through;
+    through *= 1 - a;
+    return a;
+  });
+};
+
+const [ALPHA_OUTER = 0, ALPHA_MIDDLE = 0, ALPHA_INNER = 0] = layerAlphas(BAND_VISIBLE);
 
 const fill = (
   x: Ctx2D,
@@ -315,7 +324,8 @@ const drawEndLabel = (
     ? endLabelAt(
         box,
         domain,
-        { p5: bands.p5, p95: bands.p95, end: mid, horizon },
+        // The label clears the whole drawn fan (the outer band), not only p5–p95.
+        { p5: bands.p1, p95: bands.p99, end: mid, horizon },
         { width: textWidth, lines: all.length },
         short,
       )
@@ -428,16 +438,11 @@ export const drawWorld = (
 
   // Quantile bands, casing, median.
   if (bands !== null) {
+    // §1L.4: three nested fills, no outline on any band edge; the edges are the steps in fill.
     x.fillStyle = p.price;
-    fill(x, bands.p5, bands.p95, p.outer, frame);
-    fill(x, bands.p25, bands.p75, p.inner, frame);
-    // Hairline edges on p5 and p95, so the 5–95 band reads as a band even when it is narrow.
-    x.strokeStyle = p.price;
-    x.lineWidth = p.edge;
-    x.globalAlpha = p.edgeAlpha;
-    stroke(x, bands.p5, frame);
-    stroke(x, bands.p95, frame);
-    x.globalAlpha = 1;
+    fill(x, bands.p1, bands.p99, ALPHA_OUTER, frame);
+    fill(x, bands.p5, bands.p95, ALPHA_MIDDLE, frame);
+    fill(x, bands.p25, bands.p75, ALPHA_INNER, frame);
     x.lineJoin = "round";
     x.strokeStyle = p.surface;
     x.lineWidth = p.median + p.casing * 2;

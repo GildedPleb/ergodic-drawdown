@@ -126,30 +126,35 @@ const series = (label: string, ys: number[]): { label: string; data: unknown[] }
   data: ys.map((y, i) => ({ x: NOW + i * WEEK, y })),
 });
 const ENGINE = [
+  series("1st Percentile Bitcoin Price", [85_000, 60_000, 250_000]),
   series("5th Percentile Bitcoin Price", [90_000, 80_000, 400_000]),
   series("25th Percentile Bitcoin Price", [100_000, 120_000, 700_000]),
   series("Median Bitcoin Price", [110_000, 150_000, 1_200_000]),
   series("75th Percentile Bitcoin Price", [120_000, 190_000, 1_900_000]),
   series("95th Percentile Bitcoin Price", [130_000, 260_000, 3_100_000]),
+  series("99th Percentile Bitcoin Price", [140_000, 330_000, 4_800_000]),
   series("Bitcoin Walk 1", [1, 2, 3]),
 ];
 
-test("price bands read p5/p25/p50/p75/p95 from the engine's quantile datasets", () => {
+test("1L.4: price bands read p1/p5/p25/p50/p75/p95/p99 from the engine's quantile datasets", () => {
   const bands = priceBands(ENGINE);
   expect(bands?.weeks).toBe(2);
   expect(bands?.start).toBe(NOW);
   expect([...(bands?.p50 ?? [])]).toEqual([110_000, 150_000, 1_200_000]);
+  expect([...(bands?.p1 ?? [])]).toEqual([85_000, 60_000, 250_000]);
+  expect([...(bands?.p99 ?? [])]).toEqual([140_000, 330_000, 4_800_000]);
 });
 
-test("no bands until every quantile is present", () => {
+test("no bands until every quantile is present (p1 and p99 included)", () => {
   expect(priceBands(undefined)).toBe(null);
   expect(priceBands(ENGINE.slice(1))).toBe(null);
+  expect(priceBands(ENGINE.filter((d) => !d.label.startsWith("99th")))).toBe(null);
 });
 
-test("band range spans min p5 to max p95; end value is the horizon's last point", () => {
+test("1L.4: band range spans min p1 to max p99; end value is the horizon's last point", () => {
   const bands = priceBands(ENGINE);
   if (bands === null) throw new Error("bands");
-  expect(bandRange(bands)).toEqual({ low: 80_000, high: 3_100_000 });
+  expect(bandRange(bands)).toEqual({ low: 60_000, high: 4_800_000 });
   expect(endValue(bands.p95)).toBe(3_100_000);
 });
 
@@ -167,11 +172,13 @@ const band = (...v: number[]): Float64Array => Float64Array.from(v);
 const withEdges = (p5: Float64Array, p95: Float64Array): PriceBands => ({
   start: 0,
   weeks: p5.length - 1,
+  p1: p5,
   p5,
   p25: p5,
   p50: p5,
   p75: p95,
   p95,
+  p99: p95,
 });
 
 test("bandRange skips Infinity and NaN, so the axis stays finite (Keel)", () => {
@@ -256,7 +263,7 @@ const cagrBands = (variable: number, epochs: number): PriceBands => {
   const p5 = at("minPrice");
   const p95 = at("maxPrice");
   const p50 = p5.map((v, i) => Math.sqrt(v * (p95[i] ?? Number.NaN)));
-  return { start: 0, weeks, p5, p25: p5, p50, p75: p95, p95 };
+  return { start: 0, weeks, p1: p5, p5, p25: p5, p50, p75: p95, p95, p99: p95 };
 };
 
 test("B2: CAGR R 1e6 and 1e9 at 30 epochs, 1e300 at 10: out of range, finite axis, fast", () => {
