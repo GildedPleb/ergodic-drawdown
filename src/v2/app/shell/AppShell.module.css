@@ -197,6 +197,11 @@
     padding-block-end: var(--s-5);
   }
 
+  /* Plans and Stats are not built yet: no room on phones, their geometry kept on desktop. */
+  .reserved {
+    display: none;
+  }
+
   .root[data-sheet="half"] .dockRow {
     display: none;
   }
@@ -283,10 +288,15 @@
       block-size: var(--sheet-open);
     }
 
-    /* Form M2: the Models sheet fills the body and lays its own three columns out. */
-    .col {
-      overflow: hidden;
-      padding-block-end: 0;
+    /* §1L.2: three equal columns, Models | Plans | Stats; Models scrolls inside the 40vh cap. */
+    .cols {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--sheet-cols-gap);
+    }
+
+    .reserved {
+      display: block;
+      visibility: hidden;
     }
   }
 
@@ -374,6 +384,10 @@
 
     .cols {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .reserved {
+      display: none;
     }
   }
 

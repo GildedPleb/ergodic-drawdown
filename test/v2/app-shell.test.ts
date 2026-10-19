@@ -42,3 +42,16 @@ test("shell: the Models sheet is a region named Models that the tab and grab poi
   expect(html.includes('id="models-sheet"')).toBe(true);
   expect((html.match(/aria-controls="models-sheet"/g) ?? []).length).toBe(2);
 });
+
+test("1L.2: the sheet body is three panes, Models first; Plans and Stats keep their room, hidden", () => {
+  const panes = [...html.matchAll(/data-pane="(\w+)"/g)].map((m) => m[1]);
+  expect(panes).toEqual(["models", "plans", "stats"]);
+  expect((html.match(/data-pane="(?:plans|stats)" aria-hidden="true"/g) ?? []).length).toBe(2);
+  // Inside Models the three sections stack (no inner columns any more).
+  expect(html.includes("data-layout=")).toBe(false);
+});
+
+test("1L.2: Models is the active pane: its tab selected, its layer on the chart", () => {
+  expect(html.includes('data-active-pane="models"')).toBe(true);
+  expect(html.includes('data-layer-pane="models"')).toBe(true);
+});

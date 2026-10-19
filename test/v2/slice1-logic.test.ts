@@ -1,3 +1,4 @@
+import { paneOf } from "../../src/v2/app/shell/panes";
 import { expect, test } from "bun:test";
 
 import type { EngineConfig } from "../../src/engine/keys";
@@ -228,4 +229,19 @@ test("B1: one engine job at a time; commits during a run coalesce to the latest"
   expect(jobs).toEqual({ requested: 5, started: 2, inFlight: 0, maxInFlight: 1 });
   for (const c of configs.slice(0, 1)) set(c);
   expect(fake.seen.length).toBe(3);
+});
+
+const at = (
+  pane: string | null,
+): { closest: () => { getAttribute: () => string | null } | null } => ({
+  closest: () => (pane === null ? null : { getAttribute: () => pane }),
+});
+
+test("1L.2: the pane last clicked, tapped or tabbed into is the active pane", () => {
+  expect(paneOf(at("stats"), "models")).toBe("stats");
+  expect(paneOf(at("plans"), "stats")).toBe("plans");
+  // Outside every pane (the chart, the header) the active pane stays as it was.
+  expect(paneOf(at(null), "plans")).toBe("plans");
+  expect(paneOf(null, "models")).toBe("models");
+  expect(paneOf(at("bogus"), "models")).toBe("models");
 });

@@ -11,7 +11,8 @@ import { endValue, outOfRange } from "../world/bands";
 import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
-import { SIDE_PANEL, useMedia, WIDE } from "./useMedia";
+import { type Pane, paneOf } from "./panes";
+import { SIDE_PANEL, useMedia } from "./useMedia";
 
 /** R7: variant keys and values. */
 export const variants = {
@@ -40,8 +41,9 @@ export const AppShell = (): JSX.Element => {
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
-  const wide = useMedia(WIDE);
   const sheet = useRef<HTMLElement>(null);
+  // §1L.2: the pane last clicked, tapped or tabbed into draws its layer and selects its tab.
+  const [pane, setPane] = useState<Pane>("models");
   const world = useWorld(values, now);
 
   const { bands } = world;
@@ -75,6 +77,20 @@ export const AppShell = (): JSX.Element => {
       window.clearTimeout(done);
     };
   }, [side, open]);
+
+  // Document listeners (G4: no handlers on plain elements in app/).
+  useEffect(() => {
+    const onEnter = (event: Event): void => {
+      const { target } = event;
+      if (target instanceof Element) setPane((p) => paneOf(target, p));
+    };
+    document.addEventListener("focusin", onEnter);
+    document.addEventListener("pointerdown", onEnter);
+    return () => {
+      document.removeEventListener("focusin", onEnter);
+      document.removeEventListener("pointerdown", onEnter);
+    };
+  }, []);
 
   // Esc closes the sheet or panel (a row editor stops its own Esc first) and returns focus to
   // the tab (§1i). A document listener: feature code puts no key handlers on plain elements (G4).
@@ -116,12 +132,13 @@ export const AppShell = (): JSX.Element => {
   const body = styles["body"] ?? "shell-body";
   const cols = styles["cols"] ?? "shell-cols";
   const col = styles["col"] ?? "shell-col";
+  const reserved = styles["reserved"] ?? "shell-reserved";
 
   const sheetState: (typeof variants.sheet)[number] = open ? "open" : "half";
   const columnState: (typeof variants.column)[number] = side && column ? "open" : "closed";
 
   return (
-    <div className={root} data-sheet={sheetState} data-column={columnState}>
+    <div className={root} data-sheet={sheetState} data-column={columnState} data-active-pane={pane}>
       <main className={columnCls}>
         <header className={header}>
           <div className={headerRow}>
@@ -144,7 +161,7 @@ export const AppShell = (): JSX.Element => {
             <span className={dh}>{sentence}</span>
           </h1>
         </div>
-        <div className={chart}>
+        <div className={chart} data-layer-pane={pane}>
           <WorldLayer
             bands={bands}
             now={now}
@@ -168,7 +185,7 @@ export const AppShell = (): JSX.Element => {
               orientation={side && !open ? "rail" : "row"}
               label={strings.dock.label}
               tabs={TABS}
-              selected="models"
+              selected={pane}
               expanded={open}
               onTab={() => {
                 setSheet(!open);
@@ -178,16 +195,19 @@ export const AppShell = (): JSX.Element => {
             />
           </div>
           <div className={body}>
+            {/* §1L.2: three equal columns, Models | Plans | Stats; only Models is built yet,
+                the other two keep their geometry, hidden. */}
             <div className={cols}>
-              <div className={col}>
+              <div className={col} data-pane="models">
                 <ModelsSheet
-                  layout={wide && !side ? "columns" : "stack"}
                   values={values}
                   onChange={(patch) => {
                     setValues((v) => ({ ...v, ...patch }));
                   }}
                 />
               </div>
+              <div className={reserved} data-pane="plans" aria-hidden="true" />
+              <div className={reserved} data-pane="stats" aria-hidden="true" />
             </div>
           </div>
         </section>
