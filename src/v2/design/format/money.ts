@@ -159,6 +159,33 @@ export const fmtBTCRange = (low: number, high: number, options?: FormatOptions):
   return `${lead}${a.slice(lead.length)}${EN}${b.slice(lead.length)}`;
 };
 
+/**
+ * $ range (V32-BUILD Gap 5, Form default): one `$`, an en dash, each end in its own fmtUSD unit,
+ * by analogy with `₿0.4–0.7`: `$400k–3.1M`. Crossing zero (raw values) uses "to" with `$`
+ * repeated; equal ends collapse to one value.
+ */
+export const fmtUSDRange = (low: number, high: number): string => {
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return EM;
+  const [lo, hi] = low <= high ? [low, high] : [high, low];
+  const a = fmtUSD(lo);
+  const b = fmtUSD(hi);
+  if (a === b) return a;
+  if ((lo < 0 && hi > 0) || a.startsWith("<") || b.startsWith("<")) return `${a} to ${b}`;
+  const lead = a.startsWith(MINUS) ? `${MINUS}$` : "$";
+  return `${lead}${a.slice(lead.length)}${EN}${b.slice(lead.length)}`;
+};
+
+/** Spoken $ range, in step with fmtUSDRange; a shared minus is repeated. */
+export const nameUSDRange = (low: number, high: number): string => {
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return NOT_AVAILABLE;
+  const shown = fmtUSDRange(low, high);
+  if (shown.startsWith(`${MINUS}$`) && shown.includes(EN)) {
+    const [from = "", to = ""] = shown.slice(2).split(EN);
+    return `minus $${from} to minus $${to}`;
+  }
+  return shown.replaceAll(MINUS, "minus ").replaceAll("<", "less than ").replaceAll(EN, " to ");
+};
+
 export const fmtBTCChange = (from: number, to: number, options?: FormatOptions): string =>
   `${fmtBTC(from, options)} → ${fmtBTC(to, options)}`;
 

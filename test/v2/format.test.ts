@@ -5,10 +5,12 @@ import {
   fmtBTCChange,
   fmtBTCRange,
   fmtUSD,
+  fmtUSDRange,
   hasSuffixBtc,
   nameBTC,
   nameBTCRange,
   nameUSD,
+  nameUSDRange,
 } from "../../src/v2/design/format/money";
 
 const check = (rows: [string, string][]): void => {
@@ -264,5 +266,21 @@ test("Form G3 2026-10-19: a same-sign range with an end below 1 sat stays compac
     [nameBTCRange(1e-9, 0.7), "bitcoin 0 to 0.7"],
     [fmtBTCRange(-0.7, -1e-9), "−₿0.7–0"],
     [nameBTCRange(-0.7, -1e-9), "minus bitcoin 0.7 to minus 0"],
+  ]);
+});
+
+test("V32 Gap 5: a $ range has one prefix and an en dash, each end in its own unit", () => {
+  check([
+    [fmtUSDRange(400_000, 3_100_000), "$400k–3.1M"],
+    [fmtUSDRange(3_100_000, 400_000), "$400k–3.1M"],
+    [fmtUSDRange(240, 1_040), "$240–1,040"],
+    [fmtUSDRange(85_400, 85_400), "$85.4k"],
+    [fmtUSDRange(-5, 10), "−$5 to $10"],
+    [fmtUSDRange(-10, -5), "−$10–5"],
+    [fmtUSDRange(Number.NaN, 5), "—"],
+    [nameUSDRange(400_000, 3_100_000), "$400k to 3.1M"],
+    [nameUSDRange(-10, -5), "minus $10 to minus $5"],
+    [nameUSDRange(-5, 10), "minus $5 to $10"],
+    [nameUSDRange(Number.NaN, 5), "not available"],
   ]);
 });
