@@ -3,6 +3,7 @@ import type { StorybookConfig } from "@storybook/react-vite";
 const config: StorybookConfig = {
   stories: ["../src/v2/**/*.stories.@(ts|tsx)"],
   addons: [],
+  core: { disableTelemetry: true },
   framework: {
     name: "@storybook/react-vite",
     options: {},

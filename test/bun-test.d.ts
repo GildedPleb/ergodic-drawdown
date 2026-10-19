@@ -36,3 +36,7 @@ declare module "bun:test" {
   export function expect(actual: unknown): Expectation;
   export function test(name: string, fn: () => Promise<void> | void): void;
 }
+
+declare module "node:zlib" {
+  export function brotliDecompressSync(buffer: Uint8Array): Uint8Array;
+}
