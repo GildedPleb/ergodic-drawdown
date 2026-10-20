@@ -1,40 +1,35 @@
 @layer primitives {
-  .root {
-    display: grid;
-  }
-
-  /* Centred like RadioList rows; label and value then shift onto the Jost row-size baseline
-     with the optical-offset tokens, so a ledger row and a radio row read on one line. */
+  /* Label | value on a grid whose first line is --hit tall in both states (§1N: the row keeps its
+     height while editing); a message, hint or slider adds lines below it, above the hairline. */
   .row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(var(--hit), auto);
     align-items: center;
-    justify-content: space-between;
-    gap: var(--s-3);
-    min-block-size: var(--hit);
-    padding: var(--row-pad);
+    gap: 0 var(--s-3);
+    inline-size: 100%;
+    padding: 0 var(--s-3);
     background: transparent;
     color: var(--text);
     text-align: start;
     border: 0;
     border-block-end: 1px solid var(--hairline);
     border-radius: var(--radius-0);
+  }
+
+  .root[data-open="false"] .row {
     cursor: pointer;
   }
 
-  .row:hover {
+  .root[data-open="false"] .row:hover {
     background: var(--hover);
   }
 
   .root[data-open="true"] .row {
-    background: var(--selected);
-  }
-
-  .root[data-open="false"] .row {
-    background: transparent;
+    cursor: default;
   }
 
   .row:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
     outline-offset: var(--focus-offset-tight);
   }
 
@@ -51,7 +46,6 @@
   }
 
   .value {
-    flex: none;
     font-family: var(--f-sans);
     font-size: var(--t-value);
     font-weight: 500;
@@ -59,23 +53,5 @@
     line-height: var(--lh-row);
     text-align: end;
     transform: translateY(calc(var(--optical-offset-jost) * (var(--t-row) - var(--t-value))));
-  }
-
-  /* --rule-double frame: 1px line, 2px gap, 1px line, square corners, on --selected. */
-  .editor {
-    position: relative;
-    display: grid;
-    gap: var(--s-2);
-    padding: var(--s-3);
-    background: var(--selected);
-    border: var(--rule-double-line) solid var(--accent);
-  }
-
-  .editor::before {
-    content: "";
-    position: absolute;
-    inset: var(--rule-double-gap);
-    border: var(--rule-double-line) solid var(--accent);
-    pointer-events: none;
   }
 }

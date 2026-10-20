@@ -51,6 +51,10 @@ export const strings = {
       fmtUSDRange(low, high),
     ],
   },
+  models: {
+    /** §1N: a Select's tray, named for the choice it belongs to. */
+    settings: (choice: string): string => `${choice} settings`,
+  },
   sections: {
     priceModel: "Price model",
     pricesMove: "How prices move",
@@ -65,7 +69,11 @@ export const strings = {
     label: "Panes",
     grab: { open: "Open the Models sheet", close: "Close the Models sheet" },
     /** §1L.5: the sheet's position, announced after every move. */
-    sheet: { closed: "Sheet closed", half: "Sheet half open", full: "Sheet open" },
+    sheet: {
+      closed: "Sheet closed",
+      half: "Sheet half open",
+      full: "Sheet open",
+    },
   },
   fields: {
     /** Clamp (Gap 11): the value used is shown, not silently swapped. */

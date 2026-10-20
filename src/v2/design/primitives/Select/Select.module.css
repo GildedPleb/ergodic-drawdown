@@ -95,4 +95,19 @@
   .option[data-state="on"] .mark {
     background: var(--accent);
   }
+
+  /* §1N tray: a fine rule down the left and across the bottom in the frame colour, closing the
+     unit; rows indented --tray-indent. ::after lies over the last row's hairline. */
+  .tray {
+    position: relative;
+    padding-inline-start: var(--tray-indent);
+    border-inline-start: var(--rule-hair) solid var(--control-line);
+  }
+
+  .tray::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    border-block-end: var(--rule-hair) solid var(--control-line);
+  }
 }

@@ -70,8 +70,8 @@ test("1L.3: price model and walk are Certificate Selects whose options are the e
   expect(optionsOf(html, "v2-model")).toEqual([...modelsPaneSchema.modelOrder]);
   expect(optionsOf(html, "v2-walk")).toEqual([...modelsPaneSchema.walks]);
   expect(html.includes('id="v2-model" class')).toBe(true);
-  expect(html.includes('aria-labelledby="sec-price-model"')).toBe(true);
-  expect(html.includes('aria-labelledby="grp-walk"')).toBe(true);
+  expect(html.includes('aria-labelledby="grp-price-model"')).toBe(true);
+  expect(html.includes('aria-labelledby="lbl-walk"')).toBe(true);
 });
 
 test("1L.3: the defaults are the Selects' values (■ on the current option)", () => {

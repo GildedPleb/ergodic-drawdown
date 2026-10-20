@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { type Field, ModelsSheet } from "../../app/models/ModelsSheet";
 import { defaultModelsValues, type ModelsValues } from "../../app/models/values";
 import * as AmountStories from "../../design/primitives/Amount/Amount.stories";
+
 import * as ClusterStories from "../../design/primitives/Cluster/Cluster.stories";
 import * as DockStories from "../../design/primitives/Dock/Dock.stories";
 import * as GrabPointStories from "../../design/primitives/GrabPoint/GrabPoint.stories";
@@ -31,6 +32,7 @@ const kebab = (name: string): string => name.replace(/([a-z0-9])([A-Z])/g, "$1-$
 /** The same CSF exports Storybook renders, so /design and the gallery cannot drift. */
 const GROUPS: Record<string, StoryModule> = {
   amount: AmountStories,
+
   cluster: ClusterStories,
   dock: DockStories,
   "grab-point": GrabPointStories,
@@ -80,7 +82,8 @@ const STORIES = new Map<string, Story>([
   ["models-sheet/emoji-walk", () => <Sheet initial={{ walk: "🟢🟢🟢🔴" }} />],
   // Probe m3: the sheet in linen (the …/linen suffix themes <html>).
   ["models-sheet/linen", () => <Sheet />],
-  // The in-place editor open: NumberField + slider in the --rule-double frame.
+  // §1N: CAGR's tray, and a value cell editing in place.
+  ["models-sheet/cagr", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
   ["models-sheet/editing", () => <Sheet editing="volatility" />],
 ]);
 for (const [group, mod] of Object.entries(GROUPS)) {

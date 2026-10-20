@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { MAX_EPOCH_COUNT } from "../../../constants";
 import { useState } from "react";
 
+import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
 import type { Bounds } from "../../design/primitives/NumberField";
@@ -32,7 +33,10 @@ const EPOCH_BOUNDS = { min: controls.epochs.accept.min, max: MAX_EPOCH_COUNT };
  * Gap 10 (Form, m2): samples clamp to a minimum of 1 (zero futures draws nothing, so it is never a
  * valid result). 1 is main's own samples input `min` (G12 snapshot); the max is its accept max.
  */
-export const SAMPLE_BOUNDS = { min: controls.samples.min, max: controls.samples.accept.max };
+export const SAMPLE_BOUNDS = {
+  min: controls.samples.min,
+  max: controls.samples.accept.max,
+};
 
 export type Field = "variable" | "minMaxMultiple" | "volatility" | "samples" | "epochs";
 
@@ -53,6 +57,7 @@ type EditorProps = {
 /** The in-place editor: the NumberField (Probe gate) plus a slider when both bounds are finite. */
 const Editor = (p: EditorProps): JSX.Element => {
   const finite = Number.isFinite(p.bounds.min) && Number.isFinite(p.bounds.max);
+  const slide = styles["slide"] ?? "models-slide";
   return (
     <>
       <NumberField
@@ -72,14 +77,16 @@ const Editor = (p: EditorProps): JSX.Element => {
         onCommit={p.onCommit}
       />
       {p.slider && finite ? (
-        <Slider
-          label={p.label}
-          value={p.value}
-          min={p.bounds.min}
-          max={p.bounds.max}
-          step={p.step}
-          onCommit={p.onCommit}
-        />
+        <div className={slide}>
+          <Slider
+            label={p.label}
+            value={p.value}
+            min={p.bounds.min}
+            max={p.bounds.max}
+            step={p.step}
+            onCommit={p.onCommit}
+          />
+        </div>
       ) : null}
     </>
   );
@@ -88,13 +95,13 @@ const Editor = (p: EditorProps): JSX.Element => {
 export type ModelsSheetProps = {
   values: ModelsValues;
   onChange: (patch: Partial<ModelsValues>) => void;
-  /** Stories and tests: a row whose editor starts open. */
+  /** Stories and tests: a field whose value cell starts editing. */
   initialEditing?: Field | undefined;
 };
 
 /**
- * The v32 Models sheet (V32-BUILD §1f): every back-end setting in Certificate controls, in the
- * back end's own words. Rows a model hides are removed, never disabled.
+ * The v32 Models pane: every back-end setting in Certificate controls, in the back end's own words (§1f); a field that exists only because of a Select's
+ * choice lives in that Select's tray (§1N). Rows a model hides are removed, never disabled.
  */
 export const ModelsSheet = ({
   values,
@@ -173,83 +180,95 @@ export const ModelsSheet = ({
       </LedgerRow>
     ) : null;
 
+  const modelTray =
+    variableRow === null && minMaxRow === null ? undefined : (
+      <>
+        {variableRow}
+        {minMaxRow}
+      </>
+    );
+
+  const walkTray = (
+    <>
+      <LedgerRow
+        id="row-volatility"
+        label={controls.volatility.label}
+        value={String(values.volatility)}
+        open={editing === "volatility"}
+        onToggle={toggle("volatility")}
+      >
+        <Editor
+          id="v2-vol"
+          label={controls.volatility.label}
+          value={values.volatility}
+          bounds={controls.volatility.accept}
+          parse={controls.volatility.parse}
+          step={volStep}
+          emptyValue={controls.volatility.emptyValue}
+          who={strings.fields.nouns.volatility}
+          slider
+          onCommit={(volatility) => {
+            onChange({ volatility });
+          }}
+        />
+      </LedgerRow>
+      <SectionLabel text={controls.clamp.label} level="group" id="grp-clamp" />
+      <div className={group} role="group" aria-labelledby="grp-clamp">
+        <TickToggle
+          label={controls.clamp.topLabel}
+          checked={values.clampTop}
+          onChange={(clampTop) => {
+            onChange({ clampTop });
+          }}
+        />
+        <TickToggle
+          label={controls.clamp.bottomLabel}
+          checked={values.clampBottom}
+          onChange={(clampBottom) => {
+            onChange({ clampBottom });
+          }}
+        />
+      </div>
+    </>
+  );
+
   return (
-    // §1L.2: the sections stack inside the Models pane (the left third on desktop).
     <div className={root}>
       {/* Form m1: no visible pane title; the sheet keeps its h2 for headings navigation. */}
       <VisuallyHidden as="h2">{modelsPaneSchema.title}</VisuallyHidden>
-
-      <section className={section} aria-labelledby="sec-price-model">
-        <SectionLabel text={strings.sections.priceModel} as="h3" id="sec-price-model" />
+      <div className={section} role="group" aria-labelledby="grp-price-model">
+        <SectionLabel text={strings.sections.priceModel} level="group" id="grp-price-model" />
         <Select
           id="v2-model"
-          labelledBy="sec-price-model"
+          labelledBy="grp-price-model"
           options={modelsPaneSchema.modelOrder}
           value={values.model}
           onChange={(name) => {
             setEditing(null);
             onChange(choosePatch(name));
           }}
+          tray={modelTray}
+          trayLabel={strings.models.settings(values.model)}
         />
-        {variableRow}
-        {minMaxRow}
-      </section>
-
-      <section className={section} aria-labelledby="sec-prices-move">
-        <SectionLabel text={strings.sections.pricesMove} as="h3" id="sec-prices-move" />
-        <SectionLabel text={controls.walk.label} level="group" id="grp-walk" />
+      </div>
+      <div className={section} role="group" aria-labelledby="grp-prices-move">
+        <SectionLabel text={strings.sections.pricesMove} level="group" id="grp-prices-move" />
+        {/* §1M: the engine's label names the walk Select; no duplicate header. */}
+        <VisuallyHidden id="lbl-walk">{controls.walk.label}</VisuallyHidden>
         <Select
           id="v2-walk"
-          labelledBy="grp-walk"
+          labelledBy="lbl-walk"
           options={modelsPaneSchema.walks}
           value={values.walk}
           onChange={(walk) => {
             onChange({ walk });
           }}
+          tray={walkTray}
+          trayLabel={strings.models.settings(spokenLabel(values.walk))}
         />
-        <LedgerRow
-          id="row-volatility"
-          label={controls.volatility.label}
-          value={String(values.volatility)}
-          open={editing === "volatility"}
-          onToggle={toggle("volatility")}
-        >
-          <Editor
-            id="v2-vol"
-            label={controls.volatility.label}
-            value={values.volatility}
-            bounds={controls.volatility.accept}
-            parse={controls.volatility.parse}
-            step={volStep}
-            emptyValue={controls.volatility.emptyValue}
-            who={strings.fields.nouns.volatility}
-            slider
-            onCommit={(volatility) => {
-              onChange({ volatility });
-            }}
-          />
-        </LedgerRow>
-        <SectionLabel text={controls.clamp.label} level="group" id="grp-clamp" />
-        <div className={group} role="group" aria-labelledby="grp-clamp">
-          <TickToggle
-            label={controls.clamp.topLabel}
-            checked={values.clampTop}
-            onChange={(clampTop) => {
-              onChange({ clampTop });
-            }}
-          />
-          <TickToggle
-            label={controls.clamp.bottomLabel}
-            checked={values.clampBottom}
-            onChange={(clampBottom) => {
-              onChange({ clampBottom });
-            }}
-          />
-        </div>
-      </section>
-
-      <section className={section} aria-labelledby="sec-simulation">
-        <SectionLabel text={strings.sections.simulation} as="h3" id="sec-simulation" />
+      </div>
+      <div className={section} role="group" aria-labelledby="grp-simulation">
+        <SectionLabel text={strings.sections.simulation} level="group" id="grp-simulation" />
         <LedgerRow
           id="row-samples"
           label={controls.samples.label}
@@ -295,7 +314,7 @@ export const ModelsSheet = ({
             }}
           />
         </LedgerRow>
-      </section>
+      </div>
     </div>
   );
 };

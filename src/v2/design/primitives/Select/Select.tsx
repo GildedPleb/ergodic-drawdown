@@ -1,4 +1,4 @@
-import type { JSX, KeyboardEvent } from "react";
+import type { JSX, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { LabelGlyphs } from "../LabelGlyphs";
@@ -21,7 +21,16 @@ export type SelectProps = {
   options: readonly string[];
   value: string;
   onChange?: (next: string) => void;
+  /**
+   * §1N: the fields that exist only because of this choice. They hang in the Select's tray, a
+   * group named `trayLabel` that the combobox controls. None (or null): no tray is drawn.
+   */
+  tray?: ReactNode;
+  trayLabel?: string;
 };
+
+/** §1N: the tray's contents cross-fade when the choice changes (instant under reduced motion). */
+const TRAY_FADE_MS = 150;
 
 /** The list stays inside this box (the sheet's scrolling column or the panel), never over the dock. */
 const boundsOf = (el: HTMLElement): DOMRect => {
@@ -42,13 +51,38 @@ const boundsOf = (el: HTMLElement): DOMRect => {
  * aria-selected; ■ marks the current value. Option text goes through LabelGlyphs, so the 🟢🔴 walk
  * is SVG, never an emoji font.
  */
-export const Select = ({ id, labelledBy, options, value, onChange }: SelectProps): JSX.Element => {
+export const Select = ({
+  id,
+  labelledBy,
+  options,
+  value,
+  onChange,
+  tray,
+  trayLabel,
+}: SelectProps): JSX.Element => {
   const selected = options.indexOf(value);
   const [state, setState] = useState<SelectState>(() => closedState(selected));
   const [place, setPlace] = useState({ up: false, maxHeight: 0 });
   const field = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const root = useRef<HTMLDivElement>(null);
+  const trayRef = useRef<HTMLDivElement>(null);
+  const shown = useRef(value);
+  const hasTray = tray !== undefined && tray !== null && tray !== false;
+  const trayId = `${id}-tray`;
+
+  // A new choice swaps the tray's contents in place, with a short cross-fade.
+  useLayoutEffect(() => {
+    if (shown.current === value) return;
+    shown.current = value;
+    const el = trayRef.current;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (el === null || still || typeof el.animate !== "function") return;
+    el.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: TRAY_FADE_MS,
+      easing: "ease-out",
+    });
+  }, [value]);
 
   const pick = (i: number): void => {
     setState(closedState(i));
@@ -106,7 +140,8 @@ export const Select = ({ id, labelledBy, options, value, onChange }: SelectProps
   const text = styles["text"] ?? "select-text";
   const placement: (typeof variants.placement)[number] = place.up ? "up" : "down";
 
-  return (
+  const trayCls = styles["tray"] ?? "select-tray";
+  const select = (
     <div ref={root} className={rootCls} data-placement={placement}>
       <div
         ref={field}
@@ -117,7 +152,7 @@ export const Select = ({ id, labelledBy, options, value, onChange }: SelectProps
         aria-labelledby={labelledBy}
         aria-haspopup="listbox"
         aria-expanded={state.open}
-        aria-controls={`${id}-list`}
+        aria-controls={hasTray ? `${id}-list ${trayId}` : `${id}-list`}
         aria-activedescendant={state.open ? `${id}-opt-${String(state.active)}` : undefined}
         onKeyDown={onKeyDown}
         onClick={() => {
@@ -172,6 +207,16 @@ export const Select = ({ id, labelledBy, options, value, onChange }: SelectProps
           );
         })}
       </ul>
+    </div>
+  );
+  if (!hasTray) return select;
+  // One unit: the Select, and its tray hanging from the frame with no gap.
+  return (
+    <div>
+      {select}
+      <div ref={trayRef} id={trayId} className={trayCls} role="group" aria-label={trayLabel}>
+        {tray}
+      </div>
     </div>
   );
 };

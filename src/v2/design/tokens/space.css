@@ -25,6 +25,7 @@
     --glyph-dot: max(0.5rem, 0.7em); /* walk dot: cap height, never under 8px */
     --glyph-gap: 0.12em; /* walk dots spaced like letters */
     --icon-size: 1em; /* Icon: text-sized */
+    --tray-indent: 1rem; /* §1N: a Select tray's rows, one step in */
     --field-col: 9rem; /* the one field column in a form pane */
     --section-rule-len: 70%; /* SectionLabel hairline taper, section */
     --group-rule-len: 45%; /* SectionLabel hairline taper, group */

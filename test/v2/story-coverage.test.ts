@@ -76,6 +76,7 @@ test("Form B1/N5: FIELD_STORIES lists every TickToggle, NumberField, LabelGlyphs
     "models-sheet/emoji-walk",
     "models-sheet/linen",
     "models-sheet/editing",
+    "models-sheet/cagr",
   ];
   for (const [group, c] of Object.entries(MATRIX_GROUPS)) {
     const text = await file(`${primitives}/${c}/${c}.stories.tsx`).text();

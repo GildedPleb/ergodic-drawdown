@@ -18,8 +18,9 @@ export type SectionLabelProps = {
 };
 
 /**
- * The Certificate label (STYLE v38): centred caps in --accent between two fine hairlines that
- * taper away from the text (--section-rule-len / --group-rule-len). Text is used exactly as given.
+ * The Certificate label (STYLE v38): a section is centred caps in --accent between two fine
+ * hairlines that taper away from the text (--section-rule-len); a group (§1M) is left-aligned
+ * small caps with one --group-rule-len hairline after it. Text is used exactly as given.
  */
 export const SectionLabel = ({
   text,
@@ -33,7 +34,7 @@ export const SectionLabel = ({
   const Tag = as;
   return (
     <div className={root} data-level={level}>
-      <span className={rule} data-side="start" aria-hidden="true" />
+      {level === "section" ? <span className={rule} data-side="start" aria-hidden="true" /> : null}
       <Tag className={label} id={id}>
         {text}
       </Tag>

@@ -16,4 +16,9 @@
   .group {
     display: grid;
   }
+
+  /* §1N: a row's slider sits under its value cell, across the row. */
+  .slide {
+    grid-column: 1 / -1;
+  }
 }

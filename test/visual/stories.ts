@@ -57,6 +57,7 @@ export const FIELD_STORIES = [
   "models-sheet/emoji-walk",
   "models-sheet/linen",
   "models-sheet/editing",
+  "models-sheet/cagr",
 ] as const;
 
 export const FIELD_THEMES = ["dark", "linen"] as const;

@@ -1,1 +1,1 @@
-export { LabelGlyphs } from "./LabelGlyphs";
+export { LabelGlyphs, spokenLabel } from "./LabelGlyphs";

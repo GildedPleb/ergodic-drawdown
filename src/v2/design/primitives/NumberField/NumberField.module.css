@@ -14,11 +14,6 @@
     grid-template-columns: minmax(0, 1fr) var(--field-col);
   }
 
-  /* In a ledger-row editor the row shows the label; the input carries it as its name. */
-  .root[data-label="hidden"] {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   /* M1: row labels are EB Garamond 400 at --t-row; words wrap whole (Form N2). */
   .label {
     min-inline-size: 0;
@@ -101,6 +96,29 @@
 
   .message:empty {
     display: none;
+  }
+
+  /* §1N, in a ledger row: the field is the row's value cell (the row shows the label; the input
+     carries it as its name). Same spot and height as the value, a 1px --accent underline, the
+     focus ring; the hint and message fall to the row's next lines. FL-001 rules unchanged. */
+  .root[data-label="hidden"],
+  .root[data-label="hidden"] .field {
+    display: contents;
+  }
+
+  .root[data-label="hidden"] .control {
+    inline-size: var(--field-col);
+    max-inline-size: 100%;
+    min-block-size: 0;
+    padding: 0;
+    border: 0;
+    border-block-end: var(--rule-hair) solid var(--accent);
+    background: transparent;
+    line-height: var(--lh-row);
+  }
+
+  .root[data-label="hidden"] .hint {
+    grid-column: 1 / -1;
   }
 
   .errorIcon {

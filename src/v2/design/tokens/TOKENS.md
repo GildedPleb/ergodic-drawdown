@@ -258,3 +258,12 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   by `env(safe-area-inset-bottom)` (`--shell-safe-end`), so the timeline slider clears the home
   indicator. Before: 56,777 B source / 7,906 B gzip against the 54,138 / 7,531 B baseline (limit
   7,907). After: measured 56,901 B / 7,917 B (+124 / +11), the new baseline (limit 8,312).
+- **§1N Select tray + in-place editing: pre-approved by Keel, cap +150** (counted across §1M+§1N from
+  7,917 B; so measured ≤ 8,067 B). No rebaseline needed: measured 57,654 B source / 8,030 B gzip
+  (+113), under the 8,312 B limit. Per addition (built gzip, each measured by reverting it alone):
+  Select tray (left and bottom rule in the frame colour, `--tray-indent`) +42; NumberField
+  in-place value cell (1px `--accent` underline, no box) +57; LedgerRow first line held at `--hit`
+  (editor frame rules gone) −11; SectionLabel group label left-aligned +6; ModelsSheet slider
+  under the value cell +10; `--tray-indent` token +9. The crossfade is WAAPI (0 B CSS).
+- Token: `--tray-indent: 1rem` added in `space.css` (§1N: how far a Select's tray, and an asset
+  row's settings, sit in from the frame's left edge).
