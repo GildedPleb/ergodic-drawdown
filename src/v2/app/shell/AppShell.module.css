@@ -243,19 +243,8 @@
     min-block-size: var(--hit);
   }
 
-  .root[data-sheet="closed"] .dockRow {
-    display: none;
-  }
-
-  .root[data-sheet="half"] .dockRow,
-  .root[data-sheet="full"] .dockRow,
-  .root[data-dragging="true"] .dockRow {
-    display: block;
-  }
-
-  .root[data-sheet="half"] .beat,
-  .root[data-sheet="full"] .beat,
-  .root[data-dragging="true"] .beat {
+  .root[data-sheet="closed"][data-dragging="false"] .dockRow,
+  .root:not([data-sheet="closed"][data-dragging="false"]) .beat {
     display: none;
   }
 
@@ -268,17 +257,15 @@
     block-size: var(--dyn-full);
   }
 
-  .root[data-sheet="half"] .body,
-  .root[data-sheet="full"] .body,
-  .root[data-dragging="true"] .body {
+  .root:not([data-sheet="closed"][data-dragging="false"]) .body {
     display: block;
     flex: 1;
     min-block-size: 0;
     padding-block-start: var(--s-3);
   }
 
-  /* While dragging, the edge is wherever the pointer put it. */
-  .root[data-dragging="true"] .sheet {
+  /* While dragging, the edge is wherever the pointer put it (outranks every stop). */
+  .root[data-sheet][data-dragging="true"] .sheet {
     block-size: var(--dyn-sheet);
   }
 
@@ -299,10 +286,6 @@
 
     .root[data-sheet="half"] .sheet {
       block-size: var(--sheet-open);
-    }
-
-    .root[data-dragging="true"] .sheet {
-      block-size: var(--dyn-sheet);
     }
 
     .header {
@@ -356,7 +339,7 @@
       display: none;
     }
 
-    .root[data-sheet="closed"] .dockRow {
+    .root[data-sheet="closed"][data-dragging="false"] .dockRow {
       display: block;
     }
 
@@ -407,8 +390,7 @@
       padding: 0;
     }
 
-    .root[data-sheet="half"] .dockArea,
-    .root[data-sheet="full"] .dockArea {
+    .root:not([data-sheet="closed"]) .dockArea {
       inline-size: var(--panel-w);
     }
 
@@ -416,17 +398,12 @@
       inline-size: var(--dyn-panel);
     }
 
-    .sheet,
-    .root[data-sheet="half"] .sheet,
-    .root[data-sheet="full"] .sheet,
-    .root[data-dragging="true"] .sheet {
+    .root[data-sheet] .sheet {
       block-size: 100%;
       padding: var(--rail-pad);
     }
 
-    .root[data-sheet="half"] .sheet,
-    .root[data-sheet="full"] .sheet,
-    .root[data-dragging="true"] .sheet {
+    .root:not([data-sheet="closed"][data-dragging="false"]) .sheet {
       padding: var(--panel-pad);
     }
 
@@ -468,7 +445,7 @@
       display: none;
     }
 
-    .root[data-sheet="closed"] .dockRow {
+    .root[data-sheet="closed"][data-dragging="false"] .dockRow {
       display: block;
       block-size: 100%;
     }

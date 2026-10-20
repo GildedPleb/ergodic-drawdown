@@ -5,15 +5,11 @@
   }
 
   /* Closed: one field row in the Certificate style, the height of a number-field row. */
-  .field {
+  .field,
+  .option {
     display: flex;
     align-items: center;
-    gap: var(--s-2);
     min-block-size: var(--hit);
-    padding-inline: var(--s-3);
-    border: var(--rule-double) double var(--control-line);
-    border-radius: var(--radius-0);
-    background: var(--surface);
     color: var(--text);
     font-family: var(--f-sans);
     font-size: var(--t-row);
@@ -22,8 +18,12 @@
     cursor: pointer;
   }
 
-  .field:hover {
-    background: var(--hover);
+  .field {
+    gap: var(--s-2);
+    padding-inline: var(--s-3);
+    border: var(--rule-double) double var(--control-line);
+    border-radius: var(--radius-0);
+    background: var(--surface);
   }
 
   .field:focus-visible {
@@ -37,10 +37,14 @@
     overflow-wrap: anywhere;
   }
 
-  .caret {
+  .caret,
+  .mark {
     flex: none;
     inline-size: var(--radio-box);
     block-size: var(--radio-box);
+  }
+
+  .caret {
     fill: var(--accent);
   }
 
@@ -65,24 +69,11 @@
     inset-block-end: 100%;
   }
 
-  .list[hidden] {
-    display: none;
-  }
-
   .option {
-    display: flex;
-    align-items: center;
     gap: var(--s-3);
-    min-block-size: var(--hit);
     padding: var(--row-pad);
     border-block-end: 1px solid var(--hairline);
     border-inline-start: var(--rule-double) solid transparent;
-    color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-row);
-    font-weight: 500;
-    line-height: var(--lh-row);
-    cursor: pointer;
   }
 
   /* The active option (aria-activedescendant) is the keyboard focus: a stronger tint plus an
@@ -92,10 +83,7 @@
     background: var(--selected);
   }
 
-  .option[data-active="false"] {
-    background: transparent;
-  }
-
+  .field:hover,
   .option[data-active="false"]:hover {
     background: var(--hover);
   }
@@ -109,12 +97,6 @@
   }
 
   /* ■ marks the current value: a filled 9px square, never colour alone (weight 600 too). */
-  .mark {
-    flex: none;
-    inline-size: var(--radio-box);
-    block-size: var(--radio-box);
-  }
-
   .option[data-state="on"] .mark {
     background: var(--accent);
   }
