@@ -14,7 +14,6 @@ import {
   DEFAULT_DOMAIN,
   fitDomain,
   axisTicks,
-  endYear,
   lx,
   ly,
   monthYear,
@@ -622,19 +621,14 @@ export const drawWorld = (
         2,
       );
     } else {
+      // §1Z: the line alone; no start dot and no end date (the limits show when zoom stops).
       x.fillRect(box.L, box.Bt + 18, w, 2);
-      x.beginPath();
-      x.arc(box.L, box.Bt + 20, 5, 0, Math.PI * 2);
-      x.fill();
     }
     x.font = p.serif;
     x.textAlign = "left";
     // §1b puts this at T+4, on top of the caption at T+12; v32's draw() has it at T+20. Clear
     // of the caption's cap height: T+24.
     if (atToday) x.fillText(strings.chart.today(monthYear(now)), box.L + 5, box.T + 24);
-    x.font = p.chart;
-    x.textAlign = "right";
-    x.fillText(String(endYear(now, view.to)), box.R, box.Bt + 32);
   }
 
   // End label (plus the out-of-range caption under it).

@@ -346,3 +346,5 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   - Sticky open header, its stuck hairline and the hidden summary (AssetRow): +59.
   - Section-label hairlines solid, the fading gradients removed ("no gradient anywhere in the
     pane"): −53.
+- §1Z zoom line, no start dot and no end date (user): 61,537 B source / 8,577 B gzip, ±0. Both
+  were drawn on the canvas (`draw.ts`), so removing them frees no CSS. No new tokens.

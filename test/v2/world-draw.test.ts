@@ -77,7 +77,9 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[]; measured: Op[] } 
     fillRect: (x: number, y: number, w: number, h: number) => {
       ops.push({ op: "fillRect", x, y, w, h, style: style() });
     },
-    arc: noop,
+    arc: (x: number, y: number) => {
+      ops.push({ op: "arc", x, y, style: style() });
+    },
     setLineDash: noop,
     save: noop,
     restore: noop,
@@ -167,11 +169,10 @@ const bands = priceBands(
   ),
 );
 
-test("empty state draws the frame text (caption, Today, end year) and no end label", () => {
+test("empty state draws the frame text (caption, Today) and no end label", () => {
   const texts = draw(693, null, 2080);
   expect(texts.includes("THE WORLD \u00B7 \u20BF PRICE")).toBe(true);
   expect(texts.includes("Today \u00B7 Oct \u201926")).toBe(true);
-  expect(texts.includes("2066")).toBe(true);
   expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
 });
 
@@ -695,7 +696,7 @@ test("1T zoomed: bands clip to the plot, the window's ends sit on its edges, Tod
   ]);
   expect(texts.some((t) => t.startsWith("Today"))).toBe(false);
   expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
-  // Year labels only inside the plot, and the right-hand label names the window's end year.
+  // Year labels only inside the plot; the last tick falls in the window's end year (§1Z: no end-date label).
   const years = ops.filter((o) => o.op === "fillText" && /^20\d\d$/.test(o.t ?? ""));
   for (const y of years.slice(0, -1)) {
     expect(y.x).toBeGreaterThanOrEqual(34);
@@ -736,4 +737,22 @@ test("1T zoomed to the end: the end label shows; unzoomed draws exactly as befor
     longBands,
   );
   expect(b.ops).toEqual(a.ops);
+});
+
+test("1Z: the zoom line has no start dot and no end-date label, zoomed in or fully out", () => {
+  for (const view of [undefined, { from: 260, to: 520 }, { from: 780, to: 1040 }]) {
+    const { ctx, ops } = recorder();
+    drawWorld(
+      ctx,
+      PAINT,
+      { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1040, ...(view && { view }) },
+      longBands,
+    );
+    expect(ops.some((o) => o.op === "arc")).toBe(false);
+    // Nothing is written on or under the line (Bt = 866; the line sits at Bt+18..Bt+20).
+    expect(ops.filter((o) => o.op === "fillText" && o.y > 866 + 18)).toEqual([]);
+    // The line itself stays: full width unzoomed, a track plus the window when zoomed.
+    const line = ops.filter((o) => o.op === "fillRect" && o.y >= 866 + 18 && o.y <= 866 + 19);
+    expect(line.length).toBeGreaterThanOrEqual(1);
+  }
 });
