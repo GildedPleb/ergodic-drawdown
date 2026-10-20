@@ -5,7 +5,7 @@ import styles from "./Dock.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
-  orientation: ["row", "rail"] as const,
+  orientation: ["row", "rail", "columns"] as const,
   shown: ["true", "false"] as const,
   selected: ["true", "false"] as const,
 };
@@ -40,7 +40,8 @@ const blockRepeat = (event: KeyboardEvent<HTMLButtonElement>): void => {
  * The dock row (V32-BUILD §1d): 🔍 · centred caps tabs · ⚙, or the closed right-panel rail
  * (§1e). Every slot always renders so the geometry is final; slots not shipped yet are
  * visibility:hidden, never dimmed or "coming soon". The selected tab is --accent with a 2px
- * underline drawn by a pseudo-element (no box-shadow, R4).
+ * underline drawn by a pseudo-element (no box-shadow, R4). §1S "columns": the sheet's three
+ * columns; each tab is centred over its own one, 🔍 and ⚙ at the far ends.
  */
 export const Dock = ({
   orientation,

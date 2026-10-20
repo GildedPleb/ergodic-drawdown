@@ -289,3 +289,8 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   is unchanged. Each later addition is measured by reverting it alone and logged per item; any
   single item over +200 B gzip after cuts is held local. At the Slice 1 close the gate ratchets
   down to the measured actual + 2%.
+- §1S dock tabs over their columns (Slice 1 ceiling 8,600, approved by Keel): 59,191 B source /
+  8,215 B gzip; +90 measured by reverting §1S alone (8,125 without it). Dock
+  `orientation="columns"`: the sheet's own track list and `--sheet-cols-gap`, tablist
+  `display: contents`, tab centring, tabs 2 and 3 placed by `:nth-child` (the base tab in column
+  1), 🔍 / ⚙ pinned to columns 1 / 3 at the ends. No new tokens.

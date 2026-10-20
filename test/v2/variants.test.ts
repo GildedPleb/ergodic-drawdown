@@ -32,6 +32,7 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...dock.orientation, ...dock.shown, ...dock.selected]).toEqual([
     "row",
     "rail",
+    "columns",
     "true",
     "false",
     "true",

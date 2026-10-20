@@ -16,3 +16,6 @@ export const useMedia = (query: string): boolean =>
 
 /** V32-BUILD §1e auto rule: dock right when innerWidth > innerHeight and innerHeight ≤ 500. */
 export const SIDE_PANEL = "(orientation: landscape) and (max-height: 500px)";
+
+/** §1S: dock mode (the sheet's three columns; the AppShell.module.css 39.75rem block). */
+export const DOCK_COLUMNS = "(min-width: 39.75rem)";

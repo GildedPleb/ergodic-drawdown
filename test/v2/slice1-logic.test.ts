@@ -16,7 +16,7 @@ import type { Dir, Stop } from "../../src/v2/app/shell/drag";
 import { strings } from "../../src/v2/app/strings";
 import { attachDrag } from "../../src/v2/app/shell/attachDrag";
 import { fullOf, ownsTap } from "../../src/v2/app/shell/useSheetDrag";
-import { paneOf, returnFocus } from "../../src/v2/app/shell/panes";
+import { dockLayout, paneOf, returnFocus } from "../../src/v2/app/shell/panes";
 import { expect, test } from "bun:test";
 
 import type { EngineConfig } from "../../src/engine/keys";
@@ -627,4 +627,12 @@ test("1P: grab-button keys: ↑/↓ one stop, Home full, End closed; others pass
     "full",
     "closed",
   ]);
+});
+
+test("1S: desktop heads the three columns; phones and the open panel group; the shut panel rails", () => {
+  expect(dockLayout(false, true, true)).toBe("columns");
+  expect(dockLayout(false, false, true)).toBe("columns");
+  expect(dockLayout(false, false, false)).toBe("row");
+  expect(dockLayout(true, false, true)).toBe("row");
+  expect(dockLayout(true, true, true)).toBe("rail");
 });

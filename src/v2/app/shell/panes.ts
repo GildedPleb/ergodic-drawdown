@@ -24,3 +24,16 @@ type Boxed = { getClientRects: () => { length: number } };
  */
 export const returnFocus = <T extends Boxed>(tab: T | null, grab: T | null): T | null =>
   tab !== null && tab.getClientRects().length > 0 ? tab : grab;
+
+/**
+ * The dock's layout: the closed landscape panel is a rail; desktop dock mode heads the sheet's
+ * three columns (§1S); a phone and the open panel show one pane, so the tabs stay grouped.
+ */
+export const dockLayout = (
+  side: boolean,
+  shut: boolean,
+  wide: boolean,
+): "row" | "rail" | "columns" => {
+  if (side) return shut ? "rail" : "row";
+  return wide ? "columns" : "row";
+};

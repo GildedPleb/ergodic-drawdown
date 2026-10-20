@@ -13,9 +13,9 @@ import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
-import { type Pane, paneOf, returnFocus } from "./panes";
+import { dockLayout, paneOf, returnFocus, type Pane } from "./panes";
 import { useSheet } from "./useSheetDrag";
-import { SIDE_PANEL, useMedia } from "./useMedia";
+import { DOCK_COLUMNS, SIDE_PANEL, useMedia } from "./useMedia";
 
 /** R7: variant keys and values. */
 export const variants = {
@@ -44,6 +44,7 @@ export const AppShell = (): JSX.Element => {
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
+  const wide = useMedia(DOCK_COLUMNS);
   const rootRef = useRef<HTMLDivElement>(null);
   const sheet = useRef<HTMLElement>(null);
   const area = useRef<HTMLDivElement>(null);
@@ -230,7 +231,7 @@ export const AppShell = (): JSX.Element => {
           </div>
           <div className={dockRow} data-grab="strip">
             <Dock
-              orientation={side && !open && !dragging ? "rail" : "row"}
+              orientation={dockLayout(side, !open && !dragging, wide)}
               label={strings.dock.label}
               tabs={TABS}
               selected={pane}
