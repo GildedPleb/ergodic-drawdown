@@ -35,9 +35,10 @@ export const handleQuantile = (
 
     for (let quantile = 0; quantile < cutoffs.length; quantile++) {
       const innerIndex = Math.floor(right * numberAt(cutoffs, quantile));
-      quickselect(scratch, innerIndex, left, right);
+      // Cutoffs that floor to the same index (0% and 1% below 101 samples) select it once.
+      if (innerIndex >= left) quickselect(scratch, innerIndex, left, right);
       quantiles[week * cutoffs.length + quantile] = numberAt(scratch, innerIndex);
-      left = innerIndex + 1;
+      left = Math.max(left, innerIndex + 1);
     }
   }
 };
