@@ -86,14 +86,11 @@
     z-index: var(--z-dock);
   }
 
-  /* Hidden probes the drag measures its stops with (full / open panel, and the rail). */
+  /* Probes the drag measures its stops with. */
   .probe,
   .railProbe {
     position: absolute;
-    inset-block-end: 0;
-    inset-inline-start: 0;
     visibility: hidden;
-    pointer-events: none;
   }
 
   .probe {
@@ -106,11 +103,7 @@
     block-size: 0;
   }
 
-  .announce {
-    position: absolute;
-  }
-
-  /* §1L.5 grab strips: no browser panning, so the pointer drives the sheet 1:1. */
+  /* Grab strips: no browser panning. */
   .grab,
   .beat,
   .dockRow,
@@ -122,9 +115,7 @@
     display: none;
   }
 
-  /* The sheet: --surface clipped to the bevel (no shadow, Gap 6); ::before is the 1px --accent
-     hairline between the chamfers; two corner diagonals at .7. The grab point is a sibling, so
-     the clip never cuts it. */
+  /* --surface clipped to the bevel; ::before is the --accent hairline; corners at .7. */
   .sheet {
     position: relative;
     display: flex;
@@ -189,6 +180,7 @@
     align-items: center;
     justify-content: center;
     block-size: 0;
+    cursor: grab;
   }
 
   /* Phone half: the headline beside the reserved 🔍 slot. */
@@ -248,7 +240,7 @@
     display: none;
   }
 
-  /* Item 5 stops: closed is the dock only, half is the existing cap, full reaches the header. */
+  /* Stops: closed = dock only, half = the cap, full = up to the header. */
   .root[data-sheet="half"] .sheet {
     block-size: var(--sheet-open-phone);
   }
@@ -264,19 +256,16 @@
     padding-block-start: var(--s-3);
   }
 
-  /* While dragging, the edge is wherever the pointer put it (outranks every stop). */
+  /* Dragging: the edge follows the pointer (outranks every stop). */
   .root[data-sheet][data-dragging="true"] .sheet {
     block-size: var(--dyn-sheet);
   }
 
   /* A mouse drag selects no text on the way. */
-  .root[data-dragging="true"] {
+  .root[data-dragging="true"],
+  .root[data-dragging="true"] .grab {
     cursor: grabbing;
     user-select: none;
-  }
-
-  .root[data-dragging="false"] .grab {
-    cursor: grab;
   }
 
   @media (min-width: 39.75rem) {
@@ -351,7 +340,6 @@
 
     .reserved {
       display: block;
-      visibility: hidden;
     }
   }
 
@@ -387,7 +375,6 @@
       inset-inline-end: 0;
       z-index: var(--z-panel);
       inline-size: var(--rail-w);
-      padding: 0;
     }
 
     .root:not([data-sheet="closed"]) .dockArea {

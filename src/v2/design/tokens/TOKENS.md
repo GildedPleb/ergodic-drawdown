@@ -228,3 +228,29 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 - One `.sr-only` utility in `base.css`; `VisuallyHidden` is its only component wrapper (B2).
 - R11 budget rebaselined (forced: SectionLabel, VisuallyHidden, fallback faces, field states):
   source 28,020 → 33,109 B, built gzip 4,281 → 4,891 B.
+
+## R11 CSS budget log (Slice 1 → §1L)
+
+Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); source bytes get the same +5% in the 1 s suite.
+
+| Commit  | What                                                                        | Source B | Built gzip B | Limit B |
+| ------- | --------------------------------------------------------------------------- | -------- | ------------ | ------- |
+| f8280f3 | Slice 1 shell rebaseline                                                    | 50,834   | 7,221        | 7,582   |
+| 6fdc0eb | before: Slice 1 R2 minors' parent                                           | 53,288   | 7,430        | 7,582   |
+| 6fdc0eb | **rebaseline**: TextButton primitive (n11 loading/failed "Try again")       | 54,138   | 7,531        | 7,907   |
+| ae20652 | later fonts and tokens (upright exponents, scientific money), no rebaseline | 54,535   | 7,605        | 7,907   |
+
+- **6fdc0eb rebaseline: approved by Keel.** Added the TextButton primitive (n11), and the headroom
+  it left is what the later fonts and tokens use. Before and after, as Keel logged it: 7,582 → 7,605 B
+  gzip at ae20652 (old limit → measured), within the new 7,907 B limit (7,531 × 1.05).
+- **§1L: no rebaseline.** 2858391 had written 58,609 / 7,994 B into `css-budget.json` before Keel's
+  ruling; that record is withdrawn and the file is back at the approved 54,138 / 7,531 B. §1L fits:
+  56,758 B source (limit 56,844) and 7,887 B gzip (limit 7,907).
+- §1L cost per item (built gzip, measured at each commit): logo 0, bands 0 (canvas), Select +197
+  (RadioList −59 lines included), three columns −54, edge to edge +57, drag +189, item 5 −9,
+  Form a–d (plates, halo, `--sup-kern`) +7; then trims −101 (one open-or-dragging selector instead
+  of half/full/dragging triples, Select field/option share one face, UA `[hidden]`, the global
+  `:focus-visible`, no `0px` fallback in `env()`, dead probe offsets and panel padding, the
+  orphaned `--sub-label-space` token, shorter comments).
+- Tokens: `--sup-kern: 0.06em` added in `type.css` (Form d: the space before an exponent, on canvas
+  and in HTML). `--sub-label-space` removed (its only user, the old ModelsSheet columns, went in 1L.2).

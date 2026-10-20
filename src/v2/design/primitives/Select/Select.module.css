@@ -6,7 +6,8 @@
 
   /* Closed: one field row in the Certificate style, the height of a number-field row. */
   .field,
-  .option {
+  .option,
+  .option[data-state="off"] {
     display: flex;
     align-items: center;
     min-block-size: var(--hit);
@@ -26,15 +27,14 @@
     background: var(--surface);
   }
 
-  .field:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
+  .value,
+  .text {
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
   }
 
   .value {
     flex: 1;
-    min-inline-size: 0;
-    overflow-wrap: anywhere;
   }
 
   .caret,
@@ -76,8 +76,7 @@
     border-inline-start: var(--rule-double) solid transparent;
   }
 
-  /* The active option (aria-activedescendant) is the keyboard focus: a stronger tint plus an
-     accent rule at the start edge, so it never relies on a 5% hover wash. */
+  /* Active option (keyboard focus): tint plus an accent start rule, not a hover wash. */
   .option[data-active="true"] {
     border-inline-start-color: var(--accent);
     background: var(--selected);
@@ -92,17 +91,8 @@
     font-weight: 600;
   }
 
-  .option[data-state="off"] {
-    font-weight: 500;
-  }
-
   /* ■ marks the current value: a filled 9px square, never colour alone (weight 600 too). */
   .option[data-state="on"] .mark {
     background: var(--accent);
-  }
-
-  .text {
-    min-inline-size: 0;
-    overflow-wrap: anywhere;
   }
 }

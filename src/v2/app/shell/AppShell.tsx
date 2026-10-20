@@ -157,7 +157,6 @@ export const AppShell = (): JSX.Element => {
   const col = styles["col"] ?? "shell-col";
   const reserved = styles["reserved"] ?? "shell-reserved";
   const edge = styles["edge"] ?? "shell-edge";
-  const announce = styles["announce"] ?? "shell-announce";
   const probe = styles["probe"] ?? "shell-probe";
   const railProbeCls = styles["railProbe"] ?? "shell-rail-probe";
 
@@ -264,7 +263,7 @@ export const AppShell = (): JSX.Element => {
             }}
           />
         </div>
-        <p className={announce} role="status">
+        <p role="status">
           <VisuallyHidden>{said}</VisuallyHidden>
         </p>
       </div>

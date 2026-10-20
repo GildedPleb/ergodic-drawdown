@@ -29,9 +29,6 @@
     --section-rule-len: 70%; /* SectionLabel hairline taper, section */
     --group-rule-len: 45%; /* SectionLabel hairline taper, group */
     --group-label-h: 1rem; /* SectionLabel group row (WALK STRATEGY:), one --t-group line */
-    /* Desktop Models columns: the space a group sub-label takes (its row + the section gap), so
-       columns without one start their first row on the same line as How prices move. */
-    --sub-label-space: calc(var(--group-label-h) + var(--s-2));
     /* v32 Slice 1 shell (V32-BUILD §1a/§1d/§1e, measured on dock/app.html; Form to mirror in p3/tokens) */
     --radio-box: 0.5625rem; /* radio list square, 9px */
     --shell-m: round(
