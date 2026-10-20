@@ -27,15 +27,36 @@ const g13Violations = (changed: readonly string[]): string[] =>
   changed.filter((p) => p.startsWith("src/") && !p.startsWith("src/v2/"));
 
 /**
- * Front-end shell files outside src/v2 (Keel, §1L). public/: only the favicon rasters, matched by
- * exact path (Form's fan-diamond replaces the SM monogram at the same paths); every other public/
- * file (manifest icons, apple-touch-icon, image.png, site.webmanifest) stays byte-identical.
+ * Front-end shell files outside src/v2 (Keel, §1L). public/: only the favicon rasters and (Keel,
+ * later) the apple-touch and android-chrome icons that already exist, matched by exact path (Form's
+ * fan-diamond replaces the SM monogram at the same paths and pixel sizes); every other public/ file
+ * (image.png, site.webmanifest, any new file) stays byte-identical or absent.
  */
+const ICONS: readonly string[] = [
+  "public/apple-touch-icon.png",
+  "public/android-chrome-192x192.png",
+  "public/android-chrome-512x512.png",
+];
 const SHELL_ASSETS: readonly string[] = [
   "public/favicon.ico",
   "public/favicon-16x16.png",
   "public/favicon-32x32.png",
+  ...ICONS,
 ];
+
+/** A PNG's width × height from its IHDR chunk (bytes 16–23), read through `sh` as hex. */
+const pngSize = (source: string): string => {
+  const hex = (
+    spawnSync("sh", ["-c", `${source} | head -c 24 | od -An -v -tx1`], {
+      cwd: root,
+      encoding: "utf8",
+    }).stdout ?? ""
+  )
+    .split(/\s+/)
+    .filter(Boolean);
+  const u32 = (at: number): number => Number.parseInt(hex.slice(at, at + 4).join(""), 16);
+  return `${String(u32(16))}x${String(u32(20))}`;
+};
 const publicViolations = (changed: readonly string[]): string[] =>
   changed.filter((p) => p.startsWith("public/") && !SHELL_ASSETS.includes(p));
 
@@ -104,7 +125,7 @@ test(
 test(
   shallowCi
     ? "G13 shell: not checked here (shallow CI clone without main)"
-    : "G13 shell: index.html differs from $BASE only by viewport-fit=cover; public/ only the favicons",
+    : "G13 shell: index.html differs from $BASE only by viewport-fit=cover; public/ only the favicons and existing icons",
   () => {
     if (shallowCi) return;
     const main = git("show", `${base ?? "HEAD"}:index.html`) ?? "";
@@ -116,6 +137,27 @@ test(
       .split("\n")
       .filter(Boolean);
     expect(publicViolations(changed)).toEqual([]);
+    // Swapped in place: no new public/ file.
+    const added = (
+      git("diff", "--name-only", "--diff-filter=A", base ?? "HEAD", "--", "public") ?? ""
+    )
+      .split("\n")
+      .filter(Boolean);
+    expect(added).toEqual([]);
+  },
+);
+
+test(
+  shallowCi
+    ? "G13 icons: not checked here (shallow CI clone without main)"
+    : "G13 icons (Keel): each replaced icon keeps main's exact pixel dimensions",
+  () => {
+    if (shallowCi) return;
+    for (const p of ICONS) {
+      const was = pngSize(`git show ${base ?? "HEAD"}:${p}`);
+      expect(`${p} ${pngSize(`cat ${p}`)}`).toBe(`${p} ${was}`);
+    }
+    expect(pngSize("cat public/apple-touch-icon.png")).toBe("180x180");
   },
 );
 
@@ -129,8 +171,8 @@ test("G13 shell seeded: any index.html edit beyond viewport-fit is red; other pu
   expect(`${ok}<!-- extra -->` === allowedIndex(main)).toBe(false);
   expect(publicViolations([...SHELL_ASSETS])).toEqual([]);
   for (const p of [
-    "public/apple-touch-icon.png",
-    "public/android-chrome-192x192.png",
+    "public/android-chrome-256x256.png",
+    "public/apple-touch-icon-precomposed.png",
     "public/site.webmanifest",
     "public/image.png",
     "public/favicon.svg",

@@ -2,9 +2,10 @@
  * Rasterise the v2 favicon (src/v2/design/brand/favicon.ts) into public/favicon-16x16.png,
  * public/favicon-32x32.png and public/favicon.ico (16, 32 and 48 px PNG entries), in the dark
  * palette's ground / surface / accent read from palette.css + semantic.css. Run on purpose:
- * `bun scripts/v2/favicon.ts`. The manifest icons and apple-touch-icon are left alone (PWA work).
+ * `bun scripts/v2/favicon.ts`. Keel (§1L): the apple-touch and android-chrome icons that already
+ * exist get the same fan-diamond at their exact pixel size (no new files, manifest untouched).
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { chromium } from "@playwright/test";
@@ -37,6 +38,16 @@ const shoot = async (svg: string, px: number): Promise<Buffer> => {
 const p16 = await shoot(faviconSvg(16, ink), 16);
 const p32 = await shoot(faviconSvg(32, ink), 32);
 const p48 = await shoot(faviconSvg(32, ink), 48);
+/** The existing PWA icons, rendered from the 32px design at each file's own size. */
+const ICONS: Array<[string, number]> = [
+  ["public/apple-touch-icon.png", 180],
+  ["public/android-chrome-192x192.png", 192],
+  ["public/android-chrome-512x512.png", 512],
+];
+const icons: Array<[string, Buffer]> = [];
+for (const [path, px] of ICONS) {
+  if (existsSync(join(REPO, path))) icons.push([path, await shoot(faviconSvg(32, ink), px)]);
+}
 await browser.close();
 
 /** An ICO holding PNG entries (Vista+ format; every current browser reads it). */
@@ -69,4 +80,7 @@ writeFileSync(
     [48, p48],
   ]),
 );
-console.log("wrote public/favicon-16x16.png, favicon-32x32.png, favicon.ico");
+for (const [path, png] of icons) writeFileSync(join(REPO, path), png);
+console.log(
+  `wrote public/favicon-16x16.png, favicon-32x32.png, favicon.ico, ${icons.map(([p]) => p).join(", ")}`,
+);

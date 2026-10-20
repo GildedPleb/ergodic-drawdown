@@ -245,7 +245,8 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   gzip at ae20652 (old limit → measured), within the new 7,907 B limit (7,531 × 1.05).
 - **§1L: no rebaseline.** 2858391 had written 58,609 / 7,994 B into `css-budget.json` before Keel's
   ruling; that record is withdrawn and the file is back at the approved 54,138 / 7,531 B. §1L fits:
-  56,758 B source (limit 56,844) and 7,887 B gzip (limit 7,907).
+  56,777 B source (limit 56,844) and 7,906 B gzip (limit 7,907), measured at 3593f6e (corrected
+  from 56,758 / 7,887 at 129eb23, 19 B stale; Probe n28).
 - §1L cost per item (built gzip, measured at each commit): logo 0, bands 0 (canvas), Select +197
   (RadioList −59 lines included), three columns −54, edge to edge +57, drag +189, item 5 −9,
   Form a–d (plates, halo, `--sup-kern`) +7; then trims −101 (one open-or-dragging selector instead
