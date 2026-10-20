@@ -1,9 +1,8 @@
 import { type CDPSession, expect, type Page, test } from "@playwright/test";
 
-// Probe B1 / M1 (FL-001, FL-002) on the real app at 1440×900, Chromium (CDP heap snapshots):
-// 300 wheel notches over a focused field step the draft and commit ONCE when the wheel settles,
-// the engine runs once, never more than one job is in flight, and the memory the engine's buffers
-// hold stays flat. 40 Enter commits keep it flat too. Needs a VITE_DESIGN_ROUTE=1 build (it
+// Probe B1 / M1 on the real app at 1440×900, Chromium (CDP heap snapshots): a wheel flood and a
+// 10 s held key render live (throttled), never more than one job is in flight, superseded configs
+// are dropped, and the memory the engine's buffers hold stays flat. 40 Enter commits keep it flat too. Needs a VITE_DESIGN_ROUTE=1 build (it
 // exposes the job counters as window.__v2engine).
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== "chromium-1440x900", "Chromium only (CDP), once");
@@ -75,7 +74,10 @@ const openSamples = async (page: Page): Promise<void> => {
   await idle(page);
 };
 
-test("B1: 300 wheel notches on a focused field commit once, run the engine once, memory flat", async ({
+// Oct 20 (user): held steps and the wheel render live. Commits land at most every HELD_COMMIT_MS
+// (100 ms) while held plus one trailing commit; the coalescer keeps one job in flight and drops
+// superseded configs, so the engine starts far fewer runs than steps and memory stays flat.
+test("B1: a 300-notch wheel flood renders live, one job in flight, final value runs, memory flat", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -87,23 +89,72 @@ test("B1: 300 wheel notches on a focused field commit once, run the engine once,
   const heapBefore = await bufferBytes(cdp);
   await field.focus();
   await field.hover();
+  const t0 = Date.now();
   for (let i = 0; i < 300; i += 1) {
     await page.mouse.wheel(0, -100);
     await page.waitForTimeout(30); // ~30 notches a second: ordinary fast scrolling
   }
-  // Mid-spin nothing has committed: the draft moved, the engine did not.
+  const spun = Date.now() - t0;
+  const mid = await jobs(page);
+  // Mid-spin the engine already moved (live), but never once per notch.
+  expect(mid.started - before.started).toBeGreaterThan(1);
+  expect(mid.requested - before.requested).toBeLessThanOrEqual(Math.ceil(spun / 100) + 2);
   await expect(field).toHaveValue(String(start + 300));
-  const after = await idle(page);
-  await expect.poll(async () => (await jobs(page)).requested).toBe(before.requested + 1);
   const settled = await idle(page);
-  expect(settled.requested - before.requested).toBe(1);
-  expect(settled.started - before.started).toBe(1);
-  expect(settled.waves - before.waves).toBe(1);
-  expect(after.maxInFlight).toBe(1);
+  expect(settled.maxInFlight).toBe(1);
+  expect(settled.started).toBeLessThanOrEqual(settled.requested);
   const heapAfter = await bufferBytes(cdp);
   expect(heapAfter - heapBefore).toBeLessThan(FLAT_BOUND);
   console.log(
-    `B1 buffers ${(heapBefore / MB).toFixed(1)} MB -> ${(heapAfter / MB).toFixed(1)} MB; jobs ${JSON.stringify(settled)}`,
+    `B1 wheel ${spun} ms; buffers ${(heapBefore / MB).toFixed(1)} MB -> ${(heapAfter / MB).toFixed(1)} MB; jobs ${JSON.stringify({ before, mid, settled })}`,
+  );
+});
+
+test("held ArrowUp for 10 s renders live every ~100 ms, one trailing commit, memory flat", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await openSamples(page);
+  const cdp = await page.context().newCDPSession(page);
+  const field = page.locator("#v2-samples");
+  const start = Number(await field.inputValue());
+  await field.focus();
+  const before = await jobs(page);
+  const heapBefore = await bufferBytes(cdp);
+  // Time from the first held step to the first engine run that finishes (a wave lands).
+  const t0 = Date.now();
+  await page.keyboard.down("ArrowUp");
+  await expect
+    .poll(async () => (await jobs(page)).waves, { intervals: [5], timeout: 10_000 })
+    .toBeGreaterThan(before.waves);
+  const firstWave = Date.now() - t0;
+  const waveTimes: number[] = [];
+  let lastWaves = (await jobs(page)).waves;
+  let steps = 1;
+  while (Date.now() - t0 < 10_000) {
+    await page.keyboard.down("ArrowUp"); // OS key repeat: one keydown every ~33 ms
+    steps += 1;
+    await page.waitForTimeout(33);
+    const now = await jobs(page);
+    if (now.waves > lastWaves) waveTimes.push(Date.now() - t0);
+    lastWaves = now.waves;
+    expect(now.inFlight).toBeLessThanOrEqual(1);
+  }
+  const held = await jobs(page);
+  await page.keyboard.up("ArrowUp");
+  await expect(field).toHaveValue(String(start + steps));
+  const settled = await idle(page);
+  const gaps = waveTimes.slice(1).map((t, i) => t - (waveTimes[i] ?? 0));
+  const median = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)] ?? 0;
+  expect(settled.maxInFlight).toBe(1);
+  expect(held.requested - before.requested).toBeLessThanOrEqual(Math.ceil(10_000 / 100) + 2);
+  // Exactly one trailing commit on release (the last throttled one may already carry the value).
+  expect(settled.requested - held.requested).toBeLessThanOrEqual(1);
+  expect(waveTimes.length).toBeGreaterThan(5);
+  const heapAfter = await bufferBytes(cdp);
+  expect(heapAfter - heapBefore).toBeLessThan(FLAT_BOUND);
+  console.log(
+    `HOLD steps ${steps}; first render ${firstWave} ms; renders while held ${waveTimes.length}, median gap ${median} ms; buffers ${(heapBefore / MB).toFixed(1)} -> ${(heapAfter / MB).toFixed(1)} MB; jobs ${JSON.stringify({ before, held, settled })}`,
   );
 });
 

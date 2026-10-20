@@ -14,6 +14,7 @@ import {
 } from "./entry";
 import styles from "./NumberField.module.css";
 import { createSettle, type Settle } from "./settle";
+import { createThrottle, type Throttle } from "./throttle";
 
 /** R7: variant keys and values. */
 export const variants = {
@@ -57,11 +58,12 @@ type Status = { kind: "ok" } | { kind: "clamped"; used: number } | { kind: "inva
 
 /**
  * A number field that passes Probe's M3 / FL-001 gate (V32-BUILD §1g): typing edits a draft and
- * never commits; Enter, blur, or releasing a held step key commits once; out-of-range values clamp
- * to the nearest bound with a visible, politely announced message; unparseable text shows the
- * invalid state (no orange or red) and keeps the last valid value; the wheel acts only with focus,
- * and steps the draft only, committing once when the wheel settles (Probe B1, settle.ts). A step
- * that lands on a bound shows the same clamp message on commit (Probe m6).
+ * never commits; Enter or blur commits once; out-of-range values clamp to the nearest bound with a
+ * visible, politely announced message; unparseable text shows the invalid state (no orange or red)
+ * and keeps the last valid value. A held step key, or the wheel (only with focus), renders live: it
+ * commits at most every HELD_COMMIT_MS while held (throttle.ts), then exactly once more on release
+ * or when the wheel settles (settle.ts). A step that lands on a bound shows the same clamp message
+ * on commit (Probe m6).
  */
 export const NumberField = ({
   label,
@@ -94,6 +96,9 @@ export const NumberField = ({
   const held = useRef(false);
   // m6: the last step (key or wheel) stopped on a finite bound.
   const atBound = useRef(false);
+  // The value last handed to onCommit, until the parent re-renders with it: throttled commits land
+  // faster than `value` catches up, so a repeat of the same value is never sent twice.
+  const sent = useRef<number | null>(null);
 
   const commit = (text: string, stepped = false): void => {
     const now = live.current;
@@ -102,7 +107,10 @@ export const NumberField = ({
       setStatus({ kind: "invalid" });
       return;
     }
-    if (result.value !== now.value) now.onCommit?.(result.value);
+    if (result.value !== (sent.current ?? now.value)) {
+      sent.current = result.value;
+      now.onCommit?.(result.value);
+    }
     setDraft(showNumber(result.value));
     const clamped = result.kind === "clamped" || (stepped && atBound.current);
     setStatus(clamped ? { kind: "clamped", used: result.value } : { kind: "ok" });
@@ -110,9 +118,15 @@ export const NumberField = ({
   const commitRef = useRef(commit);
   commitRef.current = commit;
 
-  const settle = useRef<Settle | null>(null);
-  settle.current ??= createSettle(() => {
+  const throttle = useRef<Throttle | null>(null);
+  throttle.current ??= createThrottle(() => {
     commitRef.current(live.current.draft, true);
+  });
+  const hold = throttle.current;
+  const settle = useRef<Settle | null>(null);
+  // The wheel's release is its settle: the trailing commit lands WHEEL_SETTLE_MS after the last notch.
+  settle.current ??= createSettle(() => {
+    hold.release();
   });
   const wheel = settle.current;
 
@@ -134,6 +148,7 @@ export const NumberField = ({
   // The engine value changed elsewhere (a model switch resets the variable): show it unless the
   // person is mid-edit in this field.
   useEffect(() => {
+    sent.current = null;
     if (document.activeElement === input.current) return;
     setDraft(showNumber(value));
   }, [value]);
@@ -145,8 +160,9 @@ export const NumberField = ({
   useEffect(
     () => () => {
       wheel.cancel();
+      hold.cancel();
     },
-    [wheel],
+    [wheel, hold],
   );
 
   // React's onWheel is passive; a native listener can cancel the scroll, and only with focus.
@@ -156,8 +172,10 @@ export const NumberField = ({
     const onWheel = (event: WheelEvent): void => {
       if (document.activeElement !== element || event.deltaY === 0) return;
       event.preventDefault();
-      // B1: each notch steps the draft; one commit when the wheel goes quiet (or on blur/Enter).
-      if (stepDraft(event.deltaY < 0 ? 1 : -1, false)) wheel.poke();
+      // Each notch steps the draft and renders live (throttled); a trailing commit on settle.
+      if (!stepDraft(event.deltaY < 0 ? 1 : -1, false)) return;
+      hold.poke();
+      wheel.poke();
     };
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => {
@@ -167,13 +185,16 @@ export const NumberField = ({
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "Enter") {
-      const stepped = wheel.pending();
+      const stepped = wheel.pending() || held.current;
       wheel.cancel();
+      hold.cancel();
+      held.current = false;
       commit(live.current.draft, stepped);
       return;
     }
     if (event.key === "Escape") {
       wheel.cancel();
+      hold.cancel();
       setDraft(showNumber(value));
       setStatus({ kind: "ok" });
       return;
@@ -181,14 +202,16 @@ export const NumberField = ({
     if (!STEP_KEYS.has(event.key)) return;
     event.preventDefault();
     const up = event.key === "ArrowUp" || event.key === "PageUp";
-    // FL-001: a held key steps the visible draft only; the value commits once, on release.
-    if (stepDraft(up ? 1 : -1, event.key.startsWith("Page"))) held.current = true;
+    // A held key renders live: commits at most every HELD_COMMIT_MS, one more on release.
+    if (!stepDraft(up ? 1 : -1, event.key.startsWith("Page"))) return;
+    held.current = true;
+    hold.poke();
   };
 
   const onKeyUp = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (!STEP_KEYS.has(event.key) || !held.current) return;
     held.current = false;
-    commit(live.current.draft, true);
+    hold.release();
   };
 
   const invalid = status.kind === "invalid";
@@ -245,7 +268,12 @@ export const NumberField = ({
             setDraft(event.target.value);
           }}
           onBlur={() => {
-            held.current = false;
+            if (held.current) {
+              held.current = false;
+              wheel.cancel();
+              hold.release();
+              return;
+            }
             if (wheel.flush()) return;
             if (draft !== showNumber(value) || status.kind === "invalid") commit(draft);
           }}
