@@ -80,6 +80,11 @@ export type Paint = {
   /** The same face upright: scientific exponents inside italic labels (Form). */
   serifUpright: string;
   section: string;
+  /**
+   * §1L.4: the theme's band gain (--band-gain): the visible ladder is BAND_VISIBLE × gain, so
+   * each step reads at 390 on linen too (absent: 1, the spec ladder).
+   */
+  bandGain?: number;
 };
 
 const SHORT = 150;
@@ -127,6 +132,7 @@ export const paintFrom = (
     chartPx: remPx(v("--t-chart"), root) || 12,
     supKern: Number.parseFloat(v("--sup-kern")) || 0,
     section: `600 ${remPx(v("--t-section"), root)}px ${sans}`,
+    bandGain: Number.parseFloat(v("--band-gain")) || 1,
   };
 };
 
@@ -149,10 +155,10 @@ const trace = (
 };
 
 /**
- * §1L.4: the visible orange of the outer (p1–p99), middle (p5–p95) and inner (p25–p75) bands. The
- * fills stack, so each layer's own alpha is solved for the compound to land on these.
+ * §1L.4: the visible orange of the four nested bands, outermost first: min–max, p1–p99, p5–p95,
+ * p25–p75. The fills stack, so each layer's own alpha is solved for the compound to land on these.
  */
-export const BAND_VISIBLE = [0.06, 0.11, 0.18] as const;
+export const BAND_VISIBLE = [0.04, 0.07, 0.11, 0.18] as const;
 
 /** Layer alphas a_k with 1 − Π(1 − a_i, i ≤ k) = visible_k. */
 export const layerAlphas = (visible: readonly number[]): number[] => {
@@ -164,7 +170,9 @@ export const layerAlphas = (visible: readonly number[]): number[] => {
   });
 };
 
-const [ALPHA_OUTER = 0, ALPHA_MIDDLE = 0, ALPHA_INNER = 0] = layerAlphas(BAND_VISIBLE);
+/** The four layer alphas for a theme gain (1: the spec ladder .04 / .07 / .11 / .18). */
+export const bandAlphas = (gain = 1): number[] =>
+  layerAlphas(BAND_VISIBLE.map((v) => Math.min(0.9, v * (gain > 0 ? gain : 1))));
 
 const fill = (
   x: Ctx2D,
@@ -402,7 +410,7 @@ const endLayout = (
         box,
         domain,
         // The label clears the whole drawn fan (the outer band), not only p5–p95.
-        { p5: bands.p1, p95: bands.p99, end: mid, horizon },
+        { p5: bands.min, p95: bands.max, end: mid, horizon },
         { width: textWidth, lines: all.length, pad: p.serifPx * 0.25 },
         short,
       )
@@ -468,8 +476,8 @@ const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
 };
 
 /**
- * The Y axis for the full horizon: p1–p99 fitted, raised to cover clipped data (n10); §2A with the
- * historic prints in the frame too.
+ * The Y axis for the full horizon: min–max (the outermost edge, §1L.4) plus 5% of the log span,
+ * raised to cover clipped data (n10); §2A with the historic min / max folded in.
  */
 export const fittedDomain = (
   bands: PriceBands | null,
@@ -486,7 +494,7 @@ export const fittedDomain = (
 };
 
 /**
- * §1T / §2A: the Y axis the window should show: zoomed, the window's p1–p99 and historic prints
+ * §1T / §2A: the Y axis the window should show: zoomed, the window's min–max and historic prints
  * (5% of the log span each side); else the whole frame's fit.
  */
 export const targetDomain = (
@@ -618,11 +626,13 @@ export const drawWorld = (
   x.clip();
   // Quantile bands, casing, median.
   if (bands !== null) {
-    // §1L.4: three nested fills, no outline on any band edge; the edges are the steps in fill.
+    // §1L.4: four nested fills, no outline on any band edge; the edges are the steps in fill.
     x.fillStyle = p.price;
-    fill(x, bands.p1, bands.p99, ALPHA_OUTER, frame);
-    fill(x, bands.p5, bands.p95, ALPHA_MIDDLE, frame);
-    fill(x, bands.p25, bands.p75, ALPHA_INNER, frame);
+    const [edge = 0, outer = 0, middle = 0, inner = 0] = bandAlphas(p.bandGain);
+    fill(x, bands.min, bands.max, edge, frame);
+    fill(x, bands.p1, bands.p99, outer, frame);
+    fill(x, bands.p5, bands.p95, middle, frame);
+    fill(x, bands.p25, bands.p75, inner, frame);
     x.lineJoin = "round";
     x.strokeStyle = p.surface;
     x.lineWidth = p.median + p.casing * 2;

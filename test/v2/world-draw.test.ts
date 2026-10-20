@@ -1,9 +1,12 @@
+import { file } from "bun";
 import { expect, test } from "bun:test";
 
 import { bandRange, priceBands, type PriceBands } from "../../src/v2/app/world/bands";
+import { strings } from "../../src/v2/app/strings";
 import { fmtUSD } from "../../src/v2/design/format/money";
 import {
   BAND_VISIBLE,
+  bandAlphas,
   type Ctx2D,
   drawWorld,
   fittedDomain,
@@ -12,16 +15,13 @@ import {
   endLabelAt,
   LABEL_LINE,
   type Paint,
+  paintFrom,
 } from "../../src/v2/app/world/draw";
 import { axisTicks, coverTop, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
 
-/** The engine's dataset label for a fixture band (the outer edges are the min/max envelope). */
-const bandLabel = (q: string): string => {
-  if (q === "Median") return "Median Bitcoin Price";
-  if (q === "1st") return "Lowest Sampled Bitcoin Price";
-  if (q === "99th") return "Highest Sampled Bitcoin Price";
-  return `${q} Percentile Bitcoin Price`;
-};
+/** The engine's dataset label for a fixture band (no min/max given: the edge is p1–p99). */
+const bandLabel = (q: string): string =>
+  q === "Median" ? "Median Bitcoin Price" : `${q} Percentile Bitcoin Price`;
 const NOW = new Date(2026, 9, 19).getTime();
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const PAINT: Paint = {
@@ -269,6 +269,8 @@ const PAST = Number.POSITIVE_INFINITY;
 const pack = (p5: number[], p50: number[], p95: number[]): PriceBands => ({
   start: NOW,
   weeks: p50.length - 1,
+  min: Float64Array.from(p5),
+  max: Float64Array.from(p95),
   p1: Float64Array.from(p5),
   p99: Float64Array.from(p95),
   p5: Float64Array.from(p5),
@@ -417,11 +419,12 @@ test("Form: a scientific exponent inside the italic end label is measured and dr
 
 const near = (x: number, y: number): boolean => Math.abs(x - y) < 1e-12;
 
-test("1L.4: three nested fills (p1–p99, p5–p95, p25–p75) whose stacked alphas land on .06/.11/.18", () => {
-  const [a = 0, b = 0, c = 0] = layerAlphas(BAND_VISIBLE);
-  expect(near(a, 0.06)).toBe(true);
-  expect(near(1 - (1 - a) * (1 - b), 0.11)).toBe(true);
-  expect(near(1 - (1 - a) * (1 - b) * (1 - c), 0.18)).toBe(true);
+test("1L.4: four nested fills (min–max, p1–p99, p5–p95, p25–p75) whose stacked alphas land on .04/.07/.11/.18", () => {
+  const [e = 0, a = 0, m = 0, c = 0] = layerAlphas(BAND_VISIBLE);
+  expect(near(e, 0.04)).toBe(true);
+  expect(near(1 - (1 - e) * (1 - a), 0.07)).toBe(true);
+  expect(near(1 - (1 - e) * (1 - a) * (1 - m), 0.11)).toBe(true);
+  expect(near(1 - (1 - e) * (1 - a) * (1 - m) * (1 - c), 0.18)).toBe(true);
   const { ctx, ops } = recorder();
   const alphas: number[] = [];
   const fill = ctx.fill.bind(ctx);
@@ -430,11 +433,11 @@ test("1L.4: three nested fills (p1–p99, p5–p95, p25–p75) whose stacked alp
     fill();
   };
   drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1 }, bands);
-  expect(alphas.filter((v) => v < 1)).toEqual([a, b, c]);
+  expect(alphas.filter((v) => v < 1)).toEqual([e, a, m, c]);
   expect(
     ops
       .filter((o) => o.op === "fill")
-      .slice(0, 3)
+      .slice(0, 4)
       .every((o) => o.style === PAINT.price),
   ).toBe(true);
 });
@@ -474,9 +477,9 @@ test("B2: bands that are past a double from the start draw the frame and the cap
   const inf = Float64Array.from([1e5, Number.POSITIVE_INFINITY]);
   const nan = Float64Array.from([1e5, Number.NaN]);
   for (const b of [
-    { start: NOW, weeks: 1, p1: inf, p5: inf, p25: inf, p50: inf, p75: inf, p95: inf, p99: inf },
-    { start: NOW, weeks: 1, p1: nan, p5: nan, p25: nan, p50: nan, p75: nan, p95: nan, p99: nan },
-  ]) {
+    { start: NOW, weeks: 1, min: inf, max: inf, p1: inf, p5: inf, p25: inf, p50: inf },
+    { start: NOW, weeks: 1, min: nan, max: nan, p1: nan, p5: nan, p25: nan, p50: nan },
+  ].map((d) => ({ ...d, p75: d.p50, p95: d.p50, p99: d.p50 }))) {
     const texts = draw(693, b, 1);
     expect(texts.includes(OUT)).toBe(true);
     expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
@@ -485,8 +488,7 @@ test("B2: bands that are past a double from the start draw the frame and the cap
   expect(draw(693, bands, 1).includes(OUT)).toBe(false);
 });
 
-test("paintFrom reads the tokens off a computed style (rem → px at the root size)", async () => {
-  const { paintFrom } = await import("../../src/v2/app/world/draw");
+test("paintFrom reads the tokens off a computed style (rem → px at the root size)", () => {
   const tokens: Record<string, string> = {
     "--surface": " #111 ",
     "--ground": "#000",
@@ -508,10 +510,12 @@ test("paintFrom reads the tokens off a computed style (rem → px at the root si
 /** Distinct quantiles so each band edge is its own series. */
 const q = (k: number): Float64Array => Float64Array.from([1e5 * k, 2e5 * k, 4e5 * k]);
 
-test("1L.4 Form (a): zero stroke calls on any band path, the outer p1–p99 edge included", () => {
+test("1L.4 Form (a): zero stroke calls on any band path, the outermost min–max edge included", () => {
   const b: PriceBands = {
     start: NOW,
     weeks: 2,
+    min: q(0.4),
+    max: q(2.5),
     p1: q(0.5),
     p5: q(0.7),
     p25: q(0.9),
@@ -543,12 +547,12 @@ test("1L.4 Form (a): zero stroke calls on any band path, the outer p1–p99 edge
   };
   drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 }, b);
   const box = plotBox(1440, 900);
-  const domain = fitDomain(5e4, 8e5);
+  const domain = fitDomain(4e4, 1e6);
   const ys = (s: Float64Array): number[] => [...s].map((v) => Math.round(ly(v, box, domain)));
-  const edges = [b.p1, b.p5, b.p25, b.p75, b.p95, b.p99].map(ys);
+  const edges = [b.min, b.p1, b.p5, b.p25, b.p75, b.p95, b.p99, b.max].map(ys);
   const isEdge = (p: Path): boolean => edges.some((e) => e.every((y) => p.ys.includes(y)));
   const bandPaths = paths.filter((p) => p.fills > 0 && p.alpha < 1);
-  expect(bandPaths.length).toBe(3);
+  expect(bandPaths.length).toBe(4);
   expect(bandPaths.every(isEdge)).toBe(true);
   // Not one stroke on a band path or on any path tracing a band edge.
   expect(paths.filter((p) => p.strokes > 0 && (p.fills > 0 || isEdge(p))).length).toBe(0);
@@ -969,4 +973,106 @@ test("2A r2: the leader leaves the plate edge facing the line's end and stops on
     expect(at.leader?.x2).toBe(box.R);
     expect(endY >= box.T && endY <= box.Bt).toBe(true);
   }
+});
+
+/** Nine distinct edges, min/max set wide of p1/p99 (q() above). */
+const nine = (): PriceBands => ({
+  start: NOW,
+  weeks: 2,
+  min: q(0.2),
+  p1: q(0.5),
+  p5: q(0.7),
+  p25: q(0.9),
+  p50: q(1),
+  p75: q(1.2),
+  p95: q(1.5),
+  p99: q(2),
+  max: q(5),
+});
+
+test("§1L.4 / §1T: the Y fit covers min–max plus 5% of the log span, historic min / max folded in", () => {
+  const b = nine();
+  // min 2e4 (week 0 of q(0.2)) to max 2e6 (week 2 of q(5)): the fit is exactly fitDomain on that.
+  expect(fittedDomain(b)).toEqual(fitDomain(2e4, 2e6));
+  const span = Math.log10(2e6) - Math.log10(2e4);
+  const d = fittedDomain(b);
+  expect(Math.abs(Math.log10(2e4) - Math.log10(d.lo) - 0.05 * span) < 1e-9).toBe(true);
+  expect(Math.abs(Math.log10(d.hi) - Math.log10(2e6) - 0.05 * span) < 1e-9).toBe(true);
+  // Zoomed onto the bands alone: the window's min–max, not p1–p99.
+  expect(targetDomain(b, null, { from: 0, to: 2 }, true)).toEqual(fitDomain(2e4, 2e6));
+  // History reaching further on both sides widens the fit to its prints.
+  const h = { t: Float64Array.from([-2, -1, 0]), y: Float64Array.from([3, 9e7, 5e4]), past: 2 };
+  expect(fittedDomain(b, h)).toEqual(fitDomain(3, 9e7));
+  // History inside min–max moves nothing.
+  const inside = { t: Float64Array.from([-1, 0]), y: Float64Array.from([5e4, 1e5]), past: 1 };
+  expect(fittedDomain(b, inside)).toEqual(fitDomain(2e4, 2e6));
+});
+
+test("§1L.4: the end label still reads the median and p5–p95, whatever the min–max edge", () => {
+  const wide = nine();
+  const tight = { ...wide, min: wide.p1, max: wide.p99 };
+  const all = draw(693, wide, 2);
+  expect(all.includes(strings.chart.endLabel(4e5, 0.7 * 4e5, 1.5 * 4e5))).toBe(true);
+  // Neither the min / max nor the p1 / p99 end value is quoted.
+  const quoted = all.filter((t) => t.startsWith("\u20BF price")).join(" ");
+  for (const v of [0.2, 0.5, 2, 5]) expect(quoted.includes(fmtUSD(v * 4e5))).toBe(false);
+  expect(draw(693, tight, 2).filter((t) => t.startsWith("\u20BF price"))).toEqual(
+    all.filter((t) => t.startsWith("\u20BF price")),
+  );
+});
+
+const labF = (t: number): number => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+const toLab = (rgb: number[]): number[] => {
+  const [r = 0, g = 0, bl = 0] = rgb.map((c) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4,
+  );
+  const fx = labF((0.4124 * r + 0.3576 * g + 0.1805 * bl) / 0.95047);
+  const fy = labF(0.2126 * r + 0.7152 * g + 0.0722 * bl);
+  const fz = labF((0.0193 * r + 0.1192 * g + 0.9505 * bl) / 1.08883);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+};
+/** CIE76 ΔE between two sRGB colours (0–1 channels), for the band-ladder legibility check. */
+const deltaE = (a: number[], b: number[]): number => {
+  const [p, q2] = [toLab(a), toLab(b)];
+  return Math.hypot(...p.map((v, i) => v - (q2[i] ?? 0)));
+};
+
+const gainOf = (block: string): number =>
+  Number.parseFloat(/--band-gain: ([\d.]+);/.exec(block)?.[1] ?? "NaN");
+
+test("§1L.4: each of the four band steps reads distinctly (ΔE ≥ 2.9) on both themes' ground", async () => {
+  const palette = await file("src/v2/design/tokens/palette.css").text();
+  const semantic = await file("src/v2/design/tokens/semantic.css").text();
+  const hex = (name: string): number[] => {
+    const m = new RegExp(`--${name}: #([0-9a-f]{6});`).exec(palette)?.[1] ?? "000000";
+    return [0, 2, 4].map((i) => Number.parseInt(m.slice(i, i + 2), 16) / 255);
+  };
+  const at = semantic.indexOf('[data-theme="linen"]');
+  const dark = gainOf(semantic.slice(0, at));
+  const gain = gainOf(semantic.slice(at));
+  expect([dark, gain]).toEqual([1, 1.6]);
+  for (const [ground, price, g] of [
+    ["ink-950", "orange-300", dark],
+    ["linen-125", "orange-600", gain],
+  ] as const) {
+    const G = hex(ground);
+    const O = hex(price);
+    let prev = G;
+    let compound = 0;
+    for (const a of bandAlphas(g)) {
+      compound = 1 - (1 - compound) * (1 - a);
+      const c = G.map((v, i) => v * (1 - compound) + (O[i] ?? 0) * compound);
+      expect(deltaE(prev, c) >= 2.9).toBe(true);
+      prev = c;
+    }
+  }
+  // Gain 1 is the spec ladder exactly; linen's is ×1.6.
+  expect(bandAlphas()).toEqual(layerAlphas(BAND_VISIBLE));
+  expect(bandAlphas(1.6)).toEqual(layerAlphas(BAND_VISIBLE.map((v) => v * 1.6)));
+  const p = paintFrom(
+    { getPropertyValue: (k: string) => (k === "--band-gain" ? " 1.6 " : "") },
+    16,
+  );
+  expect(p.bandGain).toBe(1.6);
+  expect(paintFrom({ getPropertyValue: () => "" }, 16).bandGain).toBe(1);
 });

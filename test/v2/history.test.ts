@@ -20,13 +20,9 @@ import {
 } from "../../src/v2/app/world/history";
 import { framedView, isZoomed, panBy, zoomAt } from "../../src/v2/app/world/zoom";
 
-/** The engine's dataset label for a fixture band (the outer edges are the min/max envelope). */
-const bandLabel = (q: string): string => {
-  if (q === "Median") return "Median Bitcoin Price";
-  if (q === "1st") return "Lowest Sampled Bitcoin Price";
-  if (q === "99th") return "Highest Sampled Bitcoin Price";
-  return `${q} Percentile Bitcoin Price`;
-};
+/** The engine's dataset label for a fixture band (no min/max given: the edge is p1–p99). */
+const bandLabel = (q: string): string =>
+  q === "Median" ? "Median Bitcoin Price" : `${q} Percentile Bitcoin Price`;
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const NOW = new Date(2026, 9, 20).getTime();
 const inputs = { currentBlock: 1, currentPrice: 2, halvings: {}, interim: [], now: NOW };

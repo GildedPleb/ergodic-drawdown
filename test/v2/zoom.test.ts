@@ -147,13 +147,13 @@ test("1T: pan is hard-clamped at both ends (no overscroll)", () => {
   expect(panBy({ from: 100, to: 200 }, Number.NaN, last)).toEqual({ from: 100, to: 200 });
 });
 
-test("1T: Y fits the visible window's p1–p99 plus 5%, finite values only", () => {
-  const p1 = Float64Array.from([1, 2, 4, 8, Number.NaN, 32]);
-  const p99 = Float64Array.from([10, 20, 40, 80, Number.POSITIVE_INFINITY, 320]);
-  expect(windowRange({ p1, p99 }, { from: 1.2, to: 3.4 })).toEqual({ low: 2, high: 80 });
-  expect(windowDomain({ p1, p99 }, { from: 1, to: 3 })).toEqual(fitDomain(2, 80));
-  expect(windowRange({ p1, p99 }, { from: 4, to: 4 })).toEqual(null);
-  expect(windowDomain({ p1, p99 }, { from: 4, to: 4 })).toEqual(null);
+test("1T + §1L.4: Y fits the visible window's min–max (the true edge) plus 5%, finite values only", () => {
+  const min = Float64Array.from([1, 2, 4, 8, Number.NaN, 32]);
+  const max = Float64Array.from([10, 20, 40, 80, Number.POSITIVE_INFINITY, 320]);
+  expect(windowRange({ min, max }, { from: 1.2, to: 3.4 })).toEqual({ low: 2, high: 80 });
+  expect(windowDomain({ min, max }, { from: 1, to: 3 })).toEqual(fitDomain(2, 80));
+  expect(windowRange({ min, max }, { from: 4, to: 4 })).toEqual(null);
+  expect(windowDomain({ min, max }, { from: 4, to: 4 })).toEqual(null);
 });
 
 test("1T: the widened box puts the window's ends on the plot's edges", () => {

@@ -126,35 +126,42 @@ const series = (label: string, ys: number[]): { label: string; data: unknown[] }
   data: ys.map((y, i) => ({ x: NOW + i * WEEK, y })),
 });
 const ENGINE = [
-  series("Lowest Sampled Bitcoin Price", [85_000, 60_000, 250_000]),
+  series("Lowest Sampled Bitcoin Price", [80_000, 50_000, 200_000]),
+  series("1st Percentile Bitcoin Price", [85_000, 60_000, 250_000]),
   series("5th Percentile Bitcoin Price", [90_000, 80_000, 400_000]),
   series("25th Percentile Bitcoin Price", [100_000, 120_000, 700_000]),
   series("Median Bitcoin Price", [110_000, 150_000, 1_200_000]),
   series("75th Percentile Bitcoin Price", [120_000, 190_000, 1_900_000]),
   series("95th Percentile Bitcoin Price", [130_000, 260_000, 3_100_000]),
-  series("Highest Sampled Bitcoin Price", [140_000, 330_000, 4_800_000]),
+  series("99th Percentile Bitcoin Price", [140_000, 330_000, 4_800_000]),
+  series("Highest Sampled Bitcoin Price", [150_000, 400_000, 6_000_000]),
   series("Bitcoin Walk 1", [1, 2, 3]),
 ];
 
-test("1L.4: price bands read p1/p5/p25/p50/p75/p95/p99 from the engine's quantile datasets", () => {
+test("1L.4: price bands read all nine series, lowest to highest, from the engine's datasets", () => {
   const bands = priceBands(ENGINE);
   expect(bands?.weeks).toBe(2);
   expect(bands?.start).toBe(NOW);
   expect([...(bands?.p50 ?? [])]).toEqual([110_000, 150_000, 1_200_000]);
+  expect([...(bands?.min ?? [])]).toEqual([80_000, 50_000, 200_000]);
   expect([...(bands?.p1 ?? [])]).toEqual([85_000, 60_000, 250_000]);
   expect([...(bands?.p99 ?? [])]).toEqual([140_000, 330_000, 4_800_000]);
+  expect([...(bands?.max ?? [])]).toEqual([150_000, 400_000, 6_000_000]);
 });
 
-test("no bands until every quantile is present (p1 and p99 included)", () => {
+test("no bands until every percentile is present; without min/max the edge is p1–p99", () => {
   expect(priceBands(undefined)).toBe(null);
-  expect(priceBands(ENGINE.slice(1))).toBe(null);
-  expect(priceBands(ENGINE.filter((d) => !d.label.startsWith("Highest")))).toBe(null);
+  expect(priceBands(ENGINE.filter((d) => !d.label.startsWith("1st")))).toBe(null);
+  expect(priceBands(ENGINE.filter((d) => !d.label.startsWith("99th")))).toBe(null);
+  const bare = priceBands(ENGINE.filter((d) => !/^(Lowest|Highest)/.test(d.label)));
+  expect([...(bare?.min ?? [])]).toEqual([...(bare?.p1 ?? [])]);
+  expect([...(bare?.max ?? [])]).toEqual([...(bare?.p99 ?? [])]);
 });
 
-test("1L.4: band range spans min p1 to max p99; end value is the horizon's last point", () => {
+test("1L.4: band range spans the lowest min to the highest max; end value is the horizon's last point", () => {
   const bands = priceBands(ENGINE);
   if (bands === null) throw new Error("bands");
-  expect(bandRange(bands)).toEqual({ low: 60_000, high: 4_800_000 });
+  expect(bandRange(bands)).toEqual({ low: 50_000, high: 6_000_000 });
   expect(endValue(bands.p95)).toBe(3_100_000);
 });
 
@@ -172,6 +179,8 @@ const band = (...v: number[]): Float64Array => Float64Array.from(v);
 const withEdges = (p5: Float64Array, p95: Float64Array): PriceBands => ({
   start: 0,
   weeks: p5.length - 1,
+  min: p5,
+  max: p95,
   p1: p5,
   p5,
   p25: p5,
@@ -263,7 +272,7 @@ const cagrBands = (variable: number, epochs: number): PriceBands => {
   const p5 = at("minPrice");
   const p95 = at("maxPrice");
   const p50 = p5.map((v, i) => Math.sqrt(v * (p95[i] ?? Number.NaN)));
-  return { start: 0, weeks, p1: p5, p5, p25: p5, p50, p75: p95, p95, p99: p95 };
+  return { start: 0, weeks, min: p5, max: p95, p1: p5, p5, p25: p5, p50, p75: p95, p95, p99: p95 };
 };
 
 test("B2: CAGR R 1e6 and 1e9 at 30 epochs, 1e300 at 10: out of range, finite axis, fast", () => {
@@ -369,4 +378,41 @@ test("the first engine submit waits for a finite, non-zero price and block heigh
   ]) {
     expect({ ...held, ready: inputsReady(held) }).toEqual({ ...held, ready: false });
   }
+});
+
+test("§1L.4 sd: ±3σ / ±2σ / ±1σ fill the inner bands, the mean the median; min–max stays outermost", () => {
+  const sd = [
+    series("3rd Standard Deviation Bitcoin Price", [70_000, 40_000, 150_000]),
+    series("2nd Standard Deviation Bitcoin Price", [90_000, 80_000, 400_000]),
+    series("1st Standard Deviation Bitcoin Price", [100_000, 120_000, 700_000]),
+    series("Mean Bitcoin Price", [110_000, 150_000, 1_200_000]),
+    series("1st Standard Deviation Bitcoin Price", [120_000, 190_000, 1_900_000]),
+    series("2nd Standard Deviation Bitcoin Price", [130_000, 260_000, 3_100_000]),
+    series("3rd Standard Deviation Bitcoin Price", [150_000, 400_000, 6_000_000]),
+  ];
+  const bands = priceBands(sd);
+  if (bands === null) throw new Error("bands");
+  const at = (k: keyof PriceBands): number[] => {
+    const v = bands[k];
+    return typeof v === "number" ? [v] : [...v];
+  };
+  expect(at("p1")).toEqual([70_000, 40_000, 150_000]);
+  expect(at("p5")).toEqual([90_000, 80_000, 400_000]);
+  expect(at("p25")).toEqual([100_000, 120_000, 700_000]);
+  expect(at("p50")).toEqual([110_000, 150_000, 1_200_000]);
+  expect(at("p75")).toEqual([120_000, 190_000, 1_900_000]);
+  expect(at("p95")).toEqual([130_000, 260_000, 3_100_000]);
+  expect(at("p99")).toEqual([150_000, 400_000, 6_000_000]);
+  // No engine min / max for sd: the outermost edge is ±3σ, never inside it.
+  expect(at("min")).toEqual(at("p1"));
+  expect(at("max")).toEqual(at("p99"));
+  // With min / max datasets present they become the edge, the σ bands untouched inside.
+  const edged = priceBands([
+    series("Lowest Sampled Bitcoin Price", [60_000, 30_000, 100_000]),
+    ...sd,
+    series("Highest Sampled Bitcoin Price", [160_000, 500_000, 7_000_000]),
+  ]);
+  expect([...(edged?.min ?? [])]).toEqual([60_000, 30_000, 100_000]);
+  expect([...(edged?.max ?? [])]).toEqual([160_000, 500_000, 7_000_000]);
+  expect([...(edged?.p1 ?? [])]).toEqual(at("p1"));
 });

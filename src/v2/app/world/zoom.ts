@@ -64,18 +64,18 @@ export const framedView = (
 
 export const isZoomed = (view: View, last: number): boolean => view.to - view.from < last - 1e-6;
 
-/** p1 low and p99 high over the samples the window shows (finite, positive), or null. */
+/** min low and max high (the outermost edge) over the samples the window shows, or null. */
 export const windowRange = (
-  bands: Pick<PriceBands, "p1" | "p99">,
+  bands: Pick<PriceBands, "min" | "max">,
   view: View,
 ): { low: number; high: number } | null => {
   const first = Math.max(0, Math.floor(view.from));
-  const end = Math.min(bands.p1.length - 1, Math.ceil(view.to));
+  const end = Math.min(bands.min.length - 1, Math.ceil(view.to));
   let low = Number.POSITIVE_INFINITY;
   let high = 0;
   for (let i = first; i <= end; i++) {
-    const a = bands.p1[i] ?? Number.NaN;
-    const b = bands.p99[i] ?? Number.NaN;
+    const a = bands.min[i] ?? Number.NaN;
+    const b = bands.max[i] ?? Number.NaN;
     if (Number.isFinite(a) && a > 0 && a < low) low = a;
     if (Number.isFinite(b) && b > high) high = b;
   }
@@ -83,9 +83,9 @@ export const windowRange = (
   return { low, high: Math.max(high, low) };
 };
 
-/** The Y axis for a zoomed window: its p1–p99 plus 5% of the log span each side. */
+/** The Y axis for a zoomed window: its min–max plus 5% of the log span each side. */
 export const windowDomain = (
-  bands: Pick<PriceBands, "p1" | "p99">,
+  bands: Pick<PriceBands, "min" | "max">,
   view: View,
 ): LogDomain | null => {
   const range = windowRange(bands, view);

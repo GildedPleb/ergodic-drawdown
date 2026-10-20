@@ -3,9 +3,11 @@ import { createDataSet } from "../../../helpers";
 /**
  * Price-band adapter: reads the engine's existing quantile datasets (cutoffs
  * [0,.01,.05,.25,.5,.75,.95,.99,1], src/contexts/computed/distribution.ts) out of the snapshot's
- * Data Properties and keeps p5, p25, p50, p75 and p95. The outer band's edges (`p1`/`p99` fields) are
- * the envelope, the engine's cutoffs 0 and 1: the lowest and highest walk (user, 2026-10-20, "make
- * the edge the edge"), so removing samples never widens it.
+ * Data Properties and keeps all nine (§1L.4, user 2026-10-20 9:06 AM): lowest (cutoff 0, the
+ * engine's "Lowest Sampled", the true min of the walks), p1, p5, p25, p50, p75, p95, p99 and
+ * highest (cutoff 1, "Highest Sampled"). "Make the edge the edge": min–max is the outermost band,
+ * so removing a sample can never widen it. The engine's sd type maps ±3σ / ±2σ / ±1σ onto the
+ * p1–p99 / p5–p95 / p25–p75 slots and the mean onto p50; min–max stays outermost.
  * Read-only; nothing in the engine changes.
  */
 
@@ -17,6 +19,10 @@ export type PriceBands = {
   start: number;
   /** Weeks in the horizon. */
   weeks: number;
+  /** The lowest walk each week (the outermost edge). */
+  min: Float64Array;
+  /** The highest walk each week (the outermost edge). */
+  max: Float64Array;
   p1: Float64Array;
   p5: Float64Array;
   p25: Float64Array;
@@ -53,15 +59,41 @@ const ENGINE_LABELS = createDataSet({
 const labelAt = (cutoff: number): string =>
   ENGINE_LABELS[PRICE_QUANTILES.cutoffs.indexOf(cutoff)] ?? `missing cutoff ${String(cutoff)}`;
 
-const LABELS = {
-  p1: labelAt(0),
+/** The nine series by field, in drawing order from the bottom edge up (§1L.4). */
+export const LABELS = {
+  min: labelAt(0),
+  p1: labelAt(0.01),
   p5: labelAt(0.05),
   p25: labelAt(0.25),
   p50: labelAt(0.5),
   p75: labelAt(0.75),
   p95: labelAt(0.95),
-  p99: labelAt(1),
+  p99: labelAt(0.99),
+  max: labelAt(1),
 } as const;
+
+export type BandField = keyof typeof LABELS;
+export const NINE: readonly BandField[] = [
+  "min",
+  "p1",
+  "p5",
+  "p25",
+  "p50",
+  "p75",
+  "p95",
+  "p99",
+  "max",
+];
+
+/** main's sd band labels (bandConfig("price", "sd")): ±kσ share a label, low side listed first. */
+const SD_LABELS = createDataSet({
+  color: { ...PRICE_QUANTILE_BAND.color },
+  cutoffs: [-3, -2, -1, 0, 1, 2, 3],
+  midLabel: PRICE_QUANTILE_BAND.midLabel,
+  quantiles: Array.from({ length: 7 }, () => []),
+  type: "sd",
+  yAxisID: "y",
+}).map((d) => d.label);
 
 const isPoint = (p: unknown): p is Point =>
   typeof p === "object" &&
@@ -78,10 +110,17 @@ const series = (datasets: readonly LabelledSeries[], label: string): Point[] | u
 
 const ys = (points: Point[]): Float64Array => Float64Array.from(points, (p) => p.y);
 
-/** The seven quantiles, or null while the engine has not produced a price distribution. */
-export const priceBands = (datasets: readonly LabelledSeries[] | undefined): PriceBands | null => {
-  if (datasets === undefined) return null;
-  const picked = {
+/** Every series with `label`, in the engine's order. */
+const allSeries = (datasets: readonly LabelledSeries[], label: string): Point[][] =>
+  datasets
+    .filter((d) => d.label === label && d.data.every(isPoint))
+    .map((d) => d.data.filter(isPoint));
+
+/** The quantile type's seven inner series, or the sd type's (±3σ, ±2σ, ±1σ, mean) in their slots. */
+const innerSeries = (
+  datasets: readonly LabelledSeries[],
+): Record<Exclude<BandField, "min" | "max">, Point[] | undefined> | null => {
+  const q = {
     p1: series(datasets, LABELS.p1),
     p5: series(datasets, LABELS.p5),
     p25: series(datasets, LABELS.p25),
@@ -90,13 +129,43 @@ export const priceBands = (datasets: readonly LabelledSeries[] | undefined): Pri
     p95: series(datasets, LABELS.p95),
     p99: series(datasets, LABELS.p99),
   };
-  const { p1, p5, p25, p50, p75, p95, p99 } = picked;
+  if (Object.values(q).every((v) => v !== undefined)) return q;
+  const [s3 = "", s2 = "", s1 = "", mean = ""] = SD_LABELS;
+  const [lo3, hi3] = allSeries(datasets, s3);
+  const [lo2, hi2] = allSeries(datasets, s2);
+  const [lo1, hi1] = allSeries(datasets, s1);
+  const sd = {
+    p1: lo3,
+    p5: lo2,
+    p25: lo1,
+    p50: series(datasets, mean),
+    p75: hi1,
+    p95: hi2,
+    p99: hi3,
+  };
+  return Object.values(sd).every((v) => v !== undefined) ? sd : null;
+};
+
+/**
+ * The nine series, or null while the engine has not produced a price distribution. Lowest and
+ * highest come from the engine's own min / max datasets; where a source has none (the engine's
+ * sd type, older fixtures) the outermost edge is p1–p99 itself.
+ */
+export const priceBands = (datasets: readonly LabelledSeries[] | undefined): PriceBands | null => {
+  if (datasets === undefined) return null;
+  const inner = innerSeries(datasets);
+  if (inner === null) return null;
+  const { p1, p5, p25, p50, p75, p95, p99 } = inner;
   if (p1 === undefined || p99 === undefined) return null;
   if (p5 === undefined || p25 === undefined || p50 === undefined) return null;
   if (p75 === undefined || p95 === undefined || p50.length < 2) return null;
+  const min = series(datasets, LABELS.min) ?? p1;
+  const max = series(datasets, LABELS.max) ?? p99;
   return {
     start: p50[0]?.x ?? 0,
     weeks: p50.length - 1,
+    min: ys(min),
+    max: ys(max),
     p1: ys(p1),
     p5: ys(p5),
     p25: ys(p25),
@@ -107,17 +176,33 @@ export const priceBands = (datasets: readonly LabelledSeries[] | undefined): Pri
   };
 };
 
+/** A readout row: the engine's own name for the series, and its value. */
+export type ReadoutRow = { field: BandField; label: string; value: number };
+
 /**
- * Smallest p5 and largest p95 over the horizon (finite, positive values only): the axis domain
+ * §1L.4 hover / scrub readout: all nine series at sample `week` (rounded, clamped to the horizon),
+ * lowest first.
+ */
+export const readoutAt = (bands: PriceBands, week: number): ReadoutRow[] => {
+  const i = Math.min(bands.weeks, Math.max(0, Math.round(Number.isFinite(week) ? week : 0)));
+  return NINE.map((field) => ({
+    field,
+    label: LABELS[field],
+    value: bands[field][i] ?? Number.NaN,
+  }));
+};
+
+/**
+ * Smallest min and largest max over the horizon (finite, positive values only): the axis domain
  * input. Non-finite values are dropped before fitting (Keel, Probe B2); null when nothing finite
  * is left.
  */
 export const bandRange = (bands: PriceBands): { low: number; high: number } | null => {
   let low = Number.POSITIVE_INFINITY;
   let high = 0;
-  // §1L.4: the axis fits the outer band, p1–p99.
-  for (const v of bands.p1) if (Number.isFinite(v) && v > 0 && v < low) low = v;
-  for (const v of bands.p99) if (Number.isFinite(v) && v > high) high = v;
+  // §1L.4: the axis fits the outermost band, min–max (the true edge).
+  for (const v of bands.min) if (Number.isFinite(v) && v > 0 && v < low) low = v;
+  for (const v of bands.max) if (Number.isFinite(v) && v > high) high = v;
   if (!Number.isFinite(low) || high <= 0) return null;
   return { low, high: Math.max(high, low) };
 };
@@ -134,9 +219,9 @@ export const bandRange = (bands: PriceBands): { low: number; high: number } | nu
  * top edge with a hairline.
  */
 export const firstPastTop = (bands: PriceBands): number => {
-  const { p1, p5, p25, p50, p75, p95, p99 } = bands;
+  const { min, p1, p5, p25, p50, p75, p95, p99, max } = bands;
   for (let i = 0; i < p50.length; i++) {
-    for (const band of [p1, p5, p25, p50, p75, p95, p99]) {
+    for (const band of [min, p1, p5, p25, p50, p75, p95, p99, max]) {
       if (!Number.isFinite(band[i] ?? Number.NaN)) return i;
     }
   }

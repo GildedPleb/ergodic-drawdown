@@ -10,7 +10,7 @@ import { WEEKS_PER_EPOCH } from "../../src/constants";
 import { handleDistribution } from "../../src/contexts/computed/distribution";
 import { handleSimulation } from "../../src/contexts/workers/simulation";
 import { WALK_STATE_LENGTH } from "../../src/data/walks/prng";
-import { priceBands } from "../../src/v2/app/world/bands";
+import { LABELS, NINE, priceBands, readoutAt } from "../../src/v2/app/world/bands";
 import { inProcessWorker } from "../golden/in-process";
 
 const EPOCHS = 2;
@@ -77,28 +77,67 @@ const bandsFor = async (samples: number, hash: string) => {
   return { grid, datasets, bands: priceBands(datasets) };
 };
 
-test("envelope: the outer band is exactly the engine's Lowest / Highest Sampled datasets", async () => {
+const ysOf = (
+  datasets: readonly { label?: string | undefined; data: readonly unknown[] }[],
+  label: string,
+): number[] =>
+  (datasets.find((d) => d.label === label)?.data ?? []).map((p) =>
+    typeof p === "object" && p !== null && "y" in p && typeof p.y === "number" ? p.y : NaN,
+  );
+
+test("§1L.4: all nine series are read, the outermost being the engine's Lowest / Highest Sampled", async () => {
   const { datasets, bands } = await bandsFor(40, "env-40");
-  const ys = (label: string): number[] =>
-    (datasets.find((d) => d.label === label)?.data ?? []).map((p) =>
-      typeof p === "object" && p !== null && "y" in p && typeof p.y === "number" ? p.y : NaN,
-    );
-  expect([...(bands?.p1 ?? [])]).toEqual(ys("Lowest Sampled Bitcoin Price"));
-  expect([...(bands?.p99 ?? [])]).toEqual(ys("Highest Sampled Bitcoin Price"));
-  // Inner bands unchanged: still the 5th / 95th percentiles.
-  expect([...(bands?.p5 ?? [])]).toEqual(ys("5th Percentile Bitcoin Price"));
-  expect([...(bands?.p95 ?? [])]).toEqual(ys("95th Percentile Bitcoin Price"));
+  if (bands === null) throw new Error("bands");
+  const engine = {
+    min: "Lowest Sampled Bitcoin Price",
+    p1: "1st Percentile Bitcoin Price",
+    p5: "5th Percentile Bitcoin Price",
+    p25: "25th Percentile Bitcoin Price",
+    p50: "Median Bitcoin Price",
+    p75: "75th Percentile Bitcoin Price",
+    p95: "95th Percentile Bitcoin Price",
+    p99: "99th Percentile Bitcoin Price",
+    max: "Highest Sampled Bitcoin Price",
+  } as const;
+  expect(NINE).toEqual(Object.keys(engine));
+  for (const field of NINE) {
+    expect(LABELS[field]).toBe(engine[field]);
+    expect([...bands[field]]).toEqual(ysOf(datasets, engine[field]));
+  }
+  // Nested every week: min ≤ p1 ≤ … ≤ p99 ≤ max, and at N=40 the edge is wider than p1–p99.
+  for (let i = 0; i <= bands.weeks; i++) {
+    const col = NINE.map((f) => bands[f][i] ?? NaN);
+    expect(col.every((v, k) => k === 0 || v >= (col[k - 1] ?? NaN))).toBe(true);
+  }
+  expect(bands.max.some((v, i) => v > (bands.p99[i] ?? Infinity))).toBe(true);
+  // The readout lists all nine at a week, lowest first.
+  const rows = readoutAt(bands, 50);
+  expect(rows.map((r) => r.label)).toEqual(NINE.map((f) => engine[f]));
+  expect(rows.map((r) => r.value)).toEqual(NINE.map((f) => bands[f][50]));
 });
 
-test("envelope: at N=2 the two walks are the band's edges, week by week", async () => {
+test("§1L.4: at N=2 the min / max edges are the two walks, week by week", async () => {
   const { grid, bands } = await bandsFor(2, "env-2");
   const a = walk(grid, 0);
   const b = walk(grid, 1);
   expect(a.length).toBe(WEEKS);
-  const low = a.map((v, i) => Math.min(v, b[i] ?? NaN));
-  const high = a.map((v, i) => Math.max(v, b[i] ?? NaN));
-  expect([...(bands?.p1 ?? [])]).toEqual(low);
-  expect([...(bands?.p99 ?? [])]).toEqual(high);
+  expect([...(bands?.min ?? [])]).toEqual(a.map((v, i) => Math.min(v, b[i] ?? NaN)));
+  expect([...(bands?.max ?? [])]).toEqual(a.map((v, i) => Math.max(v, b[i] ?? NaN)));
   // The walks really differ, so the edges are two paths, not one.
   expect(a.some((v, i) => v !== b[i])).toBe(true);
+});
+
+test("§1L.4: removing a sample never widens the min–max edge (prefix-stable walks)", async () => {
+  let wide = await bandsFor(12, "env-12");
+  for (const n of [11, 8, 5, 3, 2, 1]) {
+    const narrow = await bandsFor(n, `env-${String(n)}`);
+    const w = wide.bands;
+    const k = narrow.bands;
+    if (w === null || k === null) throw new Error("bands");
+    for (let i = 0; i <= k.weeks; i++) {
+      expect((k.min[i] ?? NaN) >= (w.min[i] ?? NaN)).toBe(true);
+      expect((k.max[i] ?? NaN) <= (w.max[i] ?? NaN)).toBe(true);
+    }
+    wide = narrow;
+  }
 });

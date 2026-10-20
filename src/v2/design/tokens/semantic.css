@@ -26,6 +26,7 @@
     --disabled: var(--stone-525);
     --path-btc-price: var(--orange-300);
     --asset-btc: var(--path-btc-price);
+    --band-gain: 1;
     --path-usd: var(--green-425);
     --path-sp: var(--pewter-200);
     --path-inflation: var(--wine-500);
@@ -112,6 +113,8 @@
     --disabled: var(--umber-550);
     --path-btc-price: var(--orange-600);
     --asset-btc: var(--path-btc-price);
+    /* §1L.4: linen's band ladder ×1.6 (.064/.112/.176/.288) so each step clears ΔE ≈ 3 at 390. */
+    --band-gain: 1.6;
     --path-usd: var(--green-725);
     --path-sp: var(--pewter-550);
     --path-inflation: var(--wine-700);
