@@ -156,6 +156,12 @@ const trace = (
 };
 
 /**
+ * Form 2A-r3: the leader's whole stroke stays this far inside the plot rect: more than half its
+ * widest stroke, the --surface casing (1 + 2 × --line-casing = 4px at 1.5).
+ */
+export const LEADER_INSET = 3;
+
+/**
  * §1L.4: the visible orange of the four nested bands, outermost first: min–max, p1–p99, p5–p95,
  * p25–p75. The fills stack, so each layer's own alpha is solved for the compound to land on these.
  */
@@ -289,13 +295,18 @@ export const endLabelAt = (
   if (corner + span + DESCENT + pad > box.Bt || corner - ceiling > near) corner = clear(ceiling);
   const blockTop = corner - CAP - pad;
   const blockBottom = corner + span + DESCENT + pad;
-  // The leader leaves the plate's edge that faces the end of the line, and ends on the plot's edge.
-  const y1 = endY < blockTop ? blockTop : blockBottom;
+  // The leader leaves the plate's edge that faces the end of the line and aims at it, its whole
+  // stroke (casing included) inside the plot rect like the label (Form 2A-r3): it stops
+  // LEADER_INSET short of the right edge and stays LEADER_INSET inside the top and bottom.
+  const inY = (y: number): number =>
+    Math.min(box.Bt - LEADER_INSET, Math.max(box.T + LEADER_INSET, y));
+  const y1 = inY(endY < blockTop ? blockTop : blockBottom);
+  const x2 = box.R - LEADER_INSET;
   return {
     x,
     y: corner,
     mode: "corner",
-    leader: { x1: x - 2, y1, x2: box.R, y2: endY },
+    leader: { x1: Math.min(x - 2, x2), y1, x2, y2: inY(endY) },
   };
 };
 

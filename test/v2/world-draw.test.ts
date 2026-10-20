@@ -14,6 +14,7 @@ import {
   layerAlphas,
   endLabelAt,
   LABEL_LINE,
+  LEADER_INSET,
   type Paint,
   paintFrom,
 } from "../../src/v2/app/world/draw";
@@ -259,7 +260,7 @@ test("never mid-chart: when above and below are both far from the end, it goes t
   expect(at.mode).toBe("corner");
   expect(at.x).toBe(box.R - 12);
   expect(at.y >= box.T + 36).toBe(true);
-  expect(at.leader?.x2).toBe(box.R);
+  expect(at.leader?.x2).toBe(box.R - LEADER_INSET);
   expect(at.leader?.y2).toBe(ly(3.5e7, box, domain));
   expect((at.leader?.y1 ?? 0) > at.y + LABEL_LINE).toBe(true);
 });
@@ -970,7 +971,7 @@ test("2A r2: the leader leaves the plate edge facing the line's end and stops on
     const bottom = at.y + LABEL_LINE + 4 + pad;
     const endY = ly(end, box, domain);
     expect(at.leader?.y1).toBe(endY < top ? top : bottom);
-    expect(at.leader?.x2).toBe(box.R);
+    expect(at.leader?.x2).toBe(box.R - LEADER_INSET);
     expect(endY >= box.T && endY <= box.Bt).toBe(true);
   }
 });
@@ -1086,4 +1087,50 @@ test("2A-r3: the drawn end label follows the headline's N rule (spread.ts)", () 
   expect(label(20)).toEqual([ninety]);
   expect(label(19)).toEqual([strings.chart.endLabel(4e5, 0.2 * 4e5, 5 * 4e5)]);
   expect(label(1)).toEqual([`\u20BF price \u00B7 ${fmtUSD(4e5)}`]);
+});
+
+test("2A-r3 (Form nit): the leader, casing and all, stays inside the plot rect like the label", () => {
+  // Pure: every corner leader in a sweep of ends near and past the top keeps LEADER_INSET clear.
+  for (const [w, h] of [
+    [390, 693],
+    [390, 420],
+    [1440, 900],
+  ] as const) {
+    const box = plotBox(w, h);
+    const domain = fitDomain(50_000, 1e8);
+    for (const end of [3.5e7, 7e7, 9.9e7, 1e8, 5e8]) {
+      const p95 = flat(100, end * 1.2);
+      p95[96] = domain.hi;
+      const p5 = flat(100, end * 0.9);
+      p5[95] = 60_000;
+      const at = endLabelAt(box, domain, { p5, p95, end, horizon: 99 }, LINES2);
+      if (at.leader === null) continue;
+      const { x1, y1, x2, y2 } = at.leader;
+      for (const x of [x1, x2]) expect(x >= box.L && x <= box.R - LEADER_INSET).toBe(true);
+      for (const y of [y1, y2]) {
+        expect(y >= box.T + LEADER_INSET && y <= box.Bt - LEADER_INSET).toBe(true);
+      }
+    }
+  }
+  // Drawn at 390 (dark paint): with the median ending just under $100M the label goes top-right;
+  // every leader vertex sits more than half the casing (4px wide) inside the right edge.
+  const { ctx, ops } = recorder();
+  const domain = fitDomain(50_000, 1e8);
+  const p95 = [...flat(100, 9e7 * 1.2)];
+  p95[96] = domain.hi;
+  const p5 = [...flat(100, 9e7 * 0.9)];
+  p5[95] = 60_000;
+  const b = pack(p5, [...flat(100, 9e7)], p95);
+  drawWorld(ctx, PAINT, { width: 390, height: 693, dpr: 1, now: NOW, horizon: 99, domain }, b);
+  const box = plotBox(390, 693);
+  const clip = ops.map((o) => o.op).lastIndexOf("clip");
+  const leader = ops
+    .slice(clip)
+    .filter((o) => (o.op === "moveTo" || o.op === "lineTo") && o.style === PAINT.muted);
+  expect(leader.length).toBeGreaterThanOrEqual(2);
+  const half = (1 + 2 * PAINT.casing) / 2;
+  for (const o of leader) {
+    expect((o.x ?? Infinity) <= box.R - half).toBe(true);
+    expect((o.y ?? -1) >= box.T + half && (o.y ?? Infinity) <= box.Bt - half).toBe(true);
+  }
 });
