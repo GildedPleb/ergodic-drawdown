@@ -282,3 +282,10 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   side open on the list and thinned to one line on the field (four placement rules) +44; the
   root's `position: relative` and the list's `z-index` and absolute placement removed −8. No new
   tokens.
+- Keel budget ruling (2026-10-19, 10:08 PM ET): the §1U +58 B overage is **ratified by Keel**.
+  **Slice 1 ceiling 8,600, approved by Keel**: `css-budget.json` gets `builtGzipCeiling: 8600`
+  (replacing the +5% ratchet's 8,312 for the rest of Slice 1) and `sourceCeiling: 61809` (the
+  source budget scaled the same way, 56,901 × 8,600 / 7,917). The baseline (7,917 B / 56,901 B)
+  is unchanged. Each later addition is measured by reverting it alone and logged per item; any
+  single item over +200 B gzip after cuts is held local. At the Slice 1 close the gate ratchets
+  down to the measured actual + 2%.

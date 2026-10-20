@@ -35,7 +35,13 @@ if (process.argv.includes("--write")) {
   const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
   const base =
     typeof raw === "object" && raw !== null && "builtGzipBytes" in raw ? raw.builtGzipBytes : 0;
-  const limit = typeof base === "number" ? Math.floor(base * 1.05) : 0;
+  // Slice 1: Keel's ceiling (8,600 B) replaces the +5% ratchet until the Slice 1 close ratchets down.
+  const ceiling =
+    typeof raw === "object" && raw !== null && "builtGzipCeiling" in raw
+      ? raw.builtGzipCeiling
+      : undefined;
+  const ratcheted = typeof base === "number" ? Math.floor(base * 1.05) : 0;
+  const limit = typeof ceiling === "number" ? ceiling : ratcheted;
   console.log(JSON.stringify({ current, builtGzipLimit: limit }));
   if (builtGzipBytes > limit) process.exit(1);
 }

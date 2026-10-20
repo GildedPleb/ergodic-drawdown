@@ -487,7 +487,8 @@ export const checkInlineStyle = (tree: Tree): string[] => {
 
 /* ---------- R11 size ---------- */
 
-export type CssBudget = { sourceBytes: number; ratchet: number };
+/** `sourceCeiling`, when set, replaces the ratchet (Slice 1: Keel's 8,600 B gzip ceiling, scaled). */
+export type CssBudget = { sourceBytes: number; ratchet: number; sourceCeiling?: number };
 export type Allowlist = { oxlint: string[]; stylelint: string[] };
 
 const readJson = (rel: string): unknown => JSON.parse(readFileSync(join(V2, rel), "utf8"));
@@ -504,7 +505,9 @@ export const loadBudget = (): CssBudget => {
   ) {
     throw new Error("bad css-budget.json");
   }
-  return { sourceBytes: raw["sourceBytes"], ratchet: raw["ratchet"] };
+  const ceiling = raw["sourceCeiling"];
+  const base = { sourceBytes: raw["sourceBytes"], ratchet: raw["ratchet"] };
+  return typeof ceiling === "number" ? { ...base, sourceCeiling: ceiling } : base;
 };
 
 export const loadAllowlist = (): Allowlist => {
@@ -521,7 +524,7 @@ export const cssSourceBytes = (tree: Tree): number =>
 
 export const checkSize = (tree: Tree, budget: CssBudget): string[] => {
   const bytes = cssSourceBytes(tree);
-  const limit = Math.floor(budget.sourceBytes * budget.ratchet);
+  const limit = budget.sourceCeiling ?? Math.floor(budget.sourceBytes * budget.ratchet);
   return bytes > limit ? [`R11 src/v2/**/*.css is ${bytes} B, over the ${limit} B budget`] : [];
 };
 
