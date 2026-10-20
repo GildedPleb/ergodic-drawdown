@@ -116,6 +116,9 @@ export type ModelsSheetProps = {
   /** §1M: Bitcoin's ledger tick box (shown on the chart). */
   on?: boolean;
   onOn?: (next: boolean) => void;
+  /** §2A: "Show historic price" (render.showHistoric), off by default. */
+  historic?: boolean;
+  onHistoric?: (next: boolean) => void;
   /** Stories and tests: the row open on first render. */
   initialOpen?: string | null;
 };
@@ -141,6 +144,8 @@ export const ModelsSheet = ({
   onChange,
   on = true,
   onOn,
+  historic = false,
+  onHistoric,
   initialOpen = null,
 }: ModelsSheetProps): JSX.Element => {
   const [open, setOpen] = useState<string | null>(initialOpen);
@@ -287,6 +292,12 @@ export const ModelsSheet = ({
       >
         {bitcoin ? (
           <>
+            {/* §2A: directly under the asset's headline, the existing tick box only. */}
+            <TickToggle
+              label={strings.models.showHistoric}
+              checked={historic}
+              onChange={(next) => onHistoric?.(next)}
+            />
             <div className={section} role="group" aria-labelledby="grp-price-model">
               <SectionLabel text={strings.sections.priceModel} level="group" id="grp-price-model" />
               <Select

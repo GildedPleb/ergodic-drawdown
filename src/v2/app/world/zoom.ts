@@ -48,6 +48,20 @@ export const panBy = (view: View, delta: number, last: number): View => {
   return clampView({ from: v.from + d, to: v.to + d }, last);
 };
 
+/**
+ * §2A: the asked window in frame positions (0 … last, the frame starting `past` weeks before today
+ * at the first historic print), made valid, and the same window in weeks from today (`view`).
+ * null asks for the whole frame. With no history, past is 0 and both are the same.
+ */
+export const framedView = (
+  asked: View | null,
+  last: number,
+  past: number,
+): { framed: View; view: View } => {
+  const framed = asked === null ? fullView(last) : clampView(asked, last);
+  return { framed, view: { from: framed.from - past, to: framed.to - past } };
+};
+
 export const isZoomed = (view: View, last: number): boolean => view.to - view.from < last - 1e-6;
 
 /** p1 low and p99 high over the samples the window shows (finite, positive), or null. */

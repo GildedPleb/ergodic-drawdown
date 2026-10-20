@@ -5,15 +5,17 @@ import { TextButton } from "../../design/primitives/TextButton";
 import type { InputsPhase } from "../engine/inputs";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
-import { drawWorld, fittedDomain, readPaint } from "./draw";
-import type { LogDomain } from "./geometry";
-import { plotBox } from "./geometry";
-import { clampView, followDomain, fullView, isZoomed, type View, windowDomain } from "./zoom";
+import { drawWorld, readPaint, targetDomain } from "./draw";
+import type { History } from "./history";
+import { type LogDomain, plotBox } from "./geometry";
+import { followDomain, framedView, isZoomed, type View } from "./zoom";
 import { attachZoom, plotTarget } from "./zoom-input";
 import styles from "./WorldLayer.module.css";
 
 export type WorldLayerProps = {
   bands: PriceBands | null;
+  /** §2A: the traded price ("Show historic price" on), else null. */
+  history?: History | null;
   now: number;
   horizon: number;
   /** The headline sentence: the chart's accessible name (§1i). */
@@ -78,6 +80,7 @@ const FRAMES = {
  */
 export const WorldLayer = ({
   bands,
+  history = null,
   now,
   horizon,
   label,
@@ -93,17 +96,24 @@ export const WorldLayer = ({
   const lastDraw = useRef(0);
   const plot = useRef<HTMLDivElement>(null);
 
-  // §1T zoom: null is the full horizon. The window is always clamped to the data it has.
-  const last = bands?.weeks ?? 0;
+  // §1T zoom: null is the full frame. The window is always clamped to the data it has. §2A: with
+  // the historic price on, the frame starts `past` weeks before today, at the first print; zoom
+  // and pan work in frame positions (0 … last) and the drawing gets weeks from today.
+  const past = bands === null ? 0 : (history?.past ?? 0);
+  const last = (bands?.weeks ?? 0) + past;
   const [asked, setAsked] = useState<View | null>(null);
-  const view = asked === null ? fullView(last) : clampView(asked, last);
-  const zoomed = bands !== null && isZoomed(view, last);
+  const { framed, view } = framedView(asked, last, past);
+  const zoomed = bands !== null && isZoomed(framed, last);
+  // Toggling the historic price resets to the new maximum frame (§2A).
+  const lastPast = useRef(past);
+  useEffect(() => {
+    if (lastPast.current === past) return;
+    lastPast.current = past;
+    setAsked(null);
+  }, [past]);
   const target = useMemo(
-    () =>
-      bands === null
-        ? undefined
-        : ((zoomed ? windowDomain(bands, view) : null) ?? fittedDomain(bands)),
-    [bands, zoomed, view.from, view.to],
+    () => (bands === null ? undefined : targetDomain(bands, history, view, zoomed)),
+    [bands, history, zoomed, view.from, view.to],
   );
   const [shown, setShown] = useState<LogDomain | undefined>(target);
   const eased = useRef<LogDomain | undefined>(target);
@@ -127,8 +137,8 @@ export const WorldLayer = ({
     );
   }, [target, viewKey]);
 
-  const state = useRef({ view, last });
-  state.current = { view, last };
+  const state = useRef({ view: framed, last });
+  state.current = { view: framed, last };
   useEffect(() => {
     const el = plot.current;
     if (el === null) return undefined;
@@ -165,11 +175,11 @@ export const WorldLayer = ({
     drawWorld(
       ctx,
       readPaint(c),
-      { width: size.w, height: size.h, dpr, now, horizon, view, domain: shown },
+      { width: size.w, height: size.h, dpr, now, horizon, view, domain: shown, history },
       bands,
     );
     lastDraw.current = performance.now() - t0;
-  }, [bands, now, horizon, size, fonts, live, view.from, view.to, shown]);
+  }, [bands, history, now, horizon, size, fonts, live, view.from, view.to, shown]);
 
   const root = styles["root"] ?? "world-root";
   const front = styles["front"] ?? "world-front";
@@ -181,7 +191,7 @@ export const WorldLayer = ({
         ref={plot}
         className={front}
         data-layer="front"
-        data-view={`${view.from.toFixed(3)} ${view.to.toFixed(3)} ${String(last)}`}
+        data-view={`${framed.from.toFixed(3)} ${framed.to.toFixed(3)} ${String(last)}`}
         role="img"
         aria-label={label}
         aria-keyshortcuts="+ - ArrowLeft ArrowRight 0"

@@ -78,6 +78,8 @@ export const strings = {
     /** §1V: the open Bitcoin header names what you're editing. */
     openName: (name: string): string => `${name} \u00B7 price model`,
     showOn: (name: string): string => `Show ${name} on chart`,
+    /** §2A: the tick row under Bitcoin. */
+    showHistoric: "Show historic price",
     /** §1N: a Select's tray, named for the choice it belongs to. */
     settings: (choice: string): string => `${choice} settings`,
   },

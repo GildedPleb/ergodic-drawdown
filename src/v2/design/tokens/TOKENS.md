@@ -348,3 +348,6 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
     pane"): −53.
 - §1Z zoom line, no start dot and no end date (user): 61,537 B source / 8,577 B gzip, ±0. Both
   were drawn on the canvas (`draw.ts`), so removing them frees no CSS. No new tokens.
+- §2A "Show historic price" (user): 61,537 B source / 8,577 B gzip, ±0. The row is the existing
+  TickToggle as it stands (Models pane visuals on hold); the trace, the Today line inside the
+  frame and the widened zoom frame are drawn on the canvas. No new tokens.

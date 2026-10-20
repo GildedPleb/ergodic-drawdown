@@ -50,6 +50,8 @@ export const AppShell = (): JSX.Element => {
   }, [values]);
   // §1M: Bitcoin's ledger tick box. OFF: the empty frame and its caption, no headline.
   const [on, setOn] = useState(true);
+  // §2A: "Show historic price" under Bitcoin (render.showHistoric), off on every load.
+  const [historic, setHistoric] = useState(false);
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
@@ -78,7 +80,7 @@ export const AppShell = (): JSX.Element => {
   }, [stop]);
   // §1L.2: the pane last clicked, tapped or tabbed into draws its layer and selects its tab.
   const [pane, setPane] = useState<Pane>("models");
-  const world = useWorld(values, now);
+  const world = useWorld(values, now, historic);
 
   const { bands } = world;
   const overflow = bands !== null && outOfRange(bands);
@@ -224,6 +226,7 @@ export const AppShell = (): JSX.Element => {
         <div className={chart} data-layer-pane={pane}>
           <WorldLayer
             bands={on ? bands : null}
+            history={on ? world.history : null}
             now={now}
             horizon={world.horizon}
             label={on ? spoken : strings.chart.off}
@@ -267,6 +270,8 @@ export const AppShell = (): JSX.Element => {
                 <ModelsSheet
                   on={on}
                   onOn={setOn}
+                  historic={historic}
+                  onHistoric={setHistoric}
                   values={values}
                   onChange={(patch) => {
                     setValues((v) => ({ ...v, ...patch }));

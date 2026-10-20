@@ -4,12 +4,15 @@ import { WEEKS_PER_EPOCH } from "../../../constants";
 import { useEngineSelector, useEngineSet } from "../../../hooks/use-engine";
 import type { ModelsValues } from "../models/values";
 import { priceBands, type PriceBands } from "../world/bands";
+import { type History, historyOf } from "../world/history";
 import { recomputeWatch } from "../shell/press";
 import { engineConfig, inputsReady } from "./config";
 import { type InputsPhase, useWorldInputs } from "./inputs";
 
 export type World = {
   bands: PriceBands | null;
+  /** §2A: the traded weekly price while "Show historic price" is on, else null. */
+  history: History | null;
   now: number;
   /** Weeks on the time axis: the engine's horizon, or epochs × 4 years before it returns. */
   horizon: number;
@@ -35,7 +38,7 @@ const isSeriesList = (
   );
 
 /** Sets the engine from the Models values and reads the price bands back. */
-export const useWorld = (values: ModelsValues, now: number): World => {
+export const useWorld = (values: ModelsValues, now: number, historic = false): World => {
   const set = useEngineSet();
   const { inputs, phase, retry } = useWorldInputs(now);
   const datasets = useEngineSelector(selectDatasets);
@@ -45,19 +48,24 @@ export const useWorld = (values: ModelsValues, now: number): World => {
   useLayoutEffect(() => {
     // Hold every submit (in practice the first) until price and block height are real.
     if (!inputsReady(inputs)) return;
-    const config = engineConfig(values, inputs);
+    const config = engineConfig(values, inputs, historic);
     if (config === null) return;
     watch.start();
     set(config);
-  }, [values, inputs, set, watch]);
+  }, [values, inputs, historic, set, watch]);
 
   useEffect(() => {
     watch.done();
   }, [datasets, watch]);
 
   const bands = useMemo(() => (isSeriesList(datasets) ? priceBands(datasets) : null), [datasets]);
+  const history = useMemo(
+    () => (historic && isSeriesList(datasets) ? historyOf(datasets, now) : null),
+    [historic, datasets, now],
+  );
   return {
     bands,
+    history,
     now,
     horizon: bands?.weeks ?? values.epochCount * WEEKS_PER_EPOCH,
     phase: bands === null ? phase : "ready",

@@ -35,7 +35,12 @@ export const inputsReady = (inputs: Pick<WorldInputs, "currentPrice" | "currentB
   inputs.currentBlock > 0;
 
 /** null when a value the engine needs is not one of its names (never, with the G12 schema). */
-export const engineConfig = (values: ModelsValues, inputs: WorldInputs): EngineConfig | null => {
+/** §2A: `showHistoric` is the Models pane's "Show historic price" tick (off by default). */
+export const engineConfig = (
+  values: ModelsValues,
+  inputs: WorldInputs,
+  showHistoric = false,
+): EngineConfig | null => {
   const { model, walk } = values;
   if (!isModelName(model) || !isWalk(walk)) return null;
   return {
@@ -54,7 +59,7 @@ export const engineConfig = (values: ModelsValues, inputs: WorldInputs): EngineC
       renderPriceDistribution: "Quantile",
       renderPriceWalks: false,
       samplesToRender: 0,
-      showHistoric: false,
+      showHistoric,
     },
     samples: values.samples,
     scenario: {

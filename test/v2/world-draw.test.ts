@@ -756,3 +756,71 @@ test("1Z: the zoom line has no start dot and no end-date label, zoomed in or ful
     expect(line.length).toBeGreaterThanOrEqual(1);
   }
 });
+
+test("2A: history on draws the frame from its first print; Today sits inside it; one 1px trace", () => {
+  const past = 520;
+  const t = Float64Array.from({ length: past + 1 }, (_, i) => i - past);
+  const y = Float64Array.from(t, (w) => 1e5 * 1.005 ** w);
+  const { ctx, ops, texts } = recorder();
+  drawWorld(
+    ctx,
+    PAINT,
+    { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1040, history: { t, y, past } },
+    longBands,
+  );
+  // L=34, R=1396: today lands a third in (520 of 1,560 weeks); the trace starts on L.
+  const today = 34 + (1362 * past) / (1040 + past);
+  expect(texts.includes("Today \u00B7 Oct \u201926")).toBe(true);
+  const todayLine = ops.filter((o) => o.op === "moveTo" && o.style === PAINT.today);
+  expect(Math.abs((todayLine.at(-1)?.x ?? 0) - today) < 1e-6).toBe(true);
+  const trace = ops.filter((o) => o.op === "lineTo" && o.style === PAINT.price);
+  const start = ops.filter((o) => o.op === "moveTo" && o.style === PAINT.price);
+  expect(start.some((o) => Math.abs(o.x - 34) < 1e-6)).toBe(true);
+  expect(trace.filter((o) => o.x <= today + 1e-6).length).toBeGreaterThanOrEqual(past);
+  // Year ticks reach back into the history (from 2017, thinned to even years here).
+  const years = ops
+    .filter((o) => o.op === "fillText" && /^20\d\d$/.test(o.t ?? ""))
+    .map((o) => Number(o.t));
+  expect(Math.min(...years)).toBeLessThanOrEqual(2018);
+  expect(Math.min(...years)).toBeGreaterThanOrEqual(2017);
+  // Unzoomed: the plain full-width line, no window.
+  expect(ops.filter((o) => o.op === "fillRect" && o.style === PAINT.today).at(-1)).toEqual({
+    op: "fillRect",
+    x: 34,
+    y: 866 + 18,
+    w: 1362,
+    h: 2,
+    style: PAINT.today,
+  });
+});
+
+test("2A: zoomed with history on, the position bar is the window's share of the whole frame", () => {
+  const past = 520;
+  const t = Float64Array.from({ length: past + 1 }, (_, i) => i - past);
+  const y = Float64Array.from(t, () => 1e5);
+  const { ctx, ops, texts } = recorder();
+  drawWorld(
+    ctx,
+    PAINT,
+    {
+      width: 1440,
+      height: 900,
+      dpr: 1,
+      now: NOW,
+      horizon: 1040,
+      view: { from: -520, to: -130 },
+      history: { t, y, past },
+    },
+    longBands,
+  );
+  // Before today: no Today line, and the bar sits at the frame's start, a quarter of it wide.
+  expect(texts.some((x) => x.startsWith("Today"))).toBe(false);
+  expect(ops.filter((o) => o.op === "fillRect" && o.style === PAINT.today).at(-1)).toEqual({
+    op: "fillRect",
+    x: 34,
+    y: 866 + 18,
+    w: 1362 / 4,
+    h: 2,
+    style: PAINT.today,
+  });
+});

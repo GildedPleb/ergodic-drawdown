@@ -133,15 +133,16 @@ const STRIDES = [1, 2, 5, 10, 20, 50] as const;
 export type YearTick = { year: number; x: number };
 
 /**
- * Calendar-year ticks (1 January of each year after today), every year when labels can sit at
- * least 48px apart, else thinned to every 2, 5 or 10 years (years divisible by the stride).
+ * Calendar-year ticks (1 January of each year after the frame's start: today, or §2A the first
+ * historic print `from` weeks before it), every year when labels can sit at least 48px apart,
+ * else thinned to every 2, 5 or 10 years (years divisible by the stride).
  */
-export const yearTicks = (now: number, horizon: number, box: PlotBox): YearTick[] => {
+export const yearTicks = (now: number, horizon: number, box: PlotBox, from = 0): YearTick[] => {
   const end = now + horizon * MS_PER_WEEK;
   const pxPerYear = ((box.R - box.L) / Math.max(1, horizon)) * 52.1775;
   const stride = STRIDES.find((s) => s * pxPerYear >= MIN_TICK_GAP) ?? 100;
   const ticks: YearTick[] = [];
-  const first = new Date(now).getFullYear() + 1;
+  const first = new Date(now + Math.min(0, from) * MS_PER_WEEK).getFullYear() + 1;
   for (let year = first; ; year++) {
     const at = new Date(year, 0, 1).getTime();
     if (at > end) break;

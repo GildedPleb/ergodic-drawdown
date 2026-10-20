@@ -22,7 +22,8 @@ import {
   type PlotBox,
   yearTicks,
 } from "./geometry";
-import { clampView, fullView, isZoomed, type View, viewBox } from "./zoom";
+import { type History, historyRange, unionRange } from "./history";
+import { clampView, isZoomed, type View, viewBox, windowRange } from "./zoom";
 
 /** The slice of the 2D context the painter uses (tests pass a recorder). */
 export type Ctx2D = Pick<
@@ -446,13 +447,38 @@ const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
   x.lineWidth = 1;
 };
 
-/** The Y axis for the full horizon: p1–p99 fitted, raised to cover clipped data (n10). */
-export const fittedDomain = (bands: PriceBands | null): LogDomain => {
-  const range = bands === null ? null : bandRange(bands);
+/**
+ * The Y axis for the full horizon: p1–p99 fitted, raised to cover clipped data (n10); §2A with the
+ * historic prints in the frame too.
+ */
+export const fittedDomain = (
+  bands: PriceBands | null,
+  history: History | null = null,
+): LogDomain => {
+  const range = unionRange(
+    bands === null ? null : bandRange(bands),
+    historyRange(history, Number.NEGATIVE_INFINITY, 0),
+  );
   const fitted = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
   return bands !== null && firstPastTop(bands) >= 0 && range !== null
     ? coverTop(fitted, range.high)
     : fitted;
+};
+
+/**
+ * §1T / §2A: the Y axis the window should show: zoomed, the window's p1–p99 and historic prints
+ * (5% of the log span each side); else the whole frame's fit.
+ */
+export const targetDomain = (
+  bands: PriceBands,
+  history: History | null,
+  view: View,
+  zoomed: boolean,
+): LogDomain => {
+  const range = zoomed
+    ? unionRange(windowRange(bands, view), historyRange(history, view.from, view.to))
+    : null;
+  return range === null ? fittedDomain(bands, history) : fitDomain(range.low, range.high);
 };
 
 export type Frame = {
@@ -465,13 +491,25 @@ export type Frame = {
   view?: View | undefined;
   /** §1T: the Y axis as the caller eases it (the window's fit); absent: fittedDomain(bands). */
   domain?: LogDomain | undefined;
+  /** §2A: the traded price; the frame then reaches back to its first print (view.from < 0). */
+  history?: History | null | undefined;
+};
+
+/**
+ * §1T / §2A: the window in weeks from today, made valid inside the frame [-past, horizon]
+ * (absent: the whole frame).
+ */
+export const frameView = (asked: View | undefined, horizon: number, past: number): View => {
+  if (asked === undefined) return { from: past > 0 ? -past : 0, to: horizon };
+  const v = clampView({ from: asked.from + past, to: asked.to + past }, horizon + past);
+  return { from: v.from - past, to: v.to - past };
 };
 
 /** Paint the world layer at CSS size width×height (the caller sizes the backing store). */
 export const drawWorld = (
   x: Ctx2D,
   p: Paint,
-  { width, height, dpr, now, horizon: horizonWeeks, view: asked, domain: eased }: Frame,
+  { width, height, dpr, now, horizon: horizonWeeks, view: asked, domain: eased, history }: Frame,
   engineBands: PriceBands | null,
 ): void => {
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -486,12 +524,17 @@ export const drawWorld = (
   const overflow = clipFrom >= 0;
   // §1T: a zoomed window draws through a plot box widened so `from` lands on L and `to` on R,
   // clipped to the real plot; the Y axis is the window's own fit, eased by the caller.
-  const view = asked === undefined ? fullView(horizon) : clampView(asked, horizon);
-  const zoomed = isZoomed(view, horizon);
-  const domain = eased ?? fittedDomain(bands);
-  const wide = zoomed ? viewBox(box, view, horizon) : box;
+  // §2A: with the historic price on, the frame starts at its first print, `past` weeks back.
+  const past = history?.past ?? 0;
+  const span = horizon + past;
+  const view = frameView(asked, horizon, past);
+  const zoomed = isZoomed({ from: view.from + past, to: view.to + past }, span);
+  const domain = eased ?? fittedDomain(bands, history ?? null);
+  const wide = zoomed || past > 0 ? viewBox(box, view, horizon) : box;
   const endShown = view.to >= horizon - 1e-6;
-  const atToday = view.from <= 1e-6;
+  // Today shows while it is inside the window (with history on, it separates past from futures).
+  const atToday = view.from <= 1e-6 && view.to >= -1e-6;
+  const todayX = lx(0, wide, horizon);
   const frame = { box: wide, domain, horizon };
   const short = height < SHORT;
 
@@ -542,7 +585,7 @@ export const drawWorld = (
   if (!short) {
     x.textAlign = "center";
     x.fillStyle = p.muted;
-    for (const tick of yearTicks(now, horizon, wide)) {
+    for (const tick of yearTicks(now, horizon, wide, -past)) {
       if (tick.x >= box.L && tick.x <= box.R) x.fillText(String(tick.year), tick.x, box.Bt + 13);
     }
   }
@@ -578,6 +621,26 @@ export const drawWorld = (
     x.restore();
   }
 
+  // §2A: the traded price, 1px solid in the asset's colour, every vertex a real weekly print.
+  if (history !== null && history !== undefined && history.t.length > 0) {
+    x.save();
+    x.beginPath();
+    x.rect(box.L, 0, box.R - box.L, height);
+    x.clip();
+    x.strokeStyle = p.price;
+    x.lineWidth = 1;
+    x.lineJoin = "miter";
+    x.beginPath();
+    for (let i = 0; i < history.t.length; i++) {
+      const px = lx(history.t[i] ?? 0, wide, horizon);
+      const py = ly(history.y[i] ?? domain.lo, box, domain);
+      if (i === 0) x.moveTo(px, py);
+      else x.lineTo(px, py);
+    }
+    x.stroke();
+    x.restore();
+  }
+
   // $ tick labels. Every gridline is labelled (Form, n4 revision): a label too wide for the right
   // margin ($1,000T and up, $1.23×10²¹) sits just inside the plot, right-aligned above its
   // gridline. m8 (Form c): from $1,000T up a 3px --ground halo (paint-order: stroke) keeps the
@@ -602,8 +665,8 @@ export const drawWorld = (
   x.lineWidth = 1.5;
   if (atToday) {
     x.beginPath();
-    x.moveTo(box.L, box.T - 6);
-    x.lineTo(box.L, box.Bt);
+    x.moveTo(todayX, box.T - 6);
+    x.lineTo(todayX, box.Bt);
     x.stroke();
   }
   x.lineWidth = 1;
@@ -615,9 +678,9 @@ export const drawWorld = (
       x.fillRect(box.L, box.Bt + 19, w, 1);
       x.fillStyle = p.today;
       x.fillRect(
-        box.L + (w * view.from) / horizon,
+        box.L + (w * (view.from + past)) / span,
         box.Bt + 18,
-        (w * (view.to - view.from)) / horizon,
+        (w * (view.to - view.from)) / span,
         2,
       );
     } else {
@@ -628,7 +691,7 @@ export const drawWorld = (
     x.textAlign = "left";
     // §1b puts this at T+4, on top of the caption at T+12; v32's draw() has it at T+20. Clear
     // of the caption's cap height: T+24.
-    if (atToday) x.fillText(strings.chart.today(monthYear(now)), box.L + 5, box.T + 24);
+    if (atToday) x.fillText(strings.chart.today(monthYear(now)), todayX + 5, box.T + 24);
   }
 
   // End label (plus the out-of-range caption under it).
