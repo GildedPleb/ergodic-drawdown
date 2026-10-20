@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { attachDrag } from "./attachDrag";
-import { SNAP_EASE, SNAP_MS, type Stop } from "./drag";
+import { type Dir, dirOf, keyStop, SNAP_EASE, SNAP_MS, type Stop, tapStop } from "./drag";
 
 export type SheetRefs = {
   /** Carries --dyn-sheet / --dyn-panel while a drag is live. */
@@ -23,6 +23,10 @@ export type Sheet = {
   stop: Stop;
   /** Every position change goes through here, so the snap spring starts from where it was. */
   go: (next: Stop) => void;
+  /** §1R: a tap, Enter or Space on the grab point: the next stop in the ping-pong. */
+  tap: () => void;
+  /** §1P: the grab point's ↑/↓/Home/End; false when the key isn't one of them. */
+  key: (key: string) => boolean;
   dragging: boolean;
   /** The size at the drag's start (the JSX value of --dyn-*; live moves write it directly). */
   dyn: number;
@@ -65,13 +69,24 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
   const from = useRef<number | null>(null);
   const closed = useRef(0);
 
+  const dir = useRef<Dir>("up");
+
   const go = (next: Stop): void => {
+    dir.current = dirOf(stop, next, dir.current);
     from.current = sizeOf(refs, side);
     setStop(next);
     setTick((t) => t + 1);
   };
-  const live = useRef({ stop, side, go });
-  live.current = { stop, side, go };
+  const tap = (): void => {
+    go(tapStop(stop, dir.current, side));
+  };
+  const press = (name: string): boolean => {
+    const next = keyStop(stop, name, side);
+    if (next !== null) go(next);
+    return next !== null;
+  };
+  const live = useRef({ stop, side, go, tap });
+  live.current = { stop, side, go, tap };
 
   // After a move commits: note the closed sheet's own height, then spring from the old size.
   useLayoutEffect(() => {
@@ -139,9 +154,12 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
           live.current.go(next);
           if (dragged) setDragging(false);
         },
+        tap: () => {
+          live.current.tap();
+        },
       }),
     [refs],
   );
 
-  return { stop, go, dragging, dyn, full };
+  return { stop, go, tap, key: press, dragging, dyn, full };
 };

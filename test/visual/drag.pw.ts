@@ -135,11 +135,23 @@ test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async (
   await shot("down-released");
 });
 
-test("item 5: a flick snaps in its direction; a tap and the keyboard still toggle", async ({
+const LOGO = '[aria-controls="models-sheet"]:not([role="tab"])';
+const said = async (page: Page): Promise<string> =>
+  (await page.locator('[role="status"]').textContent()) ?? "";
+
+const tapLogo = async (page: Page): Promise<string> => {
+  const b = await page.locator(LOGO).boundingBox();
+  if (b === null) throw new Error("no logo");
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(350);
+  return stop(page);
+};
+
+test("item 5 + §1R: a flick snaps in its direction; the next tap and Enter carry on", async ({
   page,
 }) => {
   await ready(page);
-  const logo = page.locator('[aria-controls="models-sheet"]:not([role="tab"])');
+  const logo = page.locator(LOGO);
   const box = await logo.boundingBox();
   if (box === null) throw new Error("no logo");
   const x = box.x + box.width / 2;
@@ -151,15 +163,58 @@ test("item 5: a flick snaps in its direction; a tap and the keyboard still toggl
   await page.mouse.up();
   await page.waitForTimeout(400);
   expect(await stop(page)).toBe("half");
-  // Tap: toggles closed.
-  const b2 = await logo.boundingBox();
-  if (b2 === null) throw new Error("no logo");
-  await page.mouse.click(b2.x + b2.width / 2, b2.y + b2.height / 2);
-  await page.waitForTimeout(400);
-  expect(await stop(page)).toBe("closed");
-  // Keyboard: Enter on the focused logo opens; aria-expanded follows.
+  // §1R: the drag went up, so the tap carries on up to full; then it comes back down.
+  expect(await tapLogo(page)).toBe("full");
+  expect(await said(page)).toBe("Sheet full");
+  // Enter and Space act as taps.
   await logo.focus();
   await page.keyboard.press("Enter");
   await expect(logo).toHaveAttribute("aria-expanded", "true");
   expect(await stop(page)).toBe("half");
+  await page.keyboard.press("Space");
+  await expect(logo).toHaveAttribute("aria-expanded", "false");
+  expect(await stop(page)).toBe("closed");
+});
+
+test("§1R: five taps from closed visit half, full, half, closed, half (390)", async ({
+  page,
+}, info) => {
+  test.skip(!info.project.name.endsWith("390x844"), "phone check");
+  await ready(page);
+  const seen: string[] = [];
+  const heard: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    seen.push(await tapLogo(page));
+    heard.push(await said(page));
+  }
+  expect(seen).toEqual(["half", "full", "half", "closed", "half"]);
+  expect(heard).toEqual([
+    "Sheet half open",
+    "Sheet full",
+    "Sheet half open",
+    "Sheet closed",
+    "Sheet half open",
+  ]);
+});
+
+test("§1P: the grab point's keys: ↑/↓ one stop, Home full, End closed", async ({ page }) => {
+  await ready(page);
+  const logo = page.locator(LOGO);
+  await logo.focus();
+  const press = async (key: string): Promise<string> => {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(50);
+    return stop(page);
+  };
+  expect([
+    await press("ArrowUp"),
+    await press("ArrowUp"),
+    await press("ArrowUp"),
+    await press("ArrowDown"),
+    await press("End"),
+    await press("Home"),
+  ]).toEqual(["half", "full", "full", "half", "closed", "full"]);
+  // The page doesn't scroll under the keys; focus stays on the point.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(logo).toBeFocused();
 });

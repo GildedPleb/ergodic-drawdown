@@ -6,9 +6,13 @@ import {
   rubberBand,
   snapStop,
   stopsFor,
+  tapStop,
+  keyStop,
+  dirOf,
   toggleStop,
   velocity,
 } from "../../src/v2/app/shell/drag";
+import type { Dir, Stop } from "../../src/v2/app/shell/drag";
 import { strings } from "../../src/v2/app/strings";
 import { attachDrag } from "../../src/v2/app/shell/attachDrag";
 import { fullOf, ownsTap } from "../../src/v2/app/shell/useSheetDrag";
@@ -385,7 +389,7 @@ test("1L.5: tap and keys toggle closed ↔ half (the existing cap); each positio
   expect([strings.dock.sheet.closed, strings.dock.sheet.half, strings.dock.sheet.full]).toEqual([
     "Sheet closed",
     "Sheet half open",
-    "Sheet open",
+    "Sheet full",
   ]);
 });
 
@@ -478,6 +482,7 @@ test("1L.5 wiring: a slow drag tracks every move 1:1, then rests on the nearest 
     begin: (s) => log.push(`begin ${String(s)}`),
     track: (s) => log.push(`track ${String(s)}`),
     rest: (n, d) => log.push(`rest ${n} ${String(d)}`),
+    tap: () => log.push("tap"),
   });
   doc.at(ptr("pointerdown", 100, 700, 0));
   doc.at(ptr("pointermove", 100, 698, 10)); // under 6px: nothing yet
@@ -520,6 +525,7 @@ test("1L.5 wiring: a tap off a button toggles; on a button its click does; off-s
     begin: () => undefined,
     track: () => undefined,
     rest: (n, d) => rests.push(`${n} ${String(d)}`),
+    tap: () => rests.push("tap"),
   });
   doc.at(ptr("pointerdown", 500, 100, 0));
   doc.at(ptr("pointerup", 503, 100, 80));
@@ -533,7 +539,7 @@ test("1L.5 wiring: a tap off a button toggles; on a button its click does; off-s
   on = false;
   doc.at(ptr("pointerdown", 500, 100, 400));
   doc.at(ptr("pointerup", 500, 100, 420));
-  expect(rests).toEqual(["closed false", "full true"]);
+  expect(rests).toEqual(["tap", "full true"]);
 });
 
 const boxed = (bottom: number): Parameters<typeof fullOf>[0]["root"] => ({
@@ -552,7 +558,7 @@ test("item 5: buttons, tabs and links take their own taps; the bare strip toggle
 });
 
 test("Probe m11: the landscape panel has one open stop, however it was opened", () => {
-  // Tap, Enter or the tab open the panel to the same stop a drag snaps to ("full", "Sheet open").
+  // Tap, Enter or the tab open the panel to the same stop a drag snaps to ("full", "Sheet full").
   expect([toggleStop("closed", true), toggleStop("full", true)]).toEqual(["full", "closed"]);
   expect(stopsFor(true, 0, 300, 900).map(([s]) => s)).toEqual(["closed", "full"]);
   expect(toggleStop("closed", false)).toBe("half");
@@ -571,4 +577,54 @@ test("Probe m9: Esc returns focus to the tab when it's rendered, else to the gra
   const hidden = el(0);
   expect(returnFocus(hidden, grab)).toBe(grab);
   expect(returnFocus(null, grab)).toBe(grab);
+});
+
+/** §1R: a run of taps from `at`, carrying the direction from move to move. */
+const taps = (from: Stop, dir: Dir, n: number, side = false): Stop[] => {
+  const seen: Stop[] = [];
+  let s = from;
+  let d = dir;
+  for (let i = 0; i < n; i += 1) {
+    const next = tapStop(s, d, side);
+    d = dirOf(s, next, d);
+    s = next;
+    seen.push(s);
+  }
+  return seen;
+};
+
+test("1R: five taps from closed visit half, full, half, closed, half", () => {
+  expect(taps("closed", "down", 5)).toEqual(["half", "full", "half", "closed", "half"]);
+  expect(taps("closed", "up", 5)).toEqual(["half", "full", "half", "closed", "half"]);
+});
+
+test("1R: a drag sets the direction from its net movement; the next tap carries on", () => {
+  // Dragged up from closed to half: the tap goes on up, to full.
+  expect(taps("half", dirOf("closed", "half", "down"), 1)).toEqual(["full"]);
+  // Dragged up to full: a tap comes back to half, a second to closed.
+  expect(taps("full", dirOf("half", "full", "down"), 2)).toEqual(["half", "closed"]);
+  // Dragged down from full to half: the tap carries on down.
+  expect(taps("half", dirOf("full", "half", "up"), 1)).toEqual(["closed"]);
+  // A drag that rests where it started keeps the direction.
+  expect(dirOf("half", "half", "up")).toBe("up");
+});
+
+test("1R: the landscape panel just toggles", () => {
+  expect(taps("closed", "up", 4, true)).toEqual(["full", "closed", "full", "closed"]);
+});
+
+const ALL: readonly Stop[] = ["closed", "half", "full"];
+
+test("1P: grab-button keys: ↑/↓ one stop, Home full, End closed; others pass through", () => {
+  expect(ALL.map((s) => keyStop(s, "ArrowUp"))).toEqual(["half", "full", "full"]);
+  expect(ALL.map((s) => keyStop(s, "ArrowDown"))).toEqual(["closed", "closed", "half"]);
+  expect([keyStop("half", "Home"), keyStop("half", "End"), keyStop("half", "a")]).toEqual([
+    "full",
+    "closed",
+    null,
+  ]);
+  expect([keyStop("closed", "ArrowUp", true), keyStop("full", "ArrowDown", true)]).toEqual([
+    "full",
+    "closed",
+  ]);
 });

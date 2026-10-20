@@ -1,4 +1,4 @@
-import { gesture, type Stop, stopsFor, toggleStop } from "./drag";
+import { gesture, type Stop, stopsFor } from "./drag";
 
 /** What a pointerdown on a grab strip knows: nothing about the DOM beyond these numbers. */
 type Grab = {
@@ -20,8 +20,10 @@ export type DragHooks = {
   begin: (size: number, horizontal: boolean) => void;
   /** Live size, every move (straight into the custom property: no render between). */
   track: (size: number, horizontal: boolean) => void;
-  /** Rest at this stop (a snap, a cancel or a tap's toggle). */
+  /** Rest at this stop (a snap or a cancel). */
   rest: (next: Stop, dragged: boolean) => void;
+  /** A tap on the bare strip (§1R: the next stop in the tap cycle). */
+  tap: () => void;
 };
 
 type PointerLike = Event & {
@@ -71,7 +73,7 @@ export const attachDrag = (doc: EventTarget, hooks: DragHooks): (() => void) => 
       doc.removeEventListener("pointercancel", finish);
       const next = g.release(up.timeStamp, up.type !== "pointerup");
       if (next === null) {
-        if (up.type === "pointerup" && !grab.ownsTap) hooks.rest(toggleStop(at, horizontal), false);
+        if (up.type === "pointerup" && !grab.ownsTap) hooks.tap();
         return;
       }
       suppress = true;

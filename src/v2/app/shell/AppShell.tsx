@@ -55,7 +55,7 @@ export const AppShell = (): JSX.Element => {
     [],
   );
   // §1L.5: closed / half / full, dragged, tapped or keyed; every change is announced.
-  const { stop, go, dragging, dyn, full } = useSheet(refs, side);
+  const { stop, go, tap, key, dragging, dyn, full } = useSheet(refs, side);
   const open = stop !== "closed";
   const moved = useRef(false);
   const [said, setSaid] = useState("");
@@ -265,9 +265,8 @@ export const AppShell = (): JSX.Element => {
             label={open ? strings.dock.grab.close : strings.dock.grab.open}
             expanded={open}
             controls={SHEET_ID}
-            onToggle={() => {
-              setSheet(!open);
-            }}
+            onToggle={tap}
+            onKey={key}
           />
         </div>
         <p role="status">

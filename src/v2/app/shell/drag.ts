@@ -52,13 +52,49 @@ export const snapStop = (
 };
 
 /**
- * A tap on the grab point, Enter or Space: closed opens to the cap (half), anything else closes.
+ * Opening from a tab: closed opens to the cap (half), anything else closes.
  * Probe m11: the landscape panel (`side`) has one open stop, the one a drag snaps to ("full"), so
  * it's announced the same way however it was opened.
  */
 export const toggleStop = (s: Stop, side = false): Stop => {
   if (s !== "closed") return "closed";
   return side ? "full" : "half";
+};
+
+export type Dir = "up" | "down";
+
+const ORDER: readonly Stop[] = ["closed", "half", "full"];
+const SIDE: readonly Stop[] = ["closed", "full"];
+
+/**
+ * V32-BUILD §1R: a tap (or Enter / Space on the grab point) ping-pongs between the stops. Closed
+ * always goes to half and full always back to half; half carries on in the last direction. The
+ * landscape panel has one open stop, so it just toggles.
+ */
+export const tapStop = (at: Stop, dir: Dir, side = false): Stop => {
+  if (side) return at === "closed" ? "full" : "closed";
+  if (at === "half") return dir === "up" ? "full" : "closed";
+  return "half";
+};
+
+/** §1R: every move (a drag's net movement, a tap, a key) sets the direction; resting keeps it. */
+export const dirOf = (from: Stop, to: Stop, dir: Dir): Dir => {
+  const by = ORDER.indexOf(to) - ORDER.indexOf(from);
+  if (by === 0) return dir;
+  return by > 0 ? "up" : "down";
+};
+
+/** §1P: the grab point's own keys: ↑/↓ one stop, Home full, End closed; null passes through. */
+export const keyStop = (at: Stop, key: string, side = false): Stop | null => {
+  const stops = side ? SIDE : ORDER;
+  const i = stops.indexOf(at);
+  const to: Partial<Record<string, Stop | undefined>> = {
+    ArrowUp: stops[Math.min(i + 1, stops.length - 1)],
+    ArrowDown: stops[Math.max(i - 1, 0)],
+    Home: "full",
+    End: "closed",
+  };
+  return to[key] ?? null;
 };
 
 /**

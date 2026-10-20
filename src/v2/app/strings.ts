@@ -72,7 +72,7 @@ export const strings = {
     sheet: {
       closed: "Sheet closed",
       half: "Sheet half open",
-      full: "Sheet open",
+      full: "Sheet full",
     },
   },
   fields: {
