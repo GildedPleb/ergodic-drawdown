@@ -51,8 +51,15 @@ export const snapStop = (
   return best[0];
 };
 
-/** A tap on the grab point, Enter or Space: closed opens to the cap (half), anything else closes. */
-export const toggleStop = (s: Stop): Stop => (s === "closed" ? "half" : "closed");
+/**
+ * A tap on the grab point, Enter or Space: closed opens to the cap (half), anything else closes.
+ * Probe m11: the landscape panel (`side`) has one open stop, the one a drag snaps to ("full"), so
+ * it's announced the same way however it was opened.
+ */
+export const toggleStop = (s: Stop, side = false): Stop => {
+  if (s !== "closed") return "closed";
+  return side ? "full" : "half";
+};
 
 /**
  * The stops a drag snaps between. Item 5 (Form): the bottom sheet's half is the existing cap

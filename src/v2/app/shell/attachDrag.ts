@@ -71,7 +71,7 @@ export const attachDrag = (doc: EventTarget, hooks: DragHooks): (() => void) => 
       doc.removeEventListener("pointercancel", finish);
       const next = g.release(up.timeStamp, up.type !== "pointerup");
       if (next === null) {
-        if (up.type === "pointerup" && !grab.ownsTap) hooks.rest(toggleStop(at), false);
+        if (up.type === "pointerup" && !grab.ownsTap) hooks.rest(toggleStop(at, horizontal), false);
         return;
       }
       suppress = true;

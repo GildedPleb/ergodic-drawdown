@@ -12,7 +12,7 @@ import {
 import { strings } from "../../src/v2/app/strings";
 import { attachDrag } from "../../src/v2/app/shell/attachDrag";
 import { fullOf, ownsTap } from "../../src/v2/app/shell/useSheetDrag";
-import { paneOf } from "../../src/v2/app/shell/panes";
+import { paneOf, returnFocus } from "../../src/v2/app/shell/panes";
 import { expect, test } from "bun:test";
 
 import type { EngineConfig } from "../../src/engine/keys";
@@ -498,4 +498,26 @@ test("item 5: the full stop runs from the header's lower edge to the shell's bot
 test("item 5: buttons, tabs and links take their own taps; the bare strip toggles", () => {
   expect(ownsTap({ closest: () => ({}) })).toBe(true);
   expect(ownsTap({ closest: () => null })).toBe(false);
+});
+
+test("Probe m11: the landscape panel has one open stop, however it was opened", () => {
+  // Tap, Enter or the tab open the panel to the same stop a drag snaps to ("full", "Sheet open").
+  expect([toggleStop("closed", true), toggleStop("full", true)]).toEqual(["full", "closed"]);
+  expect(stopsFor(true, 0, 300, 900).map(([s]) => s)).toEqual(["closed", "full"]);
+  expect(toggleStop("closed", false)).toBe("half");
+});
+
+const withRects = (rects: number): { getClientRects: () => { length: number } } => ({
+  getClientRects: () => ({ length: rects }),
+});
+
+test("Probe m9: Esc returns focus to the tab when it's rendered, else to the grab button", () => {
+  const el = withRects;
+  const tab = el(1);
+  const grab = el(1);
+  expect(returnFocus(tab, grab)).toBe(tab);
+  // Phone portrait, sheet closed: the dock row is display:none, so the tab has no boxes.
+  const hidden = el(0);
+  expect(returnFocus(hidden, grab)).toBe(grab);
+  expect(returnFocus(null, grab)).toBe(grab);
 });

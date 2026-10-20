@@ -13,7 +13,7 @@ import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
-import { type Pane, paneOf } from "./panes";
+import { type Pane, paneOf, returnFocus } from "./panes";
 import { useSheet } from "./useSheetDrag";
 import { SIDE_PANEL, useMedia } from "./useMedia";
 
@@ -86,7 +86,7 @@ export const AppShell = (): JSX.Element => {
   const spoken = ends === null ? idle : strings.headline.spoken(...ends);
 
   const setSheet = (next: boolean): void => {
-    go(next ? toggleStop("closed") : "closed");
+    go(next ? toggleStop("closed", side) : "closed");
     if (!next) setColumn(false);
   };
 
@@ -123,7 +123,14 @@ export const AppShell = (): JSX.Element => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       setSheet(false);
-      document.getElementById("tab-models")?.focus();
+      // Probe m9: on a phone the closed sheet hides the dock row, so focus goes to the grab
+      // button there; measured after the close renders.
+      requestAnimationFrame(() => {
+        const grabButton = document.querySelector<HTMLElement>(
+          `[aria-controls="${SHEET_ID}"]:not([role="tab"])`,
+        );
+        returnFocus(document.getElementById("tab-models"), grabButton)?.focus();
+      });
     };
     document.addEventListener("keydown", onKey);
     return () => {

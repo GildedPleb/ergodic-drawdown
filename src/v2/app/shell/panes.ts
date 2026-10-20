@@ -15,3 +15,12 @@ export const paneOf = (target: { closest: (sel: string) => Found } | null, curre
   const v = target?.closest("[data-pane]")?.getAttribute("data-pane");
   return isPane(v) ? v : current;
 };
+
+type Boxed = { getClientRects: () => { length: number } };
+
+/**
+ * Where Esc puts focus once the sheet closes (§1i, Probe m9): the Models tab where it's rendered,
+ * else (phone portrait, the dock row is display:none) the grab button.
+ */
+export const returnFocus = <T extends Boxed>(tab: T | null, grab: T | null): T | null =>
+  tab !== null && tab.getClientRects().length > 0 ? tab : grab;
