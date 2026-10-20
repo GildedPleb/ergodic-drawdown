@@ -358,7 +358,7 @@
     }
 
     .chart {
-      padding: 0;
+      padding: var(--shell-safe-end);
     }
 
     /* 390px tall: the headline keeps to one line (the full sentence is the chart's name). */

@@ -254,3 +254,7 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   orphaned `--sub-label-space` token, shorter comments).
 - Tokens: `--sup-kern: 0.06em` added in `type.css` (Form d: the space before an exponent, on canvas
   and in HTML). `--sub-label-space` removed (its only user, the old ModelsSheet columns, went in 1L.2).
+- **Landscape safe-area, approved by Keel** (rebaseline): the landscape chart column pads its bottom
+  by `env(safe-area-inset-bottom)` (`--shell-safe-end`), so the timeline slider clears the home
+  indicator. Before: 56,777 B source / 7,906 B gzip against the 54,138 / 7,531 B baseline (limit
+  7,907). After: measured 56,901 B / 7,917 B (+124 / +11), the new baseline (limit 8,312).
