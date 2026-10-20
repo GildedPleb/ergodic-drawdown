@@ -1,7 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { decideSuiteRecord, measuredWallTime, type SuiteRecord } from "./suite-record";
+import {
+  decideSuiteRecord,
+  isSlowMachine,
+  measuredWallTime,
+  type SuiteRecord,
+  wallLimitMs,
+} from "./suite-record";
 
 const suitePath = "test-suite.json";
 const lcovPath = "coverage/lcov.info";
@@ -16,6 +22,8 @@ const isSuiteRecord = (value: unknown): value is SuiteRecord => {
 
 // SUITE_WALL=0 is CI. A GitHub runner does not hold the 10% clock. The hook sets SUITE_WALL=1.
 const enforceWall = process.env["SUITE_WALL"] !== "0";
+// SHITTY_COMPUTER gives the hook five times the wall limit and never writes the record.
+const slowMachine = isSlowMachine(process.env["SHITTY_COMPUTER"]);
 
 // This file is the package script named test. A literal `bun test` spawn is that script, resolved from this directory.
 const timeSuite = (): { status: number; wallTimeMs: number } => {
@@ -67,19 +75,24 @@ if (!isSuiteRecord(parsed)) {
   throw new Error(`${suitePath} is not a suite record`);
 }
 
+// A slow box retimes only a first sample over its own limit.
+const retimeOverMs = slowMachine ? wallLimitMs(parsed.wallTimeMs, true) : parsed.wallTimeMs;
 let secondMs: number | undefined;
-if (enforceWall && first.wallTimeMs > parsed.wallTimeMs) {
+if (enforceWall && first.wallTimeMs > retimeOverMs) {
   const second = timeSuite();
   if (second.status !== 0) process.exit(second.status);
   secondMs = second.wallTimeMs;
 }
-const wallTimeMs = measuredWallTime(parsed.wallTimeMs, first.wallTimeMs, secondMs);
-const decision = decideSuiteRecord(parsed, { lineCoverage, wallTimeMs }, enforceWall);
+const wallTimeMs = measuredWallTime(retimeOverMs, first.wallTimeMs, secondMs);
+const decision = decideSuiteRecord(parsed, { lineCoverage, wallTimeMs }, enforceWall, slowMachine);
 if (decision.kind === "fail") throw new Error(decision.reason);
 if (decision.kind === "write") {
   writeFileSync(suitePath, `${JSON.stringify(decision.record, null, 2)}\n`);
 }
 const sampleNote =
   secondMs === undefined ? "" : ` (faster of ${first.wallTimeMs}ms and ${secondMs}ms)`;
-const wallNote = enforceWall ? sampleNote : " (wall budget not enforced)";
+const slowNote = slowMachine
+  ? ` (SHITTY_COMPUTER: limit ${Math.round(wallLimitMs(parsed.wallTimeMs, true))}ms, record not written)`
+  : "";
+const wallNote = enforceWall ? `${sampleNote}${slowNote}` : " (wall budget not enforced)";
 console.log(`${lineCoverage}% in ${wallTimeMs}ms${wallNote}`);

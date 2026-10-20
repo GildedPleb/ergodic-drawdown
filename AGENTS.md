@@ -39,6 +39,7 @@ A red gate is unfinished work. Do not add a file-level lint disable, `@ts-ignore
 
 - `lineCoverage` is a floor. A drop of more than one point fails and leaves the file alone. A higher measurement writes the new floor.
 - `wallTimeMs` is a budget. A run more than 10% over it fails and leaves the file alone. A slower run inside that line raises the budget to the measurement. A faster run does not lower it. When the floor rises, the rewrite keeps the wall budget unless this run also raised it. A first sample over the budget is timed again, and the faster sample is the measurement. The hook sets `SUITE_WALL=1`. CI sets `SUITE_WALL=0`: a GitHub runner does not hold a 10% clock, and that run does not raise the budget. The same suite has measured 234ms and 658ms there. Coverage still fails that job. The log still prints the time.
+- `SHITTY_COMPUTER` set to anything but empty or `0` gives the hook wall gate 5x its limit (budget x 1.1 x 5) for a slow box, and that run never writes `test-suite.json`.
 - Test files are outside the coverage percentage. New tests raise the floor only when they execute new lines under `src/` or `scripts/`.
 - The checker requires both fields. `coverage/` is gitignored.
 

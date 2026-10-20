@@ -15,7 +15,7 @@ const frozenOptions = {
 } as const;
 
 const expectedPrices = {
-  CAGR: { max: 179_800.155_624_663_72, min: 44_950.038_906_165_93 },
+  CAGR: { max: 143_928.088_361_338_04, min: 35_982.022_090_334_51 },
   Historic: { max: 341_547.976_727_618_66, min: 85_074.99 },
   "Power Law Regression Median": { max: 315_458.563_801_796_64, min: 50_750.076_679_694_284 },
   "Power Law Support Line": { max: 236_638.933_971_322_14, min: 42_964.275_835_303_255 },
@@ -61,3 +61,8 @@ for (const model of Object.values(modelMap)) {
     expect(model.maxPrice(options)).toBe(expected.max);
   });
 }
+
+test("CAGR rate defaults to 20 percent and is capped at 1000 percent", () => {
+  expect(modelMap.CAGR.default).toBe(20);
+  expect(modelMap.CAGR.rangeMax).toBe(1000);
+});
