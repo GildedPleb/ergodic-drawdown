@@ -126,13 +126,13 @@ const series = (label: string, ys: number[]): { label: string; data: unknown[] }
   data: ys.map((y, i) => ({ x: NOW + i * WEEK, y })),
 });
 const ENGINE = [
-  series("1st Percentile Bitcoin Price", [85_000, 60_000, 250_000]),
+  series("Lowest Sampled Bitcoin Price", [85_000, 60_000, 250_000]),
   series("5th Percentile Bitcoin Price", [90_000, 80_000, 400_000]),
   series("25th Percentile Bitcoin Price", [100_000, 120_000, 700_000]),
   series("Median Bitcoin Price", [110_000, 150_000, 1_200_000]),
   series("75th Percentile Bitcoin Price", [120_000, 190_000, 1_900_000]),
   series("95th Percentile Bitcoin Price", [130_000, 260_000, 3_100_000]),
-  series("99th Percentile Bitcoin Price", [140_000, 330_000, 4_800_000]),
+  series("Highest Sampled Bitcoin Price", [140_000, 330_000, 4_800_000]),
   series("Bitcoin Walk 1", [1, 2, 3]),
 ];
 
@@ -148,7 +148,7 @@ test("1L.4: price bands read p1/p5/p25/p50/p75/p95/p99 from the engine's quantil
 test("no bands until every quantile is present (p1 and p99 included)", () => {
   expect(priceBands(undefined)).toBe(null);
   expect(priceBands(ENGINE.slice(1))).toBe(null);
-  expect(priceBands(ENGINE.filter((d) => !d.label.startsWith("99th")))).toBe(null);
+  expect(priceBands(ENGINE.filter((d) => !d.label.startsWith("Highest")))).toBe(null);
 });
 
 test("1L.4: band range spans min p1 to max p99; end value is the horizon's last point", () => {

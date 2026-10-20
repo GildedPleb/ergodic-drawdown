@@ -3,7 +3,9 @@ import { createDataSet } from "../../../helpers";
 /**
  * Price-band adapter: reads the engine's existing quantile datasets (cutoffs
  * [0,.01,.05,.25,.5,.75,.95,.99,1], src/contexts/computed/distribution.ts) out of the snapshot's
- * Data Properties and keeps p1, p5, p25, p50, p75, p95 and p99 (§1L.4: p0 and p100 are not drawn).
+ * Data Properties and keeps p5, p25, p50, p75 and p95. The outer band's edges (`p1`/`p99` fields) are
+ * the envelope, the engine's cutoffs 0 and 1: the lowest and highest walk (user, 2026-10-20, "make
+ * the edge the edge"), so removing samples never widens it.
  * Read-only; nothing in the engine changes.
  */
 
@@ -52,13 +54,13 @@ const labelAt = (cutoff: number): string =>
   ENGINE_LABELS[PRICE_QUANTILES.cutoffs.indexOf(cutoff)] ?? `missing cutoff ${String(cutoff)}`;
 
 const LABELS = {
-  p1: labelAt(0.01),
+  p1: labelAt(0),
   p5: labelAt(0.05),
   p25: labelAt(0.25),
   p50: labelAt(0.5),
   p75: labelAt(0.75),
   p95: labelAt(0.95),
-  p99: labelAt(0.99),
+  p99: labelAt(1),
 } as const;
 
 const isPoint = (p: unknown): p is Point =>

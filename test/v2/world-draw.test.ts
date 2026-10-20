@@ -15,6 +15,13 @@ import {
 } from "../../src/v2/app/world/draw";
 import { axisTicks, coverTop, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
 
+/** The engine's dataset label for a fixture band (the outer edges are the min/max envelope). */
+const bandLabel = (q: string): string => {
+  if (q === "Median") return "Median Bitcoin Price";
+  if (q === "1st") return "Lowest Sampled Bitcoin Price";
+  if (q === "99th") return "Highest Sampled Bitcoin Price";
+  return `${q} Percentile Bitcoin Price`;
+};
 const NOW = new Date(2026, 9, 19).getTime();
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const PAINT: Paint = {
@@ -167,12 +174,7 @@ const bands = priceBands(
       ["95th", 4],
       ["99th", 4],
     ] as const
-  ).map(([q, k]) =>
-    series(q === "Median" ? "Median Bitcoin Price" : `${q} Percentile Bitcoin Price`, [
-      1e5 * (k + 1),
-      4e5 * (k + 1),
-    ]),
-  ),
+  ).map(([q, k]) => series(bandLabel(q), [1e5 * (k + 1), 4e5 * (k + 1)])),
 );
 
 test("empty state draws the frame text (caption, Today) and no end label", () => {
@@ -674,7 +676,7 @@ const longBands = priceBands(
     ] as const
   ).map(([name, k]) =>
     series(
-      name === "Median" ? "Median Bitcoin Price" : `${name} Percentile Bitcoin Price`,
+      bandLabel(name),
       Array.from({ length: 1041 }, (_, i) => 1e5 * k * 1.01 ** i),
     ),
   ),
