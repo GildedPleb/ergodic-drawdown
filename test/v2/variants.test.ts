@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import { variants as shell } from "../../src/v2/app/shell/AppShell";
+import { variants as pane } from "../../src/v2/app/shell/PaneScroll";
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
 import { variants as assetRow } from "../../src/v2/design/primitives/AssetRow/AssetRow";
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
@@ -29,8 +30,9 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...numberField.invalid]).toEqual(["true", "false"]);
   expect([...numberField.disabled]).toEqual(["true", "false"]);
   expect([...sectionLabel.level]).toEqual(["section", "group"]);
-  expect([...sectionLabel.side]).toEqual(["start", "end"]);
+  expect("side" in sectionLabel).toBe(false); // §1Y: solid hairlines, no fade sides
   expect([...assetRow.kind, ...assetRow.state]).toEqual(["supported", "open", "dim"]);
+  expect([...assetRow.stuck, ...pane.top, ...pane.more]).toEqual(["true", "true", "true"]);
   expect([...dock.orientation, ...dock.shown, ...dock.selected]).toEqual([
     "row",
     "rail",

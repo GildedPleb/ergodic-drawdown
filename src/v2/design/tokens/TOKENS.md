@@ -336,3 +336,13 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   the replacement spec); the body inset `--tray-indent` (1rem) on both sides, so Selects and trays
   sit 1rem in from the pane on the left and right. TickToggle: the box is one rule (the inner
   `::before` rule and its two overrides removed). No new tokens.
+- §1Y pane scroll zone (Form; no fades): 61,537 B source / 8,577 B gzip, +184 net on the interim's
+  8,393. Measured by revert:
+  - Pane rule, zone and cues (`app/shell/PaneScroll.module.css`, `--rule-step` 2px for the Deco
+    bar, `--z-sticky` 3): +169. The cues are the scroll listener's data-attributes, not a
+    scroll-driven animation: R9 allows animation only under `prefers-reduced-motion:
+    no-preference` (reduced motion would need the listener anyway), the stuck-header hairline
+    needs the listener in every browser, and the animation path cost +60 B for the same result.
+  - Sticky open header, its stuck hairline and the hidden summary (AssetRow): +59.
+  - Section-label hairlines solid, the fading gradients removed ("no gradient anywhere in the
+    pane"): −53.

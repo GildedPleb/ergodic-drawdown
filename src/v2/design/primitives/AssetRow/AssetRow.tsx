@@ -12,6 +12,8 @@ export const variants = {
   kind: ["supported"] as const,
   /** Absent at rest (normal --text); "dim" while another row is open (§1V). */
   state: ["open", "dim"] as const,
+  /** §1Y: set by the pane's scroll listener while the open header is stuck (not rendered). */
+  stuck: ["true"] as const,
 };
 
 /** §1M: the row's body opens over this long (instant under reduced motion). */

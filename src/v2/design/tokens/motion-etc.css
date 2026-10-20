@@ -31,6 +31,7 @@
     /* z-index scale */
     --z-chart-back: 1;
     --z-chart: 2;
+    --z-sticky: 3; /* §1Y: a sticky open-row header */
     --z-dock: 10;
     --z-panel: 20;
     --z-overlay: 30;
@@ -47,6 +48,7 @@
     --rule-double-gap: 2px;
     --rule-double: 4px; /* Certificate double rule: 1px line, 2px gap, 1px line = 4px total */
     --rule-strong: 3px;
+    --rule-step: 2px; /* §1Y: a Deco rule's bar */
     --bevel-comp: 1.2; /* §1X: the bevel's 45° stroke is this × --rule-hair (Form: 1.2) */
     --focus-w: 2px;
     --focus-offset: 2px;

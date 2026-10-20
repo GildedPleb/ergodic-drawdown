@@ -14,6 +14,7 @@ import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
+import { PaneScroll } from "./PaneScroll";
 import { dockLayout, paneOf, returnFocus, type Pane } from "./panes";
 import { Bevel } from "./Bevel";
 import { attachPressFlash } from "./press";
@@ -175,7 +176,6 @@ export const AppShell = (): JSX.Element => {
   const heading = styles["heading"] ?? "shell-heading";
   const body = styles["body"] ?? "shell-body";
   const cols = styles["cols"] ?? "shell-cols";
-  const col = styles["col"] ?? "shell-col";
   const reserved = styles["reserved"] ?? "shell-reserved";
   const edge = styles["edge"] ?? "shell-edge";
   const probe = styles["probe"] ?? "shell-probe";
@@ -263,7 +263,7 @@ export const AppShell = (): JSX.Element => {
             {/* §1L.2: three equal columns, Models | Plans | Stats; only Models is built yet,
                 the other two keep their geometry, hidden. */}
             <div className={cols}>
-              <div className={col} data-pane="models">
+              <PaneScroll id="models">
                 <ModelsSheet
                   on={on}
                   onOn={setOn}
@@ -272,7 +272,7 @@ export const AppShell = (): JSX.Element => {
                     setValues((v) => ({ ...v, ...patch }));
                   }}
                 />
-              </div>
+              </PaneScroll>
               <div className={reserved} data-pane="plans" aria-hidden="true" />
               <div className={reserved} data-pane="stats" aria-hidden="true" />
             </div>

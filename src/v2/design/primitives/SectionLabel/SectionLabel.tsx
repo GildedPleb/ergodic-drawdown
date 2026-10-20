@@ -5,7 +5,6 @@ import styles from "./SectionLabel.module.css";
 /** R7: variant keys and values. */
 export const variants = {
   level: ["section", "group"] as const,
-  side: ["start", "end"] as const,
 };
 
 export type SectionLabelProps = {
@@ -19,7 +18,7 @@ export type SectionLabelProps = {
 
 /**
  * The Certificate label (STYLE v38): a section is centred caps in --accent between two fine
- * hairlines that taper away from the text (--section-rule-len); a group (§1M) is left-aligned
+ * hairlines (--section-rule-len; §1Y: solid, no fades); a group (§1M) is left-aligned
  * small caps with one --group-rule-len hairline after it. Text is used exactly as given.
  */
 export const SectionLabel = ({
@@ -34,11 +33,11 @@ export const SectionLabel = ({
   const Tag = as;
   return (
     <div className={root} data-level={level}>
-      {level === "section" ? <span className={rule} data-side="start" aria-hidden="true" /> : null}
+      {level === "section" ? <span className={rule} aria-hidden="true" /> : null}
       <Tag className={label} id={id}>
         {text}
       </Tag>
-      <span className={rule} data-side="end" aria-hidden="true" />
+      <span className={rule} aria-hidden="true" />
     </div>
   );
 };

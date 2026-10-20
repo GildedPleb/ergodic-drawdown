@@ -217,6 +217,7 @@ export const tokenNames = [
   "rule-double-gap",
   "rule-double-line",
   "rule-hair",
+  "rule-step",
   "rule-strong",
   "s-0",
   "s-1",
@@ -318,6 +319,7 @@ export const tokenNames = [
   "z-focus",
   "z-overlay",
   "z-panel",
+  "z-sticky",
   "z-toast",
 ] as const;
 
@@ -547,6 +549,7 @@ export const tokens = {
   "rule-double-gap": "var(--rule-double-gap)",
   "rule-double-line": "var(--rule-double-line)",
   "rule-hair": "var(--rule-hair)",
+  "rule-step": "var(--rule-step)",
   "rule-strong": "var(--rule-strong)",
   "s-0": "var(--s-0)",
   "s-1": "var(--s-1)",
@@ -648,5 +651,6 @@ export const tokens = {
   "z-focus": "var(--z-focus)",
   "z-overlay": "var(--z-overlay)",
   "z-panel": "var(--z-panel)",
+  "z-sticky": "var(--z-sticky)",
   "z-toast": "var(--z-toast)",
 } as const;

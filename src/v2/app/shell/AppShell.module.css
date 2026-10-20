@@ -191,12 +191,6 @@
     block-size: 100%;
   }
 
-  .col {
-    min-block-size: 0;
-    overflow: auto;
-    padding-block-end: var(--s-5);
-  }
-
   /* Plans and Stats are not built yet: no room on phones, their geometry kept on desktop. */
   .reserved {
     display: none;
@@ -224,7 +218,6 @@
     display: block;
     flex: 1;
     min-block-size: 0;
-    padding-block-start: var(--s-3);
   }
 
   /* Dragging: the edge follows the pointer (outranks every stop). */

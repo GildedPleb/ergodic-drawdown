@@ -24,6 +24,7 @@
     flex: 0 1 var(--section-rule-len);
     min-inline-size: 0;
     block-size: var(--rule-hair);
+    background: var(--rule);
   }
 
   .root[data-level="section"] .rule {
@@ -42,14 +43,5 @@
   .root[data-level="group"] .text {
     font-size: var(--t-group);
     letter-spacing: var(--tr-group);
-  }
-
-  /* Hairlines fade out away from the text. */
-  .rule[data-side="start"] {
-    background-image: linear-gradient(to left, var(--rule), transparent);
-  }
-
-  .rule[data-side="end"] {
-    background-image: linear-gradient(to right, var(--rule), transparent);
   }
 }

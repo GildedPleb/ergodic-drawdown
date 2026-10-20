@@ -43,6 +43,26 @@
     display: none;
   }
 
+  /* §1Y: the open header sticks, on the surface; a hairline once stuck. The summary hides. */
+  .root[data-state="open"] > .head {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--z-sticky);
+    background: var(--surface);
+  }
+
+  .root[data-state="open"][data-stuck="true"] > .head::after {
+    position: absolute;
+    inset: auto 0 0;
+    block-size: var(--rule-hair);
+    content: "";
+    background: var(--control-line);
+  }
+
+  .root[data-state="open"] .summary {
+    display: none;
+  }
+
   .text {
     display: grid;
     flex: 1;

@@ -1,0 +1,54 @@
+@layer app {
+  /* §1Y: the Deco rule, the zone (the only scroller, clipped at the rule), the foot rule. */
+  .root {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-block-size: 0;
+  }
+
+  .rule,
+  .foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    block-size: var(--rule-hair);
+    background: var(--rule);
+    pointer-events: none;
+  }
+
+  /* The 3rem bar on the rule; ▲ (0.5rem) in its place once scrolled, ▼ while more is below. */
+  .rule::before,
+  .foot::before {
+    inline-size: var(--s-8);
+    block-size: var(--rule-step);
+    content: "";
+    background: var(--accent);
+  }
+
+  .root[data-top="true"] .rule::before,
+  .foot::before {
+    inline-size: var(--s-2);
+    block-size: var(--s-2);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+
+  .foot::before {
+    scale: 1 -1;
+    opacity: 0;
+  }
+
+  .root[data-more="true"] .foot::before {
+    opacity: 1;
+  }
+
+  .zone {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block-start: var(--hit);
+  }
+
+  /* Padding inside the scroller, so a sticky header's top: 0 is the rule. */
+  .content {
+    padding-block: var(--s-3) var(--s-5);
+  }
+}
