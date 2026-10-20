@@ -5,8 +5,8 @@
  * or without data (the empty state).
  */
 
-import { endSpread } from "./spread";
-import { fmtUSD, sciRuns } from "../../design/format/money";
+import { endSpread, showsMedian } from "./spread";
+import { fmtUSD, fmtUSDRange, sciRuns } from "../../design/format/money";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
 import { bandRange, endValue, firstPastTop, outOfRange } from "./bands";
@@ -406,7 +406,9 @@ const endLayout = (
   let lines: string[] = [];
   if (endsFinite) {
     // Form 2A-r3: the same N rule as the headline (spread.ts).
-    lines = short ? [fmtUSD(mid)] : strings.chart.endLines(endSpread(bands), p.split);
+    const spread = endSpread(bands);
+    if (!short) lines = strings.chart.endLines(spread, p.split);
+    else lines = [spread.kind === "pair" ? fmtUSDRange(spread.low, spread.high) : fmtUSD(mid)];
   }
   const caption = overflow && !short ? [strings.chart.outOfRange] : [];
   const all = [...lines, ...caption];
@@ -642,14 +644,17 @@ export const drawWorld = (
     fill(x, bands.p1, bands.p99, outer, frame);
     fill(x, bands.p5, bands.p95, middle, frame);
     fill(x, bands.p25, bands.p75, inner, frame);
-    x.lineJoin = "round";
-    x.strokeStyle = p.surface;
-    x.lineWidth = p.median + p.casing * 2;
-    stroke(x, bands.p50, frame);
-    x.strokeStyle = p.price;
-    x.lineWidth = p.median;
-    stroke(x, bands.p50, frame);
-    x.lineWidth = 1;
+    // Form 2A-r4: no median line at N = 2 (spread.ts showsMedian).
+    if (showsMedian(bands.n)) {
+      x.lineJoin = "round";
+      x.strokeStyle = p.surface;
+      x.lineWidth = p.median + p.casing * 2;
+      stroke(x, bands.p50, frame);
+      x.strokeStyle = p.price;
+      x.lineWidth = p.median;
+      stroke(x, bands.p50, frame);
+      x.lineWidth = 1;
+    }
     // n10: the clip edge, a 1px hairline along the plot's top from the first clipped week.
     if (overflow) {
       x.strokeStyle = p.price;

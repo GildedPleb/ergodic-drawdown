@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 
 import { bandRange, priceBands, type PriceBands } from "../../src/v2/app/world/bands";
 import { strings } from "../../src/v2/app/strings";
-import { fmtUSD } from "../../src/v2/design/format/money";
+import { fmtUSD, fmtUSDRange } from "../../src/v2/design/format/money";
 import {
   BAND_VISIBLE,
   bandAlphas,
@@ -1133,4 +1133,47 @@ test("2A-r3 (Form nit): the leader, casing and all, stays inside the plot rect l
     expect((o.x ?? Infinity) <= box.R - half).toBe(true);
     expect((o.y ?? -1) >= box.T + half && (o.y ?? Infinity) <= box.Bt - half).toBe(true);
   }
+});
+
+test("2A-r4: no median line (nor its casing) at N = 2; from N = 3 up, and N = 1, it is drawn", () => {
+  const strokes = (n?: number): { style: string; width: number }[] => {
+    const { ctx } = recorder();
+    const out: { style: string; width: number }[] = [];
+    ctx.stroke = () => {
+      out.push({
+        style: typeof ctx.strokeStyle === "string" ? ctx.strokeStyle : "",
+        width: ctx.lineWidth,
+      });
+    };
+    const b = nine();
+    drawWorld(
+      ctx,
+      PAINT,
+      { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 },
+      n === undefined ? b : { ...b, n },
+    );
+    return out.filter(
+      (o) =>
+        (o.style === PAINT.price && o.width === PAINT.median) ||
+        (o.style === PAINT.surface && o.width === PAINT.median + 2 * PAINT.casing),
+    );
+  };
+  expect(strokes(2)).toEqual([]);
+  for (const n of [1, 3, 19, 20, undefined]) expect(strokes(n).length).toBe(2);
+  // The bands still fill at N = 2: the two walks are the min–max edge.
+  const { ctx } = recorder();
+  let fills = 0;
+  ctx.fill = () => {
+    fills += ctx.globalAlpha < 1 ? 1 : 0;
+  };
+  drawWorld(
+    ctx,
+    PAINT,
+    { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 },
+    { ...nine(), n: 2 },
+  );
+  expect(fills).toBe(4);
+  // And the label gives the range only.
+  const texts = draw(693, { ...nine(), n: 2 }, 2).filter((t) => t.startsWith("\u20BF price"));
+  expect(texts).toEqual([`\u20BF price \u00B7 ${fmtUSDRange(0.2 * 4e5, 5 * 4e5)}`]);
 });
