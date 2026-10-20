@@ -23,7 +23,7 @@ test("1X: the bevel strokes its diagonals with var(--bevel-comp), its run with v
   expect(source.match(/strokeLinejoin="miter"/g)?.length).toBe(2);
   expect(source.match(/stroke="var\(--accent\)"/g)?.length).toBe(2);
   const tokens = await file(`${v2}/design/tokens/motion-etc.css`).text();
-  expect(/--bevel-comp:\s*1\.4;/.test(tokens)).toBe(true);
+  expect(/--bevel-comp:\s*1\.2;/.test(tokens)).toBe(true);
   const css = await file(`${v2}/app/shell/AppShell.module.css`).text();
   expect(css.includes("linear-gradient")).toBe(false);
   expect(css.includes(".sheet::before")).toBe(false);
@@ -55,10 +55,10 @@ test("1X: no bevel before the box is measured or when it is too small", () => {
 
 test("1X: a measured sheet: --sheet-ch in rem or px, the computed strokes, the panel's height", () => {
   const box = { offsetWidth: 390, offsetHeight: 800 };
-  expect(bevelFor(box, " 1rem", "16px", [1, 1.4], false)).toEqual(
-    bevelPaths(390, 16, 1, 1.4, false),
+  expect(bevelFor(box, " 1rem", "16px", [1, 1.2], false)).toEqual(
+    bevelPaths(390, 16, 1, 1.2, false),
   );
-  expect(bevelFor(box, "16px", "20px", [1, 1.4], true)).toEqual(bevelPaths(800, 16, 1, 1.4, true));
+  expect(bevelFor(box, "16px", "20px", [1, 1.2], true)).toEqual(bevelPaths(800, 16, 1, 1.2, true));
   expect(bevelFor(box, "1rem", "16px", [], false)).toEqual(bevelPaths(390, 16, 1, 1, false));
 });
 
@@ -78,7 +78,7 @@ test("1X: watchBevel measures now and on every resize, with the computed strokes
     parentElement: box,
     querySelectorAll: () => [run, diag],
   };
-  const widths: Record<string, string> = { run: "1px", diag: "1.4px" };
+  const widths: Record<string, string> = { run: "1px", diag: "1.2px" };
   const style = (el: Fake) => ({
     getPropertyValue: (n: string) => (n === "--sheet-ch" && el.name === "svg" ? "1rem" : ""),
     strokeWidth: widths[el.name] ?? "",
@@ -97,10 +97,10 @@ test("1X: watchBevel measures now and on every resize, with the computed strokes
       };
     },
   });
-  expect(seen).toEqual([bevelPaths(390, 16, 1, 1.4, false)]);
+  expect(seen).toEqual([bevelPaths(390, 16, 1, 1.2, false)]);
   box.offsetWidth = 1440;
   hooks.resize?.();
-  expect(seen[1]).toEqual(bevelPaths(1440, 16, 1, 1.4, false));
+  expect(seen[1]).toEqual(bevelPaths(1440, 16, 1, 1.2, false));
   stop();
   expect(stopped).toBe(true);
   // No sheet yet, or no ResizeObserver: nothing to watch, one measure at most.
@@ -111,7 +111,7 @@ test("1X: watchBevel measures now and on every resize, with the computed strokes
   watchBevel<Fake>(orphan, false, (p) => seen.push(p), { style, root: { name: "html" } })();
   watchBevel<Fake>(svg, true, (p) => seen.push(p), { style, root: { name: "html" } })();
   expect(seen.length).toBe(3);
-  expect(seen[2]).toEqual(bevelPaths(800, 16, 1, 1.4, true));
+  expect(seen[2]).toEqual(bevelPaths(800, 16, 1, 1.2, true));
 });
 
 test("1X: observeWith wraps a ResizeObserver: observe the box, disconnect on stop; none on the server", () => {

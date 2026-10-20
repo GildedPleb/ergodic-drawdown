@@ -318,8 +318,8 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   (`.sheet::before`, the two `.corner` gradient boxes and their panel overrides) is replaced by
   one SVG `.bevel` over the sheet (`Bevel.tsx`): the run path at `--rule-hair`, the diagonals at
   `calc(var(--rule-hair) * var(--bevel-comp))`, one colour, miter joins, every stroke inside the
-  clip polygon. New token: `--bevel-comp: 1.4` (unitless, × the rule width), tuned by eye and by
-  the pixel check at 1× and 2× DPR in both themes, at 390 and 1440: the diagonal's peak contrast
-  across the line matches the run's (ratio 1.00 in all eight cases); its ink per unit length is
-  1.15–1.25× the run's at 1× and 1.38–1.48× at 2×. The `.bevel` rule costs ~25; the removed rules
-  saved ~135.
+  clip polygon. New token: `--bevel-comp: 1.2` (unitless, × the rule width; Form's ruling after
+  reviewing 1.4). Pixel check at 1× and 2× DPR in both themes, at 390 and 1440: the diagonal's
+  peak contrast across the line matches the run's (0.99–1.00 at 1×, 1.00 at 2×); its ink per unit
+  length is 1.01–1.14× the run's at 1× and 1.18–1.28× at 2× (at 1.4 it was 1.15–1.25× and
+  1.38–1.48×). The `.bevel` rule costs ~25; the removed rules saved ~135.
