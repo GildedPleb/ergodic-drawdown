@@ -34,9 +34,9 @@
     },
     {
       "name": "CAGR",
-      "default": 50,
+      "default": 20,
       "rangeMin": 0,
-      "rangeMax": "Infinity",
+      "rangeMax": 1000,
       "varInput": "R (%)",
       "varRange": true,
       "showVariable": true,

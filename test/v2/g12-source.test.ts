@@ -129,10 +129,10 @@ const MUTATIONS: readonly { name: string; path: string; from: string | RegExp; t
   {
     name: "CAGR rangeMax",
     path: "data/models/cagr.ts",
-    from: "rangeMax: Infinity,",
+    from: "rangeMax: 1000,",
     to: "rangeMax: 100,",
   },
-  { name: "CAGR default", path: "data/models/cagr.ts", from: "default: 50,", to: "default: 40," },
+  { name: "CAGR default", path: "data/models/cagr.ts", from: "default: 20,", to: "default: 40," },
 ];
 
 test("G12 seeded mutations: each change to main's source turns the comparison red", async () => {

@@ -149,3 +149,25 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   expect(list.includes("Model")).toBe(true);
   expect(uncovered(list, await loadCmaps())).toEqual([]);
 });
+
+test("main 98d6d60: CAGR R (%) defaults to 20 and clamps to 0..1000 with the standard message", () => {
+  const cagr = modelsPaneSchema.models.find((m) => m.name === "CAGR");
+  expect([cagr?.default, cagr?.rangeMin, cagr?.rangeMax]).toEqual([20, 0, 1000]);
+  const html = renderToStaticMarkup(
+    createElement(ModelsSheet, {
+      values: { ...defaultModelsValues(), model: "CAGR", variable: 20 },
+      onChange: () => undefined,
+      initialEditing: "variable",
+    }),
+  );
+  expect(html.includes('aria-valuemax="1000"') && html.includes('aria-valuemin="0"')).toBe(true);
+  const bounds = { min: 0, max: 1000 };
+  expect(resolveEntry("1500", "float", bounds, 20)).toEqual({
+    kind: "clamped",
+    value: 1000,
+    typed: 1500,
+  });
+  expect(strings.fields.clamped({ name: "R (%)", plural: false }, 0, 1000, 1000)).toBe(
+    "R (%) goes from 0 to 1,000. We used 1,000.",
+  );
+});
