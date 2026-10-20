@@ -8,6 +8,8 @@ import { LedgerRow } from "../../src/v2/design/primitives/LedgerRow";
 import { Select } from "../../src/v2/design/primitives/Select";
 import {
   closedState,
+  listPlace,
+  lockWhileOpen,
   placeList,
   selectKey,
   type SelectState,
@@ -152,11 +154,19 @@ test("1L.3 Select type-ahead: a prefix jumps, a repeated key cycles, 500ms reset
   expect(walk(["ArrowDown", "z"], 2).s.active).toBe(2);
 });
 
-test("1L.3 Select placement: up when the rows don't fit below and above has more room; ≤7 rows", () => {
+test("1U Select placement: every row when it fits (below first, then above); else whole rows", () => {
+  // Fits below: all rows, no scroll, however many (8 or fewer is every engine list today).
   expect(placeList(400, 100, 44, 7)).toEqual({ up: false, maxHeight: 308 });
+  expect(placeList(352, 0, 44, 8)).toEqual({ up: false, maxHeight: 352 });
+  // Only fits above.
   expect(placeList(100, 400, 44, 7)).toEqual({ up: true, maxHeight: 308 });
-  expect(placeList(100, 200, 44, 9)).toEqual({ up: true, maxHeight: 200 });
-  expect(placeList(150, 120, 44, 9)).toEqual({ up: false, maxHeight: 150 });
+  // The frame (borders) counts: 8 rows + 3px only fit above here.
+  expect(placeList(353, 400, 44, 8, 3)).toEqual({ up: true, maxHeight: 355 });
+  // Fits neither way: the roomier side, cut to whole rows (never a half row), frame kept.
+  expect(placeList(100, 200, 44, 9)).toEqual({ up: true, maxHeight: 176 });
+  expect(placeList(150, 120, 44, 9, 3)).toEqual({ up: false, maxHeight: 135 });
+  // Never less than one row.
+  expect(placeList(10, 5, 44, 9)).toEqual({ up: false, maxHeight: 44 });
 });
 
 test("1L.3 Select markup: a select-only combobox (APG) naming its listbox; options are the names", () => {
@@ -176,4 +186,53 @@ test("1L.3 Select markup: a select-only combobox (APG) naming its listbox; optio
   ].map((m) => m[1]);
   expect(names).toEqual(MODELS);
   expect(out.includes('id="pm-opt-3" aria-selected="true"')).toBe(true);
+});
+
+test("1U Select box: flush under the field when it fits, flush above it otherwise; field width", () => {
+  const field = { top: 561, bottom: 605, left: 12, width: 366 };
+  expect(listPlace(field, 844, 44, 7, 4)).toEqual({
+    up: true,
+    maxHeight: 312,
+    x: 12,
+    y: 249,
+    w: 366,
+  });
+  expect(listPlace({ ...field, top: 100, bottom: 144 }, 844, 44, 7, 4)).toEqual({
+    up: false,
+    maxHeight: 312,
+    x: 12,
+    y: 144,
+    w: 366,
+  });
+});
+
+test("1U Select lock: outside wheel/touch-move stopped and close; outside scroll, resize close", () => {
+  const doc = new EventTarget();
+  const win = new EventTarget();
+  let inList = false;
+  let closes = 0;
+  const detach = lockWhileOpen(
+    doc,
+    win,
+    () => inList,
+    () => {
+      closes += 1;
+    },
+  );
+  const wheel = new Event("wheel", { cancelable: true });
+  doc.dispatchEvent(wheel);
+  expect([wheel.defaultPrevented, closes]).toEqual([true, 1]);
+  inList = true;
+  const own = new Event("touchmove", { cancelable: true });
+  doc.dispatchEvent(own);
+  doc.dispatchEvent(new Event("scroll"));
+  expect([own.defaultPrevented, closes]).toEqual([false, 1]);
+  inList = false;
+  doc.dispatchEvent(new Event("scroll"));
+  win.dispatchEvent(new Event("resize"));
+  expect(closes).toBe(3);
+  detach();
+  doc.dispatchEvent(new Event("wheel", { cancelable: true }));
+  win.dispatchEvent(new Event("resize"));
+  expect(closes).toBe(3);
 });

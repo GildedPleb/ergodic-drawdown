@@ -119,16 +119,72 @@ export const selectKey = (
   }
 };
 
-/** Open upward when the rows don't fit below and there is more room above (§1L.3). */
+/**
+ * V32-BUILD §1U: where the open list goes, in the viewport. `want` is every row plus the frame;
+ * below if it fits there, else above if it fits there. If neither, the roomier side, with the
+ * height cut to a whole number of rows (the list scrolls, snapping on rows). Never under one row.
+ */
 export const placeList = (
   below: number,
   above: number,
   rowHeight: number,
   count: number,
-  maxRows = 7,
+  frame = 0,
 ): { up: boolean; maxHeight: number } => {
-  const want = Math.min(count, maxRows) * rowHeight;
-  const up = below < want && above > below;
-  const room = Math.max(rowHeight, up ? above : below);
-  return { up, maxHeight: Math.min(want, room) };
+  const want = count * rowHeight + frame;
+  if (below >= want) return { up: false, maxHeight: want };
+  if (above >= want) return { up: true, maxHeight: want };
+  const up = above > below;
+  const rows = Math.max(1, Math.floor(((up ? above : below) - frame) / rowHeight));
+  return { up, maxHeight: rows * rowHeight + frame };
+};
+
+type FieldBox = { top: number; bottom: number; left: number; width: number };
+
+/** §1U: the list's viewport box from its field's: flush below or above, as wide as the field. */
+export const listPlace = (
+  field: FieldBox,
+  viewHeight: number,
+  rowHeight: number,
+  count: number,
+  frame: number,
+): { up: boolean; maxHeight: number; x: number; y: number; w: number } => {
+  const p = placeList(viewHeight - field.bottom, field.top, rowHeight, count, frame);
+  return {
+    ...p,
+    x: field.left,
+    y: p.up ? field.top - p.maxHeight : field.bottom,
+    w: field.width,
+  };
+};
+
+/**
+ * §1U, while the list is open: a wheel or touch-move outside it is stopped (the sheet's scroll is
+ * locked) and closes it; any scroll outside it or a resize closes it. Returns the detach.
+ */
+export const lockWhileOpen = (
+  doc: EventTarget,
+  win: EventTarget,
+  inside: (target: EventTarget | null) => boolean,
+  close: () => void,
+): (() => void) => {
+  const lock = (event: Event): void => {
+    if (inside(event.target)) return;
+    event.preventDefault();
+    close();
+  };
+  const onScroll = (event: Event): void => {
+    if (!inside(event.target)) close();
+  };
+  const opts = { passive: false, capture: true };
+  doc.addEventListener("wheel", lock, opts);
+  doc.addEventListener("touchmove", lock, opts);
+  doc.addEventListener("scroll", onScroll, true);
+  win.addEventListener("resize", close);
+  return () => {
+    doc.removeEventListener("wheel", lock, opts);
+    doc.removeEventListener("touchmove", lock, opts);
+    doc.removeEventListener("scroll", onScroll, true);
+    win.removeEventListener("resize", close);
+  };
 };

@@ -1,6 +1,5 @@
 @layer primitives {
   .root {
-    position: relative;
     min-inline-size: 0;
   }
 
@@ -48,28 +47,41 @@
     fill: var(--accent);
   }
 
-  /* Open: square, the double rule, the sheet's surface, as wide as the field. */
+  /* §1U open: a popover in the top layer, flush to the field and as wide; the double rule runs on
+     round it, the joining side open; opaque --surface; every row shown (whole rows if cut). */
   .list {
-    position: absolute;
-    inset-inline: 0;
-    z-index: var(--z-overlay);
+    position: fixed;
+    inset-block: var(--dyn-list-y) auto;
+    inset-inline: var(--dyn-list-x) auto;
+    inline-size: var(--dyn-list-w);
     max-block-size: var(--dyn-list-max);
     overflow-y: auto;
+    scroll-snap-type: y mandatory;
     padding: 0;
     list-style: none;
     border: var(--rule-double) double var(--control-line);
     background: var(--surface);
   }
 
+  /* The field's rule on the joining side thins to one line: field and list read as one control. */
   .root[data-placement="down"] .list {
-    inset-block-start: 100%;
+    border-block-start: 0;
   }
 
   .root[data-placement="up"] .list {
-    inset-block-end: 100%;
+    border-block-end: 0;
+  }
+
+  .root[data-placement="down"] .field[aria-expanded="true"] {
+    border-block-end: var(--rule-hair) solid var(--control-line);
+  }
+
+  .root[data-placement="up"] .field[aria-expanded="true"] {
+    border-block-start: var(--rule-hair) solid var(--control-line);
   }
 
   .option {
+    scroll-snap-align: start;
     gap: var(--s-3);
     padding: var(--row-pad);
     border-block-end: 1px solid var(--hairline);

@@ -2,7 +2,7 @@ import type { JSX, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { LabelGlyphs } from "../LabelGlyphs";
-import { closedState, placeList, selectKey, type SelectState } from "./logic";
+import { closedState, listPlace, lockWhileOpen, selectKey, type SelectState } from "./logic";
 import styles from "./Select.module.css";
 
 /** R7: variant keys and values. */
@@ -32,22 +32,13 @@ export type SelectProps = {
 /** §1N: the tray's contents cross-fade when the choice changes (instant under reduced motion). */
 const TRAY_FADE_MS = 150;
 
-/** The list stays inside this box (the sheet's scrolling column or the panel), never over the dock. */
-const boundsOf = (el: HTMLElement): DOMRect => {
-  for (let p = el.parentElement; p !== null; p = p.parentElement) {
-    if (p.hasAttribute("data-select-bounds")) return p.getBoundingClientRect();
-    const { overflowY } = getComputedStyle(p);
-    if (overflowY === "auto" || overflowY === "scroll" || overflowY === "hidden")
-      return p.getBoundingClientRect();
-  }
-  return new DOMRect(0, 0, window.innerWidth, window.innerHeight);
-};
+type Place = { up: boolean; maxHeight: number; x: number; y: number; w: number };
 
 /**
  * Certificate Select (V32-BUILD §1L.3): the WAI-ARIA APG select-only combobox. Closed, one field
  * row (square, the fine double rule, the value in Jost, a small caret). Open, a listbox of the same
- * width anchored to it, at most 7 rows before it scrolls, opening upward when there is no room
- * below. Focus stays on the combobox; aria-activedescendant names the active option, which is
+ * width in the top layer (§1U: a popover, so no scroll box clips it), flush to the field and
+ * sharing its frame, every row shown, below if it fits, else above. Focus stays on the combobox; aria-activedescendant names the active option, which is
  * aria-selected; ■ marks the current value. Option text goes through LabelGlyphs, so the 🟢🔴 walk
  * is SVG, never an emoji font.
  */
@@ -62,7 +53,7 @@ export const Select = ({
 }: SelectProps): JSX.Element => {
   const selected = options.indexOf(value);
   const [state, setState] = useState<SelectState>(() => closedState(selected));
-  const [place, setPlace] = useState({ up: false, maxHeight: 0 });
+  const [place, setPlace] = useState<Place>({ up: false, maxHeight: 0, x: 0, y: 0, w: 0 });
   const field = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -90,14 +81,38 @@ export const Select = ({
     if (next !== undefined && next !== value) onChange?.(next);
   };
 
-  // Placement is measured when the list opens.
+  // §1U: the list opens in the top layer, placed against the field in the viewport.
   useLayoutEffect(() => {
     const el = field.current;
-    if (!state.open || el === null) return;
+    const ul = list.current;
+    if (!state.open || el === null || ul === null) return undefined;
+    if (typeof ul.showPopover === "function") ul.showPopover();
     const r = el.getBoundingClientRect();
-    const b = boundsOf(el);
-    setPlace(placeList(b.bottom - r.bottom, r.top - b.top, r.height, options.length));
+    // Rows measured at the field's width, unclipped, before the placement renders.
+    ul.style.setProperty("--dyn-list-w", `${String(r.width)}px`);
+    ul.style.setProperty("--dyn-list-max", "none");
+    const row = ul.querySelector("li")?.getBoundingClientRect().height ?? r.height;
+    setPlace(
+      listPlace(r, window.innerHeight, row, options.length, ul.offsetHeight - ul.clientHeight),
+    );
+    return () => {
+      if (typeof ul.hidePopover === "function" && ul.matches(":popover-open")) ul.hidePopover();
+    };
   }, [state.open, options.length]);
+
+  // While open the sheet doesn't scroll: a wheel or touch-move outside the list, any scroll
+  // outside it, or a resize closes it with no change (a sheet drag starts with a pointerdown).
+  useEffect(() => {
+    if (!state.open) return undefined;
+    return lockWhileOpen(
+      document,
+      window,
+      (t) => t instanceof Node && list.current?.contains(t) === true,
+      () => {
+        setState(closedState(selected));
+      },
+    );
+  }, [state.open, selected]);
 
   // The active option stays in view as it moves.
   useEffect(() => {
@@ -176,8 +191,14 @@ export const Select = ({
         role="listbox"
         aria-labelledby={labelledBy}
         tabIndex={-1}
+        popover="manual"
         hidden={!state.open}
-        style={{ "--dyn-list-max": `${String(place.maxHeight)}px` }}
+        style={{
+          "--dyn-list-max": `${String(place.maxHeight)}px`,
+          "--dyn-list-x": `${String(place.x)}px`,
+          "--dyn-list-y": `${String(place.y)}px`,
+          "--dyn-list-w": `${String(place.w)}px`,
+        }}
       >
         {options.map((o, i) => {
           const on: (typeof variants.state)[number] = o === value ? "on" : "off";

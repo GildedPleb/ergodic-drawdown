@@ -275,3 +275,10 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   column 3 from 30rem +18; LedgerRow 30rem container query (label | slider | value) +12; ModelsSheet
   `container-type` and slider placement +9; Slider focus marks, the heavier rule at the 80% break
   and the "50" label +18. No new tokens.
+- §1U Select list in the top layer (user bug fix, shipped on the parent's instruction; pre-approved
+  by Keel, cap +150, and this takes the batch OVER it): 58,481 B source / 8,125 B gzip, +78 over
+  8,047 (§1N+§1P+§1Q+§1U = +208 of +150, 58 over; for Keel to rule). Per addition: the list
+  `position: fixed` against `--dyn-list-x/-y/-w` +30; `scroll-snap` on rows +12; the joining
+  side open on the list and thinned to one line on the field (four placement rules) +44; the
+  root's `position: relative` and the list's `z-index` and absolute placement removed −8. No new
+  tokens.
