@@ -86,7 +86,7 @@
     white-space: nowrap;
     border: 0;
     border-radius: var(--radius-0);
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 
   .root[data-orientation="rail"] .tab {
@@ -151,7 +151,7 @@
     font-size: var(--dock-icon);
     border: 0;
     border-radius: var(--radius-0);
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 
   .mag::after {
@@ -177,6 +177,6 @@
     font-size: var(--dock-gear);
     border: 0;
     border-radius: var(--radius-0);
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 }

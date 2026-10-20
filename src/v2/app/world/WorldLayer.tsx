@@ -20,6 +20,8 @@ export type WorldLayerProps = {
    */
   phase?: InputsPhase | "off";
   onRetry?: () => void;
+  /** §1O: a recompute has run past 400ms; the plot shows progress. */
+  busy?: boolean;
   /**
    * §1L.5: the sheet is being dragged. The box resizes live (ResizeObserver: once per frame); if
    * a redraw took longer than a frame, the last drawing stays, scaled to the box, until release.
@@ -70,6 +72,7 @@ export const WorldLayer = ({
   label,
   phase = "ready",
   onRetry = noRetry,
+  busy = false,
   live = false,
 }: WorldLayerProps): JSX.Element => {
   const box = useRef<HTMLDivElement>(null);
@@ -114,7 +117,13 @@ export const WorldLayer = ({
   const surface = styles["canvas"] ?? "world-canvas";
   return (
     <div ref={box} className={root} data-layer-root="w">
-      <div className={front} data-layer="front" role="img" aria-label={label}>
+      <div
+        className={front}
+        data-layer="front"
+        role="img"
+        aria-label={label}
+        style={{ "--dyn-plot": busy ? "var(--cursor-busy)" : "var(--cursor-plot)" }}
+      >
         <canvas ref={canvas} className={surface} />
       </div>
       {phase === "slow" || phase === "failed" || phase === "off" ? (

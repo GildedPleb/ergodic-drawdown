@@ -20,6 +20,14 @@
     --depth-back-shift-y: -6px;
     --depth-back-blur: 0.6px;
     --motion-transform: 1; /* INVENTED flag: 0 = no scale/translate/blur (reduced motion) */
+    /* §1O cursors: system shapes only */
+    --cursor-press: pointer;
+    --cursor-grab: grab;
+    --cursor-drag: grabbing;
+    --cursor-plot: crosshair;
+    --cursor-busy: progress;
+    --cursor-text: text;
+    --cursor-off: not-allowed;
     /* z-index scale */
     --z-chart-back: 1;
     --z-chart: 2;

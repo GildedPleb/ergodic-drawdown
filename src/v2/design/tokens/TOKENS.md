@@ -303,3 +303,13 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   like the Select's tray (`--tray-indent`). Per rule: frame (hairline at rest, double rule open,
   `--hover` fill) ~40; muted others ~12; header and button layout ~60; ▾/▴ ~12; colour mark and ■
   ~45; name and summary type ~20; body ~25. No new tokens.
+- §1O cursors (Slice 1 ceiling 8,600, approved by Keel): 61,305 B source / 8,532 B gzip; +117
+  measured by reverting §1O alone (8,415 without it), down from +149 before cuts (the page's
+  cursor and selection are set inline on `<html>` during a hold, not through two tokens and
+  base declarations). No new selectors. Per part, each reverted alone: the seven
+  `--cursor-press|grab|drag|plot|busy|text|off` tokens in `motion-etc.css` ~40; every literal
+  cursor swapped to its token plus the new ones on existing rules (grab strips, slider thumb,
+  plot `var(--dyn-plot)`, ledger headers) +17; `-webkit-tap-highlight-color` on `:where(html)`
+  +22; `--accent-strong` and `--logo-stroke` in both themes (the held logo) +18; the Select's
+  hover rules inside `(hover: hover) and (pointer: fine)` +20. New tokens: `--cursor-*` (7),
+  `--accent-strong` (gold-150 dark / gold-725 linen), `--logo-stroke` (`--accent`).

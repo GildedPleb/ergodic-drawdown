@@ -43,6 +43,8 @@
     /* Form N6: unset text uses a shipped weight (Jost 500), never 400 or a synthetic 700. */
     font-weight: 500;
     font-variant-numeric: lining-nums tabular-nums;
+    /* §1O: taps show the designed pressed state */
+    -webkit-tap-highlight-color: transparent;
   }
 
   :where(html[data-theme="linen"]) {

@@ -33,6 +33,7 @@ test("v2 token CSS does not reference Inter or JetBrains Mono", async () => {
   ]) {
     css += await file(`${tokensDir}/${name}`).text();
   }
-  expect(css.toLowerCase().includes("inter")).toBe(false);
+  // The font name as a word: §1O's `--cursor-press: pointer` contains the letters, not the font.
+  expect(/\binter\b/i.test(css)).toBe(false);
   expect(css.toLowerCase().includes("jetbrains")).toBe(false);
 });

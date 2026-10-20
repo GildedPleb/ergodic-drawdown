@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
+import { holdSheet, releaseOnUp } from "./press";
 import { attachDrag } from "./attachDrag";
 import { type Dir, dirOf, keyStop, SNAP_EASE, SNAP_MS, type Stop, tapStop } from "./drag";
 
@@ -116,50 +117,56 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
     };
   }, [refs]);
 
-  useEffect(
-    () =>
-      attachDrag(document, {
-        grab: (target) => {
-          const area = refs.area.current;
-          if (area === null || !(target instanceof Element) || !area.contains(target)) return null;
-          if (target.closest("[data-grab]") === null) return null;
-          const { side: horizontal, stop: at } = live.current;
-          const size = sizeOf(refs, horizontal);
-          if (at === "closed" && !horizontal) closed.current = size;
-          const probe = refs.cap.current;
-          const cap = (horizontal ? probe?.offsetWidth : probe?.offsetHeight) ?? size;
-          return {
-            at,
-            horizontal,
-            size,
-            closed: horizontal ? (refs.rail.current?.offsetWidth ?? size) : closed.current,
-            cap,
-            full: horizontal ? cap : fullOf(refs),
-            ownsTap: ownsTap(target),
-          };
-        },
-        begin: (size) => {
-          flushSync(() => {
-            setDyn(size);
-            setDragging(true);
-          });
-        },
-        track: (size, horizontal) => {
-          refs.root.current?.style.setProperty(
-            horizontal ? "--dyn-panel" : "--dyn-sheet",
-            `${String(size)}px`,
-          );
-        },
-        rest: (next, dragged) => {
-          live.current.go(next);
-          if (dragged) setDragging(false);
-        },
-        tap: () => {
-          live.current.tap();
-        },
-      }),
-    [refs],
-  );
+  useEffect(() => {
+    // §1O: the press holds <html> (grabbing, no selection, logo stroke) until any release.
+    const html = document.documentElement;
+    const release = releaseOnUp(document, html);
+    const detach = attachDrag(document, {
+      grab: (target) => {
+        const area = refs.area.current;
+        if (area === null || !(target instanceof Element) || !area.contains(target)) return null;
+        if (target.closest("[data-grab]") === null) return null;
+        holdSheet(html, true);
+        const { side: horizontal, stop: at } = live.current;
+        const size = sizeOf(refs, horizontal);
+        if (at === "closed" && !horizontal) closed.current = size;
+        const probe = refs.cap.current;
+        const cap = (horizontal ? probe?.offsetWidth : probe?.offsetHeight) ?? size;
+        return {
+          at,
+          horizontal,
+          size,
+          closed: horizontal ? (refs.rail.current?.offsetWidth ?? size) : closed.current,
+          cap,
+          full: horizontal ? cap : fullOf(refs),
+          ownsTap: ownsTap(target),
+        };
+      },
+      begin: (size) => {
+        flushSync(() => {
+          setDyn(size);
+          setDragging(true);
+        });
+      },
+      track: (size, horizontal) => {
+        refs.root.current?.style.setProperty(
+          horizontal ? "--dyn-panel" : "--dyn-sheet",
+          `${String(size)}px`,
+        );
+      },
+      rest: (next, dragged) => {
+        live.current.go(next);
+        if (dragged) setDragging(false);
+      },
+      tap: () => {
+        live.current.tap();
+      },
+    });
+    return () => {
+      detach();
+      release();
+    };
+  }, [refs]);
 
   return { stop, go, tap, key: press, dragging, dyn, full };
 };

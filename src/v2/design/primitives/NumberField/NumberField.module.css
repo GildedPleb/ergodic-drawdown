@@ -75,11 +75,11 @@
   .root[data-disabled="true"] .control {
     border-style: dashed;
     color: var(--text-muted);
-    cursor: not-allowed;
+    cursor: var(--cursor-off);
   }
 
   .root[data-disabled="false"] .control {
-    cursor: text;
+    cursor: var(--cursor-text);
   }
 
   .message {

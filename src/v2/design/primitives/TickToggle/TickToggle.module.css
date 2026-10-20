@@ -14,7 +14,7 @@
     text-transform: uppercase;
     border: 0;
     border-radius: var(--radius-0);
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 
   .root[data-state="on"] {
@@ -28,11 +28,11 @@
 
   .root[data-disabled="true"] {
     color: var(--disabled);
-    cursor: not-allowed;
+    cursor: var(--cursor-off);
   }
 
   .root[data-disabled="false"] {
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 
   .root:focus-visible {

@@ -20,7 +20,7 @@ import { dockLayout, paneOf, returnFocus } from "../../src/v2/app/shell/panes";
 import { expect, test } from "bun:test";
 
 import type { EngineConfig } from "../../src/engine/keys";
-import { coalesce } from "../../src/v2/app/engine/coalesce";
+import { coalesce, coalescedEngine } from "../../src/v2/app/engine/coalesce";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -36,7 +36,7 @@ import {
 } from "../../src/v2/app/engine/inputs";
 import { WorldLayer } from "../../src/v2/app/world/WorldLayer";
 import { engineConfig, type WorldInputs } from "../../src/v2/app/engine/config";
-import { defaultModelsValues } from "../../src/v2/app/models/values";
+import { choosePatch, defaultModelsValues } from "../../src/v2/app/models/values";
 import { keyStep } from "../../src/v2/design/primitives/Slider/Slider";
 import {
   BREAK,
@@ -640,4 +640,25 @@ test("1S: desktop heads the three columns; phones and the open panel group; the 
   expect(dockLayout(false, false, false)).toBe("row");
   expect(dockLayout(true, false, true)).toBe("row");
   expect(dockLayout(true, true, true)).toBe("rail");
+});
+
+test("choosePatch: a model with a variable resets it to that model's default; others only switch", () => {
+  expect(choosePatch("CAGR")).toEqual({ model: "CAGR", variable: 20 });
+  expect(choosePatch("Rainbow Chart")).toEqual({ model: "Rainbow Chart" });
+  expect(choosePatch("not a model")).toEqual({ model: "not a model" });
+});
+
+test("coalescedEngine: keeps the engine's own members and swaps in the coalesced set()", async () => {
+  const fake = fakeEngine();
+  const { engine, jobs } = coalescedEngine({ ...fake.engine, marker: 7 });
+  expect(engine.marker).toBe(7);
+  const inputs = { currentBlock: 1, currentPrice: 2, halvings: {}, interim: [], now: 0 };
+  const config = engineConfig(defaultModelsValues(), inputs);
+  if (config === null) throw new Error("no config");
+  engine.set(config);
+  engine.set(config);
+  expect(fake.seen.length).toBe(1);
+  expect(jobs.requested).toBe(2);
+  await fake.finish();
+  await fake.finish();
 });

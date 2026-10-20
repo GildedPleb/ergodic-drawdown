@@ -64,11 +64,14 @@ export default {
     },
     // R4 shadows, R6 margin, R8 logical properties
     "property-disallowed-list": ["/^margin/", ...SHADOWS, ...PHYSICAL],
-    // R8: viewport media only in app/shell; the preference features are allowed everywhere
+    // R8: viewport media only in app/shell; the preference features are allowed everywhere, and
+    // so are the input ones (§1O: hover styles live inside (hover: hover) and (pointer: fine)).
     "media-feature-name-allowed-list": [
       "prefers-reduced-motion",
       "prefers-contrast",
       "forced-colors",
+      "hover",
+      "pointer",
     ],
   },
   overrides: [

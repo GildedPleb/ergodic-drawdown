@@ -6,15 +6,15 @@
     align-items: center;
     min-block-size: var(--hit);
     touch-action: none;
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 
   .root[data-disabled="true"] {
-    cursor: not-allowed;
+    cursor: var(--cursor-off);
   }
 
   .root[data-disabled="false"] {
-    cursor: pointer;
+    cursor: var(--cursor-press);
   }
 
   .rail {
@@ -64,6 +64,7 @@
 
   /* 5×18 square thumb; the 2px --surface halo is a border in the surface colour (no shadow, R4). */
   .thumb {
+    cursor: var(--cursor-grab);
     position: absolute;
     inset-inline-start: var(--dyn-at);
     align-self: center;

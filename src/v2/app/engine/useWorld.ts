@@ -1,9 +1,10 @@
-import { useLayoutEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { WEEKS_PER_EPOCH } from "../../../constants";
 import { useEngineSelector, useEngineSet } from "../../../hooks/use-engine";
 import type { ModelsValues } from "../models/values";
 import { priceBands, type PriceBands } from "../world/bands";
+import { recomputeWatch } from "../shell/press";
 import { engineConfig, inputsReady } from "./config";
 import { type InputsPhase, useWorldInputs } from "./inputs";
 
@@ -15,7 +16,12 @@ export type World = {
   /** §1h Chart · no data: where the price fetch stands ("ready" once bands are drawn). */
   phase: InputsPhase;
   retry: () => void;
+  /** §1O: a recompute has run past 400ms (progress on the plot). */
+  busy: boolean;
 };
+
+/** §1O: progress shows once a recompute has run this long. */
+const BUSY_MS = 400;
 
 const selectDatasets = (s: { dataProperties: { datasets: unknown } | null }): unknown =>
   s.dataProperties?.datasets;
@@ -33,13 +39,21 @@ export const useWorld = (values: ModelsValues, now: number): World => {
   const set = useEngineSet();
   const { inputs, phase, retry } = useWorldInputs(now);
   const datasets = useEngineSelector(selectDatasets);
+  const [busy, setBusy] = useState(false);
+  const watch = useMemo(() => recomputeWatch(BUSY_MS, setBusy), []);
 
   useLayoutEffect(() => {
     // Hold every submit (in practice the first) until price and block height are real.
     if (!inputsReady(inputs)) return;
     const config = engineConfig(values, inputs);
-    if (config !== null) set(config);
-  }, [values, inputs, set]);
+    if (config === null) return;
+    watch.start();
+    set(config);
+  }, [values, inputs, set, watch]);
+
+  useEffect(() => {
+    watch.done();
+  }, [datasets, watch]);
 
   const bands = useMemo(() => (isSeriesList(datasets) ? priceBands(datasets) : null), [datasets]);
   return {
@@ -48,5 +62,6 @@ export const useWorld = (values: ModelsValues, now: number): World => {
     horizon: bands?.weeks ?? values.epochCount * WEEKS_PER_EPOCH,
     phase: bands === null ? phase : "ready",
     retry,
+    busy,
   };
 };

@@ -14,6 +14,7 @@
     position: absolute;
     inset: 0;
     z-index: var(--z-chart);
+    cursor: var(--dyn-plot);
   }
 
   .canvas {

@@ -15,6 +15,7 @@ import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
 import { dockLayout, paneOf, returnFocus, type Pane } from "./panes";
+import { attachPressFlash } from "./press";
 import { useSheet } from "./useSheetDrag";
 import { DOCK_COLUMNS, SIDE_PANEL, useMedia } from "./useMedia";
 
@@ -116,11 +117,16 @@ export const AppShell = (): JSX.Element => {
       const { target } = event;
       if (target instanceof Element) setPane((p) => paneOf(target, p));
     };
+    // §1O: a touch press fills the control from the first frame, for 100ms at least.
+    const unpress = attachPressFlash(document, () =>
+      getComputedStyle(document.documentElement).getPropertyValue("--hover").trim(),
+    );
     document.addEventListener("focusin", onEnter);
     document.addEventListener("pointerdown", onEnter);
     return () => {
       document.removeEventListener("focusin", onEnter);
       document.removeEventListener("pointerdown", onEnter);
+      unpress();
     };
   }, []);
 
@@ -224,6 +230,7 @@ export const AppShell = (): JSX.Element => {
             live={dragging}
             phase={on ? world.phase : "off"}
             onRetry={world.retry}
+            busy={world.busy}
           />
         </div>
       </main>

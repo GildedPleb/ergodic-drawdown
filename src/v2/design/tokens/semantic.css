@@ -14,6 +14,8 @@
     --rule: var(--gold-600);
     --control-line: var(--gold-525);
     --accent: var(--gold-225);
+    --accent-strong: var(--gold-150);
+    --logo-stroke: var(--accent);
     --focus: var(--gold-150);
     --btc: var(--orange-300);
     --usd: var(--green-425);
@@ -97,6 +99,8 @@
     --rule: var(--gold-325);
     --control-line: var(--gold-550);
     --accent: var(--gold-650);
+    --accent-strong: var(--gold-725);
+    --logo-stroke: var(--accent);
     --focus: var(--gold-725);
     --btc: var(--orange-600);
     --usd: var(--green-725);

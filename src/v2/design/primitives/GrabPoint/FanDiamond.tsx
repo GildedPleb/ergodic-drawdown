@@ -20,7 +20,7 @@ export const FanDiamond = (): JSX.Element => {
       <path
         d={`M${c} 0 L${S} ${c} L${c} ${S} L0 ${c} Z`}
         fill="var(--surface)"
-        stroke="var(--accent)"
+        stroke="var(--logo-stroke)"
         strokeWidth="1.2"
         strokeLinejoin="miter"
       />
@@ -31,7 +31,7 @@ export const FanDiamond = (): JSX.Element => {
           y1={c}
           x2={x}
           y2={y}
-          stroke="var(--accent)"
+          stroke="var(--logo-stroke)"
           strokeWidth="1"
         />
       ))}

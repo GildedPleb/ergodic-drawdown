@@ -50,7 +50,9 @@ export const coalesce = (engine: Pick<Engine, "set" | "settled">): Coalescer => 
 };
 
 /** The engine with set() coalesced; everything else is the engine's own. */
-export const coalescedEngine = (engine: Engine): { engine: Engine; jobs: EngineJobs } => {
+export const coalescedEngine = <E extends Pick<Engine, "set" | "settled">>(
+  engine: E,
+): { engine: E; jobs: EngineJobs } => {
   const { set, jobs } = coalesce(engine);
   return { engine: { ...engine, set }, jobs };
 };

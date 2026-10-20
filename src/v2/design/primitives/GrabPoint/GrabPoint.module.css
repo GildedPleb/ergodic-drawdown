@@ -9,7 +9,7 @@
     background: transparent;
     border: 0;
     border-radius: var(--radius-0);
-    cursor: pointer;
+    cursor: var(--cursor-grab);
   }
 
   .root:focus-visible {
