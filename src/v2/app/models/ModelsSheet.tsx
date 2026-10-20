@@ -37,6 +37,8 @@ export const SAMPLE_BOUNDS = {
   min: controls.samples.min,
   max: controls.samples.accept.max,
 };
+/** The samples label names the range the field really takes (from SAMPLE_BOUNDS, not a literal). */
+export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMPLE_BOUNDS.max);
 
 type EditorProps = {
   id: string;
@@ -253,10 +255,10 @@ export const ModelsSheet = ({ values, onChange }: ModelsSheetProps): JSX.Element
       </div>
       <div className={section} role="group" aria-labelledby="grp-simulation">
         <SectionLabel text={strings.sections.simulation} level="group" id="grp-simulation" />
-        <LedgerRow id="row-samples" label={controls.samples.label} htmlFor="v2-samples">
+        <LedgerRow id="row-samples" label={SAMPLES_LABEL} htmlFor="v2-samples">
           <Editor
             id="v2-samples"
-            label={controls.samples.label}
+            label={SAMPLES_LABEL}
             value={values.samples}
             bounds={SAMPLE_BOUNDS}
             parse={controls.samples.parse}

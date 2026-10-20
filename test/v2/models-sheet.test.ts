@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
 
 import { modelsPaneSchema } from "../../src/v2/app/models";
-import { ModelsSheet, SAMPLE_BOUNDS } from "../../src/v2/app/models/ModelsSheet";
+import { ModelsSheet, SAMPLE_BOUNDS, SAMPLES_LABEL } from "../../src/v2/app/models/ModelsSheet";
 import { resolveEntry } from "../../src/v2/design/primitives/NumberField/entry";
 import { defaultModelsValues, type ModelsValues } from "../../src/v2/app/models/values";
 import { strings } from "../../src/v2/app/strings";
@@ -252,4 +252,14 @@ test("1P live: every value cell is an input and its slider is there with no clic
   expect((row.match(/value="20"/g) ?? []).length).toBe(1);
   for (const id of ["v2-vol", "v2-samples", "v2-epochs"])
     expect(html.includes(`id="${id}"`)).toBe(true);
+});
+
+test('the samples label is exactly "Statistical Sample Count (1-10k):", from the real 1–10,000 bounds', async () => {
+  expect([SAMPLE_BOUNDS.min, SAMPLE_BOUNDS.max]).toEqual([1, 10_000]);
+  expect(SAMPLES_LABEL).toBe("Statistical Sample Count (1-10k):");
+  // Derived, not a literal: other bounds read through.
+  expect(strings.fields.samplesLabel(5, 2500)).toBe("Statistical Sample Count (5-2500):");
+  const html = render();
+  expect(html.includes(">Statistical Sample Count (1-10k):<")).toBe(true);
+  expect(uncovered([SAMPLES_LABEL], await loadCmaps())).toEqual([]);
 });

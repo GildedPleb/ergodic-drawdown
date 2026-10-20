@@ -14,6 +14,10 @@ type Noun = { name: string; plural: boolean };
 const range = (min: number, max: number): string =>
   Number.isFinite(max) ? `from ${count(min)} to ${count(max)}` : `from ${count(min)} up`;
 
+/** 10000 → "10k"; anything not a whole thousand stays as written. */
+const kilo = (n: number): string =>
+  n >= 1000 && n % 1000 === 0 ? `${String(n / 1000)}k` : String(n);
+
 export const strings = {
   brand: { stack: "STACK", math: "MATH", name: "StackMath" },
   headline: {
@@ -108,6 +112,9 @@ export const strings = {
     invalid: (noun: Noun, kind: "int" | "float", min: number, max: number, current: number) =>
       `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${count(current)}, is still in use.`,
     years: (years: number): string => `(~${count(years)} years)`,
+    /** The samples row's label, its range from the G12-mirrored bounds: 1 to 10,000 reads "1-10k". */
+    samplesLabel: (min: number, max: number): string =>
+      `Statistical Sample Count (${kilo(min)}-${kilo(max)}):`,
     nouns: {
       volatility: { name: "Volatility", plural: false },
       epochs: { name: "Epochs", plural: true },
