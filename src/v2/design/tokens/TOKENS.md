@@ -118,6 +118,7 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 | color.css | `--chip`                 | `--raised (alias; drop)`                               |                                            |
 | color.css | `--loss`                 | `--ghost (alias; drop)`                                |                                            |
 | color.css | `--path-btc`             | `--path-btc-price`                                     | dark --orange-300 · linen --orange-600     |
+|           |                          | `--asset-btc` (§2A, new)                               | = --path-btc-price in both themes          |
 | color.css | `--path-usd`             | `--path-usd`                                           | dark --green-425 · linen --green-725       |
 | color.css | `--path-spx`             | `--path-sp`                                            | dark --pewter-200 · linen --pewter-550     |
 | color.css | `--path-infl`            | `--path-inflation`                                     | dark --wine-500 · linen --wine-700         |
@@ -351,3 +352,7 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
 - §2A "Show historic price" (user): 61,537 B source / 8,577 B gzip, ±0. The row is the existing
   TickToggle as it stands (Models pane visuals on hold); the trace, the Today line inside the
   frame and the widened zoom frame are drawn on the canvas. No new tokens.
+- §2A r2 `--asset-btc` (Form): 61,617 B source / 8,585 B gzip, +8 measured by reverting it alone
+  (8,577 without it). One semantic token, declared in both theme blocks as `var(--path-btc-price)`
+  so it follows the theme; the band and the historic trace read it (`draw.ts` paint `price`). A
+  user-definable Bitcoin colour will set it later.

@@ -111,7 +111,7 @@ export const paintFrom = (
     muted: v("--text-muted"),
     rule: v("--rule"),
     today: v("--today-line"),
-    price: v("--path-btc-price"),
+    price: v("--asset-btc"),
     surface: v("--surface"),
     ground: v("--ground"),
     accent: v("--accent"),

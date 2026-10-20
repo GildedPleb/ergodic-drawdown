@@ -25,6 +25,7 @@
     --risk-line: var(--linen-75);
     --disabled: var(--stone-525);
     --path-btc-price: var(--orange-300);
+    --asset-btc: var(--path-btc-price);
     --path-usd: var(--green-425);
     --path-sp: var(--pewter-200);
     --path-inflation: var(--wine-500);
@@ -110,6 +111,7 @@
     --risk-line: var(--umber-800);
     --disabled: var(--umber-550);
     --path-btc-price: var(--orange-600);
+    --asset-btc: var(--path-btc-price);
     --path-usd: var(--green-725);
     --path-sp: var(--pewter-550);
     --path-inflation: var(--wine-700);
