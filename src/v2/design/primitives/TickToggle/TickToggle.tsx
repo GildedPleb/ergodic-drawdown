@@ -1,6 +1,7 @@
 import type { JSX, KeyboardEvent } from "react";
 
 import { Icon } from "../Icon";
+import { VisuallyHidden } from "../VisuallyHidden";
 import styles from "./TickToggle.module.css";
 
 /** R7: variant keys and values. */
@@ -14,6 +15,8 @@ export type TickToggleProps = {
   checked: boolean;
   disabled?: boolean;
   onChange?: (next: boolean) => void;
+  /** §1M ledger tick box: only ON/OFF shows; the label names the switch for assistive tech. */
+  labelHidden?: boolean;
 };
 
 /**
@@ -30,6 +33,7 @@ export const TickToggle = ({
   checked,
   disabled = false,
   onChange,
+  labelHidden = false,
 }: TickToggleProps): JSX.Element => {
   const root = styles["root"] ?? "tick-root";
   const box = styles["box"] ?? "tick-box";
@@ -59,7 +63,11 @@ export const TickToggle = ({
       <span className={labelCls} aria-hidden="true">
         {checked ? "ON" : "OFF"}
       </span>
-      <span className={labelCls}>{label}</span>
+      {labelHidden ? (
+        <VisuallyHidden>{label}</VisuallyHidden>
+      ) : (
+        <span className={labelCls}>{label}</span>
+      )}
     </button>
   );
 };

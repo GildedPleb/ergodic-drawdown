@@ -58,6 +58,8 @@ export const FIELD_STORIES = [
   "models-sheet/linen",
   "models-sheet/editing",
   "models-sheet/cagr",
+  "models-sheet/collapsed",
+  "models-sheet/sp",
 ] as const;
 
 export const FIELD_THEMES = ["dark", "linen"] as const;

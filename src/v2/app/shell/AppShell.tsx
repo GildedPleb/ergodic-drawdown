@@ -6,7 +6,8 @@ import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
 import { useWorld } from "../engine/useWorld";
 import { ModelsSheet } from "../models/ModelsSheet";
-import { defaultModelsValues, type ModelsValues } from "../models/values";
+import { loadValues, pageStore, saveValues } from "../models/store";
+import type { ModelsValues } from "../models/values";
 import { strings } from "../strings";
 import { endValue, outOfRange } from "../world/bands";
 import { endYear } from "../world/geometry";
@@ -40,7 +41,13 @@ const HIDDEN = { shown: false } as const;
  */
 export const AppShell = (): JSX.Element => {
   const [now] = useState(() => Date.now());
-  const [values, setValues] = useState<ModelsValues>(defaultModelsValues);
+  // §1V: the settings come back after a reload (the one store, models/store.ts).
+  const [values, setValues] = useState<ModelsValues>(() => loadValues(pageStore()));
+  useEffect(() => {
+    saveValues(pageStore(), values);
+  }, [values]);
+  // §1M: Bitcoin's ledger tick box. OFF: the empty frame and its caption, no headline.
+  const [on, setOn] = useState(true);
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
@@ -94,7 +101,7 @@ export const AppShell = (): JSX.Element => {
   useEffect(() => {
     if (!side || !open) return undefined;
     // Opening the panel moves focus into it (§1i); the column reflow waits for the slide.
-    sheet.current?.querySelector<HTMLElement>('[role="combobox"]')?.focus();
+    sheet.current?.querySelector<HTMLElement>('[role="listitem"] button')?.focus();
     const done = window.setTimeout(() => {
       setColumn(true);
     }, 400);
@@ -198,21 +205,24 @@ export const AppShell = (): JSX.Element => {
           </div>
         </header>
         <div className={top}>
-          <p className={kicker}>{strings.headline.kicker(values.samples, values.model)}</p>
+          <p className={kicker}>
+            {on ? strings.headline.kicker(values.samples, values.model) : ""}
+          </p>
           {/* One h1 at every size: the phone title, or the sentence where the headline shows. */}
           <h1 className={heading}>
             <span className={title}>{strings.headline.phoneTitle}</span>
-            <span className={dh}>{sentence}</span>
+            <span className={dh}>{on ? sentence : ""}</span>
+            {on ? null : <VisuallyHidden>{strings.chart.off}</VisuallyHidden>}
           </h1>
         </div>
         <div className={chart} data-layer-pane={pane}>
           <WorldLayer
-            bands={bands}
+            bands={on ? bands : null}
             now={now}
             horizon={world.horizon}
-            label={spoken}
+            label={on ? spoken : strings.chart.off}
             live={dragging}
-            phase={world.phase}
+            phase={on ? world.phase : "off"}
             onRetry={world.retry}
           />
         </div>
@@ -226,7 +236,7 @@ export const AppShell = (): JSX.Element => {
           <span className={corner} data-corner="start" aria-hidden="true" />
           <span className={corner} data-corner="end" aria-hidden="true" />
           <div className={beat} data-grab="strip">
-            <p className={beatText}>{sentence}</p>
+            <p className={beatText}>{on ? sentence : ""}</p>
             <span className={slot} aria-hidden="true" />
           </div>
           <div className={dockRow} data-grab="strip">
@@ -249,6 +259,8 @@ export const AppShell = (): JSX.Element => {
             <div className={cols}>
               <div className={col} data-pane="models">
                 <ModelsSheet
+                  on={on}
+                  onOn={setOn}
                   values={values}
                   onChange={(patch) => {
                     setValues((v) => ({ ...v, ...patch }));

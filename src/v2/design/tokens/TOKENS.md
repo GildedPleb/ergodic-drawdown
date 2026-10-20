@@ -294,3 +294,12 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   `orientation="columns"`: the sheet's own track list and `--sheet-cols-gap`, tablist
   `display: contents`, tab centring, tabs 2 and 3 placed by `:nth-child` (the base tab in column
   1), 🔍 / ⚙ pinned to columns 1 / 3 at the ends. No new tokens.
+- §1M asset ledger as amended by §1V (Slice 1 ceiling 8,600, approved by Keel): 60,635 B source /
+  8,415 B gzip; +200 measured by reverting §1M alone (8,215 without it), down from +237 before
+  cuts (the pre-reuse figure was +201 against the older base). Cuts: the ledger and its rows are
+  `role="list"` / `"listitem"` divs (no list reset rule); a row at rest and a stand-in carry no
+  `data-state` / `data-kind` (no rules for them); the open fill sits on the row with its frame
+  (no separate header rule); the name and summary use the `font` shorthand; the body is indented
+  like the Select's tray (`--tray-indent`). Per rule: frame (hairline at rest, double rule open,
+  `--hover` fill) ~40; muted others ~12; header and button layout ~60; ▾/▴ ~12; colour mark and ■
+  ~45; name and summary type ~20; body ~25. No new tokens.

@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 
 import { variants as shell } from "../../src/v2/app/shell/AppShell";
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
+import { variants as assetRow } from "../../src/v2/design/primitives/AssetRow/AssetRow";
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
 import { variants as select } from "../../src/v2/design/primitives/Select/Select";
 import { variants as slider } from "../../src/v2/design/primitives/Slider/Slider";
@@ -29,6 +30,7 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...numberField.disabled]).toEqual(["true", "false"]);
   expect([...sectionLabel.level]).toEqual(["section", "group"]);
   expect([...sectionLabel.side]).toEqual(["start", "end"]);
+  expect([...assetRow.kind, ...assetRow.state]).toEqual(["supported", "open", "dim"]);
   expect([...dock.orientation, ...dock.shown, ...dock.selected]).toEqual([
     "row",
     "rail",

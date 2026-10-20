@@ -76,6 +76,8 @@ test("Form B1/N5: FIELD_STORIES lists every TickToggle, NumberField, LabelGlyphs
     "models-sheet/emoji-walk",
     "models-sheet/linen",
     "models-sheet/editing",
+    "models-sheet/collapsed",
+    "models-sheet/sp",
     "models-sheet/cagr",
   ];
   for (const [group, c] of Object.entries(MATRIX_GROUPS)) {

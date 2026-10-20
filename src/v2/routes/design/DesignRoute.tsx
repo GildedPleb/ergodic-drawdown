@@ -53,13 +53,24 @@ const GROUPS: Record<string, StoryModule> = {
 const ALIASES: Record<string, string> = { "tick-row": "tick-toggle" };
 
 /** The Models sheet with live state (no engine): every control really commits. */
-const Sheet = ({ initial }: { initial?: Partial<ModelsValues> }): JSX.Element => {
+const Sheet = ({
+  initial,
+  open = "bitcoin",
+}: {
+  initial?: Partial<ModelsValues>;
+  /** §1M: the row open on landing in the story (the app lands with every row closed). */
+  open?: string | null;
+}): JSX.Element => {
   const [values, setValues] = useState<ModelsValues>(() => ({
     ...defaultModelsValues(),
     ...initial,
   }));
+  const [on, setOn] = useState(true);
   return (
     <ModelsSheet
+      initialOpen={open}
+      on={on}
+      onOn={setOn}
       values={values}
       onChange={(patch) => {
         setValues((v) => ({ ...v, ...patch }));
@@ -79,6 +90,9 @@ const STORIES = new Map<string, Story>([
   ["models-sheet/cagr", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
   // §1P: no edit mode; the matrix focuses the live value cell (CAGR: R (%) and its focus slider).
   ["models-sheet/editing", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
+  // §1M/§1V: the ledger as it lands (every row closed), and a stand-in open.
+  ["models-sheet/collapsed", () => <Sheet open={null} />],
+  ["models-sheet/sp", () => <Sheet open="sp" />],
 ]);
 for (const [group, mod] of Object.entries(GROUPS)) {
   for (const [name, value] of Object.entries(mod)) {

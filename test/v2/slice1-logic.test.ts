@@ -233,10 +233,15 @@ test("n11: a fast success never shows the caption; a failure says failed; cancel
   expect(quiet).toEqual([]);
 });
 
-const html = (phase: InputsPhase): string =>
+const html = (phase: InputsPhase | "off"): string =>
   renderToStaticMarkup(
     createElement(WorldLayer, { bands: null, now: 0, horizon: 1, label: "x", phase }),
   );
+
+test("1M: with every model OFF the empty frame says how to bring one back", () => {
+  expect(html("off").includes(">Turn a model on to see it here.<")).toBe(true);
+  expect(html("off").includes("<button")).toBe(false);
+});
 
 test("n11: the empty frame shows Form's captions; failed adds a quiet Try again button", () => {
   expect(html("waiting").includes('role="status"')).toBe(false);

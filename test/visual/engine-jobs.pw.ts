@@ -70,6 +70,7 @@ const openSamples = async (page: Page): Promise<void> => {
   await page.goto("/");
   await expect(page.getByRole("img", { name: /reaches/ })).toBeVisible({ timeout: 60_000 });
   await page.locator("#tab-models").click();
+  await page.locator("#asset-bitcoin").click(); // §1M: the settings live in the open row
   await page.locator("#row-samples").click();
   await idle(page);
 };

@@ -47,6 +47,8 @@ export const strings = {
     loading: "Loading prices\u2026",
     failed: "Prices couldn\u2019t load. Check your connection; the chart will try again.",
     tryAgain: "Try again",
+    /** §1M: every model is OFF (the empty frame's caption, and the chart's name). */
+    off: "Turn a model on to see it here.",
     endLabel: (median: number, low: number, high: number): string =>
       `\u20BF price \u00B7 ${fmtUSD(median)} \u00B7 ${fmtUSDRange(low, high)}`,
     /** Narrow charts (<480px): the same label on two lines, value then range. */
@@ -55,7 +57,25 @@ export const strings = {
       fmtUSDRange(low, high),
     ],
   },
+  /** §1M: the Models pane as an asset ledger, in this locked order. */
   models: {
+    label: "Assets",
+    assets: [
+      { id: "bitcoin", name: "Bitcoin" },
+      { id: "sp", name: "S&P" },
+      { id: "inflation", name: "Inflation" },
+    ],
+    /** §1V: "CAGR 28% · Bubble · 1,000 futures"; a percent variable joins its model's name. */
+    summary: (model: string, walk: string, samples: number): string =>
+      `${model} \u00B7 ${walk} \u00B7 ${samples.toLocaleString("en-US")} ${samples === 1 ? "future" : "futures"}`,
+    percent: (model: string, value: number): string => `${model} ${String(value)}%`,
+    notYet: "Not yet modelled",
+    /** §1V: a stand-in's open body. */
+    standIn: (name: string): string =>
+      `${name} isn\u2019t modelled yet. When it is, its settings will open here.`,
+    /** §1V: the open Bitcoin header names what you're editing. */
+    openName: (name: string): string => `${name} \u00B7 price model`,
+    showOn: (name: string): string => `Show ${name} on chart`,
     /** §1N: a Select's tray, named for the choice it belongs to. */
     settings: (choice: string): string => `${choice} settings`,
   },

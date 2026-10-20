@@ -20,11 +20,15 @@ const stop = async (page: Page): Promise<string> =>
 /** Opens the sheet to `to` with the grab point (§1R: closed → half → full). */
 const openSheet = async (page: Page, to: "half" | "full"): Promise<void> => {
   await page.goto("/");
-  await page.locator("#v2-model").waitFor({ state: "attached" });
   const logo = page.locator(LOGO);
   await logo.focus();
   await page.keyboard.press(to === "full" ? "Home" : "ArrowUp");
   await expect.poll(async () => stop(page)).toBe(to);
+  // §1M: the ledger lands closed; the Selects live in the open Bitcoin row.
+  if ((await page.locator("#asset-bitcoin").getAttribute("aria-expanded")) !== "true") {
+    await page.locator("#asset-bitcoin").click();
+  }
+  await page.locator("#v2-model").waitFor();
   await page.waitForTimeout(350);
 };
 

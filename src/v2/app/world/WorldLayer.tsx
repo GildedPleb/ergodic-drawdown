@@ -14,8 +14,11 @@ export type WorldLayerProps = {
   horizon: number;
   /** The headline sentence: the chart's accessible name (§1i). */
   label: string;
-  /** §1h Chart · no data: "slow" and "failed" put a caption over the empty frame. */
-  phase?: InputsPhase;
+  /**
+   * §1h Chart · no data: "slow" and "failed" put a caption over the empty frame; §1M "off" (no
+   * model is ON) puts "Turn a model on to see it here." there.
+   */
+  phase?: InputsPhase | "off";
   onRetry?: () => void;
   /**
    * §1L.5: the sheet is being dragged. The box resizes live (ResizeObserver: once per frame); if
@@ -28,13 +31,20 @@ export type WorldLayerProps = {
 const FRAME_MS = 16;
 
 /** The empty frame's caption (Form n11): text, and on failure a quiet "Try again" button. */
-const Status = ({ phase, onRetry }: { phase: InputsPhase; onRetry: () => void }): JSX.Element => {
+const Status = ({
+  phase,
+  onRetry,
+}: {
+  phase: InputsPhase | "off";
+  onRetry: () => void;
+}): JSX.Element => {
   const note = styles["status"] ?? "world-status";
   const again = styles["retry"] ?? "world-retry";
   const msg = styles["msg"] ?? "world-msg";
   return (
     <div className={note} role="status" data-phase={phase}>
       {phase === "slow" ? <span className={msg}>{strings.chart.loading}</span> : null}
+      {phase === "off" ? <span className={msg}>{strings.chart.off}</span> : null}
       {phase === "failed" ? (
         <>
           <span className={msg}>{strings.chart.failed}</span>
@@ -107,7 +117,9 @@ export const WorldLayer = ({
       <div className={front} data-layer="front" role="img" aria-label={label}>
         <canvas ref={canvas} className={surface} />
       </div>
-      {phase === "slow" || phase === "failed" ? <Status phase={phase} onRetry={onRetry} /> : null}
+      {phase === "slow" || phase === "failed" || phase === "off" ? (
+        <Status phase={phase} onRetry={onRetry} />
+      ) : null}
     </div>
   );
 };

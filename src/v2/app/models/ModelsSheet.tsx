@@ -1,6 +1,8 @@
 import type { JSX } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MAX_EPOCH_COUNT } from "../../../constants";
 
+import { AssetRow } from "../../design/primitives/AssetRow";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
@@ -13,6 +15,7 @@ import { focusScale } from "../../design/primitives/Slider/scale";
 import { TickToggle } from "../../design/primitives/TickToggle";
 import { strings } from "../strings";
 import styles from "./ModelsSheet.module.css";
+import { closeOnPress } from "./outside";
 import { modelsPaneSchema } from "./schema";
 import { choosePatch, type ModelsValues } from "./values";
 
@@ -110,13 +113,55 @@ const Editor = (p: EditorProps): JSX.Element => {
 export type ModelsSheetProps = {
   values: ModelsValues;
   onChange: (patch: Partial<ModelsValues>) => void;
+  /** §1M: Bitcoin's ledger tick box (shown on the chart). */
+  on?: boolean;
+  onOn?: (next: boolean) => void;
+  /** Stories and tests: the row open on first render. */
+  initialOpen?: string | null;
+};
+
+type AssetId = (typeof strings.models.assets)[number]["id"];
+
+/** §1V: "CAGR 28% · Bubble · 1,000 futures": a percent variable joins its model's name. */
+export const summaryOf = (values: ModelsValues): string => {
+  const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
+  const model =
+    meta?.varInput.includes("(%)") === true
+      ? strings.models.percent(values.model, values.variable)
+      : values.model;
+  return strings.models.summary(model, values.walk, values.samples);
 };
 
 /**
  * The v32 Models pane: every back-end setting in Certificate controls, in the back end's own words (§1f); a field that exists only because of a Select's
  * choice lives in that Select's tray (§1N). Rows a model hides are removed, never disabled.
  */
-export const ModelsSheet = ({ values, onChange }: ModelsSheetProps): JSX.Element => {
+export const ModelsSheet = ({
+  values,
+  onChange,
+  on = true,
+  onOn,
+  initialOpen = null,
+}: ModelsSheetProps): JSX.Element => {
+  const [open, setOpen] = useState<string | null>(initialOpen);
+  const ledgerRef = useRef<HTMLDivElement>(null);
+  // §1V: a press anywhere in the sheet outside the ledger closes the open row (settings already
+  // applied). A press on another row's header is that header's own click (it switches rows), so
+  // nothing moves under the pointer between its press and its click.
+  useEffect(() => {
+    if (open === null) return undefined;
+    return closeOnPress(
+      document,
+      (target) => {
+        const list = ledgerRef.current;
+        if (list === null || !(target instanceof Node)) return false;
+        return (list.closest("section") ?? list).contains(target) && !list.contains(target);
+      },
+      () => {
+        setOpen(null);
+      },
+    );
+  }, [open]);
   const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
   // §1Q (Rule 0, Form): R (%) accepts 0 to ∞; only the slider's mapping is front end. The model's
   // rangeMax (G12-mirrored) is the slider's soft top, not a clamp.
@@ -219,75 +264,109 @@ export const ModelsSheet = ({ values, onChange }: ModelsSheetProps): JSX.Element
     </>
   );
 
+  const rows = strings.models.assets.map(({ id, name }: { id: AssetId; name: string }) => {
+    const bitcoin = id === "bitcoin";
+    return (
+      <AssetRow
+        key={id}
+        id={`asset-${id}`}
+        asset={id}
+        name={name}
+        openName={bitcoin ? strings.models.openName(name) : undefined}
+        summary={bitcoin ? summaryOf(values) : strings.models.notYet}
+        open={open === id}
+        dim={open !== null && open !== id}
+        onToggle={(next) => {
+          setOpen(next ? id : null);
+        }}
+        tick={
+          bitcoin
+            ? { on, label: strings.models.showOn(name), onChange: (next) => onOn?.(next) }
+            : undefined
+        }
+      >
+        {bitcoin ? (
+          <>
+            <div className={section} role="group" aria-labelledby="grp-price-model">
+              <SectionLabel text={strings.sections.priceModel} level="group" id="grp-price-model" />
+              <Select
+                id="v2-model"
+                labelledBy="grp-price-model"
+                options={modelsPaneSchema.modelOrder}
+                value={values.model}
+                onChange={(choice) => {
+                  onChange(choosePatch(choice));
+                }}
+                tray={modelTray}
+                trayLabel={strings.models.settings(values.model)}
+              />
+            </div>
+            <div className={section} role="group" aria-labelledby="grp-prices-move">
+              <SectionLabel text={strings.sections.pricesMove} level="group" id="grp-prices-move" />
+              {/* §1M: the engine's label names the walk Select; no duplicate header. */}
+              <VisuallyHidden id="lbl-walk">{controls.walk.label}</VisuallyHidden>
+              <Select
+                id="v2-walk"
+                labelledBy="lbl-walk"
+                options={modelsPaneSchema.walks}
+                value={values.walk}
+                onChange={(walk) => {
+                  onChange({ walk });
+                }}
+                tray={walkTray}
+                trayLabel={strings.models.settings(spokenLabel(values.walk))}
+              />
+            </div>
+            <div className={section} role="group" aria-labelledby="grp-simulation">
+              <SectionLabel text={strings.sections.simulation} level="group" id="grp-simulation" />
+              <LedgerRow id="row-samples" label={SAMPLES_LABEL} htmlFor="v2-samples">
+                <Editor
+                  id="v2-samples"
+                  label={SAMPLES_LABEL}
+                  value={values.samples}
+                  bounds={SAMPLE_BOUNDS}
+                  parse={controls.samples.parse}
+                  step={1}
+                  emptyValue={controls.samples.emptyValue}
+                  who={strings.fields.nouns.samples}
+                  slider={false}
+                  onCommit={(samples) => {
+                    onChange({ samples });
+                  }}
+                />
+              </LedgerRow>
+              <LedgerRow id="row-epochs" label={controls.epochs.label} htmlFor="v2-epochs">
+                <Editor
+                  id="v2-epochs"
+                  label={controls.epochs.label}
+                  value={values.epochCount}
+                  bounds={EPOCH_BOUNDS}
+                  parse={controls.epochs.parse}
+                  step={1}
+                  emptyValue={controls.epochs.emptyValue}
+                  who={strings.fields.nouns.epochs}
+                  slider
+                  hint={strings.fields.years(values.epochCount * 4)}
+                  onCommit={(epochCount) => {
+                    onChange({ epochCount });
+                  }}
+                />
+              </LedgerRow>
+            </div>
+          </>
+        ) : (
+          <p>{strings.models.standIn(name)}</p>
+        )}
+      </AssetRow>
+    );
+  });
+
   return (
     <div className={root}>
       {/* Form m1: no visible pane title; the sheet keeps its h2 for headings navigation. */}
       <VisuallyHidden as="h2">{modelsPaneSchema.title}</VisuallyHidden>
-      <div className={section} role="group" aria-labelledby="grp-price-model">
-        <SectionLabel text={strings.sections.priceModel} level="group" id="grp-price-model" />
-        <Select
-          id="v2-model"
-          labelledBy="grp-price-model"
-          options={modelsPaneSchema.modelOrder}
-          value={values.model}
-          onChange={(name) => {
-            onChange(choosePatch(name));
-          }}
-          tray={modelTray}
-          trayLabel={strings.models.settings(values.model)}
-        />
-      </div>
-      <div className={section} role="group" aria-labelledby="grp-prices-move">
-        <SectionLabel text={strings.sections.pricesMove} level="group" id="grp-prices-move" />
-        {/* §1M: the engine's label names the walk Select; no duplicate header. */}
-        <VisuallyHidden id="lbl-walk">{controls.walk.label}</VisuallyHidden>
-        <Select
-          id="v2-walk"
-          labelledBy="lbl-walk"
-          options={modelsPaneSchema.walks}
-          value={values.walk}
-          onChange={(walk) => {
-            onChange({ walk });
-          }}
-          tray={walkTray}
-          trayLabel={strings.models.settings(spokenLabel(values.walk))}
-        />
-      </div>
-      <div className={section} role="group" aria-labelledby="grp-simulation">
-        <SectionLabel text={strings.sections.simulation} level="group" id="grp-simulation" />
-        <LedgerRow id="row-samples" label={SAMPLES_LABEL} htmlFor="v2-samples">
-          <Editor
-            id="v2-samples"
-            label={SAMPLES_LABEL}
-            value={values.samples}
-            bounds={SAMPLE_BOUNDS}
-            parse={controls.samples.parse}
-            step={1}
-            emptyValue={controls.samples.emptyValue}
-            who={strings.fields.nouns.samples}
-            slider={false}
-            onCommit={(samples) => {
-              onChange({ samples });
-            }}
-          />
-        </LedgerRow>
-        <LedgerRow id="row-epochs" label={controls.epochs.label} htmlFor="v2-epochs">
-          <Editor
-            id="v2-epochs"
-            label={controls.epochs.label}
-            value={values.epochCount}
-            bounds={EPOCH_BOUNDS}
-            parse={controls.epochs.parse}
-            step={1}
-            emptyValue={controls.epochs.emptyValue}
-            who={strings.fields.nouns.epochs}
-            slider
-            hint={strings.fields.years(values.epochCount * 4)}
-            onCommit={(epochCount) => {
-              onChange({ epochCount });
-            }}
-          />
-        </LedgerRow>
+      <div ref={ledgerRef} role="list" aria-label={strings.models.label}>
+        {rows}
       </div>
     </div>
   );

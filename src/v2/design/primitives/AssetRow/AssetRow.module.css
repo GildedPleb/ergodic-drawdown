@@ -1,0 +1,74 @@
+@layer primitives {
+  /* §1M ledger entry; §1V: open, the double rule wraps header and body; others fall back muted. */
+  .root {
+    border-block-end: var(--rule-hair) solid var(--control-line);
+  }
+
+  .root[data-state="open"] {
+    background: var(--hover);
+    border: var(--rule-double) double var(--control-line);
+  }
+
+  .root[data-state="dim"] {
+    color: var(--text-muted);
+  }
+
+  .head,
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+  }
+
+  .toggle {
+    flex: 1;
+    min-block-size: var(--hit);
+    padding: 0;
+    color: inherit;
+    text-align: start;
+    background: none;
+    border: 0;
+  }
+
+  /* ▾ turns to ▴ while open. */
+  .toggle[aria-expanded="true"] > :last-child {
+    scale: 1 -1;
+  }
+
+  /* The colour mark (a neutral --rule square until the palette assigns one) and ■, open. */
+  .mark,
+  .sel {
+    flex: none;
+    inline-size: var(--radio-box);
+    block-size: var(--radio-box);
+    background: var(--rule);
+  }
+
+  .root[data-kind="supported"] .mark {
+    background: var(--btc);
+  }
+
+  .sel {
+    background: var(--accent);
+  }
+
+  .text {
+    display: grid;
+    flex: 1;
+  }
+
+  .name {
+    font: 500 var(--t-row) var(--f-sans);
+  }
+
+  .summary {
+    font: italic var(--t-caption) var(--f-text);
+  }
+
+  /* The body: indented like the Select's tray, inside the row's frame. */
+  .body {
+    display: grid;
+    gap: var(--s-4);
+    padding: 0 0 var(--s-4) var(--tray-indent);
+  }
+}
