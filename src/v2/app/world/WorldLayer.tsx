@@ -1,11 +1,15 @@
 import type { JSX } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TextButton } from "../../design/primitives/TextButton";
 import type { InputsPhase } from "../engine/inputs";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
-import { drawWorld, readPaint } from "./draw";
+import { drawWorld, fittedDomain, readPaint } from "./draw";
+import type { LogDomain } from "./geometry";
+import { plotBox } from "./geometry";
+import { clampView, followDomain, fullView, isZoomed, type View, windowDomain } from "./zoom";
+import { attachZoom, plotTarget } from "./zoom-input";
 import styles from "./WorldLayer.module.css";
 
 export type WorldLayerProps = {
@@ -61,6 +65,13 @@ const Status = ({
 
 const noRetry = (): void => undefined;
 
+const FRAMES = {
+  request: (fn: (t: number) => void): number => requestAnimationFrame(fn),
+  cancel: (id: number): void => {
+    cancelAnimationFrame(id);
+  },
+};
+
 /**
  * The world layer (V32-BUILD §1b) in v32's #w / ly-front / ly-back structure. Slice 1 has one
  * layer, always in front; Slice 2 adds the drawdown layer behind it and the swap.
@@ -80,6 +91,49 @@ export const WorldLayer = ({
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [fonts, setFonts] = useState(0);
   const lastDraw = useRef(0);
+  const plot = useRef<HTMLDivElement>(null);
+
+  // §1T zoom: null is the full horizon. The window is always clamped to the data it has.
+  const last = bands?.weeks ?? 0;
+  const [asked, setAsked] = useState<View | null>(null);
+  const view = asked === null ? fullView(last) : clampView(asked, last);
+  const zoomed = bands !== null && isZoomed(view, last);
+  const target = useMemo(
+    () =>
+      bands === null
+        ? undefined
+        : ((zoomed ? windowDomain(bands, view) : null) ?? fittedDomain(bands)),
+    [bands, zoomed, view.from, view.to],
+  );
+  const [shown, setShown] = useState<LogDomain | undefined>(target);
+  const eased = useRef<LogDomain | undefined>(target);
+  const viewKey = `${String(view.from)}:${String(view.to)}`;
+  const lastKey = useRef(viewKey);
+  useEffect(() => {
+    const moved = lastKey.current !== viewKey;
+    lastKey.current = viewKey;
+    return followDomain(
+      {
+        moved,
+        from: eased.current,
+        target,
+        still: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      },
+      (d) => {
+        eased.current = d;
+        setShown(d);
+      },
+      FRAMES,
+    );
+  }, [target, viewKey]);
+
+  const state = useRef({ view, last });
+  state.current = { view, last };
+  useEffect(() => {
+    const el = plot.current;
+    if (el === null) return undefined;
+    return attachZoom(el, plotTarget(el, state, setAsked, plotBox, document.documentElement));
+  }, []);
 
   useEffect(() => {
     const el = box.current;
@@ -108,24 +162,44 @@ export const WorldLayer = ({
     c.height = Math.round(size.h * dpr);
     const ctx = c.getContext("2d");
     if (ctx === null) return;
-    drawWorld(ctx, readPaint(c), { width: size.w, height: size.h, dpr, now, horizon }, bands);
+    drawWorld(
+      ctx,
+      readPaint(c),
+      { width: size.w, height: size.h, dpr, now, horizon, view, domain: shown },
+      bands,
+    );
     lastDraw.current = performance.now() - t0;
-  }, [bands, now, horizon, size, fonts, live]);
+  }, [bands, now, horizon, size, fonts, live, view.from, view.to, shown]);
 
   const root = styles["root"] ?? "world-root";
   const front = styles["front"] ?? "world-front";
   const surface = styles["canvas"] ?? "world-canvas";
+  const reset = styles["reset"] ?? "world-reset";
   return (
     <div ref={box} className={root} data-layer-root="w">
       <div
+        ref={plot}
         className={front}
         data-layer="front"
+        data-view={`${view.from.toFixed(3)} ${view.to.toFixed(3)} ${String(last)}`}
         role="img"
         aria-label={label}
+        aria-keyshortcuts="+ - ArrowLeft ArrowRight 0"
+        tabIndex={0}
         style={{ "--dyn-plot": busy ? "var(--cursor-busy)" : "var(--cursor-plot)" }}
       >
         <canvas ref={canvas} className={surface} />
       </div>
+      {zoomed ? (
+        <span className={reset}>
+          <TextButton
+            label={strings.chart.resetZoom}
+            onClick={() => {
+              setAsked(null);
+            }}
+          />
+        </span>
+      ) : null}
       {phase === "slow" || phase === "failed" || phase === "off" ? (
         <Status phase={phase} onRetry={onRetry} />
       ) : null}

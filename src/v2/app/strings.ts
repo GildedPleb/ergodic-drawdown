@@ -47,6 +47,8 @@ export const strings = {
     loading: "Loading prices\u2026",
     failed: "Prices couldn\u2019t load. Check your connection; the chart will try again.",
     tryAgain: "Try again",
+    /** §1T: shown while the chart is zoomed. */
+    resetZoom: "Reset zoom",
     /** §1M: every model is OFF (the empty frame's caption, and the chart's name). */
     off: "Turn a model on to see it here.",
     endLabel: (median: number, low: number, high: number): string =>

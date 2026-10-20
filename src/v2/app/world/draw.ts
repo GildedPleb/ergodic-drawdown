@@ -23,6 +23,7 @@ import {
   type PlotBox,
   yearTicks,
 } from "./geometry";
+import { clampView, fullView, isZoomed, type View, viewBox } from "./zoom";
 
 /** The slice of the 2D context the painter uses (tests pass a recorder). */
 export type Ctx2D = Pick<
@@ -48,6 +49,10 @@ export type Ctx2D = Pick<
   | "strokeStyle"
   | "fillStyle"
   | "globalAlpha"
+  | "save"
+  | "restore"
+  | "rect"
+  | "clip"
 > & { measureText(text: string): { width: number } };
 
 export type Paint = {
@@ -442,13 +447,32 @@ const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
   x.lineWidth = 1;
 };
 
-export type Frame = { width: number; height: number; dpr: number; now: number; horizon: number };
+/** The Y axis for the full horizon: p1–p99 fitted, raised to cover clipped data (n10). */
+export const fittedDomain = (bands: PriceBands | null): LogDomain => {
+  const range = bands === null ? null : bandRange(bands);
+  const fitted = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
+  return bands !== null && firstPastTop(bands) >= 0 && range !== null
+    ? coverTop(fitted, range.high)
+    : fitted;
+};
+
+export type Frame = {
+  width: number;
+  height: number;
+  dpr: number;
+  now: number;
+  horizon: number;
+  /** §1T: the zoom window (absent: the full horizon). */
+  view?: View | undefined;
+  /** §1T: the Y axis as the caller eases it (the window's fit); absent: fittedDomain(bands). */
+  domain?: LogDomain | undefined;
+};
 
 /** Paint the world layer at CSS size width×height (the caller sizes the backing store). */
 export const drawWorld = (
   x: Ctx2D,
   p: Paint,
-  { width, height, dpr, now, horizon: horizonWeeks }: Frame,
+  { width, height, dpr, now, horizon: horizonWeeks, view: asked, domain: eased }: Frame,
   engineBands: PriceBands | null,
 ): void => {
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -461,10 +485,15 @@ export const drawWorld = (
   const bands = engineBands;
   const clipFrom = bands === null ? -1 : firstPastTop(bands);
   const overflow = clipFrom >= 0;
-  const range = bands === null ? null : bandRange(bands);
-  const fitted = range === null ? DEFAULT_DOMAIN : fitDomain(range.low, range.high);
-  const domain = overflow && range !== null ? coverTop(fitted, range.high) : fitted;
-  const frame = { box, domain, horizon };
+  // §1T: a zoomed window draws through a plot box widened so `from` lands on L and `to` on R,
+  // clipped to the real plot; the Y axis is the window's own fit, eased by the caller.
+  const view = asked === undefined ? fullView(horizon) : clampView(asked, horizon);
+  const zoomed = isZoomed(view, horizon);
+  const domain = eased ?? fittedDomain(bands);
+  const wide = zoomed ? viewBox(box, view, horizon) : box;
+  const endShown = view.to >= horizon - 1e-6;
+  const atToday = view.from <= 1e-6;
+  const frame = { box: wide, domain, horizon };
   const short = height < SHORT;
 
   // $ gridlines + labels.
@@ -474,7 +503,9 @@ export const drawWorld = (
   x.lineWidth = 1;
   // The end label is laid out first: a tick whose label would sit under its plate is dropped (m8).
   const layout =
-    bands === null ? null : endLayout(x, p, { box, domain, horizon, short }, bands, overflow);
+    bands === null || !endShown
+      ? null
+      : endLayout(x, p, { box: wide, domain, horizon, short }, bands, overflow);
   const chartRuns: RunFont = { font: p.chart, upright: p.chart, kern: p.supKern * p.chartPx };
   // m10: a tick whose label would sit on the end label (its plate, or its bare box) is dropped,
   // gridline and all, in every layout.
@@ -512,14 +543,19 @@ export const drawWorld = (
   if (!short) {
     x.textAlign = "center";
     x.fillStyle = p.muted;
-    for (const tick of yearTicks(now, horizon, box)) {
-      x.fillText(String(tick.year), tick.x, box.Bt + 13);
+    for (const tick of yearTicks(now, horizon, wide)) {
+      if (tick.x >= box.L && tick.x <= box.R) x.fillText(String(tick.year), tick.x, box.Bt + 13);
     }
   }
 
   // Quantile bands, casing, median.
   if (bands !== null) {
     // §1L.4: three nested fills, no outline on any band edge; the edges are the steps in fill.
+    // §1T: nothing outside the plot's left and right edges.
+    x.save();
+    x.beginPath();
+    x.rect(box.L, 0, box.R - box.L, height);
+    x.clip();
     x.fillStyle = p.price;
     fill(x, bands.p1, bands.p99, ALPHA_OUTER, frame);
     fill(x, bands.p5, bands.p95, ALPHA_MIDDLE, frame);
@@ -536,10 +572,11 @@ export const drawWorld = (
     if (overflow) {
       x.strokeStyle = p.price;
       x.beginPath();
-      x.moveTo(lx(clipFrom, box, horizon), box.T + 0.5);
+      x.moveTo(lx(clipFrom, wide, horizon), box.T + 0.5);
       x.lineTo(box.R, box.T + 0.5);
       x.stroke();
     }
+    x.restore();
   }
 
   // $ tick labels. Every gridline is labelled (Form, n4 revision): a label too wide for the right
@@ -560,28 +597,44 @@ export const drawWorld = (
     drawRuns(x, text, { left }, base, chartRuns);
   }
 
-  // Today line + time bar.
+  // Today line + time bar. §1T: while zoomed the bar is the position bar (a hairline track, the
+  // window in --today), and Today shows only while the window starts at today.
   x.strokeStyle = p.today;
   x.lineWidth = 1.5;
-  x.beginPath();
-  x.moveTo(box.L, box.T - 6);
-  x.lineTo(box.L, box.Bt);
-  x.stroke();
+  if (atToday) {
+    x.beginPath();
+    x.moveTo(box.L, box.T - 6);
+    x.lineTo(box.L, box.Bt);
+    x.stroke();
+  }
   x.lineWidth = 1;
   if (!short) {
+    const w = box.R - box.L;
     x.fillStyle = p.today;
-    x.fillRect(box.L, box.Bt + 18, box.R - box.L, 2);
-    x.beginPath();
-    x.arc(box.L, box.Bt + 20, 5, 0, Math.PI * 2);
-    x.fill();
+    if (zoomed) {
+      x.fillStyle = p.hairline;
+      x.fillRect(box.L, box.Bt + 19, w, 1);
+      x.fillStyle = p.today;
+      x.fillRect(
+        box.L + (w * view.from) / horizon,
+        box.Bt + 18,
+        (w * (view.to - view.from)) / horizon,
+        2,
+      );
+    } else {
+      x.fillRect(box.L, box.Bt + 18, w, 2);
+      x.beginPath();
+      x.arc(box.L, box.Bt + 20, 5, 0, Math.PI * 2);
+      x.fill();
+    }
     x.font = p.serif;
     x.textAlign = "left";
     // §1b puts this at T+4, on top of the caption at T+12; v32's draw() has it at T+20. Clear
     // of the caption's cap height: T+24.
-    x.fillText(strings.chart.today(monthYear(now)), box.L + 5, box.T + 24);
+    if (atToday) x.fillText(strings.chart.today(monthYear(now)), box.L + 5, box.T + 24);
     x.font = p.chart;
     x.textAlign = "right";
-    x.fillText(String(endYear(now, horizon)), box.R, box.Bt + 32);
+    x.fillText(String(endYear(now, view.to)), box.R, box.Bt + 32);
   }
 
   // End label (plus the out-of-range caption under it).

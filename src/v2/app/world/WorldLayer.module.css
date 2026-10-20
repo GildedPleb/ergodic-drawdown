@@ -15,6 +15,15 @@
     inset: 0;
     z-index: var(--z-chart);
     cursor: var(--dyn-plot);
+    touch-action: none;
+  }
+
+  /* §1T: top right while zoomed. */
+  .reset {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: var(--s-8);
+    z-index: var(--z-chart);
   }
 
   .canvas {

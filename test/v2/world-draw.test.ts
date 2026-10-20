@@ -79,6 +79,12 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[]; measured: Op[] } 
     },
     arc: noop,
     setLineDash: noop,
+    save: noop,
+    restore: noop,
+    rect: (x: number, y: number, w: number, h: number) => {
+      ops.push({ op: "rect", x, y, w, h, style: "" });
+    },
+    clip: noop,
     fillText: (t: string, x: number, y: number) => {
       texts.push(t);
       ops.push({ op: "fillText", x, y, style: style(), t, font: ctx.font, align: ctx.textAlign });
@@ -645,4 +651,89 @@ test("m10 (Probe): no tick label overprints the end label, in every layout", () 
       );
     }
   }
+});
+
+/** A 1,040-week fan (20 years) that grows 1% a week. */
+const longBands = priceBands(
+  (
+    [
+      ["1st", 0.5],
+      ["5th", 0.6],
+      ["25th", 0.8],
+      ["Median", 1],
+      ["75th", 1.25],
+      ["95th", 1.6],
+      ["99th", 2],
+    ] as const
+  ).map(([name, k]) =>
+    series(
+      name === "Median" ? "Median Bitcoin Price" : `${name} Percentile Bitcoin Price`,
+      Array.from({ length: 1041 }, (_, i) => 1e5 * k * 1.01 ** i),
+    ),
+  ),
+);
+
+test("1T zoomed: bands clip to the plot, the window's ends sit on its edges, Today and the end label hide", () => {
+  const { ctx, ops, texts } = recorder();
+  drawWorld(
+    ctx,
+    PAINT,
+    {
+      width: 1440,
+      height: 900,
+      dpr: 1,
+      now: NOW,
+      horizon: 1040,
+      view: { from: 260, to: 520 },
+      domain: { lo: 1e6, hi: 1e8 },
+    },
+    longBands,
+  );
+  // One clip rect: the plot's left and right edges (L=34, R=1396).
+  expect(ops.filter((o) => o.op === "rect")).toEqual([
+    { op: "rect", x: 34, y: 0, w: 1362, h: 900, style: "" },
+  ]);
+  expect(texts.some((t) => t.startsWith("Today"))).toBe(false);
+  expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
+  // Year labels only inside the plot, and the right-hand label names the window's end year.
+  const years = ops.filter((o) => o.op === "fillText" && /^20\d\d$/.test(o.t ?? ""));
+  for (const y of years.slice(0, -1)) {
+    expect(y.x).toBeGreaterThanOrEqual(34);
+    expect(y.x).toBeLessThanOrEqual(1396);
+  }
+  expect(years.at(-1)?.t).toBe(String(new Date(NOW + 520 * WEEK).getFullYear()));
+  // The position bar: a hairline track and the window as a quarter of it, a quarter in.
+  const bar = ops.filter((o) => o.op === "fillRect" && o.style === PAINT.today);
+  expect(bar.at(-1)).toEqual({
+    op: "fillRect",
+    x: 34 + 1362 / 4,
+    y: 866 + 18,
+    w: 1362 / 4,
+    h: 2,
+    style: PAINT.today,
+  });
+  expect(ops.some((o) => o.op === "fillRect" && o.style === PAINT.hairline && o.w === 1362)).toBe(
+    true,
+  );
+});
+
+test("1T zoomed to the end: the end label shows; unzoomed draws exactly as before", () => {
+  const zoomed = recorder();
+  drawWorld(
+    zoomed.ctx,
+    PAINT,
+    { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1040, view: { from: 780, to: 1040 } },
+    longBands,
+  );
+  expect(zoomed.texts.some((t) => t.startsWith("\u20BF price"))).toBe(true);
+  const a = recorder();
+  const b = recorder();
+  drawWorld(a.ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1040 }, longBands);
+  drawWorld(
+    b.ctx,
+    PAINT,
+    { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 1040, view: { from: 0, to: 1040 } },
+    longBands,
+  );
+  expect(b.ops).toEqual(a.ops);
 });

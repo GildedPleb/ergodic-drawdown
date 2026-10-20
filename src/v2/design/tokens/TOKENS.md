@@ -323,3 +323,9 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   peak contrast across the line matches the run's (0.99–1.00 at 1×, 1.00 at 2×); its ink per unit
   length is 1.01–1.14× the run's at 1× and 1.18–1.28× at 2× (at 1.4 it was 1.15–1.25× and
   1.38–1.48×). The `.bevel` rule costs ~25; the removed rules saved ~135.
+- §1T chart zoom and pan (Slice 1 ceiling 8,600, approved by Keel): 60,660 B source / 8,444 B
+  gzip; +22 measured by reverting §1T alone (8,422 without it). The plot's
+  `touch-action: none` (one-finger pan and two-finger pinch on touch) and the Reset zoom
+  placement (`.reset`, top right). The position bar, the clip to the plot and the eased Y are
+  drawn on the canvas (no CSS); the grabbing cursor while panning is `--cursor-drag` set on
+  `<html>`. No new tokens.
