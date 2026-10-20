@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 
 import { strings } from "../../src/v2/app/strings";
 import { type PriceBands } from "../../src/v2/app/world/bands";
-import { endSpread, NINETY_MIN, showsMedian, spreadOf } from "../../src/v2/app/world/spread";
+import { endSpread, NINETY_MIN, spreadOf } from "../../src/v2/app/world/spread";
 
 const ENDS = {
   median: 67_800_000,
@@ -37,8 +37,8 @@ test("N = 20 (and up, and unknown): 9 in 10 between p5 and p95; the label is med
   }
 });
 
-test("N = 19 and N = 3: all N futures end between min and max; the label is median plus min–max", () => {
-  for (const n of [19, 3]) {
+test("N = 19, 3 and 2: all N futures end between min and max; the label is median plus min–max", () => {
+  for (const n of [19, 3, 2]) {
     const [sentence, spoken, label, split] = line(n);
     expect(sentence).toBe(
       `Bitcoin\u2019s median price reaches $67.8M by 2064; all ${String(n)} futures end between $41M and $98.2M.`,
@@ -53,21 +53,24 @@ test("N = 19 and N = 3: all N futures end between min and max; the label is medi
       false,
     );
   }
-  expect([19, 3, 20, 1000, undefined].every(showsMedian)).toBe(true);
 });
 
-test("N = 2 (Form 2A-r4): no median anywhere; the headline and the label give the range only", () => {
-  const s = spreadOf(ENDS, 2);
-  expect(s).toEqual({ kind: "pair", low: 41_000_000, high: 98_200_000 });
-  const [sentence, spoken, label, split] = line(2);
-  expect(sentence).toBe("All 2 futures end between $41M and $98.2M by 2064.");
-  expect(spoken).toBe("All 2 futures end between $41 million and $98.2 million by 2064.");
-  expect(label).toEqual(["\u20BF price \u00B7 $41M\u201398.2M"]);
-  expect(split).toEqual(["\u20BF price \u00B7 $41M\u201398.2M"]);
-  expect([sentence, spoken, ...label].some((t) => t.includes("median") || t.includes("67.8"))).toBe(
-    false,
+test("N = 2 is no special case (user ruling 2A-r5): the median clause plus all 2 between min and max", () => {
+  expect(spreadOf(ENDS, 2)).toEqual({
+    kind: "all",
+    n: 2,
+    median: 67_800_000,
+    low: 41_000_000,
+    high: 98_200_000,
+  });
+  const [sentence, spoken, label] = line(2);
+  expect(sentence).toBe(
+    "Bitcoin\u2019s median price reaches $67.8M by 2064; all 2 futures end between $41M and $98.2M.",
   );
-  expect(showsMedian(2)).toBe(false);
+  expect(spoken).toBe(
+    "Bitcoin\u2019s median price reaches $67.8 million by 2064; all 2 futures end between $41 million and $98.2 million.",
+  );
+  expect(label).toEqual(["\u20BF price \u00B7 $67.8M \u00B7 $41M\u201398.2M"]);
 });
 
 test("N = 1 (Form 2A-r4): one clause, 'in this one future'; the label is the single value", () => {
@@ -82,7 +85,6 @@ test("N = 1 (Form 2A-r4): one clause, 'in this one future'; the label is the sin
   );
   expect(strings.chart.endLines(s, false)).toEqual(["\u20BF price \u00B7 $67.8M"]);
   expect(strings.chart.endLines(s, true)).toEqual(["\u20BF price \u00B7 $67.8M"]);
-  expect(showsMedian(1)).toBe(true);
 });
 
 test("N > 1 with min and max equal once rounded: all N futures end at one value", () => {
@@ -100,15 +102,16 @@ test("N > 1 with min and max equal once rounded: all N futures end at one value"
     "Bitcoin\u2019s median price reaches $66.3M by 2064; all 3 futures end at $66.3M.",
   );
   expect(strings.chart.endLines(at3, true)).toEqual(["\u20BF price \u00B7 $66.3M"]);
-  // At N = 2 the same, with no median clause (2A-r4).
+  // At N = 2 the same as N = 3, median clause included.
   const at2 = spreadOf(tight, 2);
   expect(at2).toEqual({ kind: "allAt", n: 2, value: 66_310_000 });
-  expect(strings.headline.sentence(at2, 2064)).toBe("All 2 futures end at $66.3M by 2064.");
-  expect(strings.headline.spoken(at2, 2064)).toBe("All 2 futures end at $66.3 million by 2064.");
+  expect(strings.headline.sentence(at2, 2064)).toBe(
+    "Bitcoin\u2019s median price reaches $66.3M by 2064; all 2 futures end at $66.3M.",
+  );
   expect(strings.chart.endLines(at2, false)).toEqual(["\u20BF price \u00B7 $66.3M"]);
   // One digit apart once rounded is a range again.
   expect(spreadOf({ ...tight, max: 66_360_000 }, 3).kind).toBe("all");
-  expect(spreadOf({ ...tight, max: 66_360_000 }, 2).kind).toBe("pair");
+  expect(spreadOf({ ...tight, max: 66_360_000 }, 2).kind).toBe("all");
   // At N ≥ 20 the rule stays 9 in 10, even with a tight spread.
   expect(spreadOf(tight, 20).kind).toBe("ninety");
 });

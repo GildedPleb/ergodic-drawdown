@@ -24,12 +24,6 @@ const headline = (spread: Spread, year: number, usd: (v: number) => string): str
   if (spread.kind === "one") {
     return `Bitcoin\u2019s price reaches ${usd(spread.value)} by ${year} in this one future.`;
   }
-  if (spread.kind === "pair") {
-    return `All 2 futures end between ${usd(spread.low)} and ${usd(spread.high)} by ${year}.`;
-  }
-  if (spread.kind === "allAt" && spread.n === 2) {
-    return `All 2 futures end at ${usd(spread.value)} by ${year}.`;
-  }
   if (spread.kind === "allAt") {
     return `Bitcoin\u2019s median price reaches ${usd(spread.value)} by ${year}; all ${count(spread.n)} futures end at ${usd(spread.value)}.`;
   }
@@ -83,14 +77,12 @@ export const strings = {
     ],
     /**
      * The end label for a spread (world/spread.ts), one line or split in two: median plus p5–p95
-     * (N ≥ 20) or min–max (3 ≤ N < 20); the range only at N = 2; the single value when there is one.
+     * (N ≥ 20) or min–max (2 ≤ N < 20); the single value when there is one.
      */
     endLines: (spread: Spread, split: boolean): string[] => {
       if (spread.kind === "one" || spread.kind === "allAt") {
         return [`\u20BF price \u00B7 ${fmtUSD(spread.value)}`];
       }
-      if (spread.kind === "pair")
-        return [`\u20BF price \u00B7 ${fmtUSDRange(spread.low, spread.high)}`];
       return split
         ? strings.chart.endLabelLines(spread.median, spread.low, spread.high)
         : [strings.chart.endLabel(spread.median, spread.low, spread.high)];

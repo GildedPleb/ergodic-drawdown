@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 
 import { bandRange, priceBands, type PriceBands } from "../../src/v2/app/world/bands";
 import { strings } from "../../src/v2/app/strings";
-import { fmtUSD, fmtUSDRange } from "../../src/v2/design/format/money";
+import { fmtUSD } from "../../src/v2/design/format/money";
 import {
   BAND_VISIBLE,
   bandAlphas,
@@ -1135,7 +1135,7 @@ test("2A-r3 (Form nit): the leader, casing and all, stays inside the plot rect l
   }
 });
 
-test("2A-r4: no median line (nor its casing) at N = 2; from N = 3 up, and N = 1, it is drawn", () => {
+test("2A-r5 (user ruling): the same nine series at every N: the median and four steps at N = 1, 2, 3, 19, 20", () => {
   const strokes = (n?: number): { style: string; width: number }[] => {
     const { ctx } = recorder();
     const out: { style: string; width: number }[] = [];
@@ -1158,9 +1158,8 @@ test("2A-r4: no median line (nor its casing) at N = 2; from N = 3 up, and N = 1,
         (o.style === PAINT.surface && o.width === PAINT.median + 2 * PAINT.casing),
     );
   };
-  expect(strokes(2)).toEqual([]);
-  for (const n of [1, 3, 19, 20, undefined]) expect(strokes(n).length).toBe(2);
-  // The bands still fill at N = 2: the two walks are the min–max edge.
+  for (const n of [1, 2, 3, 19, 20, 1000, undefined]) expect(strokes(n).length).toBe(2);
+  // Four steps at N = 2 too: no special case on the chart.
   const { ctx } = recorder();
   let fills = 0;
   ctx.fill = () => {
@@ -1173,7 +1172,7 @@ test("2A-r4: no median line (nor its casing) at N = 2; from N = 3 up, and N = 1,
     { ...nine(), n: 2 },
   );
   expect(fills).toBe(4);
-  // And the label gives the range only.
+  // And the label is the median plus min–max, as at N = 3.
   const texts = draw(693, { ...nine(), n: 2 }, 2).filter((t) => t.startsWith("\u20BF price"));
-  expect(texts).toEqual([`\u20BF price \u00B7 ${fmtUSDRange(0.2 * 4e5, 5 * 4e5)}`]);
+  expect(texts).toEqual([strings.chart.endLabel(4e5, 0.2 * 4e5, 5 * 4e5)]);
 });
