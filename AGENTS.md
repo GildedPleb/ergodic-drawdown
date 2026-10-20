@@ -199,6 +199,7 @@ Long-lived branch from `golden-baselines`. Do not merge to `main` until the user
 - Rule 0 (`docs/design/v32-ref/V32-BUILD.md`): the back end is unchanged and the front end is all new. Back-end files are byte-identical to main; no edits of any kind, including export/visibility; v2 mirrors via G12 source tests.
 
 - Entry on this branch: `index.html` → `src/v2/app/main.tsx`. Old `src/main.tsx` stays for mergeability.
+- Front-end shell files (G13, Keel §1L): `index.html` and `public/favicon.ico`, `public/favicon-16x16.png`, `public/favicon-32x32.png` (path-matched; regenerate with `bun scripts/v2/favicon.ts`). Allowed today: the v2 entry and font preloads, plus `viewport-fit=cover` on the viewport meta, and the favicon rasters. Any other edit to them (a favicon link included), or to any other `public/` file, needs a Keel ruling first; `test/v2/frontend-only.test.ts` enforces it.
 - Tokens/fonts/primitives: `src/v2/design/**` (CODEOWNERS `@GildedPleb`). Baseline changes also need the `design-approved` label after Form's notes.
 - Gallery: Storybook 10.6 (`bun run storybook`) on our Vite 8. Stories are plain CSF 3 with no Storybook imports.
 - Ground truth: `/design/:story` when `VITE_DESIGN_ROUTE=1`. Playwright screenshots that route, not Storybook.
