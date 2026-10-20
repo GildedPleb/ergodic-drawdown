@@ -18,7 +18,7 @@ type Edges = { left: number; right: number; top: number; bottom: number; corner:
 const edges = async (page: Page): Promise<Edges> =>
   page.evaluate(() => {
     const r = document.getElementById("models-sheet")?.getBoundingClientRect();
-    const corner = document.querySelector('[data-corner="start"]')?.getBoundingClientRect();
+    const corner = document.querySelector("#models-sheet > svg")?.getBoundingClientRect();
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
     return {

@@ -313,3 +313,13 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   +22; `--accent-strong` and `--logo-stroke` in both themes (the held logo) +18; the Select's
   hover rules inside `(hover: hover) and (pointer: fine)` +20. New tokens: `--cursor-*` (7),
   `--accent-strong` (gold-150 dark / gold-725 linen), `--logo-stroke` (`--accent`).
+- §1X bevel stroke compensation (Slice 1 ceiling 8,600, approved by Keel): 60,497 B source /
+  8,422 B gzip; −110 measured by reverting §1X alone (8,532 without it). The hairline
+  (`.sheet::before`, the two `.corner` gradient boxes and their panel overrides) is replaced by
+  one SVG `.bevel` over the sheet (`Bevel.tsx`): the run path at `--rule-hair`, the diagonals at
+  `calc(var(--rule-hair) * var(--bevel-comp))`, one colour, miter joins, every stroke inside the
+  clip polygon. New token: `--bevel-comp: 1.4` (unitless, × the rule width), tuned by eye and by
+  the pixel check at 1× and 2× DPR in both themes, at 390 and 1440: the diagonal's peak contrast
+  across the line matches the run's (ratio 1.00 in all eight cases); its ink per unit length is
+  1.15–1.25× the run's at 1× and 1.38–1.48× at 2×. The `.bevel` rule costs ~25; the removed rules
+  saved ~135.

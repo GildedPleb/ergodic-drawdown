@@ -117,7 +117,7 @@
     display: none;
   }
 
-  /* --surface clipped to the bevel; ::before is the --accent hairline; corners at .7. */
+  /* --surface clipped to the bevel; the hairline is the SVG .bevel (§1X) at .7. */
   .sheet {
     position: relative;
     display: flex;
@@ -134,43 +134,13 @@
     );
   }
 
-  .sheet::before {
-    content: "";
+  .bevel {
     position: absolute;
-    inset-block-start: 0;
-    inset-inline: var(--sheet-ch);
-    block-size: 1px;
-    background: var(--accent);
-    opacity: 0.7;
-  }
-
-  .corner {
-    position: absolute;
-    inset-block-start: 0;
-    inline-size: var(--sheet-ch);
-    block-size: var(--sheet-ch);
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
     opacity: 0.7;
     pointer-events: none;
-  }
-
-  .corner[data-corner="start"] {
-    inset-inline-start: 0;
-    background-image: linear-gradient(
-      to bottom right,
-      transparent calc(50% - 0.7px),
-      var(--accent) 50%,
-      transparent calc(50% + 0.7px)
-    );
-  }
-
-  .corner[data-corner="end"] {
-    inset-inline-end: 0;
-    background-image: linear-gradient(
-      to bottom left,
-      transparent calc(50% - 0.7px),
-      var(--accent) 50%,
-      transparent calc(50% + 0.7px)
-    );
   }
 
   /* The grab point sits centred across the top hairline; it never moves or scales. */
@@ -407,18 +377,6 @@
         0 calc(100% - var(--sheet-ch)),
         0 var(--sheet-ch)
       );
-    }
-
-    .sheet::before {
-      inset-block: var(--sheet-ch);
-      inset-inline: 0 auto;
-      inline-size: 1px;
-      block-size: auto;
-    }
-
-    .corner[data-corner="end"] {
-      inset-block: auto 0;
-      inset-inline: 0 auto;
     }
 
     .grab,

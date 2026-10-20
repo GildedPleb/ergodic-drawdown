@@ -15,6 +15,7 @@ import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
 import { dockLayout, paneOf, returnFocus, type Pane } from "./panes";
+import { Bevel } from "./Bevel";
 import { attachPressFlash } from "./press";
 import { useSheet } from "./useSheetDrag";
 import { DOCK_COLUMNS, SIDE_PANEL, useMedia } from "./useMedia";
@@ -24,7 +25,6 @@ export const variants = {
   sheet: ["closed", "half", "full"] as const,
   dragging: ["true", "false"] as const,
   column: ["open", "closed"] as const,
-  corner: ["start", "end"] as const,
 };
 
 const SHEET_ID = "models-sheet";
@@ -166,7 +166,7 @@ export const AppShell = (): JSX.Element => {
   const chart = styles["chart"] ?? "shell-chart";
   const dockArea = styles["dockArea"] ?? "shell-dock-area";
   const sheetCls = styles["sheet"] ?? "shell-sheet";
-  const corner = styles["corner"] ?? "shell-corner";
+  const bevel = styles["bevel"] ?? "shell-bevel";
   const grab = styles["grab"] ?? "shell-grab";
   const beat = styles["beat"] ?? "shell-beat";
   const beatText = styles["beatText"] ?? "shell-beat-text";
@@ -240,8 +240,7 @@ export const AppShell = (): JSX.Element => {
         {/* Landscape: the panel is grabbed from its bevelled left edge (44px strip). */}
         <span className={edge} data-grab="edge" aria-hidden="true" />
         <section ref={sheet} id={SHEET_ID} className={sheetCls} aria-label={strings.dock.models}>
-          <span className={corner} data-corner="start" aria-hidden="true" />
-          <span className={corner} data-corner="end" aria-hidden="true" />
+          <Bevel className={bevel} side={side} />
           <div className={beat} data-grab="strip">
             <p className={beatText}>{on ? sentence : ""}</p>
             <span className={slot} aria-hidden="true" />
