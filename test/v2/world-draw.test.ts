@@ -839,7 +839,7 @@ const wildHistory = (): { t: Float64Array; y: Float64Array; past: number } => {
   return { t, y, past };
 };
 
-test("2A r2: every band, median and historic vertex is painted inside one plot-rect clip", () => {
+test("2A r2: every band, median and historic vertex is painted inside the plot-rect clip", () => {
   for (const view of [undefined, { from: -520, to: -100 }, { from: 200, to: 600 }]) {
     const { ctx, ops } = recorder();
     drawWorld(
@@ -859,10 +859,19 @@ test("2A r2: every band, median and historic vertex is painted inside one plot-r
       longBands,
     );
     const box = plotBox(390, 400);
+    // Every clip (the plot, then the end label's) is the plot rect itself.
     const rects = ops.filter((o) => o.op === "rect");
-    expect(rects).toEqual([
-      { op: "rect", x: box.L, y: box.T, w: box.R - box.L, h: box.Bt - box.T, style: "" },
-    ]);
+    expect(rects.length).toBeGreaterThanOrEqual(1);
+    for (const rect of rects) {
+      expect(rect).toEqual({
+        op: "rect",
+        x: box.L,
+        y: box.T,
+        w: box.R - box.L,
+        h: box.Bt - box.T,
+        style: "",
+      });
+    }
     const clip = ops.findIndex((o) => o.op === "clip");
     const restore = ops.findIndex((o, i) => i > clip && o.op === "restore");
     const priced = ops
@@ -906,4 +915,56 @@ test("2A r2: with history in view the Y fit holds its true extremes, not trimmed
   );
   expect(trace.length).toBeGreaterThanOrEqual(10);
   expect(trace.every((o) => o.y >= box.T && o.y <= box.Bt)).toBe(true);
+});
+
+test("2A r2: a top-right end label keeps clear of every $ label row and stays inside the plot", () => {
+  for (const [w, h, lo, hi, end] of [
+    [390, 420, 50_000, 1e8, 3.5e7],
+    [390, 420, 5e4, 1.2e8, 9e7],
+    [390, 693, 0.05, 1e8, 6.8e7],
+    [1440, 900, 0.05, 1e8, 6.8e7],
+  ] as const) {
+    const box = plotBox(w, h);
+    // A peak under the label and a trough under it: neither above nor below fits.
+    const p95 = [lo, ...flat(100, end * 1.2)];
+    p95[97] = hi;
+    const p5 = [lo, ...flat(100, end * 0.9)];
+    p5[96] = lo * 1.2;
+    const ops = paint(pack([...p5], [lo, ...flat(100, end)], [...p95]), w, h);
+    const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.ground);
+    if (plate === undefined) throw new Error(`no corner plate at ${String(w)}`);
+    const y0 = plate.y;
+    const y1 = plate.y + (plate.h ?? 0);
+    expect(plate.x >= box.L && plate.x + (plate.w ?? 0) <= box.R).toBe(true);
+    expect(y0 >= box.T && y1 <= box.Bt).toBe(true);
+    // No $ label on the plate's rows anywhere to its right (in the margin or inside the plot).
+    const dollars = ops.filter(
+      (o) => o.op === "fillText" && o.font === PAINT.chart && (o.t ?? "").startsWith("$"),
+    );
+    expect(dollars.length).toBeGreaterThanOrEqual(2);
+    for (const d of dollars) {
+      const clear = d.y + 4 <= y0 - 4 || d.y - 10 >= y1 + 4;
+      expect(clear || d.x + 60 < plate.x).toBe(true);
+    }
+  }
+});
+
+test("2A r2: the leader leaves the plate edge facing the line's end and stops on the plot edge", () => {
+  const box = plotBox(390, 420);
+  const domain = fitDomain(50_000, 1e8);
+  for (const end of [3.5e7, 9e7]) {
+    const p95 = flat(100, end * 1.2);
+    p95[96] = domain.hi;
+    const p5 = flat(100, end * 0.9);
+    p5[95] = 60_000;
+    const pad = 13 * 0.25;
+    const at = endLabelAt(box, domain, { p5, p95, end, horizon: 99 }, { ...LINES2, pad });
+    expect(at.mode).toBe("corner");
+    const top = at.y - 10 - pad;
+    const bottom = at.y + LABEL_LINE + 4 + pad;
+    const endY = ly(end, box, domain);
+    expect(at.leader?.y1).toBe(endY < top ? top : bottom);
+    expect(at.leader?.x2).toBe(box.R);
+    expect(endY >= box.T && endY <= box.Bt).toBe(true);
+  }
 });

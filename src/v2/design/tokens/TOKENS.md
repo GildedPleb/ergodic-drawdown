@@ -359,3 +359,6 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
 - §2A r2 plot clip (Form): canvas only, CSS ±0 (8,585 B gzip). The dip under the floor was the
   150 ms Y ease after the toggle (the frame widens, the axis eases down to $0.06) drawn with only a
   left/right clip; bands, median and trace now share one clip to the plot rect.
+- §2A r2 end label (Form): canvas only, CSS ±0. A top-right plate steps down off the $ gridlines
+  (8px clear) while it fits; where they are too dense its rows drop the $ labels out to the edge;
+  the leader leaves the plate edge that faces the line's end; label and leader clip to the plot.

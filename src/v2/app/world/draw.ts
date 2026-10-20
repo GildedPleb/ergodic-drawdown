@@ -195,6 +195,8 @@ const stroke = (
 /** Text box around an alphabetic baseline: cap height above, descent below (chart sizes). */
 const CAP = 10;
 const DESCENT = 4;
+/** Half the height a $ label takes about its gridline (cap above the baseline at y+3, descent). */
+const TICK_ROW = 8;
 /** One end-label line, baseline to baseline. */
 export const LABEL_LINE = CAP + DESCENT + 2;
 
@@ -222,7 +224,7 @@ export const endLabelAt = (
   box: PlotBox,
   domain: LogDomain,
   band: { p5: Float64Array; p95: Float64Array; end: number; horizon: number },
-  label: { width: number; lines: number },
+  label: { width: number; lines: number; pad?: number },
   short = false,
 ): LabelPlace => {
   // Never on the caption / Today rows (Today's baseline is T+24), except on a short chart.
@@ -263,13 +265,28 @@ export const endLabelAt = (
   if (below + span + DESCENT <= box.Bt && below - CAP - endY <= near) {
     return { x, y: below, mode: "below", leader: null };
   }
-  const corner = clear(ceiling);
-  const blockBottom = corner + span + DESCENT;
+  // §2A r2 (Form): the corner plate (text plus its pad) keeps TICK_ROW clear of the $ gridlines,
+  // stepping down past one in the way while it still fits the plot; where the gridlines are too
+  // dense for that, the $ label on its rows is dropped instead (endLayout's keepOut).
+  const pad = label.pad ?? 0;
+  let corner = ceiling;
+  for (let n = 0; n < ticks.length; n++) {
+    const plateTop = corner - CAP - pad;
+    const plateBottom = corner + span + DESCENT + pad;
+    const g = ticks.find((t) => t > plateTop - TICK_ROW && t < plateBottom + TICK_ROW);
+    if (g === undefined) break;
+    corner = g + TICK_ROW + CAP + pad + 0.01;
+  }
+  if (corner + span + DESCENT + pad > box.Bt || corner - ceiling > near) corner = clear(ceiling);
+  const blockTop = corner - CAP - pad;
+  const blockBottom = corner + span + DESCENT + pad;
+  // The leader leaves the plate's edge that faces the end of the line, and ends on the plot's edge.
+  const y1 = endY < blockTop ? blockTop : blockBottom;
   return {
     x,
     y: corner,
     mode: "corner",
-    leader: { x1: x - 2, y1: blockBottom + 3, x2: box.R, y2: endY },
+    leader: { x1: x - 2, y1, x2: box.R, y2: endY },
   };
 };
 
@@ -386,7 +403,7 @@ const endLayout = (
         domain,
         // The label clears the whole drawn fan (the outer band), not only p5–p95.
         { p5: bands.p1, p95: bands.p99, end: mid, horizon },
-        { width: textWidth, lines: all.length },
+        { width: textWidth, lines: all.length, pad: p.serifPx * 0.25 },
         short,
       )
     : { x: box.R - 12, y: short ? box.T + CAP : box.T + 36, mode: "corner", leader: null };
@@ -402,7 +419,11 @@ const endLayout = (
           y1: bottom + padY,
         }
       : null;
-  const keepOut = plate ?? { x0: at.x - textWidth, y0: at.y - CAP, x1: at.x, y1: bottom };
+  // §2A r2: a corner plate keeps the $ labels on its rows out to the canvas edge (TICK_ROW apart).
+  const keepOut =
+    plate === null
+      ? { x0: at.x - textWidth, y0: at.y - CAP, x1: at.x, y1: bottom }
+      : { ...plate, y0: plate.y0 - TICK_ROW / 2, y1: plate.y1 + TICK_ROW / 2, x1: Infinity };
   return { lines, all, at, textWidth, bottom, plate, keepOut };
 };
 
@@ -413,7 +434,7 @@ const serifRuns = (p: Paint): RunFont => ({
 });
 
 const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
-  const { lines, all, at, textWidth, bottom, plate } = layout;
+  const { lines, all, at, textWidth, plate } = layout;
   if (plate !== null) {
     // Form (b): the plate is the page ground, so the label reads as cut out of the chart.
     x.fillStyle = p.ground;
@@ -427,8 +448,7 @@ const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
   if (at.leader === null) return;
   // A muted hairline on a surface casing from the plate's lower edge, so it reads across the band;
   // it stops short of the median's end so the point it names stays clear.
-  const { x1, x2, y2 } = at.leader;
-  const y1 = bottom + p.serifPx * 0.25;
+  const { x1, y1, x2, y2 } = at.leader;
   const len = Math.hypot(x2 - x1, y2 - y1);
   const stop = len > 0 ? Math.max(0, len - p.median - p.casing) / len : 0;
   const ex = x1 + (x2 - x1) * stop;
@@ -690,8 +710,15 @@ export const drawWorld = (
     if (atToday) x.fillText(strings.chart.today(monthYear(now)), todayX + 5, box.T + 24);
   }
 
-  // End label (plus the out-of-range caption under it).
-  if (layout !== null) drawEndLabel(x, p, layout);
+  // End label (plus the out-of-range caption under it), its plate and leader inside the plot.
+  if (layout !== null) {
+    x.save();
+    x.beginPath();
+    x.rect(box.L, box.T, box.R - box.L, box.Bt - box.T);
+    x.clip();
+    drawEndLabel(x, p, layout);
+    x.restore();
+  }
 
   // Caption.
   if (!short) {
