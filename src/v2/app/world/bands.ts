@@ -30,6 +30,11 @@ export type PriceBands = {
   p75: Float64Array;
   p95: Float64Array;
   p99: Float64Array;
+  /**
+   * Form 2A-r3: how many futures the run drew (the samples it was asked for), so the headline
+   * and end label claim only what N supports (spread.ts). Absent: unknown, read as N ≥ 20.
+   */
+  n?: number;
 };
 
 /**

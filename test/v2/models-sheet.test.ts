@@ -136,7 +136,10 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   }
   out.push(
     f.years(40),
-    strings.headline.sentence(1_200_000, 2066, 400_000, 3_100_000),
+    strings.headline.sentence(
+      { kind: "ninety", median: 1_200_000, low: 400_000, high: 3_100_000 },
+      2066,
+    ),
     strings.headline.kicker(1000, modelsPaneSchema.defaultModel),
     strings.headline.pending,
     strings.headline.phoneTitle,

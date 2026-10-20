@@ -9,7 +9,8 @@ import { ModelsSheet } from "../models/ModelsSheet";
 import { loadValues, pageStore, saveValues } from "../models/store";
 import type { ModelsValues } from "../models/values";
 import { strings } from "../strings";
-import { endValue, outOfRange } from "../world/bands";
+import { outOfRange } from "../world/bands";
+import { endSpread } from "../world/spread";
 import { endYear } from "../world/geometry";
 import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
@@ -84,15 +85,9 @@ export const AppShell = (): JSX.Element => {
 
   const { bands } = world;
   const overflow = bands !== null && outOfRange(bands);
+  // Form 2A-r3: the headline claims only what N supports, by the end label's own rule.
   const ends =
-    bands === null || overflow
-      ? null
-      : ([
-          endValue(bands.p50),
-          endYear(now, bands.weeks),
-          endValue(bands.p5),
-          endValue(bands.p95),
-        ] as const);
+    bands === null || overflow ? null : ([endSpread(bands), endYear(now, bands.weeks)] as const);
   const idle = overflow ? strings.headline.outOfRange : strings.headline.pending;
   const sentence = ends === null ? idle : strings.headline.sentence(...ends);
   const spoken = ends === null ? idle : strings.headline.spoken(...ends);

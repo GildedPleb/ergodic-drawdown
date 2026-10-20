@@ -1076,3 +1076,14 @@ test("§1L.4: each of the four band steps reads distinctly (ΔE ≥ 2.9) on both
   expect(p.bandGain).toBe(1.6);
   expect(paintFrom({ getPropertyValue: () => "" }, 16).bandGain).toBe(1);
 });
+
+test("2A-r3: the drawn end label follows the headline's N rule (spread.ts)", () => {
+  const b = nine();
+  const label = (n?: number): string[] =>
+    draw(693, n === undefined ? b : { ...b, n }, 2).filter((t) => t.startsWith("\u20BF price"));
+  const ninety = strings.chart.endLabel(4e5, 0.7 * 4e5, 1.5 * 4e5);
+  expect(label()).toEqual([ninety]);
+  expect(label(20)).toEqual([ninety]);
+  expect(label(19)).toEqual([strings.chart.endLabel(4e5, 0.2 * 4e5, 5 * 4e5)]);
+  expect(label(1)).toEqual([`\u20BF price \u00B7 ${fmtUSD(4e5)}`]);
+});

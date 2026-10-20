@@ -5,6 +5,7 @@
  * or without data (the empty state).
  */
 
+import { endSpread } from "./spread";
 import { fmtUSD, sciRuns } from "../../design/format/money";
 import { strings } from "../strings";
 import type { PriceBands } from "./bands";
@@ -390,14 +391,11 @@ const endLayout = (
   overflow: boolean,
 ): EndLayout | null => {
   const mid = endValue(bands.p50);
-  const low = endValue(bands.p5);
-  const high = endValue(bands.p95);
   const endsFinite = !outOfRange(bands) && mid > 0;
   let lines: string[] = [];
   if (endsFinite) {
-    if (short) lines = [fmtUSD(mid)];
-    else if (p.split) lines = strings.chart.endLabelLines(mid, low, high);
-    else lines = [strings.chart.endLabel(mid, low, high)];
+    // Form 2A-r3: the same N rule as the headline (spread.ts).
+    lines = short ? [fmtUSD(mid)] : strings.chart.endLines(endSpread(bands), p.split);
   }
   const caption = overflow && !short ? [strings.chart.outOfRange] : [];
   const all = [...lines, ...caption];

@@ -392,10 +392,7 @@ test("§1L.4 sd: ±3σ / ±2σ / ±1σ fill the inner bands, the mean the median
   ];
   const bands = priceBands(sd);
   if (bands === null) throw new Error("bands");
-  const at = (k: keyof PriceBands): number[] => {
-    const v = bands[k];
-    return typeof v === "number" ? [v] : [...v];
-  };
+  const at = (k: Exclude<keyof PriceBands, "start" | "weeks" | "n">): number[] => [...bands[k]];
   expect(at("p1")).toEqual([70_000, 40_000, 150_000]);
   expect(at("p5")).toEqual([90_000, 80_000, 400_000]);
   expect(at("p25")).toEqual([100_000, 120_000, 700_000]);

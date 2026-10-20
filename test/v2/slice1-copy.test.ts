@@ -4,7 +4,12 @@ import { strings } from "../../src/v2/app/strings";
 import { spokenLabel } from "../../src/v2/design/primitives/LabelGlyphs/LabelGlyphs";
 
 test("headline sentence and kicker match the handoff's example", () => {
-  expect(strings.headline.sentence(1_200_000, 2066, 400_000, 3_100_000)).toBe(
+  expect(
+    strings.headline.sentence(
+      { kind: "ninety", median: 1_200_000, low: 400_000, high: 3_100_000 },
+      2066,
+    ),
+  ).toBe(
     "Bitcoin\u2019s median price reaches $1.2M by 2066; 9 in 10 futures end between $400k and $3.1M.",
   );
   expect(strings.headline.kicker(1000, "Power Law Regression Median")).toBe(
@@ -36,7 +41,10 @@ test("the drawn walk is spoken as runs: 3 up, 1 down", () => {
 });
 
 test("the chart's spoken sentence names units as words; the shown one abbreviates", () => {
-  const ends = [67_800_000, 2064, 2_420_000, 29_533_000_000] as const;
+  const ends = [
+    { kind: "ninety", median: 67_800_000, low: 2_420_000, high: 29_533_000_000 },
+    2064,
+  ] as const;
   expect(strings.headline.sentence(...ends).endsWith("between $2.42M and $29.5B.")).toBe(true);
   expect(
     strings.headline.spoken(...ends).endsWith("between $2.42 million and $29.5 billion."),

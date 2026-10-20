@@ -5,6 +5,7 @@
  * Numbers always go through money.ts.
  */
 import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
+import type { Spread } from "./world/spread";
 
 const count = (n: number): string => n.toLocaleString("en-US");
 
@@ -18,18 +19,34 @@ const range = (min: number, max: number): string =>
 const kilo = (n: number): string =>
   n >= 1000 && n % 1000 === 0 ? `${String(n / 1000)}k` : String(n);
 
+/** The headline for a spread (world/spread.ts), with `$` written by `usd`. */
+const headline = (spread: Spread, year: number, usd: (v: number) => string): string => {
+  if (spread.kind === "one") {
+    return `Bitcoin\u2019s price reaches ${usd(spread.value)} by ${year}; this future ends at ${usd(spread.value)}.`;
+  }
+  if (spread.kind === "allAt") {
+    return `Bitcoin\u2019s median price reaches ${usd(spread.value)} by ${year}; all ${count(spread.n)} futures end at ${usd(spread.value)}.`;
+  }
+  const reach = `Bitcoin\u2019s median price reaches ${usd(spread.median)} by ${year}; `;
+  const between = `between ${usd(spread.low)} and ${usd(spread.high)}.`;
+  return spread.kind === "all"
+    ? `${reach}all ${count(spread.n)} futures end ${between}`
+    : `${reach}9 in 10 futures end ${between}`;
+};
+
 export const strings = {
   brand: { stack: "STACK", math: "MATH", name: "StackMath" },
   headline: {
     /** Desktop kicker above the headline sentence. */
     kicker: (samples: number, model: string): string =>
       `From today \u00B7 ${count(samples)} ${samples === 1 ? "future" : "futures"} \u00B7 ${model}`,
-    /** The model headline sentence (.dh on desktop, half sheet on phone, chart aria-label). */
-    sentence: (median: number, year: number, low: number, high: number): string =>
-      `Bitcoin\u2019s median price reaches ${fmtUSD(median)} by ${year}; 9 in 10 futures end between ${fmtUSD(low)} and ${fmtUSD(high)}.`,
+    /**
+     * The model headline sentence (.dh on desktop, half sheet on phone), claiming only what N
+     * supports (world/spread.ts).
+     */
+    sentence: (spread: Spread, year: number): string => headline(spread, year, fmtUSD),
     /** The same sentence, spoken (the chart's aria-label): "$29.5 billion", not "$29.5B". */
-    spoken: (median: number, year: number, low: number, high: number): string =>
-      `Bitcoin\u2019s median price reaches ${nameUSD(median)} by ${year}; 9 in 10 futures end between ${nameUSD(low)} and ${nameUSD(high)}.`,
+    spoken: (spread: Spread, year: number): string => headline(spread, year, nameUSD),
     /** Before the engine returns: no headline number (§1h empty). */
     pending: "Bitcoin\u2019s price, across the futures the model draws.",
     /** The engine's prices overflowed (Probe B2): said plainly, with what to do. */
@@ -58,6 +75,18 @@ export const strings = {
       `\u20BF price \u00B7 ${fmtUSD(median)}`,
       fmtUSDRange(low, high),
     ],
+    /**
+     * The end label for a spread (world/spread.ts), one line or split in two: median plus p5–p95
+     * (N ≥ 20) or min–max (N < 20); the single value when there is one.
+     */
+    endLines: (spread: Spread, split: boolean): string[] => {
+      if (spread.kind === "one" || spread.kind === "allAt") {
+        return [`\u20BF price \u00B7 ${fmtUSD(spread.value)}`];
+      }
+      return split
+        ? strings.chart.endLabelLines(spread.median, spread.low, spread.high)
+        : [strings.chart.endLabel(spread.median, spread.low, spread.high)];
+    },
   },
   /** §1M: the Models pane as an asset ledger, in this locked order. */
   models: {

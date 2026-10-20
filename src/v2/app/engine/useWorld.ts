@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { WEEKS_PER_EPOCH } from "../../../constants";
 import { useEngineSelector, useEngineSet } from "../../../hooks/use-engine";
@@ -44,6 +44,9 @@ export const useWorld = (values: ModelsValues, now: number, historic = false): W
   const datasets = useEngineSelector(selectDatasets);
   const [busy, setBusy] = useState(false);
   const watch = useMemo(() => recomputeWatch(BUSY_MS, setBusy), []);
+  // Form 2A-r3: the samples of the config last sent, paired with the datasets it brings back
+  // (the coalescer runs the latest config last, so the settled pair is always right).
+  const sent = useRef<number | undefined>(undefined);
 
   useLayoutEffect(() => {
     // Hold every submit (in practice the first) until price and block height are real.
@@ -51,6 +54,7 @@ export const useWorld = (values: ModelsValues, now: number, historic = false): W
     const config = engineConfig(values, inputs, historic);
     if (config === null) return;
     watch.start();
+    sent.current = config.samples;
     set(config);
   }, [values, inputs, historic, set, watch]);
 
@@ -58,7 +62,11 @@ export const useWorld = (values: ModelsValues, now: number, historic = false): W
     watch.done();
   }, [datasets, watch]);
 
-  const bands = useMemo(() => (isSeriesList(datasets) ? priceBands(datasets) : null), [datasets]);
+  const bands = useMemo(() => {
+    const read = isSeriesList(datasets) ? priceBands(datasets) : null;
+    const n = sent.current;
+    return read === null || n === undefined ? read : { ...read, n };
+  }, [datasets]);
   const history = useMemo(
     () => (historic && isSeriesList(datasets) ? historyOf(datasets, now) : null),
     [historic, datasets, now],
