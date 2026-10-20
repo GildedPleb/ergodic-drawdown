@@ -40,7 +40,7 @@
     outline-offset: var(--focus-offset-tight);
   }
 
-  /* Certificate double rule: 1px line, 2px gap, 1px line (--rule-double), drawn with borders, no shadow (R4). */
+  /* Interim (Form): a single 1px rule in --control-line (≥3:1 boundary in both themes). */
   .box {
     position: relative;
     display: grid;
@@ -52,31 +52,15 @@
     background: transparent;
   }
 
-  /* M5: both rules in --control-line (≥3:1 boundary in both themes). */
-  .box::before {
-    content: "";
-    position: absolute;
-    inset: var(--rule-double-gap);
-    border: var(--rule-double-line) solid var(--control-line);
-  }
-
-  /* M4: disabled is a shape change, not colour alone: a single dashed rule, no inner rule. */
+  /* M4: disabled is a shape change, not colour alone: the rule dashed. */
   .root[data-disabled="true"] .box {
     border-style: dashed;
     border-color: var(--text-faint);
   }
 
-  .root[data-disabled="true"] .box::before {
-    border-color: transparent;
-  }
-
   .root[data-state="on"] .box {
     background: var(--accent);
     border-color: var(--accent);
-  }
-
-  .root[data-state="on"] .box::before {
-    border-color: transparent;
   }
 
   .check {

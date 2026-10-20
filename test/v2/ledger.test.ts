@@ -1,3 +1,4 @@
+import { file } from "bun";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
@@ -70,17 +71,16 @@ test("1V: the S&P body reads exactly its one line", () => {
   expect(html.includes('role="combobox"')).toBe(false);
 });
 
-test("1V: the open row's markers: ■, ▴ (expanded), 'Bitcoin · price model', the others muted", () => {
+test("1V (interim): the open row's cues: ▴ (expanded), 'Bitcoin · price model', the others muted", () => {
   const html = render("bitcoin");
   const row = rowOf(html, "bitcoin");
   expect(row.includes('data-state="open"')).toBe(true);
   expect(row.includes('aria-expanded="true"')).toBe(true);
   expect(row.includes("Bitcoin \u00B7 price model")).toBe(true);
-  expect(/class="sel"|class="[^"]*sel[^"]*"/.test(row) || row.includes("asset-sel")).toBe(true);
   expect(row.includes('id="v2-model"')).toBe(true);
   for (const id of ["sp", "inflation"])
     expect(rowOf(html, id).includes('data-state="dim"')).toBe(true);
-  // Closed, the header reads just the name, with no ■.
+  // Closed, the header reads just the name.
   const closed = rowOf(render(null), "bitcoin");
   expect(closed.includes("price model")).toBe(false);
 });
@@ -162,4 +162,31 @@ test("1V: a press that lands in the sheet outside the ledger closes the open row
   outside = true;
   doc.dispatchEvent(new Event("pointerdown"));
   expect(closes).toBe(1);
+});
+
+const PRIMITIVES = `${import.meta.dir}/../../src/v2/design/primitives`;
+
+test("interim ledger: no row draws a box or double rule; one hairline between rows; nothing before the name", async () => {
+  const css = await file(`${PRIMITIVES}/AssetRow/AssetRow.module.css`).text();
+  expect(css.includes("double")).toBe(false);
+  // No border shorthand but the header button's reset (border: 0).
+  expect(/(^|[^-])border:\s*(?!0;)\S/m.test(css)).toBe(false);
+  expect(css.includes("border-inline")).toBe(false);
+  // The only rule: one hairline on the top of every row after the first.
+  expect(css.match(/border-block-(start|end)\s*:[^;]*;/g)).toEqual([
+    "border-block-start: var(--rule-hair) solid var(--control-line);",
+  ]);
+  expect(/\.root \+ \.root\s*\{\s*border-block-start/.test(css)).toBe(true);
+  // The colour mark and ■ are hidden (the markup stays until Form's replacement spec).
+  expect(/\.mark,\s*\.sel,[^{]*\{\s*display: none;/.test(css)).toBe(true);
+  // The open row keeps its --hover fill as the cue; the body is inset 1rem on both sides.
+  expect(/\[data-state="open"\]\s*\{\s*background: var\(--hover\);\s*\}/.test(css)).toBe(true);
+  expect(css.includes("padding: 0 var(--tray-indent) var(--s-4);")).toBe(true);
+});
+
+test("interim ledger: the tick box is a single line (no inner rule)", async () => {
+  const css = await file(`${PRIMITIVES}/TickToggle/TickToggle.module.css`).text();
+  expect(css.includes("::before")).toBe(false);
+  expect(css.includes("rule-double-gap")).toBe(false);
+  expect(css.includes("border: var(--rule-double-line) solid var(--control-line);")).toBe(true);
 });

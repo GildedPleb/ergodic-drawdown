@@ -329,3 +329,10 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   placement (`.reset`, top right). The position bar, the clip to the plot and the eased Y are
   drawn on the canvas (no CSS); the grabbing cursor while panning is `--cursor-drag` set on
   `<html>`. No new tokens.
+- Interim ledger (Form; CSS only, markup and behaviour unchanged): 60,083 B source / 8,393 B
+  gzip; −51 measured against e9e82d9 (8,444). Rows: one hairline between rows
+  (`.root + .root`), no double rule round the open row (its `--hover` fill and the muted others
+  stay as the open cue); the colour mark and ■ hidden with `display: none` (the spans stay until
+  the replacement spec); the body inset `--tray-indent` (1rem) on both sides, so Selects and trays
+  sit 1rem in from the pane on the left and right. TickToggle: the box is one rule (the inner
+  `::before` rule and its two overrides removed). No new tokens.

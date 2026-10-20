@@ -1,12 +1,12 @@
 @layer primitives {
-  /* §1M ledger entry; §1V: open, the double rule wraps header and body; others fall back muted. */
-  .root {
-    border-block-end: var(--rule-hair) solid var(--control-line);
+  /* §1M ledger entry. Interim (Form): a single hairline between rows and no box round any row;
+     open is the --hover fill, the others fall back muted. */
+  .root + .root {
+    border-block-start: var(--rule-hair) solid var(--control-line);
   }
 
   .root[data-state="open"] {
     background: var(--hover);
-    border: var(--rule-double) double var(--control-line);
   }
 
   .root[data-state="dim"] {
@@ -36,21 +36,11 @@
     scale: 1 -1;
   }
 
-  /* The colour mark (a neutral --rule square until the palette assigns one) and ■, open. */
+  /* Interim (Form): no colour mark and no ■ before the name; hidden here, the markup unchanged. */
   .mark,
-  .sel {
-    flex: none;
-    inline-size: var(--radio-box);
-    block-size: var(--radio-box);
-    background: var(--rule);
-  }
-
+  .sel,
   .root[data-kind="supported"] .mark {
-    background: var(--btc);
-  }
-
-  .sel {
-    background: var(--accent);
+    display: none;
   }
 
   .text {
@@ -66,10 +56,10 @@
     font: italic var(--t-caption) var(--f-text);
   }
 
-  /* The body: indented like the Select's tray, inside the row's frame. */
+  /* The body: Selects and trays inset --tray-indent (1rem) from both sides of the pane. */
   .body {
     display: grid;
     gap: var(--s-4);
-    padding: 0 0 var(--s-4) var(--tray-indent);
+    padding: 0 var(--tray-indent) var(--s-4);
   }
 }
