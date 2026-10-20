@@ -49,6 +49,9 @@ test("2A: the tick row sits first in Bitcoin's open frame, labelled, off unless 
   expect(at > 0).toBe(true);
   expect(at < off.indexOf('id="grp-price-model"')).toBe(true);
   expect(off.slice(off.lastIndexOf("<button", at), at).includes('aria-checked="false"')).toBe(true);
+  // r2 (Form): just the tick and the label, no ON/OFF word.
+  const row = off.slice(off.lastIndexOf("<button", at), off.indexOf("</button>", at));
+  expect(row.includes(">OFF<") || row.includes(">ON<")).toBe(false);
   const on = sheetHtml(true);
   const atOn = on.indexOf(strings.models.showHistoric);
   expect(on.slice(on.lastIndexOf("<button", atOn), atOn).includes('aria-checked="true"')).toBe(

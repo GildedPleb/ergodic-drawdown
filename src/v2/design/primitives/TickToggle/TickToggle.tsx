@@ -17,6 +17,8 @@ export type TickToggleProps = {
   onChange?: (next: boolean) => void;
   /** §1M ledger tick box: only ON/OFF shows; the label names the switch for assistive tech. */
   labelHidden?: boolean;
+  /** §2A r2 (Form): false drops the ON/OFF word, leaving the tick and the label. */
+  stateWord?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export const TickToggle = ({
   disabled = false,
   onChange,
   labelHidden = false,
+  stateWord = true,
 }: TickToggleProps): JSX.Element => {
   const root = styles["root"] ?? "tick-root";
   const box = styles["box"] ?? "tick-box";
@@ -60,9 +63,11 @@ export const TickToggle = ({
         </span>
       </span>
       {/* m3: the state is aria-checked; the ON/OFF word is visual only. */}
-      <span className={labelCls} aria-hidden="true">
-        {checked ? "ON" : "OFF"}
-      </span>
+      {stateWord ? (
+        <span className={labelCls} aria-hidden="true">
+          {checked ? "ON" : "OFF"}
+        </span>
+      ) : null}
       {labelHidden ? (
         <VisuallyHidden>{label}</VisuallyHidden>
       ) : (

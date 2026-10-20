@@ -295,6 +295,7 @@ export const ModelsSheet = ({
             {/* §2A: directly under the asset's headline, the existing tick box only. */}
             <TickToggle
               label={strings.models.showHistoric}
+              stateWord={false}
               checked={historic}
               onChange={(next) => onHistoric?.(next)}
             />
