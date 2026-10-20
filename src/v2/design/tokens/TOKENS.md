@@ -362,3 +362,8 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
 - §2A r2 end label (Form): canvas only, CSS ±0. A top-right plate steps down off the $ gridlines
   (8px clear) while it fits; where they are too dense its rows drop the $ labels out to the edge;
   the leader leaves the plate edge that faces the line's end; label and leader clip to the plot.
+- §1L.4 nine series (Form): 61,763 B source / 8,598 B gzip, +13 (8,585 before). One semantic
+  token, `--band-gain`: dark `1` (the spec ladder .04/.07/.11/.18), linen `1.6` (.064/.112/.176/
+  .288). At the spec ladder linen's .04→.07 step is ΔE 1.84 on --ground (under a JND); ×1.6 puts
+  every step at ΔE ≥ 2.97 (dark's smallest is 3.98). Read by `draw.ts` paint `bandGain`; the
+  four fills (min–max, p1–p99, p5–p95, p25–p75) are canvas, no outlines.
