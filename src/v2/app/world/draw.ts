@@ -590,14 +590,15 @@ export const drawWorld = (
     }
   }
 
+  // Everything plotted is clipped to the plot rect (§2A r2): nothing past its left or right edge
+  // (§1T), above its top or below its floor, even mid-ease or while the sheet resizes.
+  x.save();
+  x.beginPath();
+  x.rect(box.L, box.T, box.R - box.L, box.Bt - box.T);
+  x.clip();
   // Quantile bands, casing, median.
   if (bands !== null) {
     // §1L.4: three nested fills, no outline on any band edge; the edges are the steps in fill.
-    // §1T: nothing outside the plot's left and right edges.
-    x.save();
-    x.beginPath();
-    x.rect(box.L, 0, box.R - box.L, height);
-    x.clip();
     x.fillStyle = p.price;
     fill(x, bands.p1, bands.p99, ALPHA_OUTER, frame);
     fill(x, bands.p5, bands.p95, ALPHA_MIDDLE, frame);
@@ -618,15 +619,10 @@ export const drawWorld = (
       x.lineTo(box.R, box.T + 0.5);
       x.stroke();
     }
-    x.restore();
   }
 
   // §2A: the traded price, 1px solid in the asset's colour, every vertex a real weekly print.
   if (history !== null && history !== undefined && history.t.length > 0) {
-    x.save();
-    x.beginPath();
-    x.rect(box.L, 0, box.R - box.L, height);
-    x.clip();
     x.strokeStyle = p.price;
     x.lineWidth = 1;
     x.lineJoin = "miter";
@@ -638,8 +634,8 @@ export const drawWorld = (
       else x.lineTo(px, py);
     }
     x.stroke();
-    x.restore();
   }
+  x.restore();
 
   // $ tick labels. Every gridline is labelled (Form, n4 revision): a label too wide for the right
   // margin ($1,000T and up, $1.23×10²¹) sits just inside the plot, right-aligned above its

@@ -6,6 +6,8 @@ import {
   BAND_VISIBLE,
   type Ctx2D,
   drawWorld,
+  fittedDomain,
+  targetDomain,
   layerAlphas,
   endLabelAt,
   LABEL_LINE,
@@ -82,11 +84,15 @@ const recorder = (): { ctx: Ctx2D; texts: string[]; ops: Op[]; measured: Op[] } 
     },
     setLineDash: noop,
     save: noop,
-    restore: noop,
+    restore: () => {
+      ops.push({ op: "restore", x: 0, y: 0, style: "" });
+    },
     rect: (x: number, y: number, w: number, h: number) => {
       ops.push({ op: "rect", x, y, w, h, style: "" });
     },
-    clip: noop,
+    clip: () => {
+      ops.push({ op: "clip", x: 0, y: 0, style: "" });
+    },
     fillText: (t: string, x: number, y: number) => {
       texts.push(t);
       ops.push({ op: "fillText", x, y, style: style(), t, font: ctx.font, align: ctx.textAlign });
@@ -690,9 +696,9 @@ test("1T zoomed: bands clip to the plot, the window's ends sit on its edges, Tod
     },
     longBands,
   );
-  // One clip rect: the plot's left and right edges (L=34, R=1396).
+  // One clip rect: the plot rect (L=34, R=1396, T=18, Bt=866).
   expect(ops.filter((o) => o.op === "rect")).toEqual([
-    { op: "rect", x: 34, y: 0, w: 1362, h: 900, style: "" },
+    { op: "rect", x: 34, y: 18, w: 1362, h: 848, style: "" },
   ]);
   expect(texts.some((t) => t.startsWith("Today"))).toBe(false);
   expect(texts.some((t) => t.startsWith("\u20BF price"))).toBe(false);
@@ -823,4 +829,81 @@ test("2A: zoomed with history on, the position bar is the window's share of the 
     h: 2,
     style: PAINT.today,
   });
+});
+
+/** A history whose prints run far outside the bands: $0.06 up to $90M, 520 weeks back. */
+const wildHistory = (): { t: Float64Array; y: Float64Array; past: number } => {
+  const past = 520;
+  const t = Float64Array.from({ length: past + 1 }, (_, i) => i - past);
+  const y = Float64Array.from(t, (w) => (w === -400 ? 9e7 : 0.06 * 1.03 ** (w + past)));
+  return { t, y, past };
+};
+
+test("2A r2: every band, median and historic vertex is painted inside one plot-rect clip", () => {
+  for (const view of [undefined, { from: -520, to: -100 }, { from: 200, to: 600 }]) {
+    const { ctx, ops } = recorder();
+    drawWorld(
+      ctx,
+      PAINT,
+      {
+        width: 390,
+        height: 400,
+        dpr: 1,
+        now: NOW,
+        horizon: 1040,
+        history: wildHistory(),
+        // A stale, eased domain (mid-ease or mid-resize) far tighter than the data.
+        domain: { lo: 1e5, hi: 1e7 },
+        ...(view && { view }),
+      },
+      longBands,
+    );
+    const box = plotBox(390, 400);
+    const rects = ops.filter((o) => o.op === "rect");
+    expect(rects).toEqual([
+      { op: "rect", x: box.L, y: box.T, w: box.R - box.L, h: box.Bt - box.T, style: "" },
+    ]);
+    const clip = ops.findIndex((o) => o.op === "clip");
+    const restore = ops.findIndex((o, i) => i > clip && o.op === "restore");
+    const priced = ops
+      .map((o, i) => ({ o, i }))
+      .filter(({ o }) => (o.op === "lineTo" || o.op === "fill") && o.style === PAINT.price);
+    expect(priced.length).toBeGreaterThanOrEqual(1);
+    // The trace and the bands are inside the clip; only the end label (text) paints price after.
+    expect(priced.every(({ i }) => i > clip && i < restore)).toBe(true);
+  }
+});
+
+test("2A r2: with history in view the Y fit holds its true extremes, not trimmed to p1–p99", () => {
+  if (longBands === null) throw new Error("bands");
+  const h = wildHistory();
+  const full = fittedDomain(longBands, h);
+  expect(full.lo <= 0.06 && full.hi >= 9e7).toBe(true);
+  // Zoomed onto the history alone: the window's own prints, highest and lowest.
+  const win = targetDomain(longBands, h, { from: -450, to: -300 }, true);
+  let low = Number.POSITIVE_INFINITY;
+  let high = 0;
+  h.t.forEach((t, i) => {
+    const v = h.y[i] ?? 0;
+    if (t >= -450 && t <= -300) {
+      low = Math.min(low, v);
+      high = Math.max(high, v);
+    }
+  });
+  expect(high).toBe(9e7);
+  expect(win.lo <= low && win.hi >= high).toBe(true);
+  // So every drawn vertex of the trace lands inside the plot, top to floor.
+  const { ctx, ops } = recorder();
+  drawWorld(
+    ctx,
+    PAINT,
+    { width: 390, height: 400, dpr: 1, now: NOW, horizon: 1040, history: h, domain: full },
+    longBands,
+  );
+  const box = plotBox(390, 400);
+  const trace = ops.filter(
+    (o) => (o.op === "lineTo" || o.op === "moveTo") && o.style === PAINT.price && o.x < box.L + 100,
+  );
+  expect(trace.length).toBeGreaterThanOrEqual(10);
+  expect(trace.every((o) => o.y >= box.T && o.y <= box.Bt)).toBe(true);
 });
