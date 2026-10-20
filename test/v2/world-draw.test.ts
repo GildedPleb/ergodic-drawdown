@@ -596,3 +596,53 @@ test("Form (d): --sup-kern opens 0.06em before an exponent in tick labels too", 
   expect(before?.t).toBe("$1.00\u00D710");
   expect(Math.abs((sup?.x ?? 0) - ((before?.x ?? 0) + 8 * 6 + 0.06 * 12)) < 1e-9).toBe(true);
 });
+
+test("m8 (Probe): gridlines first, then bands and median, then the tick halos and labels", () => {
+  const { ctx, ops } = recorder();
+  const b = pack([1e5, 1e9, 1e12], [1e5, 1e12, 1e14], [1e5, 4.6e15, 5e15]);
+  drawWorld(ctx, PAINT, { width: 1440, height: 900, dpr: 1, now: NOW, horizon: 2 }, b);
+  const isTick = (o: Op): boolean =>
+    (o.op === "fillText" || o.op === "strokeText") &&
+    o.font === PAINT.chart &&
+    (o.t?.startsWith("$") ?? false);
+  const firstLabel = ops.findIndex(isTick);
+  const lastGrid = ops.findLastIndex((o) => o.op === "lineTo" && o.style === PAINT.hairline);
+  const firstBand = ops.findIndex((o) => o.op === "fill");
+  const lastMedian = ops.findLastIndex((o) => o.op === "lineTo" && o.style === PAINT.price);
+  expect(firstLabel > 0 && firstBand > 0 && lastMedian > 0).toBe(true);
+  expect([lastGrid < firstBand, lastMedian < firstLabel]).toEqual([true, true]);
+});
+
+/** Every tick label box against every run of the end label (Probe m10). */
+const endHits = (b: PriceBands, width: number, height: number): string[] => {
+  const { ctx, ops } = recorder();
+  drawWorld(ctx, PAINT, { width, height, dpr: 1, now: NOW, horizon: b.weeks }, b);
+  const label = [...joined(ops, PAINT.serif), ...joined(ops, PAINT.serifUpright)];
+  return joined(ops, PAINT.chart)
+    .filter((l) => l.t.startsWith("$"))
+    .filter((l) =>
+      label.some(
+        (e) => l.left < e.right && l.right > e.left && l.y - 10 < e.y + 4 && l.y + 4 > e.y - 10,
+      ),
+    )
+    .map((l) => l.t);
+};
+
+test("m10 (Probe): no tick label overprints the end label, in every layout", () => {
+  for (let e = 6; e <= 44; e += 1) {
+    const b = pack(
+      [1e5, 10 ** (e - 3), 10 ** (e - 1)],
+      [1e5, 10 ** (e - 2), 10 ** e],
+      [1e5, 10 ** (e - 1), 10 ** (e + 1)],
+    );
+    for (const [w, h] of [
+      [390, 693],
+      [1440, 900],
+      [844, 390],
+    ] as const) {
+      expect(`${String(e)} ${String(w)}: ${endHits(b, w, h).join(",")}`).toBe(
+        `${String(e)} ${String(w)}: `,
+      );
+    }
+  }
+});

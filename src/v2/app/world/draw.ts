@@ -337,6 +337,8 @@ type EndLayout = {
   textWidth: number;
   bottom: number;
   plate: Rect | null;
+  /** What a tick label must stay clear of: the plate, or the bare label's own box (m10). */
+  keepOut: Rect;
 };
 
 /**
@@ -395,7 +397,8 @@ const endLayout = (
           y1: bottom + padY,
         }
       : null;
-  return { lines, all, at, textWidth, bottom, plate };
+  const keepOut = plate ?? { x0: at.x - textWidth, y0: at.y - CAP, x1: at.x, y1: bottom };
+  return { lines, all, at, textWidth, bottom, plate, keepOut };
 };
 
 const serifRuns = (p: Paint): RunFont => ({
@@ -473,6 +476,9 @@ export const drawWorld = (
   const layout =
     bands === null ? null : endLayout(x, p, { box, domain, horizon, short }, bands, overflow);
   const chartRuns: RunFont = { font: p.chart, upright: p.chart, kern: p.supKern * p.chartPx };
+  // m10: a tick whose label would sit on the end label (its plate, or its bare box) is dropped,
+  // gridline and all, in every layout.
+  const ticks: { v: number; y: number; text: string; left: number; base: number }[] = [];
   for (const v of axisTicks(domain)) {
     const y = ly(v, box, domain);
     const text = fmtUSD(v);
@@ -481,28 +487,20 @@ export const drawWorld = (
     const left = inside ? box.R - 4 - w : box.R + 4;
     const base = inside ? y - 3 : y + 3;
     const rect = { x0: left, y0: base - CAP, x1: left + w, y1: base + DESCENT };
-    if (layout?.plate != null && overlaps(rect, layout.plate)) continue;
-    x.strokeStyle = p.hairline;
-    x.setLineDash([1, 3]);
+    if (layout !== null && overlaps(rect, layout.keepOut)) continue;
+    ticks.push({ v, y, text, left, base });
+  }
+  // m8 (Probe): gridlines first; the bands and median next; the halos and labels last, so the
+  // fan passes behind every label.
+  x.strokeStyle = p.hairline;
+  x.setLineDash([1, 3]);
+  for (const { y } of ticks) {
     x.beginPath();
     x.moveTo(box.L, y);
     x.lineTo(box.R, y);
     x.stroke();
-    x.setLineDash([]);
-    // Every gridline is labelled (Form, n4 revision): a label too wide for the right margin
-    // ($1,000T and up, $1.23×10²¹) sits just inside the plot, right-aligned above its gridline.
-    // m8 (Form c): from $1,000T up a 3px --ground halo (paint-order: stroke) keeps the label
-    // legible over the fan.
-    if (v >= HALO_FROM) {
-      x.strokeStyle = p.ground;
-      x.lineWidth = 3;
-      x.lineJoin = "round";
-      drawRuns(x, text, { left }, base, chartRuns, true);
-      x.lineWidth = 1;
-    }
-    x.fillStyle = p.muted;
-    drawRuns(x, text, { left }, base, chartRuns);
   }
+  x.setLineDash([]);
 
   // Baseline.
   x.strokeStyle = p.rule;
@@ -542,6 +540,24 @@ export const drawWorld = (
       x.lineTo(box.R, box.T + 0.5);
       x.stroke();
     }
+  }
+
+  // $ tick labels. Every gridline is labelled (Form, n4 revision): a label too wide for the right
+  // margin ($1,000T and up, $1.23×10²¹) sits just inside the plot, right-aligned above its
+  // gridline. m8 (Form c): from $1,000T up a 3px --ground halo (paint-order: stroke) keeps the
+  // label legible over the fan.
+  x.font = p.chart;
+  x.textAlign = "left";
+  for (const { v, text, left, base } of ticks) {
+    if (v >= HALO_FROM) {
+      x.strokeStyle = p.ground;
+      x.lineWidth = 3;
+      x.lineJoin = "round";
+      drawRuns(x, text, { left }, base, chartRuns, true);
+      x.lineWidth = 1;
+    }
+    x.fillStyle = p.muted;
+    drawRuns(x, text, { left }, base, chartRuns);
   }
 
   // Today line + time bar.
