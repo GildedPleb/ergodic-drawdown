@@ -19,8 +19,55 @@ const top = async (page: Page): Promise<number> =>
 const stop = async (page: Page): Promise<string> =>
   page.evaluate(() => document.querySelector<HTMLElement>("[data-sheet]")?.dataset["sheet"] ?? "");
 
-test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async ({ page }, info) => {
+/** The headline (the chart's accessible name) once the engine has drawn the fan. */
+const DRAWN = /reaches|grows past/;
+const headline = async (page: Page): Promise<string> =>
+  (await page.locator('[data-layer="front"]').getAttribute("aria-label")) ?? "";
+
+/**
+ * How much of the chart is drawn: the share of canvas pixels that differ from the ground (the
+ * top-left pixel), and the canvas height in CSS px. A blanked or cleared canvas reads 0.
+ */
+const ink = async (page: Page): Promise<{ share: number; h: number }> =>
+  page.evaluate(() => {
+    const c = document.querySelector<HTMLCanvasElement>('[data-layer="front"] canvas');
+    const ctx = c?.getContext("2d");
+    if (c === null || c === undefined || ctx === null || ctx === undefined)
+      return { share: 0, h: 0 };
+    if (c.width === 0 || c.height === 0) return { share: 0, h: 0 };
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    const [r, g, b, a] = [d[0] ?? 0, d[1] ?? 0, d[2] ?? 0, d[3] ?? 0];
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const off =
+        Math.abs((d[i] ?? 0) - r) +
+        Math.abs((d[i + 1] ?? 0) - g) +
+        Math.abs((d[i + 2] ?? 0) - b) +
+        Math.abs((d[i + 3] ?? 0) - a);
+      if (off > 24) n += 1;
+    }
+    return { share: n / (d.length / 4), h: c.getBoundingClientRect().height };
+  });
+
+/** Opens the app and waits until the chart has drawn: headline sentence, fan on the canvas. */
+const ready = async (page: Page): Promise<number> => {
   await page.goto("/");
+  await expect.poll(async () => DRAWN.test(await headline(page)), { timeout: 60_000 }).toBe(true);
+  await page.waitForTimeout(300);
+  const { share } = await ink(page);
+  expect(share).toBeGreaterThan(0.02);
+  return share;
+};
+
+/** At every step of a drag the chart keeps its last drawing: headline there, canvas not blank. */
+const kept = async (page: Page, base: number): Promise<void> => {
+  expect(DRAWN.test(await headline(page))).toBe(true);
+  const { share, h } = await ink(page);
+  if (h >= 40) expect(share).toBeGreaterThan(base * 0.3);
+};
+
+test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async ({ page }, info) => {
+  const base = await ready(page);
   const logo = page.locator('[aria-controls="models-sheet"]:not([role="tab"])');
   await expect(logo).toHaveAttribute("aria-expanded", "false");
   const dir = process.env["DRAG_FRAMES"];
@@ -46,6 +93,7 @@ test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async (
     await page.mouse.move(x, y);
     await page.waitForTimeout(60);
     if (i > 1) worst = Math.max(worst, Math.abs((await top(page)) - (t0 + (y - y0))));
+    await kept(page, base);
     await shot(`up-${String(i).padStart(2, "0")}`);
   }
   await page.waitForTimeout(200); // held still: no flick
@@ -54,6 +102,7 @@ test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async (
   expect(worst).toBeLessThanOrEqual(2);
   expect(await stop(page)).not.toBe("closed");
   await expect(logo).toHaveAttribute("aria-expanded", "true");
+  await kept(page, base);
   await shot("up-released");
 
   // Slow drag down from wherever it rests to below the closed position: it hides.
@@ -73,6 +122,7 @@ test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async (
     const got = await top(page);
     // Past closed the sheet rubber-bands (a third), so 1:1 is checked until it gets there.
     if (i > 1 && i < 6) worst = Math.max(worst, Math.abs(got - want));
+    await kept(page, base);
     await shot(`down-${String(i).padStart(2, "0")}`);
   }
   await page.waitForTimeout(200);
@@ -81,13 +131,14 @@ test("item 5: a slow logo drag up opens 1:1, a slow drag down hides it", async (
   expect(worst).toBeLessThanOrEqual(2);
   expect(await stop(page)).toBe("closed");
   await expect(logo).toHaveAttribute("aria-expanded", "false");
+  await kept(page, base);
   await shot("down-released");
 });
 
 test("item 5: a flick snaps in its direction; a tap and the keyboard still toggle", async ({
   page,
 }) => {
-  await page.goto("/");
+  await ready(page);
   const logo = page.locator('[aria-controls="models-sheet"]:not([role="tab"])');
   const box = await logo.boundingBox();
   if (box === null) throw new Error("no logo");
