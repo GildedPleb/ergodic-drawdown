@@ -1,43 +1,20 @@
 @layer primitives {
-  /* Label | value on a grid whose first line is --hit tall in both states (§1N: the row keeps its
-     height while editing); a message, hint or slider adds lines below it, above the hairline. */
+  /* Label | live value on a grid whose first line is --hit tall (§1P: never changes height on
+     focus); the slider takes the second line, and a message or hint the lines below it. */
   .row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: minmax(var(--hit), auto);
     align-items: center;
     gap: 0 var(--s-3);
-    inline-size: 100%;
     padding: 0 var(--s-3);
-    background: transparent;
-    color: var(--text);
-    text-align: start;
-    border: 0;
     border-block-end: 1px solid var(--hairline);
-    border-radius: var(--radius-0);
-  }
-
-  .root[data-open="false"] .row {
-    cursor: pointer;
-  }
-
-  .root[data-open="false"] .row:hover {
-    background: var(--hover);
-  }
-
-  .root[data-open="true"] .row {
-    cursor: default;
-  }
-
-  .row:focus-visible {
-    outline-offset: var(--focus-offset-tight);
   }
 
   .label {
     min-inline-size: 0;
     font-family: var(--f-text);
     font-size: var(--t-row);
-    font-weight: 400;
     line-height: var(--lh-row);
     overflow-wrap: break-word;
     transform: translateY(
@@ -45,13 +22,10 @@
     );
   }
 
-  .value {
-    font-family: var(--f-sans);
-    font-size: var(--t-value);
-    font-weight: 500;
-    font-variant-numeric: var(--figs);
-    line-height: var(--lh-row);
-    text-align: end;
-    transform: translateY(calc(var(--optical-offset-jost) * (var(--t-row) - var(--t-value))));
+  /* §1P: at 30rem of container width the slider sits between the label and the value. */
+  @container (min-width: 30rem) {
+    .row {
+      grid-template-columns: auto minmax(0, 1fr) var(--field-col);
+    }
   }
 }

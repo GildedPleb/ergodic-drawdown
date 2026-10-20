@@ -5,21 +5,15 @@ import { NumberField } from "../NumberField";
 import { Slider } from "../Slider";
 import { LedgerRow } from "./LedgerRow";
 
-/** Plain CSF 3. Stateful so the row really opens its editor. */
+/** Plain CSF 3. Stateful so the live field really commits (§1P: no edit mode). */
 export default { title: "Primitives/LedgerRow" };
 
-const Live = ({
-  label = "Volatility (0-1):",
-  initialOpen = false,
-}: {
-  label?: string;
-  initialOpen?: boolean;
-}): ReactElement => {
-  const [open, setOpen] = useState(initialOpen);
+const Live = ({ label = "Volatility (0-1):" }: { label?: string }): ReactElement => {
   const [value, setValue] = useState(0.1);
   return (
-    <LedgerRow id="ledger-story" label={label} value={String(value)} open={open} onToggle={setOpen}>
+    <LedgerRow id="ledger-story" label={label} htmlFor="ledger-story-input">
       <NumberField
+        id="ledger-story-input"
         label={label}
         labelHidden
         value={value}
@@ -35,12 +29,11 @@ const Live = ({
 export const Default = (): ReactElement => <Live />;
 /** The visual matrix focuses it with the keyboard before the screenshot. */
 export const Focus = (): ReactElement => <Live />;
-export const Editing = (): ReactElement => <Live initialOpen />;
 export const LongText = (): ReactElement => (
   <Live label="Statistical Sample Count (1k-10k): a label long enough to wrap in a narrow pane" />
 );
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
-    <Live initialOpen />
+    <Live />
   </div>
 );

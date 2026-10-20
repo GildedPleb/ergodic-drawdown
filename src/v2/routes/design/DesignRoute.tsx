@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 
-import { type Field, ModelsSheet } from "../../app/models/ModelsSheet";
+import { ModelsSheet } from "../../app/models/ModelsSheet";
 import { defaultModelsValues, type ModelsValues } from "../../app/models/values";
 import * as AmountStories from "../../design/primitives/Amount/Amount.stories";
 
@@ -53,20 +53,13 @@ const GROUPS: Record<string, StoryModule> = {
 const ALIASES: Record<string, string> = { "tick-row": "tick-toggle" };
 
 /** The Models sheet with live state (no engine): every control really commits. */
-const Sheet = ({
-  initial,
-  editing,
-}: {
-  initial?: Partial<ModelsValues>;
-  editing?: Field;
-}): JSX.Element => {
+const Sheet = ({ initial }: { initial?: Partial<ModelsValues> }): JSX.Element => {
   const [values, setValues] = useState<ModelsValues>(() => ({
     ...defaultModelsValues(),
     ...initial,
   }));
   return (
     <ModelsSheet
-      initialEditing={editing}
       values={values}
       onChange={(patch) => {
         setValues((v) => ({ ...v, ...patch }));
@@ -84,7 +77,8 @@ const STORIES = new Map<string, Story>([
   ["models-sheet/linen", () => <Sheet />],
   // §1N: CAGR's tray, and a value cell editing in place.
   ["models-sheet/cagr", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
-  ["models-sheet/editing", () => <Sheet editing="volatility" />],
+  // §1P: no edit mode; the matrix focuses the live value cell (CAGR: R (%) and its focus slider).
+  ["models-sheet/editing", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
 ]);
 for (const [group, mod] of Object.entries(GROUPS)) {
   for (const [name, value] of Object.entries(mod)) {

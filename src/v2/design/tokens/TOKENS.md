@@ -268,3 +268,10 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   under the value cell +10; `--tray-indent` token +9. The crossfade is WAAPI (0 B CSS).
 - Token: `--tray-indent: 1rem` added in `space.css` (§1N: how far a Select's tray, and an asset
   row's settings, sit in from the frame's left edge).
+- **§1P live fields + §1Q focus-range slider: counted against §1N (pre-approved by Keel, cap +150).**
+  Measured 57,900 B source / 8,047 B gzip: +17 on §1N's 8,030, so §1N+§1P+§1Q = +130 of the +150
+  (8,067). Per addition: LedgerRow edit mode removed (button, hover, cursor, value face) about −40;
+  NumberField resting `--control-line` underline turning `--accent` on focus, and the value at
+  column 3 from 30rem +18; LedgerRow 30rem container query (label | slider | value) +12; ModelsSheet
+  `container-type` and slider placement +9; Slider focus marks, the heavier rule at the 80% break
+  and the "50" label +18. No new tokens.

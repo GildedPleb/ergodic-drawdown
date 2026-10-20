@@ -33,14 +33,21 @@ import {
 import { WorldLayer } from "../../src/v2/app/world/WorldLayer";
 import { engineConfig, type WorldInputs } from "../../src/v2/app/engine/config";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
-import { keyStep, snap, trackValue } from "../../src/v2/design/primitives/Slider/Slider";
+import { keyStep } from "../../src/v2/design/primitives/Slider/Slider";
+import {
+  BREAK,
+  focusScale,
+  linearScale,
+  snapTo,
+} from "../../src/v2/design/primitives/Slider/scale";
 
-const VOL = { min: 0, max: 1, step: 0.01 };
+const LIN = linearScale(0, 1, 0.01);
+const VOL = { min: 0, max: 1, step: 0.01, scale: LIN };
 
-test("slider: snap rounds to the step and clamps to the bounds without float dust", () => {
-  expect(snap(0.304_999, 0, 1, 0.01)).toBe(0.3);
-  expect(snap(1.7, 0, 1, 0.01)).toBe(1);
-  expect(snap(-3, 0, 1, 0.01)).toBe(0);
+test("slider: a linear track snaps to the step and clamps to the bounds without float dust", () => {
+  expect(snapTo(0.304_999, 0, 0.01)).toBe(0.3);
+  expect([LIN.toValue(0.25), LIN.toValue(1.7), LIN.toValue(-3)]).toEqual([0.25, 1, 0]);
+  expect([LIN.toPos(0.5), LIN.toPos(2), LIN.breakAt]).toEqual([0.5, 1, null]);
 });
 
 test("slider: arrows step, Page keys step ×10, Home/End jump, other keys are not ours", () => {
@@ -53,11 +60,55 @@ test("slider: arrows step, Page keys step ×10, Home/End jump, other keys are no
   expect(keyStep("a", 0.5, VOL)).toBe(null);
 });
 
-test("slider: the pointer maps across the track box and clamps past its ends", () => {
-  expect(trackValue(150, { left: 100, width: 200 }, VOL)).toBe(0.25);
-  expect(trackValue(400, { left: 100, width: 200 }, VOL)).toBe(1);
-  expect(trackValue(150, { left: 100, width: 0 }, VOL)).toBe(null);
-  expect(trackValue(150, undefined, VOL)).toBe(null);
+// §1Q: R (%) — focus range 0–50 (step 1) on the first 80%, log to the soft top (main's rangeMax).
+const R = focusScale(0, { focusTop: 50, softTop: 1000, step: 1 });
+const RKEYS = { min: 0, max: Infinity, step: 1, scale: R };
+/** A seeded PRNG (mulberry32): property runs are repeatable. */
+const rng = (seed: number): (() => number) => {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+  };
+};
+
+test("1Q property: position→value is monotonic, endpoints exact, continuous at the 80% break", () => {
+  const next = rng(1);
+  const ps = Array.from({ length: 400 }, () => next()).toSorted((a, b) => a - b);
+  const vs = ps.map((p) => R.toValue(p));
+  expect(vs.every((v, i) => i === 0 || v >= (vs[i - 1] ?? 0))).toBe(true);
+  expect([R.toValue(0), R.toValue(BREAK), R.toValue(1)]).toEqual([0, 50, 1000]);
+  expect([R.toPos(0), R.toPos(50), R.toPos(1000)]).toEqual([0, BREAK, 1]);
+  // Continuous: just either side of the break, the value moves by at most one step.
+  const e = 1e-9;
+  expect(Math.abs(R.toValue(BREAK + e) - R.toValue(BREAK - e)) <= 1).toBe(true);
+  expect(Math.abs(R.toPos(50 + 1e-6) - R.toPos(50 - 1e-6)) < 1e-6).toBe(true);
+});
+
+test("1Q property: value→position→value round-trips within one step; the focus range is linear", () => {
+  const next = rng(2);
+  for (let i = 0; i < 400; i += 1) {
+    const v = Math.round(next() * 1000);
+    const back = R.toValue(R.toPos(v));
+    const step = v <= 50 ? 1 : R.stepAt(v, true);
+    expect(`${String(v)}:${String(Math.abs(back - v) <= step)}`).toBe(`${String(v)}:true`);
+  }
+  // Dragging across the first 80% covers 0–50 in steps of 1: every whole value is reachable.
+  const seen = new Set<number>();
+  for (let px = 0; px <= 800; px += 1) seen.add(R.toValue(px / 1000));
+  expect([...seen].toSorted((a, b) => a - b)).toEqual(Array.from({ length: 51 }, (_, k) => k));
+});
+
+test("1Q: typed 5000 is kept and pins the thumb; arrows step 1 inside the focus range", () => {
+  expect(R.toPos(5000)).toBe(1);
+  expect([keyStep("ArrowUp", 28, RKEYS), keyStep("ArrowDown", 28, RKEYS)]).toEqual([29, 27]);
+  expect([keyStep("ArrowDown", 50, RKEYS), keyStep("ArrowUp", 49, RKEYS)]).toEqual([49, 50]);
+  // Above the focus range: about 5% of the value; Page keys 10; never below 0; 5000 steps down.
+  expect([keyStep("ArrowUp", 200, RKEYS), keyStep("PageUp", 28, RKEYS)]).toEqual([210, 38]);
+  expect([keyStep("PageDown", 3, RKEYS), keyStep("ArrowDown", 5000, RKEYS)]).toEqual([0, 4750]);
+  expect([keyStep("Home", 300, RKEYS), keyStep("End", 3, RKEYS)]).toEqual([0, 1000]);
 });
 
 const io = (saved: string[][]): InputsIO => ({

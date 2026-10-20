@@ -112,13 +112,23 @@
     min-block-size: 0;
     padding: 0;
     border: 0;
-    border-block-end: var(--rule-hair) solid var(--accent);
+    border-block-end: var(--rule-hair) solid var(--control-line);
     background: transparent;
     line-height: var(--lh-row);
   }
 
+  .root[data-label="hidden"] .control:focus {
+    border-block-end-color: var(--accent);
+  }
+
   .root[data-label="hidden"] .hint {
     grid-column: 1 / -1;
+  }
+
+  @container (min-width: 30rem) {
+    .root[data-label="hidden"] .control {
+      grid-area: 1 / 3;
+    }
   }
 
   .errorIcon {

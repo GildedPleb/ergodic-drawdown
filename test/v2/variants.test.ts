@@ -3,7 +3,6 @@ import { expect, test } from "bun:test";
 import { variants as shell } from "../../src/v2/app/shell/AppShell";
 import { variants as amount } from "../../src/v2/design/primitives/Amount/Amount";
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
-import { variants as ledger } from "../../src/v2/design/primitives/LedgerRow/LedgerRow";
 import { variants as select } from "../../src/v2/design/primitives/Select/Select";
 import { variants as slider } from "../../src/v2/design/primitives/Slider/Slider";
 import { variants as cluster } from "../../src/v2/design/primitives/Cluster/Cluster";
@@ -47,6 +46,6 @@ test("R7: exported variants are the data-* values the components render", () => 
     "open",
     "closed",
   ]);
-  expect([...ledger.open, ...slider.disabled]).toEqual(["true", "false", "true", "false"]);
+  expect([...slider.disabled]).toEqual(["true", "false"]);
   expect([...select.placement, ...select.state]).toEqual(["down", "up", "on", "off"]);
 });

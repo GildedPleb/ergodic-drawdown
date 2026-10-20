@@ -4,11 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
 
 import { modelsPaneSchema } from "../../src/v2/app/models";
-import {
-  ModelsSheet,
-  SAMPLE_BOUNDS,
-  type ModelsSheetProps,
-} from "../../src/v2/app/models/ModelsSheet";
+import { ModelsSheet, SAMPLE_BOUNDS } from "../../src/v2/app/models/ModelsSheet";
 import { resolveEntry } from "../../src/v2/design/primitives/NumberField/entry";
 import { defaultModelsValues, type ModelsValues } from "../../src/v2/app/models/values";
 import { strings } from "../../src/v2/app/strings";
@@ -22,14 +18,14 @@ const render = (patch: Partial<ModelsValues> = {}): string =>
     }),
   );
 
-const editor = (field: "volatility" | "samples" | "epochs"): string =>
-  renderToStaticMarkup(
-    createElement(ModelsSheet, {
-      values: defaultModelsValues(),
-      onChange: () => undefined,
-      initialEditing: field,
-    }),
-  );
+/** §1P: every field is live; the markup from the volatility row to the end of a row's group. */
+const editor = (field: "volatility" | "samples" | "epochs"): string => {
+  const html = render();
+  const start = html.indexOf(`id="row-${field}"`);
+  const rest = html.slice(start + 1).search(/id="row-[a-z]+"/);
+  const next = rest < 0 ? -1 : start + 1 + rest;
+  return html.slice(start, next < 0 ? undefined : next);
+};
 
 test("Models sheet: an open row edits in place, with a slider only when both bounds are finite", () => {
   expect(editor("volatility").includes('role="slider"')).toBe(true);
@@ -154,40 +150,37 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   expect(uncovered(list, await loadCmaps())).toEqual([]);
 });
 
-test("main 98d6d60: CAGR R (%) defaults to 20 and clamps to 0..1000 with the standard message", () => {
+test("1Q (supersedes the 0..1000 clamp): R (%) clamps at 0 only; 1000 is the slider's soft top", () => {
   const cagr = modelsPaneSchema.models.find((m) => m.name === "CAGR");
   expect([cagr?.default, cagr?.rangeMin, cagr?.rangeMax]).toEqual([20, 0, 1000]);
-  const html = renderToStaticMarkup(
-    createElement(ModelsSheet, {
-      values: { ...defaultModelsValues(), model: "CAGR", variable: 20 },
-      onChange: () => undefined,
-      initialEditing: "variable",
-    }),
+  const html = render({ model: "CAGR", variable: 28 });
+  const field = html.slice(html.indexOf('id="v2-variable"') - 200, html.indexOf('id="row-minmax"'));
+  // The value cell: no upper bound. The slider: aria-valuenow is the real value, "28 percent".
+  expect(field.includes('aria-valuemin="0"') && !field.includes('aria-valuemax="1000" value')).toBe(
+    true,
   );
-  expect(html.includes('aria-valuemax="1000"') && html.includes('aria-valuemin="0"')).toBe(true);
-  const bounds = { min: 0, max: 1000 };
-  expect(resolveEntry("1500", "float", bounds, 20)).toEqual({
-    kind: "clamped",
-    value: 1000,
-    typed: 1500,
-  });
-  expect(strings.fields.clamped({ name: "R (%)", plural: false }, 0, 1000, 1000)).toBe(
-    "R (%) goes from 0 to 1,000. We used 1,000.",
+  expect(
+    field.includes('aria-valuenow="28"') && field.includes('aria-valuetext="28 percent"'),
+  ).toBe(true);
+  expect(field.includes('aria-valuemax="1000"')).toBe(true); // the slider's soft top
+  // Typed 5000 is kept (no silent coercion), and -5 clamps to 0 with the standard message.
+  const bounds = { min: 0, max: Infinity };
+  expect(resolveEntry("5000", "float", bounds, 20)).toEqual({ kind: "ok", value: 5000 });
+  expect(resolveEntry("-5", "float", bounds, 20)).toEqual({ kind: "clamped", value: 0, typed: -5 });
+  expect(strings.fields.clamped({ name: "R (%)", plural: false }, 0, Infinity, 0)).toBe(
+    "R (%) goes from 0 up. We used 0.",
   );
+  // The focus marks: ticks at 0, 10, 25, 50; only 50 is labelled.
+  expect((field.match(/>50</g) ?? []).length).toBe(1);
+  // Typed 5000: the thumb pins at the right end, the slider still names the real value.
+  const big = render({ model: "CAGR", variable: 5000 });
+  const thumb = big.slice(big.indexOf('role="slider"') - 120, big.indexOf('role="slider"'));
+  expect(thumb.includes("--dyn-at:100%")).toBe(true);
+  expect(big.includes('aria-valuenow="5000"')).toBe(true);
 });
 
 // §1N: the Select tray and in-place editing (one file with the sheet: one module load).
-const renderWith = (
-  patch: Partial<ModelsValues> = {},
-  props: Partial<Omit<ModelsSheetProps, "values" | "onChange">> = {},
-): string =>
-  renderToStaticMarkup(
-    createElement(ModelsSheet, {
-      values: { ...defaultModelsValues(), ...patch },
-      onChange: () => undefined,
-      ...props,
-    }),
-  );
+const renderWith = render;
 const open = renderWith;
 
 /** The element that opens with `<tag ... id="id"` up to its closing `</tag>` (no nesting of tag). */
@@ -247,14 +240,16 @@ test("1N tray: every walk's fields live in the walk Select's tray", () => {
   }
 });
 
-test("1N in place: the value cell becomes the input; no second box, no duplicate value", () => {
-  const html = open({ model: "CAGR", variable: 20 }, { initialEditing: "variable" });
-  const start = html.indexOf('id="row-variable-editor"');
-  expect(start > 0).toBe(true);
-  const row = html.slice(html.lastIndexOf("<div", start), html.indexOf('id="row-minmax"'));
-  expect(row.includes('id="v2-variable"')).toBe(true);
-  // The value appears once: as the input's value, never also as text beside it.
+test("1P live: every value cell is an input and its slider is there with no click; no duplicate", () => {
+  const html = open({ model: "CAGR", variable: 20 });
+  const start = html.indexOf('id="row-variable"');
+  const row = html.slice(start, html.indexOf('id="row-minmax"'));
+  expect(row.includes('id="v2-variable"') && row.includes('role="slider"')).toBe(true);
+  expect(row.includes("<button")).toBe(false);
+  // The label names the input (click focuses it); the value appears once, as the input's value.
+  expect(row.includes('for="v2-variable"')).toBe(true);
   expect((row.match(/>20</g) ?? []).length).toBe(0);
   expect((row.match(/value="20"/g) ?? []).length).toBe(1);
-  expect(html.includes('id="row-variable"')).toBe(false);
+  for (const id of ["v2-vol", "v2-samples", "v2-epochs"])
+    expect(html.includes(`id="${id}"`)).toBe(true);
 });

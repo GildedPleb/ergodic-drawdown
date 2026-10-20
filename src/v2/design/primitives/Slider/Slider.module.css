@@ -33,13 +33,33 @@
     background: var(--accent);
   }
 
-  .tick {
+  /* The previous-value tick; §1Q focus-range marks and the heavier rule at the 80% break. */
+  .tick,
+  .mark,
+  .brk {
     position: absolute;
     inset-inline-start: var(--dyn-was);
     inline-size: 1px;
     block-size: var(--s-3);
     translate: 0 -50%;
     background: var(--text-muted);
+  }
+
+  .mark {
+    block-size: var(--s-2);
+    background: var(--control-line);
+  }
+
+  .brk {
+    inline-size: var(--line-median);
+  }
+
+  .markLabel {
+    position: absolute;
+    inset-block-start: var(--s-3);
+    translate: -50% 0;
+    color: var(--text-muted);
+    font: var(--t-chart) var(--f-sans);
   }
 
   /* 5×18 square thumb; the 2px --surface halo is a border in the surface colour (no shadow, R4). */

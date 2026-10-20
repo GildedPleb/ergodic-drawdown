@@ -45,11 +45,10 @@ test("Slider: role=slider with its range, value and the previous-value tick", ()
   expect(out.includes("--dyn-was")).toBe(true);
 });
 
-test("LedgerRow: the editor is in place only when open", () => {
-  const props = { id: "r", label: "Samples", value: "1,000", onToggle: () => undefined };
-  const closed = html(createElement(LedgerRow, { ...props, open: false }, "editor"));
-  const open = html(createElement(LedgerRow, { ...props, open: true }, "editor"));
-  expect([closed.includes("editor</div>"), open.includes("editor</div>")]).toEqual([false, true]);
+test("LedgerRow (§1P): always live, its label names the value cell; no button, no edit mode", () => {
+  const out = html(createElement(LedgerRow, { id: "r", label: "Samples", htmlFor: "f" }, "field"));
+  expect(out.includes('for="f"') && out.includes("field</div>")).toBe(true);
+  expect(out.includes("<button")).toBe(false);
 });
 
 test("GrabPoint: a named button reporting the sheet's expanded state", () => {

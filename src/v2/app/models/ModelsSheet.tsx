@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 import { MAX_EPOCH_COUNT } from "../../../constants";
-import { useState } from "react";
 
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
@@ -10,6 +9,7 @@ import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Select } from "../../design/primitives/Select";
 import { Slider } from "../../design/primitives/Slider";
+import { focusScale } from "../../design/primitives/Slider/scale";
 import { TickToggle } from "../../design/primitives/TickToggle";
 import { strings } from "../strings";
 import styles from "./ModelsSheet.module.css";
@@ -38,8 +38,6 @@ export const SAMPLE_BOUNDS = {
   max: controls.samples.accept.max,
 };
 
-export type Field = "variable" | "minMaxMultiple" | "volatility" | "samples" | "epochs";
-
 type EditorProps = {
   id: string;
   label: string;
@@ -51,11 +49,21 @@ type EditorProps = {
   who: { name: string; plural: boolean };
   slider: boolean;
   hint?: string | undefined;
+  /** §1Q: the soft top for a field in the focus-range table (the model's rangeMax). */
+  softTop?: number | undefined;
   onCommit: (n: number) => void;
 };
 
-/** The in-place editor: the NumberField (Probe gate) plus a slider when both bounds are finite. */
+/**
+ * One live field (§1P): the NumberField (Probe gate) as the value cell, plus a slider when both
+ * bounds are finite or the field has a focus range (§1Q).
+ */
 const Editor = (p: EditorProps): JSX.Element => {
+  const focus = strings.fields.focus[p.label];
+  const scale =
+    focus === undefined || p.softTop === undefined
+      ? undefined
+      : focusScale(p.bounds.min, { ...focus, softTop: p.softTop });
   const finite = Number.isFinite(p.bounds.min) && Number.isFinite(p.bounds.max);
   const slide = styles["slide"] ?? "models-slide";
   return (
@@ -76,14 +84,19 @@ const Editor = (p: EditorProps): JSX.Element => {
         }
         onCommit={p.onCommit}
       />
-      {p.slider && finite ? (
+      {p.slider && (finite || scale !== undefined) ? (
         <div className={slide}>
           <Slider
             label={p.label}
             value={p.value}
             min={p.bounds.min}
             max={p.bounds.max}
-            step={p.step}
+            step={focus?.step ?? p.step}
+            scale={scale}
+            marks={focus?.marks.map((value) =>
+              value === focus.labelled ? { value, label: count(value) } : { value },
+            )}
+            valueText={focus?.spoken}
             onCommit={p.onCommit}
           />
         </div>
@@ -95,31 +108,21 @@ const Editor = (p: EditorProps): JSX.Element => {
 export type ModelsSheetProps = {
   values: ModelsValues;
   onChange: (patch: Partial<ModelsValues>) => void;
-  /** Stories and tests: a field whose value cell starts editing. */
-  initialEditing?: Field | undefined;
 };
 
 /**
  * The v32 Models pane: every back-end setting in Certificate controls, in the back end's own words (§1f); a field that exists only because of a Select's
  * choice lives in that Select's tray (§1N). Rows a model hides are removed, never disabled.
  */
-export const ModelsSheet = ({
-  values,
-  onChange,
-  initialEditing,
-}: ModelsSheetProps): JSX.Element => {
-  const [editing, setEditing] = useState<Field | null>(initialEditing ?? null);
-  const toggle =
-    (field: Field) =>
-    (open: boolean): void => {
-      setEditing(open ? field : null);
-    };
-
+export const ModelsSheet = ({ values, onChange }: ModelsSheetProps): JSX.Element => {
   const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
+  // §1Q (Rule 0, Form): R (%) accepts 0 to ∞; only the slider's mapping is front end. The model's
+  // rangeMax (G12-mirrored) is the slider's soft top, not a clamp.
   const varBounds: Bounds = {
     min: meta === undefined || meta.rangeMin === "Infinity" ? 0 : meta.rangeMin,
-    max: meta === undefined || meta.rangeMax === "Infinity" ? Infinity : meta.rangeMax,
+    max: Infinity,
   };
+  const softTop = meta === undefined || meta.rangeMax === "Infinity" ? undefined : meta.rangeMax;
   const volStep =
     values.walk === "Bubble" ? controls.volatility.stepBubble : controls.volatility.stepOther;
 
@@ -129,14 +132,7 @@ export const ModelsSheet = ({
 
   const variableRow =
     meta?.showVariable === true ? (
-      <LedgerRow
-        key={values.model}
-        id="row-variable"
-        label={meta.varInput}
-        value={count(values.variable)}
-        open={editing === "variable"}
-        onToggle={toggle("variable")}
-      >
+      <LedgerRow key={values.model} id="row-variable" label={meta.varInput} htmlFor="v2-variable">
         <Editor
           id="v2-variable"
           label={meta.varInput}
@@ -146,6 +142,7 @@ export const ModelsSheet = ({
           step={controls.variable.step}
           emptyValue={null}
           who={noun(meta.varInput)}
+          softTop={softTop}
           slider
           onCommit={(variable) => {
             onChange({ variable });
@@ -156,13 +153,7 @@ export const ModelsSheet = ({
 
   const minMaxRow =
     meta?.showMinMaxMultiple === true ? (
-      <LedgerRow
-        id="row-minmax"
-        label="+/-"
-        value={count(values.minMaxMultiple)}
-        open={editing === "minMaxMultiple"}
-        onToggle={toggle("minMaxMultiple")}
-      >
+      <LedgerRow id="row-minmax" label="+/-" htmlFor="v2-minmax">
         <Editor
           id="v2-minmax"
           label="+/-"
@@ -190,13 +181,7 @@ export const ModelsSheet = ({
 
   const walkTray = (
     <>
-      <LedgerRow
-        id="row-volatility"
-        label={controls.volatility.label}
-        value={String(values.volatility)}
-        open={editing === "volatility"}
-        onToggle={toggle("volatility")}
-      >
+      <LedgerRow id="row-volatility" label={controls.volatility.label} htmlFor="v2-vol">
         <Editor
           id="v2-vol"
           label={controls.volatility.label}
@@ -244,7 +229,6 @@ export const ModelsSheet = ({
           options={modelsPaneSchema.modelOrder}
           value={values.model}
           onChange={(name) => {
-            setEditing(null);
             onChange(choosePatch(name));
           }}
           tray={modelTray}
@@ -269,13 +253,7 @@ export const ModelsSheet = ({
       </div>
       <div className={section} role="group" aria-labelledby="grp-simulation">
         <SectionLabel text={strings.sections.simulation} level="group" id="grp-simulation" />
-        <LedgerRow
-          id="row-samples"
-          label={controls.samples.label}
-          value={count(values.samples)}
-          open={editing === "samples"}
-          onToggle={toggle("samples")}
-        >
+        <LedgerRow id="row-samples" label={controls.samples.label} htmlFor="v2-samples">
           <Editor
             id="v2-samples"
             label={controls.samples.label}
@@ -291,13 +269,7 @@ export const ModelsSheet = ({
             }}
           />
         </LedgerRow>
-        <LedgerRow
-          id="row-epochs"
-          label={controls.epochs.label}
-          value={count(values.epochCount)}
-          open={editing === "epochs"}
-          onToggle={toggle("epochs")}
-        >
+        <LedgerRow id="row-epochs" label={controls.epochs.label} htmlFor="v2-epochs">
           <Editor
             id="v2-epochs"
             label={controls.epochs.label}

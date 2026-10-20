@@ -5,6 +5,7 @@
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s-5);
     min-inline-size: 0;
+    container-type: inline-size;
   }
 
   .section {
@@ -17,8 +18,14 @@
     display: grid;
   }
 
-  /* §1N: a row's slider sits under its value cell, across the row. */
+  /* §1P: a row's slider takes the row's second line; from 30rem it sits between label and value. */
   .slide {
     grid-column: 1 / -1;
+  }
+
+  @container (min-width: 30rem) {
+    .slide {
+      grid-area: 1 / 2;
+    }
   }
 }

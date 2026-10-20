@@ -76,6 +76,31 @@ export const strings = {
     },
   },
   fields: {
+    /**
+     * §1Q: each field's focus-range slider, keyed by the back end's label. The first 80% of the
+     * track is linear across 0…focusTop; the rest is log up to the soft top (the model's own
+     * rangeMax, G12-mirrored). Marks are small ticks; only `labelled` shows its number. A field
+     * with no entry gets a plain linear slider.
+     */
+    focus: {
+      "R (%)": {
+        focusTop: 50,
+        step: 1,
+        marks: [0, 10, 25, 50],
+        labelled: 50,
+        spoken: (n: number): string => `${count(n)} percent`,
+      },
+    } as Record<
+      string,
+      | {
+          focusTop: number;
+          step: number;
+          marks: number[];
+          labelled: number;
+          spoken: (n: number) => string;
+        }
+      | undefined
+    >,
     /** Clamp (Gap 11): the value used is shown, not silently swapped. */
     clamped: (noun: Noun, min: number, max: number, used: number): string =>
       `${noun.name} ${noun.plural ? "go" : "goes"} ${range(min, max)}. We used ${count(used)}.`,

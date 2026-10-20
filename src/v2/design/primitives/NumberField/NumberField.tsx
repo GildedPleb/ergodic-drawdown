@@ -85,6 +85,8 @@ export const NumberField = ({
   const hintId = `${controlId}-hint`;
 
   const input = useRef<HTMLInputElement | null>(null);
+  // §1P: a click that focuses the field selects its whole value, so typing replaces it.
+  const pressedIn = useRef(false);
   const [draft, setDraft] = useState(() => showNumber(value));
   const [status, setStatus] = useState<Status>({ kind: "ok" });
   const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value });
@@ -246,6 +248,18 @@ export const NumberField = ({
             held.current = false;
             if (wheel.flush()) return;
             if (draft !== showNumber(value) || status.kind === "invalid") commit(draft);
+          }}
+          onFocus={(event) => {
+            event.currentTarget.select();
+          }}
+          onPointerDown={(event) => {
+            pressedIn.current = document.activeElement !== event.currentTarget;
+          }}
+          onPointerUp={(event) => {
+            if (!pressedIn.current) return;
+            pressedIn.current = false;
+            event.preventDefault();
+            event.currentTarget.select();
           }}
           onKeyDown={onKeyDown}
           onKeyUp={onKeyUp}
