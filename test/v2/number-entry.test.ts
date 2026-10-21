@@ -465,3 +465,46 @@ test("Probe R2 m3 / ruling 4: the spoken value is the shown one, the ×10 form i
   );
   expect(big.includes(`1\u00A0×\u00A010³⁰⁰`) && !big.includes("000,000")).toBe(true);
 });
+
+test("Form 2a / 4c: counts round on commit; R and +/- rest at 2 decimals (×10 at 3 figures); a focused field keeps what was typed", async () => {
+  const { keptText, shownAt, speakNumber } =
+    await import("../../src/v2/design/primitives/NumberField/entry");
+  const HALVINGS = { min: 2, max: 3 };
+  // 2a: a count rounds to the nearest whole number, then the range applies.
+  expect(resolveEntry("2.5", "float", HALVINGS, null, true)).toEqual({ kind: "ok", value: 3 });
+  expect(resolveEntry("2.4", "float", HALVINGS, null, true)).toEqual({ kind: "ok", value: 2 });
+  expect(resolveEntry("3.7", "float", HALVINGS, null, true)).toEqual({
+    kind: "clamped",
+    value: 3,
+    typed: 4,
+  });
+  expect(resolveEntry("2.5", "float", HALVINGS, null)).toEqual({ kind: "ok", value: 2.5 }); // R
+  // 2a: at rest, 2 decimals for an ordinary value (trailing zeros dropped), 3 figures in ×10 form.
+  const X = "\u00A0×\u00A010";
+  const rest = shownAt(2);
+  expect([123.456789, 50, 3.1, 1.005, 0.001, -0.004, 999_999.999].map(rest)).toEqual([
+    "123.46",
+    "50",
+    "3.1",
+    "1",
+    "0",
+    "0",
+    "1,000,000",
+  ]);
+  expect(rest(1_234_567_890_123)).toBe(`1.23${X}¹²`);
+  expect(shownAt()(123.456789)).toBe("123.456789"); // other fields are unchanged
+  expect(speakNumber(123.456789, 2)).toBe("123.46"); // spoken as shown
+  // 4c: after Enter the focused field keeps the typed digits when they are the value used;
+  // otherwise (rounded, clamped, emptied) it shows the value used.
+  expect(keptText("1234567890123", "float", 1_234_567_890_123)).toBe("1234567890123");
+  expect(keptText("123.456789", "float", 123.456789)).toBe("123.456789");
+  expect(keptText("2.5", "float", 3)).toBe("3");
+  expect(keptText("5000", "float", 1000)).toBe("1,000");
+  // SSR at rest: R shows (and speaks) 123.46; the full value stays in aria-valuenow.
+  const html = renderToStaticMarkup(
+    createElement(NumberField, { id: "r", label: "R (%)", value: 123.456789, places: 2 }),
+  );
+  expect(html.includes('value="123.46"')).toBe(true);
+  expect(html.includes('aria-valuetext="123.46"')).toBe(true);
+  expect(html.includes('aria-valuenow="123.456789"')).toBe(true);
+});

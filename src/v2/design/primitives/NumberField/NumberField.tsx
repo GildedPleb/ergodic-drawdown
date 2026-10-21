@@ -10,7 +10,8 @@ import {
   parseNumber,
   resolveEntry,
   editNumber,
-  showNumber,
+  keptText,
+  shownAt,
   speakNumber,
   stepValue,
 } from "./entry";
@@ -38,6 +39,10 @@ export type NumberFieldProps = {
   bounds?: Bounds;
   /** What an empty field commits; null: empty is invalid. */
   emptyValue?: number | null;
+  /** Form 2a: a count (e.g. Previous Halvings): a typed number rounds to a whole one on commit. */
+  whole?: boolean;
+  /** Form 2a: at rest, an ordinary value shows rounded to this many decimals (R, +/-: 2). */
+  places?: number | undefined;
   /** Arrow-key step (PgUp/PgDn step ×10). */
   step?: number;
   /** Message after a clamp, e.g. "Volatility goes from 0 to 1. We used 1." */
@@ -67,9 +72,16 @@ type Status = { kind: "ok" } | { kind: "clamped"; used: number } | { kind: "inva
  * or when the wheel settles (settle.ts). A step that lands on a bound shows the same clamp message
  * on commit (Probe m6).
  */
-/** Form ruling 4: a ×10 value is spoken in words ("1.2 times 10 to the 12"), never as digits. */
-const spokenOf = (value: number): string | undefined =>
-  showNumber(value).includes("×") ? speakNumber(value) : undefined;
+/**
+ * Form ruling 4: a ×10 value is spoken in words ("1.2 times 10 to the 12"), never as digits; 4a/2a:
+ * whenever the resting text isn't the full value, it is what's spoken.
+ */
+const spokenOf = (value: number, places?: number): string | undefined => {
+  const shown = shownAt(places)(value);
+  return shown.includes("×") || shown !== editNumber(value)
+    ? speakNumber(value, places)
+    : undefined;
+};
 
 export const NumberField = ({
   label,
@@ -79,6 +91,8 @@ export const NumberField = ({
   parse = "float",
   bounds = ANY,
   emptyValue = null,
+  whole = false,
+  places,
   step,
   clampMessage,
   invalidMessage,
@@ -96,12 +110,15 @@ export const NumberField = ({
   // §1P: a click that focuses the field selects its whole value, so typing replaces it.
   const pressedIn = useRef(false);
   const [draft, setDraft] = useState(() => editNumber(value));
-  // Form 4a: focused, the full typed value; at rest, a ×10 value at 3 significant figures.
+  // 4a/4c/2a: the text of the last commit (as typed, or the value used). Focused, or mid-edit,
+  // the field shows its draft; at rest, the resting form (×10 at 3 significant figures, R and
+  // +/- at 2 decimals).
+  const clean = useRef(draft);
   const [focused, setFocused] = useState(false);
-  const display = focused || draft !== editNumber(value) ? draft : showNumber(value);
+  const display = focused || draft !== clean.current ? draft : shownAt(places)(value);
   const [status, setStatus] = useState<Status>({ kind: "ok" });
-  const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value });
-  live.current = { bounds, draft, emptyValue, onCommit, parse, step, value };
+  const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value, whole });
+  live.current = { bounds, draft, emptyValue, onCommit, parse, step, value, whole };
   const held = useRef(false);
   // m6: the last step (key or wheel) stopped on a finite bound.
   const atBound = useRef(false);
@@ -111,7 +128,7 @@ export const NumberField = ({
 
   const commit = (text: string, stepped = false): void => {
     const now = live.current;
-    const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue);
+    const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue, now.whole);
     if (result.kind === "invalid") {
       setStatus({ kind: "invalid" });
       return;
@@ -120,7 +137,9 @@ export const NumberField = ({
       sent.current = result.value;
       now.onCommit?.(result.value);
     }
-    setDraft(editNumber(result.value));
+    const kept = keptText(text, now.parse, result.value);
+    clean.current = kept;
+    setDraft(kept);
     const clamped = result.kind === "clamped" || (stepped && atBound.current);
     setStatus(clamped ? { kind: "clamped", used: result.value } : { kind: "ok" });
   };
@@ -159,7 +178,8 @@ export const NumberField = ({
   useEffect(() => {
     sent.current = null;
     if (document.activeElement === input.current) return;
-    setDraft(editNumber(value));
+    clean.current = editNumber(value);
+    setDraft(clean.current);
   }, [value]);
 
   useEffect(() => {
@@ -204,7 +224,8 @@ export const NumberField = ({
     if (event.key === "Escape") {
       wheel.cancel();
       hold.cancel();
-      setDraft(editNumber(value));
+      clean.current = editNumber(value);
+      setDraft(clean.current);
       setStatus({ kind: "ok" });
       return;
     }
@@ -267,7 +288,7 @@ export const NumberField = ({
           spellCheck={false}
           aria-label={labelHidden ? label : undefined}
           aria-valuenow={finite(value)}
-          aria-valuetext={spokenOf(value)}
+          aria-valuetext={spokenOf(value, places)}
           aria-valuemin={finite(bounds.min)}
           aria-valuemax={finite(bounds.max)}
           value={display}
@@ -286,7 +307,7 @@ export const NumberField = ({
               return;
             }
             if (wheel.flush()) return;
-            if (draft !== editNumber(value) || status.kind === "invalid") commit(draft);
+            if (draft !== clean.current || status.kind === "invalid") commit(draft);
           }}
           onFocus={(event) => {
             setFocused(true);

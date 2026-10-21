@@ -43,6 +43,10 @@ export const SAMPLE_BOUNDS = {
 /** The samples label names the range the field really takes (from SAMPLE_BOUNDS, not a literal). */
 export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMPLE_BOUNDS.max);
 
+/** Form 2a: count fields take whole numbers; the percent and decimal fields (R, +/-) rest at 2. */
+export const COUNT_FIELDS: readonly string[] = ["Previous Halvings"];
+export const REST_PLACES = 2;
+
 type EditorProps = {
   /** The row is `row-{id}`; the input `v2-{input ?? id}`. */
   id: string;
@@ -53,6 +57,9 @@ type EditorProps = {
   parse: "float" | "int";
   step: number;
   emptyValue: number | null;
+  /** Form 2a: a count (whole numbers), or a decimal field resting at `places`. */
+  whole?: boolean;
+  places?: number | undefined;
   who: { name: string; plural: boolean };
   slider: boolean;
   description?: string | undefined;
@@ -89,6 +96,8 @@ const Editor = (p: EditorProps): JSX.Element => {
           parse={p.parse}
           step={p.step}
           emptyValue={p.emptyValue}
+          whole={p.whole === true}
+          places={p.places}
           clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used)}
           invalidMessage={(current) =>
             strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current)
@@ -238,6 +247,8 @@ export const ModelsSheet = ({
           parse={controls.variable.parse}
           step={controls.variable.step}
           emptyValue={null}
+          whole={COUNT_FIELDS.includes(meta.varInput)}
+          places={COUNT_FIELDS.includes(meta.varInput) ? undefined : REST_PLACES}
           who={noun(meta.varInput)}
           softTop={softTop}
           slider
@@ -256,6 +267,7 @@ export const ModelsSheet = ({
           parse={controls.minMaxMultiple.parse}
           step={controls.minMaxMultiple.step}
           emptyValue={null}
+          places={REST_PLACES}
           who={strings.fields.nouns.minMaxMultiple}
           slider={false}
           description={copy.settingDesc["+/-"]}

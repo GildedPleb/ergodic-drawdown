@@ -348,3 +348,20 @@ test("Probe N3: the ledger's one column may shrink below its rows' min-content (
   expect(rule.includes("grid-template-columns: minmax(0, 1fr);")).toBe(true);
   expect(rule.includes("min-inline-size: 0;")).toBe(true);
 });
+
+test("Form 2a: Previous Halvings is a count; R (%) and +/- rest at 2 decimals", async () => {
+  const { COUNT_FIELDS, REST_PLACES } = await import("../../src/v2/app/models/ModelsSheet");
+  expect(COUNT_FIELDS).toEqual([metaOf("Historic")?.varInput]);
+  expect(COUNT_FIELDS.includes(metaOf("CAGR")?.varInput ?? "")).toBe(false);
+  expect(REST_PLACES).toBe(2);
+  const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
+  expect(src.includes("whole={COUNT_FIELDS.includes(meta.varInput)}")).toBe(true);
+  expect(
+    src.includes("places={COUNT_FIELDS.includes(meta.varInput) ? undefined : REST_PLACES}"),
+  ).toBe(true);
+  const minmax = src.slice(src.indexOf('id="minmax"'), src.indexOf("onCommit={(minMaxMultiple)"));
+  expect(minmax.includes("places={REST_PLACES}")).toBe(true);
+  // At rest the CAGR R field shows 2 decimals.
+  const html = render({ model: "CAGR", variable: 12.3456 });
+  expect(html.includes('value="12.35"')).toBe(true);
+});

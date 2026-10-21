@@ -48,18 +48,23 @@ export type EntryResult =
   | { kind: "clamped"; value: number; typed: number }
   | { kind: "invalid" };
 
-/** What committing `text` does. `emptyValue` is the value an empty field commits (or null). */
+/**
+ * What committing `text` does. `emptyValue` is the value an empty field commits (or null). A
+ * `whole` field (Form 2a: a count, e.g. Previous Halvings) rounds to the nearest integer first.
+ */
 export const resolveEntry = (
   text: string,
   parse: NumberParse,
   bounds: Bounds,
   emptyValue: number | null,
+  whole = false,
 ): EntryResult => {
   if (normalizeNumberText(text) === "") {
     return emptyValue === null ? { kind: "invalid" } : { kind: "ok", value: emptyValue };
   }
-  const typed = parseNumber(text, parse);
-  if (Number.isNaN(typed)) return { kind: "invalid" };
+  const parsed = parseNumber(text, parse);
+  if (Number.isNaN(parsed)) return { kind: "invalid" };
+  const typed = whole ? Math.round(parsed) : parsed;
   const value = clampTo(typed, bounds);
   return value === typed ? { kind: "ok", value } : { kind: "clamped", value, typed };
 };
@@ -121,9 +126,8 @@ const sciOf = (n: number, decimals?: number): [string, string] | undefined => {
   return [decimals === undefined ? m : m.replace(/\.?0+$/, ""), e.replace("+", "")];
 };
 
-const formNumber = (n: number, decimals?: number): string => {
+const formNumber = (n: number, decimals?: number, places?: number): string => {
   if (!Number.isFinite(n)) return "";
-  const a = Math.abs(n);
   const sci = sciOf(n, decimals);
   if (sci !== undefined) {
     const [m, e] = sci;
@@ -132,25 +136,37 @@ const formNumber = (n: number, decimals?: number): string => {
       .join("");
     return `${m}${TIMES}${exp}`;
   }
-  const s = a < 1e-6 && a !== 0 ? plainTiny(n) : String(n);
+  // Form 2a: a decimal field rests at `places` decimals (rounded, trailing zeros dropped).
+  const v = places === undefined ? n : Number(n.toFixed(places)) || 0;
+  const a = Math.abs(v);
+  const s = a < 1e-6 && a !== 0 ? plainTiny(v) : String(v);
   return s.replace(/^(-?)(\d+)/, (_, sign: string, int: string) => sign + group(int));
 };
 
 /** The resting text: a ×10 value at 3 significant figures ("1.23 × 10⁹"). */
 export const showNumber = (n: number): string => formNumber(n, SHOWN_DECIMALS);
+/** Form 2a: the resting text of a field that rests at `places` decimals ("123.46"); see showNumber. */
+export const shownAt =
+  (places?: number) =>
+  (n: number): string =>
+    formNumber(n, SHOWN_DECIMALS, places);
 /** A focused field's text: the full value, so editing never loses digits ("1.23456789 × 10⁹"). */
 export const editNumber = (n: number): string => formNumber(n);
+
+/** Form 4c: a focused field's text after a commit: the typed text while it is exactly the value used. */
+export const keptText = (text: string, parse: NumberParse, used: number): string =>
+  parseNumber(text, parse) === used ? text : editNumber(used);
 
 /**
  * What a screen reader hears for a field value (Probe R2 m3, Form ruling 4): the shown digits, the
  * ×10 form in words ("1.2 times 10 to the 12"), and "minus" for a sign; never a long digit string.
  */
-export const speakNumber = (n: number): string => {
+export const speakNumber = (n: number, places?: number): string => {
   if (!Number.isFinite(n)) return "";
   const sci = sciOf(n, SHOWN_DECIMALS);
   const shown =
     sci === undefined
-      ? showNumber(n)
+      ? shownAt(places)(n)
       : `${sci[0]} times 10 to the ${sci[1].replace("-", "minus ")}`;
   return shown.replace(/^-/, "minus ");
 };
