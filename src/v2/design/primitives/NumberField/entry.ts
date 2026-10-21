@@ -115,6 +115,8 @@ const SCI_BELOW = 1e-20;
 /** No-break spaces round the ×, so "1.2 × 10¹²" never wraps; normalizeNumberText strips them. */
 const TIMES = "\u00A0×\u00A010";
 
+/** Form 2a: the percent and decimal fields (R, +/-) rest at 2 decimals, everywhere they're shown. */
+export const DECIMAL_PLACES = 2;
 /** Form 4a: a shown ×10 mantissa keeps 3 significant figures (2 decimals), trailing zeros dropped. */
 const SHOWN_DECIMALS = 2;
 

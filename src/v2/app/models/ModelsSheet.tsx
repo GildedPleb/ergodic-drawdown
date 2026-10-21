@@ -6,7 +6,7 @@ import { Icon } from "../../design/primitives/Icon";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
 import type { Bounds } from "../../design/primitives/NumberField";
-import { showNumber } from "../../design/primitives/NumberField/entry";
+import { DECIMAL_PLACES, shownAt } from "../../design/primitives/NumberField/entry";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Select } from "../../design/primitives/Select";
 import { Slider } from "../../design/primitives/Slider";
@@ -45,7 +45,11 @@ export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMP
 
 /** Form 2a: count fields take whole numbers; the percent and decimal fields (R, +/-) rest at 2. */
 export const COUNT_FIELDS: readonly string[] = ["Previous Halvings"];
-export const REST_PLACES = 2;
+export const DECIMAL_FIELDS: readonly string[] = ["R (%)", "+/-"];
+/** A field's resting decimals, and (Form ruling) its one rest format wherever it's shown or spoken. */
+export const placesOf = (label: string): number | undefined =>
+  DECIMAL_FIELDS.includes(label) ? DECIMAL_PLACES : undefined;
+export const restOf = (label: string): ((n: number) => string) => shownAt(placesOf(label));
 
 type EditorProps = {
   /** The row is `row-{id}`; the input `v2-{input ?? id}`. */
@@ -98,9 +102,9 @@ const Editor = (p: EditorProps): JSX.Element => {
           emptyValue={p.emptyValue}
           whole={p.whole === true}
           places={p.places}
-          clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used)}
+          clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used, p.places)}
           invalidMessage={(current) =>
-            strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current)
+            strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current, p.places)
           }
           onCommit={p.onCommit}
         />
@@ -170,14 +174,15 @@ export const usedVariable = (values: ModelsValues): number => {
 
 /** §1MP 9: "{model part}, {walk} walk, volatility {Volatility}", live from the settings. */
 export const summaryOf = (values: ModelsValues): string => {
-  const used = showNumber(usedVariable(values));
+  const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
+  const used = restOf(meta?.varInput ?? "")(usedVariable(values));
   const part =
     values.model === "CAGR"
       ? copy.grows(used)
       : values.model === "Historic"
         ? copy.replays(used)
         : values.model;
-  return copy.summary(part, values.walk, showNumber(values.volatility));
+  return copy.summary(part, values.walk, restOf(controls.volatility.label)(values.volatility));
 };
 
 /**
@@ -248,7 +253,7 @@ export const ModelsSheet = ({
           step={controls.variable.step}
           emptyValue={null}
           whole={COUNT_FIELDS.includes(meta.varInput)}
-          places={COUNT_FIELDS.includes(meta.varInput) ? undefined : REST_PLACES}
+          places={placesOf(meta.varInput)}
           who={noun(meta.varInput)}
           softTop={softTop}
           slider
@@ -267,7 +272,7 @@ export const ModelsSheet = ({
           parse={controls.minMaxMultiple.parse}
           step={controls.minMaxMultiple.step}
           emptyValue={null}
-          places={REST_PLACES}
+          places={placesOf("+/-")}
           who={strings.fields.nouns.minMaxMultiple}
           slider={false}
           description={copy.settingDesc["+/-"]}

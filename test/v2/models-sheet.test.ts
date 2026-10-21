@@ -350,18 +350,53 @@ test("Probe N3: the ledger's one column may shrink below its rows' min-content (
 });
 
 test("Form 2a: Previous Halvings is a count; R (%) and +/- rest at 2 decimals", async () => {
-  const { COUNT_FIELDS, REST_PLACES } = await import("../../src/v2/app/models/ModelsSheet");
+  const { COUNT_FIELDS, placesOf } = await import("../../src/v2/app/models/ModelsSheet");
   expect(COUNT_FIELDS).toEqual([metaOf("Historic")?.varInput]);
   expect(COUNT_FIELDS.includes(metaOf("CAGR")?.varInput ?? "")).toBe(false);
-  expect(REST_PLACES).toBe(2);
+  expect([placesOf("R (%)"), placesOf("+/-")]).toEqual([2, 2]);
+  expect([placesOf("Previous Halvings"), placesOf("Volatility (0-1):")]).toEqual([
+    undefined,
+    undefined,
+  ]);
   const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
   expect(src.includes("whole={COUNT_FIELDS.includes(meta.varInput)}")).toBe(true);
-  expect(
-    src.includes("places={COUNT_FIELDS.includes(meta.varInput) ? undefined : REST_PLACES}"),
-  ).toBe(true);
+  expect(src.includes("places={placesOf(meta.varInput)}")).toBe(true);
   const minmax = src.slice(src.indexOf('id="minmax"'), src.indexOf("onCommit={(minMaxMultiple)"));
-  expect(minmax.includes("places={REST_PLACES}")).toBe(true);
+  expect(minmax.includes('places={placesOf("+/-")}')).toBe(true);
   // At rest the CAGR R field shows 2 decimals.
   const html = render({ model: "CAGR", variable: 12.3456 });
   expect(html.includes('value="12.35"')).toBe(true);
+});
+
+test("Form ruling (summaries): every line outside a focused field uses the field's rest format", async () => {
+  const { restOf } = await import("../../src/v2/app/models/ModelsSheet");
+  const r = { ...defaultModelsValues(), model: "CAGR" as const, variable: 123.456789 };
+  // The header's summary (closed and open: one string, also what's spoken), as the field rests.
+  expect(summaryOf(r).startsWith("Grows 123.46% a year")).toBe(true);
+  expect(summaryOf(r).includes(restOf("R (%)")(123.456789))).toBe(true);
+  const closed = renderToStaticMarkup(
+    createElement(ModelsSheet, { values: r, onChange: () => undefined, initialOpen: [] }),
+  );
+  expect(closed.includes(">Grows 123.46% a year, Bubble walk, volatility 0.1<")).toBe(true);
+  // Open, the full value is only ever the numeric aria-valuenow (field and slider); every shown
+  // and spoken text is the rest form.
+  const open = render(r);
+  expect(open.split("123.456789").length - 1).toBe(
+    open.split('aria-valuenow="123.456789"').length - 1,
+  );
+  expect(
+    open.includes('aria-valuetext="123.46"') && open.includes('aria-valuetext="123.46 percent"'),
+  ).toBe(true);
+  // The R slider's spoken value and the clamp / invalid messages: the same rest text.
+  expect(strings.fields.focus["R (%)"]?.spoken(123.456789)).toBe("123.46 percent");
+  const noun = { name: "R (%)", plural: false };
+  expect(strings.fields.clamped(noun, 0, 1000, 12.3456, 2).endsWith("We used 12.35.")).toBe(true);
+  expect(
+    strings.fields.invalid(noun, "float", 0, 1000, 12.3456, 2).includes("Your last value, 12.35,"),
+  ).toBe(true);
+  // Other fields keep their own (full) rest text: volatility 0.105 and 2 halvings.
+  expect(summaryOf({ ...r, volatility: 0.105 }).endsWith("volatility 0.105")).toBe(true);
+  expect(summaryOf({ ...r, model: "Historic", variable: 2 }).startsWith("Replays 2 past")).toBe(
+    true,
+  );
 });

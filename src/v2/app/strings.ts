@@ -5,7 +5,12 @@
  * Numbers always go through money.ts.
  */
 import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
-import { showNumber, speakNumber } from "../design/primitives/NumberField/entry";
+import {
+  DECIMAL_PLACES,
+  showNumber,
+  shownAt,
+  speakNumber,
+} from "../design/primitives/NumberField/entry";
 import type { Spread } from "./world/spread";
 
 const count = (n: number): string => n.toLocaleString("en-US");
@@ -209,7 +214,7 @@ export const strings = {
         step: 1,
         marks: [0, 10, 25, 50],
         labelled: 50,
-        spoken: (n: number): string => `${speakNumber(n)} percent`,
+        spoken: (n: number): string => `${speakNumber(n, DECIMAL_PLACES)} percent`,
       },
     } as Record<
       string,
@@ -223,11 +228,18 @@ export const strings = {
       | undefined
     >,
     /** Clamp (Gap 11): the value used is shown, not silently swapped. */
-    clamped: (noun: Noun, min: number, max: number, used: number): string =>
-      `${noun.name} ${noun.plural ? "go" : "goes"} ${range(min, max)}. We used ${showNumber(used)}.`,
+    clamped: (noun: Noun, min: number, max: number, used: number, places?: number): string =>
+      `${noun.name} ${noun.plural ? "go" : "goes"} ${range(min, max)}. We used ${shownAt(places)(used)}.`,
     /** Invalid text: cause, next step, reassurance (Probe M2). */
-    invalid: (noun: Noun, kind: "int" | "float", min: number, max: number, current: number) =>
-      `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${showNumber(current)}, is still in use.`,
+    invalid: (
+      noun: Noun,
+      kind: "int" | "float",
+      min: number,
+      max: number,
+      current: number,
+      places?: number,
+    ) =>
+      `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${shownAt(places)(current)}, is still in use.`,
     /** §1MP: the Years row's front-end label (main's own reads "Years (1-N):"). */
     yearsLabel: "Years",
     /** The samples row's label, its range from the G12-mirrored bounds: 1 to 10,000 reads "1-10k". */
