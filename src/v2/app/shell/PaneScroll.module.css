@@ -61,7 +61,7 @@
     touch-action: none;
   }
 
-  /* The drag target: about 12px wide, invisible. */
+  /* A 12px drag target. */
   .thumb::before {
     position: absolute;
     inset-block: 0;
@@ -70,7 +70,7 @@
     content: "";
   }
 
-  /* Touch: shown while scrolling, hidden about 1s after. Desktop: always shown. */
+  /* Touch: shown while scrolling (1s idle hides it). */
   @media (pointer: coarse) {
     .zone:not([data-scrolling="true"]) + .bar {
       visibility: hidden;

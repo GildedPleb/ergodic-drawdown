@@ -208,3 +208,32 @@ test("Form ruling 6: S&P and Inflation headers keep the pointer; only their iner
   );
   expect((html.match(/aria-disabled="true"/g) ?? []).length >= 2).toBe(true); // S&P, Inflation
 });
+
+const SRC = `${import.meta.dir}/../../src/v2`;
+const px = (css: string, name: string): number => {
+  const v = new RegExp(`${name}: ([\\d.]+)(rem|px)?;`).exec(css);
+  return v === null ? Number.NaN : Number(v[1]) * (v[2] === "rem" ? 16 : 1);
+};
+
+test("F1: the header holds the ring's reach above its toggle (the head sits on the zone's edge), text unmoved", async () => {
+  const row = await file(`${SRC}/design/primitives/AssetRow/AssetRow.module.css`).text();
+  const space = await file(`${SRC}/design/tokens/space.css`).text();
+  const motion = await file(`${SRC}/design/tokens/motion-etc.css`).text();
+  const base = await file(`${SRC}/design/base/base.css`).text();
+  // base.css draws every ring --focus-w wide at --focus-offset: its reach outside the box.
+  expect(base.includes("outline: var(--focus-w) solid var(--focus);")).toBe(true);
+  expect(base.includes("outline-offset: var(--focus-offset);")).toBe(true);
+  const reach = px(motion, "--focus-w") + px(motion, "--focus-offset");
+  const head = /\.head \{([^}]*)\}/.exec(row)?.[1] ?? "";
+  const toggle = /\.toggle \{([^}]*)\}/.exec(row)?.[1] ?? "";
+  const key = /\.key \{([^}]*)\}/.exec(row)?.[1] ?? "";
+  expect(head.includes("padding-block-start: var(--s-1);")).toBe(true);
+  expect(px(space, "--s-1")).toBe(reach); // the whole ring is inside the head, rest or pinned
+  // The name and the square stay where they were: 4px head padding + 8px toggle padding = 12px.
+  expect(toggle.includes("padding: var(--s-2) 0 var(--s-3);")).toBe(true);
+  expect(key.includes("--_key-y: calc(var(--s-2) + ")).toBe(true);
+  expect(px(space, "--s-1") + px(space, "--s-2")).toBe(px(space, "--s-3"));
+  // The head is the zone's first box: the content has no top padding to lend the ring.
+  const pane = await file(`${SRC}/app/shell/PaneScroll.module.css`).text();
+  expect(/\.content \{\s*padding: 0 /.test(pane)).toBe(true);
+});
