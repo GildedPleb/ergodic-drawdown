@@ -27,9 +27,9 @@
     "hash-sum": "^2.0.0",
     "memoizee": "^0.4.17",
     "quickselect": "^3.0.0",
-    "react": "^19.3.0",
+    "react": "^19.3.1",
     "react-chartjs-2": "^5.3.1",
-    "react-dom": "^19.3.0",
+    "react-dom": "^19.3.1",
     "react-toastify": "^11.1.0",
     "styled-components": "^6.6.0",
     "styled-reset": "^5.0.0"
