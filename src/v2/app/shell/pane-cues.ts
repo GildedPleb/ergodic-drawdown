@@ -143,7 +143,7 @@ type Focused = {
   getBoundingClientRect: () => Box & { height: number };
   querySelector?: (sel: string) => Focused | null;
 };
-type Listen = "focusin" | typeof REVEAL;
+type Listen = "focusin" | "scroll" | typeof REVEAL;
 export type FocusZone = {
   scrollTop: number;
   getBoundingClientRect: () => Box;
@@ -174,11 +174,13 @@ export const revealShift = (list: Box, focused: Box | null, clear: Box): number 
 };
 
 /**
- * Keyboard focus lands clear of the pinned header and both fades. Chromium reads scroll-padding
- * when it decides whether a focused control needs scrolling, but WebKit doesn't, so the zone
- * corrects after the browser's own focus scroll. The header that can cover a control is its own
- * asset's (sticky only inside that asset), measured live. `fade` is the fade height in px. An
+ * Keyboard focus lands clear of the pinned header and both fades. The header that can cover a
+ * control is its own asset's (sticky only inside that asset), measured live; the header itself has
+ * the band from the zone's top (the mask is opaque under it). `fade` is the fade height in px. An
  * opened list (REVEAL) is shown whole the same way; it supersedes its option's focus correction.
+ * Form 9c: the browser centres a focused control ("if needed"), before focusin (Chromium, Firefox)
+ * or just after (WebKit), so the correction starts from the zone's resting scrollTop (its last
+ * scroll event, which comes after the focus scroll, or its own write) and moves the minimum.
  */
 export const keepFocusClear = (
   zone: FocusZone | null,
@@ -188,25 +190,31 @@ export const keepFocusClear = (
 ): (() => void) => {
   if (zone === null) return () => undefined;
   let frame = 0;
-  const correct = (el: Focused, shiftOf: (box: Box, clear: Box) => number): void => {
+  let rest = zone.scrollTop;
+  const onScroll = (): void => {
+    rest = zone.scrollTop;
+  };
+  const correct = (el: Focused, shiftOf: (box: Box, clear: Box) => number, from?: number): void => {
     frames.cancel(frame);
     frame = frames.request(() => {
+      if (from !== undefined && zone.scrollTop !== from) zone.scrollTop = from;
       const head = el.closest("[data-asset]")?.querySelector(PIN) ?? null;
-      if (head?.contains(el) === true) return;
+      const own = head?.contains(el) === true;
       const z = zone.getBoundingClientRect();
       const f = fade();
-      const hh = head?.getBoundingClientRect().height ?? 0;
+      const hh = own ? 0 : (head?.getBoundingClientRect().height ?? 0);
       const shift = shiftOf(el.getBoundingClientRect(), {
-        top: z.top + hh + f,
+        top: z.top + (own ? 0 : hh + f),
         bottom: z.bottom - f,
       });
       if (shift !== 0) zone.scrollTop += shift;
+      rest = zone.scrollTop;
     });
   };
   const onFocus = (event: { target: unknown }): void => {
     const el = event.target;
     if (isFocused(el) && el.matches(":focus-visible")) {
-      correct(el, (box, clear) => focusShift(box, clear, ring(el)));
+      correct(el, (box, clear) => focusShift(box, clear, ring(el)), rest);
     }
   };
   const onReveal = (event: { target: unknown }): void => {
@@ -217,10 +225,12 @@ export const keepFocusClear = (
       return revealShift(box, inner, clear);
     });
   };
+  zone.addEventListener("scroll", onScroll);
   zone.addEventListener("focusin", onFocus);
   zone.addEventListener(REVEAL, onReveal);
   return () => {
     frames.cancel(frame);
+    zone.removeEventListener("scroll", onScroll);
     zone.removeEventListener("focusin", onFocus);
     zone.removeEventListener(REVEAL, onReveal);
   };

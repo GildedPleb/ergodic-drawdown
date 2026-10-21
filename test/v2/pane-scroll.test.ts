@@ -459,3 +459,58 @@ test("B2-r: the bar repaints once a frame after scroll or resize; the thumb drag
     )(),
   ]).toEqual([undefined, undefined]);
 });
+
+test("Form 9c: Tab scrolls by the minimum from where the pane was, never to the browser's centring", () => {
+  // 390: zone 115.5–832 (band 139.5–808 with no pinned header); content y → screen y − scrollTop.
+  const heard = new Map<string, (e: { target: unknown }) => void>();
+  const zone = {
+    scrollTop: 0,
+    getBoundingClientRect: () => ({ top: 115.5, bottom: 832 }),
+    addEventListener: (type: string, fn: (e: { target: unknown }) => void) => heard.set(type, fn),
+    removeEventListener: (type: string) => heard.delete(type),
+  };
+  const queued: (() => void)[] = [];
+  const frames = { request: (fn: () => void) => queued.push(fn), cancel: () => undefined };
+  const at = (y: number, h = 20) => ({
+    matches: () => true,
+    closest: () => null,
+    contains: () => false,
+    getBoundingClientRect: () => ({
+      top: 115.5 + y - zone.scrollTop,
+      bottom: 115.5 + y + h - zone.scrollTop,
+      height: h,
+    }),
+  });
+  keepFocusClear(
+    zone,
+    () => 24,
+    frames,
+    () => 4,
+  );
+  const settle = (to: number): void => {
+    zone.scrollTop = to;
+    heard.get("scroll")?.({ target: zone });
+  };
+  const tab = (el: ReturnType<typeof at>, centred: number, after = false): number => {
+    if (!after) zone.scrollTop = centred; // Chromium, Firefox: moved before focusin
+    heard.get("focusin")?.({ target: el });
+    if (after) zone.scrollTop = centred; // WebKit: moved after focusin, before the frame
+    heard.get("scroll")?.({ target: zone }); // the focus scroll's event comes after focusin
+    for (const run of queued.splice(0)) run();
+    return zone.scrollTop;
+  };
+  settle(100);
+  // Foot 30px under the band at 100: the minimum is 100 + 30 + the 4px ring; centred was 600.
+  const below = at(808 + 30 - 20 - 115.5 + 100);
+  const want = 100 + Math.ceil(30 + 4);
+  expect(tab(below, 600)).toBe(want);
+  settle(want);
+  // Shift+Tab to one 50px above the band: up by its overhang plus the ring, not to the centre.
+  const above = at(want + 139.5 - 50 - 115.5);
+  expect(tab(above, 40, true)).toBe(want + Math.floor(-50 - 4));
+  settle(zone.scrollTop);
+  // A control already in the band: the browser leaves it, and so does the correction.
+  const inside = at(zone.scrollTop + 300);
+  const before = zone.scrollTop;
+  expect(tab(inside, before)).toBe(before);
+});
