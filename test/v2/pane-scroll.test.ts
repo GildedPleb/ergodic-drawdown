@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { PaneScroll } from "../../src/v2/app/shell/PaneScroll";
+import { dragScroll, dragThumb, thumbOf, watchBar } from "../../src/v2/app/shell/pane-bar";
 import { REVEAL } from "../../src/v2/design/primitives/Select/logic";
 import {
   cuesOf,
@@ -166,20 +167,33 @@ test("1MP: resizeWith wraps a ResizeObserver over every element; none without on
   expect(off).toBe(true);
 });
 
-test("1MP 11: the pane renders the zone alone: no edge-line elements, data-pane on the zone", () => {
+test("1MP 11 / B2-r: the zone, then its drawn bar (aria-hidden, hidden until it scrolls); no edge lines", () => {
   const html = renderToStaticMarkup(createElement(PaneScroll, { id: "models", children: "x" }));
-  expect(html.includes("aria-hidden")).toBe(false);
   expect(/data-pane="models"[^>]*style="--dyn-hh:0px"/.test(html)).toBe(true);
-  expect((html.match(/<div/g) ?? []).length).toBe(3);
+  expect(
+    /<\/div><\/div><div[^>]*aria-hidden="true" hidden=""[^>]*--dyn-th:0px;--dyn-ty:0px/.test(html),
+  ).toBe(true);
+  expect((html.match(/<div/g) ?? []).length).toBe(5); // root, zone, content, bar, thumb
 });
 
-test("1MP 11–12: fades by mask (zero unless flagged), the scrollbar column unmasked, no edge lines", async () => {
+test("1MP 11–12 / B2-r: one linear mask layer over the full width (no bar column), no edge lines", async () => {
   const pane = await file(`${v2}/app/shell/PaneScroll.module.css`).text();
   expect(/\.rule|\.foot|border/.test(pane)).toBe(false);
   expect(pane.includes("mask:")).toBe(true);
   expect(/\[data-top="true"\] \{\s*--_ft: var\(--s-6\);/.test(pane)).toBe(true);
   expect(/\[data-more="true"\] \{\s*--_fb: var\(--s-6\);/.test(pane)).toBe(true);
-  expect(pane.includes("scrollbar-gutter: stable;")).toBe(true);
+  const mask = /mask:([^;]*);/.exec(pane)?.[1] ?? "";
+  expect((mask.match(/linear-gradient/g) ?? []).length).toBe(1);
+  expect(/no-repeat|--_sb|scrollbar-gutter|-webkit-scrollbar-(track|thumb)/.test(pane)).toBe(false);
+  expect(pane.includes("scrollbar-width: none;")).toBe(true); // every engine's native bar hidden
+  expect(/::-webkit-scrollbar \{\s*display: none;/.test(pane)).toBe(true);
+  expect(/\.bar \{[^}]*inline-size: var\(--s-0\);[^}]*background: var\(--rule\);/.test(pane)).toBe(
+    true,
+  );
+  expect(
+    /\.thumb \{[^}]*block-size: var\(--dyn-th\);[^}]*background: var\(--accent\);/.test(pane),
+  ).toBe(true);
+  expect(/:hover/.test(pane)).toBe(false); // no hover change
   expect(pane.includes("overflow-y: auto;")).toBe(true);
   expect(pane.includes("overscroll-behavior: contain;")).toBe(true);
   expect(pane.includes("scroll-padding-block-start: var(--hit);")).toBe(true);
@@ -341,4 +355,107 @@ test("Form 9a: on Tab the control and its whole focus ring land in the clear ban
   listener?.({ target: control });
   for (const run of queued.splice(0)) run();
   expect(zone.scrollTop).toBe(4); // band foot 532 = 556 − 24; ring foot 535.8 → up 4
+});
+
+test("B2-r: the drawn thumb's length and offset follow the native proportional rule; off when nothing scrolls", () => {
+  // 1440: zone 280 tall, content 1176: length round(280² / 1176), offset (280 − 67) × 50 / 896.
+  expect(thumbOf({ clientHeight: 280, scrollHeight: 1176, scrollTop: 50 }, 24)).toEqual({
+    on: true,
+    size: 67,
+    offset: 12,
+  });
+  expect(thumbOf({ clientHeight: 280, scrollHeight: 1176, scrollTop: 896 }, 24).offset).toBe(213); // at the end
+  expect(thumbOf({ clientHeight: 280, scrollHeight: 50_000, scrollTop: 0 }, 24).size).toBe(24); // the minimum
+  expect(thumbOf({ clientHeight: 280, scrollHeight: 280.5, scrollTop: 0 }, 24).on).toBe(false);
+  const m = { clientHeight: 280, scrollHeight: 1176, scrollTop: 0 };
+  expect(Math.round(dragScroll(100, 10, m, 67) * 1e6)).toBe(
+    Math.round((100 + (10 * 896) / 213) * 1e6),
+  ); // track px → content px
+  expect([dragScroll(100, -999, m, 67), dragScroll(100, 999, m, 67)]).toEqual([0, 896]);
+  expect(dragScroll(5, 10, { ...m, scrollHeight: 280 }, 280)).toBe(5);
+});
+
+type Ev = { clientY: number; button: number; pointerId: number; preventDefault: () => void };
+const ev = (clientY: number, button = 0): Ev => ({
+  clientY,
+  button,
+  pointerId: 7,
+  preventDefault: () => undefined,
+});
+
+test("B2-r: the bar repaints once a frame after scroll or resize; the thumb drags with pointer capture", () => {
+  const heard = new Map<string, () => void>();
+  const zone = {
+    clientHeight: 280,
+    scrollHeight: 1176,
+    scrollTop: 0,
+    firstElementChild: {},
+    addEventListener: (t: string, fn: () => void) => heard.set(t, fn),
+    removeEventListener: (t: string) => heard.delete(t),
+  };
+  const props = new Map<string, string>();
+  const bar = {
+    hidden: true as boolean | string,
+    style: { setProperty: (k: string, v: string) => props.set(k, v) },
+  };
+  const queued: (() => void)[] = [];
+  let resized: (() => void) | undefined;
+  const stop = watchBar(
+    zone,
+    bar,
+    () => 24,
+    { request: (fn) => queued.push(fn), cancel: () => undefined },
+    (_, fn) => {
+      resized = fn;
+      return () => undefined;
+    },
+  );
+  expect([bar.hidden, props.get("--dyn-th"), props.get("--dyn-ty")]).toEqual([
+    false,
+    "67px",
+    "0px",
+  ]);
+  zone.scrollTop = 896;
+  heard.get("scroll")?.();
+  resized?.();
+  expect(queued.length).toBe(1); // coalesced into one frame
+  for (const run of queued.splice(0)) run();
+  expect(props.get("--dyn-ty")).toBe("213px");
+  stop();
+  expect(heard.has("scroll")).toBe(false);
+  // Drag: down 21.3 track px from the top = 89.6 content px.
+  const grip = new Map<string, (e: Ev) => void>();
+  const captured: number[] = [];
+  const held: boolean[] = [];
+  zone.scrollTop = 0;
+  const undrag = dragThumb(
+    {
+      addEventListener: (t: string, fn: (e: Ev) => void) => grip.set(t, fn),
+      removeEventListener: (t: string) => grip.delete(t),
+      setPointerCapture: (id: number) => captured.push(id),
+    },
+    zone,
+    () => 24,
+    (on) => held.push(on),
+  );
+  grip.get("pointermove")?.(ev(50)); // no press yet: nothing moves
+  grip.get("pointerdown")?.(ev(100, 2)); // not the main button
+  expect(zone.scrollTop).toBe(0);
+  grip.get("pointerdown")?.(ev(100));
+  grip.get("pointermove")?.(ev(121.3));
+  expect(Math.round(zone.scrollTop * 1e6)).toBe(Math.round(((21.3 * 896) / 213) * 1e6));
+  grip.get("pointerup")?.(ev(121.3));
+  grip.get("pointercancel")?.(ev(121.3));
+  expect([captured, held]).toEqual([[7], [true, false]]);
+  undrag();
+  expect(grip.size).toBe(0);
+  expect([
+    watchBar(null, bar, () => 0, { request: () => 0, cancel: () => undefined })(),
+    dragThumb(
+      null,
+      zone,
+      () => 0,
+      () => undefined,
+    )(),
+  ]).toEqual([undefined, undefined]);
 });

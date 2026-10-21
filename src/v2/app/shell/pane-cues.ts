@@ -151,7 +151,7 @@ export type FocusZone = {
   removeEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
 };
 export type Frames = { request: (fn: () => void) => number; cancel: (id: number) => void };
-const realFrames: Frames = {
+export const realFrames: Frames = {
   request: (fn) => requestAnimationFrame(fn),
   cancel: (id) => {
     cancelAnimationFrame(id);

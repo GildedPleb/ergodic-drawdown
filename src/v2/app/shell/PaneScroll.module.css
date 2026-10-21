@@ -1,15 +1,14 @@
 @layer app {
-  /* §1MP 11–12: the zone (the only scroller), 6px under the tab bar; fades instead of edge lines.
-     The mask's first layer fades the content (from the pinned header's foot, --dyn-hh); the
-     second keeps the 2px scrollbar column unfaded. */
+  /* §1MP 11–12: the zone (the only scroller), 6px under the tab bar. One mask layer fades the
+     content from the pinned header's foot (--dyn-hh); the bar is drawn beside it (B2-r). */
   .root {
+    position: relative;
     display: grid;
     min-block-size: 0;
     padding-block-start: var(--sheet-gap);
   }
 
   .zone {
-    --_pad-end: calc(var(--tk-pad-x) - var(--s-0));
     --_ft: 0px;
     --_fb: 0px;
 
@@ -19,17 +18,14 @@
     cursor: var(--cursor-rest); /* §1O: the arrow over static text; controls set their own */
     overscroll-behavior: contain;
     scroll-padding-block-start: var(--hit);
-    scrollbar-gutter: stable;
-    mask:
-      linear-gradient(
-          black var(--dyn-hh),
-          transparent var(--dyn-hh),
-          black calc(var(--dyn-hh) + var(--_ft)),
-          black calc(100% - var(--_fb)),
-          transparent
-        )
-        0 0 / calc(100% - var(--s-0)) 100% no-repeat,
-      linear-gradient(black, black) 100% 0 / var(--s-0) 100% no-repeat;
+    scrollbar-width: none;
+    mask: linear-gradient(
+      black var(--dyn-hh),
+      transparent var(--dyn-hh),
+      black calc(var(--dyn-hh) + var(--_ft)),
+      black calc(100% - var(--_fb)),
+      transparent
+    );
   }
 
   .zone[data-top="true"] {
@@ -41,33 +37,47 @@
   }
 
   .zone::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Over the zone's last 2px: --rule track, square --accent thumb, no hover. */
+  .bar {
+    position: absolute;
+    inset-block: var(--sheet-gap) 0;
+    inset-inline-end: 0;
     inline-size: var(--s-0);
-  }
-
-  .zone::-webkit-scrollbar-track {
     background: var(--rule);
+    pointer-events: none;
   }
 
-  .zone::-webkit-scrollbar-thumb {
+  .thumb {
+    position: absolute;
+    inset-block-start: var(--dyn-ty);
+    inset-inline: 0;
+    block-size: var(--dyn-th);
     background: var(--accent);
+    cursor: var(--cursor-grab);
+    pointer-events: auto;
+    touch-action: none;
   }
 
-  @supports not selector(::-webkit-scrollbar) {
-    .zone {
-      scrollbar-width: thin;
-      scrollbar-color: var(--accent) var(--rule);
-    }
+  /* The drag target: about 12px wide, invisible. */
+  .thumb::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    inline-size: var(--s-3);
+    content: "";
   }
 
   /* Touch: shown while scrolling, hidden about 1s after. Desktop: always shown. */
   @media (pointer: coarse) {
-    .zone:not([data-scrolling="true"])::-webkit-scrollbar-track,
-    .zone:not([data-scrolling="true"])::-webkit-scrollbar-thumb {
-      background: transparent;
+    .zone:not([data-scrolling="true"]) + .bar {
+      visibility: hidden;
     }
   }
 
   .content {
-    padding: 0 var(--_pad-end) var(--s-6) var(--tk-pad-x);
+    padding: 0 var(--tk-pad-x) var(--s-6);
   }
 }
