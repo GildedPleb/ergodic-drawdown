@@ -4,6 +4,7 @@
  * Runs in `bun run lint` (CI check job + pre-commit). It is kept out of the ~1 s suite because
  * stylelint's start-up alone is ~150 ms (ADR "what would change our mind": move the slowest check to check).
  */
+import { checkVars } from "./rules";
 import { runStylelint } from "./stylelint";
 import { loadTree, type Tree } from "./tree";
 
@@ -87,6 +88,33 @@ export const SEEDS: Seed[] = [
   },
 ];
 
+/**
+ * stylelint and R4 (checkVars) agree on local variables: a `--_x` declared and used in one file
+ * passes both; an undeclared one, or one declared only in another file, fails both.
+ */
+export const AGREE: { seed: Seed; ok: boolean }[] = [
+  {
+    ok: true,
+    seed: {
+      name: "own local --_x",
+      path: TICK,
+      edit: addDecl("--_x: var(--s-2);\n    padding-block: var(--_x);"),
+    },
+  },
+  {
+    ok: false,
+    seed: { name: "undeclared local --_y", path: TICK, edit: addDecl("padding-block: var(--_y);") },
+  },
+  {
+    ok: false,
+    seed: {
+      name: "foreign local --_x (declared in another file)",
+      path: TICK,
+      edit: addDecl("padding-block: var(--_chips-max);"), // Swatches' own
+    },
+  },
+];
+
 /** Allowed forms that must not be flagged. */
 const COMPLIANT: Seed = {
   name: "guarded transform/opacity animation, currentColor, unitless 0, @keyframes to",
@@ -122,9 +150,20 @@ if (import.meta.main) {
     else if ((await runStylelint(copy, [seed.path])).length === 0)
       problems.push(`seed stayed green: ${seed.name}`);
   }
+  for (const { seed, ok } of AGREE) {
+    const copy = seeded(tree, seed);
+    const lint = (await runStylelint(copy, [seed.path])).length === 0;
+    const r4 = !checkVars(copy).some((v) => v.startsWith(`R4 ${seed.path}`));
+    if (lint !== ok || r4 !== ok)
+      problems.push(
+        `stylelint/R4 disagree on "${seed.name}": stylelint ${lint}, R4 ${r4}, want ${ok}`,
+      );
+  }
   if (problems.length > 0) {
     console.error(problems.join("\n"));
     process.exit(1);
   }
-  console.log(`stylelint gate ok: tree clean, ${SEEDS.length} seeded violations red`);
+  console.log(
+    `stylelint gate ok: tree clean, ${SEEDS.length} seeded violations red, ${AGREE.length} local-var cases agree with R4`,
+  );
 }

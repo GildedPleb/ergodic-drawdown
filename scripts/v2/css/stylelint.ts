@@ -4,6 +4,7 @@ import { join } from "node:path";
 import stylelint from "stylelint";
 
 import config from "../../../stylelint.config.js";
+import { strayLocals } from "./rules";
 import { cssFiles, REPO, type Tree } from "./tree";
 
 export const runStylelint = async (tree: Tree, only?: readonly string[]): Promise<string[]> => {
@@ -18,6 +19,10 @@ export const runStylelint = async (tree: Tree, only?: readonly string[]): Promis
     for (const r of result.results) {
       for (const w of r.warnings) out.push(`stylelint ${path}:${w.line} ${w.rule}: ${w.text}`);
     }
+    // The config's length / colour lists accept var(--_x); only the file's own locals may pass
+    // (the same predicate as R4's checkVars).
+    for (const name of strayLocals(tree, path))
+      out.push(`stylelint ${path}: local-var: var(${name}) is not declared in this file`);
   }
   return out;
 };

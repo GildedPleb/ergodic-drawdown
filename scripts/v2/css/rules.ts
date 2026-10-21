@@ -208,6 +208,23 @@ const declaredProps = (tree: Tree, paths: string[]): Set<string> => {
 const varRefs = (value: string): string[] =>
   [...value.matchAll(/var\(\s*--([a-zA-Z0-9_-]+)/g)].map((m) => m[1] ?? "");
 
+/**
+ * A local `--_*` is the file's own: declared in this same file. One predicate for R4 (checkVars)
+ * and the stylelint gate (stylelint.ts), so the two can never disagree.
+ */
+export const isOwnLocal = (name: string, local: ReadonlySet<string>): boolean =>
+  name.startsWith("_") && local.has(name);
+
+/** Every `var(--_*)` in `path` that the file does not declare itself (undefined or foreign). */
+export const strayLocals = (tree: Tree, path: string): string[] => {
+  const local = declaredProps(tree, [path]);
+  const out: string[] = [];
+  for (const d of declsOf(cssRoot(tree, path)))
+    for (const name of varRefs(d.value))
+      if (name.startsWith("_") && !isOwnLocal(name, local)) out.push(`--${name}`);
+  return out;
+};
+
 /** `--dyn-*` keys each component sets in its inline style (see R10). */
 export const dynKeysByComponent = (tree: Tree): Map<string, Set<string>> => {
   const out = new Map<string, Set<string>>();
@@ -231,7 +248,7 @@ export const checkVars = (tree: Tree): string[] => {
     for (const d of declsOf(root)) {
       for (const name of varRefs(d.value)) {
         if (defined.has(name)) continue;
-        if (name.startsWith("_") && local.has(name)) continue;
+        if (isOwnLocal(name, local)) continue;
         if (name.startsWith("dyn-") && dyn.get(path)?.has(`--${name}`) === true) continue;
         out.push(
           `R4 ${path}: var(--${name}) is not a token, a --dyn-* its component sets, or a local --_*`,

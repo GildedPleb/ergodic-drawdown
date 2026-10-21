@@ -2,7 +2,8 @@
  * Core stylelint rules for ADR-002 R3, R4, R6, R8 and R9 (no plugins). Runs in the 1 s gate through
  * stylelint's Node API (test/v2-css/stylelint.test.ts). Script-only rules live in scripts/v2/css/rules.ts.
  */
-const TOKEN = String.raw`var\(--[a-z0-9-]+\)`;
+/** A token, or a local `--_*` (the gate then requires it to be declared in the same file, as R4 does). */
+const TOKEN = String.raw`var\(--_?[a-z0-9-]+\)`;
 const LEN_ATOM = String.raw`(?:${TOKEN}|0|1px|100%|auto)`;
 /** R4 lengths: tokens or the 0 / 1px / 100% / auto allowlist, no calc(), no var() fallback. */
 const LENGTH = new RegExp(String.raw`^${LEN_ATOM}(?:\s+${LEN_ATOM})*$`);
@@ -32,6 +33,9 @@ const PHYSICAL = [
   "max-height",
 ];
 const SHADOWS = ["box-shadow", "text-shadow"];
+
+/** R4 lengths, exported so the suite can pin the gate and the R4 script check to one answer. */
+export const LENGTH_VALUE = LENGTH;
 
 /** @type {import("stylelint").Config} */
 export default {
