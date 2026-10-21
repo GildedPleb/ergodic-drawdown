@@ -9,6 +9,7 @@ import { REVEAL } from "../../src/v2/design/primitives/Select/logic";
 import {
   cuesOf,
   focusShift,
+  ringOf,
   keepFocusClear,
   revealShift,
   paintCues,
@@ -314,4 +315,42 @@ test("B2: the fades never cover the scrollbar at the browser's own width (Firefo
   const own =
     /@supports not selector\(::-webkit-scrollbar\) \{\s*\.zone \{([^}]*)\}/.exec(css)?.[1] ?? "";
   expect(own.includes("--_sb: var(--tk-pad-x);")).toBe(true); // the whole end inset
+});
+
+test("Form 9a: on Tab the control and its whole focus ring land in the clear band (320×568)", () => {
+  // Chromium 320: band 454.9–532; the ring is --focus-w 2 + --focus-offset 2 = 4px.
+  const clear = { top: 454.9, bottom: 532 };
+  const vol = { top: 513.8, bottom: 531.8 }; // the Volatility field, foot at the band foot
+  expect(focusShift(vol, clear)).toBe(0); // before: its ring's foot sat 3.8px in the fade
+  expect(focusShift(vol, clear, 4)).toBe(Math.ceil(531.8 + 4 - 532)); // the minimum: ring foot in
+  const high = { top: 456, bottom: 476 };
+  expect(focusShift(high, clear, 4)).toBe(Math.floor(456 - 4 - 454.9)); // ring top to band top
+  const tall = { top: 455.4, bottom: 579.2 }; // a 124px option: still its top first (ruling 9)
+  expect(focusShift(tall, clear, 4)).toBe(Math.floor(455.4 - 4 - 454.9));
+  expect(ringOf({})).toBe(0); // not an element: no ring
+  let listener: ((e: { target: unknown }) => void) | undefined;
+  const zone = {
+    scrollTop: 0,
+    getBoundingClientRect: () => ({ top: 382.7, bottom: 556 }),
+    addEventListener: (type: string, fn: (e: { target: unknown }) => void) => {
+      if (type === "focusin") listener = fn;
+    },
+    removeEventListener: () => undefined,
+  };
+  const queued: (() => void)[] = [];
+  const control = {
+    matches: () => true,
+    closest: () => null,
+    contains: () => false,
+    getBoundingClientRect: () => ({ ...vol, height: 18 }),
+  };
+  keepFocusClear(
+    zone,
+    () => 24,
+    { request: (fn) => queued.push(fn), cancel: () => undefined },
+    (el) => (el === control ? 4 : 0),
+  );
+  listener?.({ target: control });
+  for (const run of queued.splice(0)) run();
+  expect(zone.scrollTop).toBe(4); // band foot 532 = 556 − 24; ring foot 535.8 → up 4
 });

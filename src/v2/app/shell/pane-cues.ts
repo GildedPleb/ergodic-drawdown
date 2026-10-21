@@ -117,15 +117,24 @@ export const FADE_REM = 1.5;
 /**
  * §1MP 10, Probe M1: how far to scroll the zone so a focused box sits in the clear band (below the
  * pinned header and the top fade, above the bottom fade). 0 leaves it. A box taller than the band
- * aligns its top.
+ * aligns its top. Form 9a: `ring` (the focus outline's reach past the box) counts as part of it.
  */
-export const focusShift = (box: Box, clear: Box): number => {
+export const focusShift = (b: Box, clear: Box, ring = 0): number => {
+  const box = { top: b.top - ring, bottom: b.bottom + ring };
   // Whole pixels (WebKit keeps scrollTop integral), rounded so the aligned edge lands inside the
   // band: down to align a top, up to align a foot. A truncated 0.9px left a foot in the fade.
   if (box.top < clear.top || box.bottom - box.top > clear.bottom - clear.top) {
     return Math.floor(box.top - clear.top);
   }
   return box.bottom > clear.bottom ? Math.ceil(box.bottom - clear.bottom) : 0;
+};
+
+/** How far a focused element's outline reaches past its box (outline-width + outline-offset). */
+export const ringOf = (el: unknown): number => {
+  if (typeof Element === "undefined" || !(el instanceof Element)) return 0;
+  const cs = getComputedStyle(el);
+  if (cs.outlineStyle === "none") return 0;
+  return Math.max(0, Number.parseFloat(cs.outlineWidth) + Number.parseFloat(cs.outlineOffset)) || 0;
 };
 type Focused = {
   matches: (sel: string) => boolean;
@@ -175,6 +184,7 @@ export const keepFocusClear = (
   zone: FocusZone | null,
   fade: () => number,
   frames: Frames = realFrames,
+  ring: (el: unknown) => number = ringOf,
 ): (() => void) => {
   if (zone === null) return () => undefined;
   let frame = 0;
@@ -195,7 +205,9 @@ export const keepFocusClear = (
   };
   const onFocus = (event: { target: unknown }): void => {
     const el = event.target;
-    if (isFocused(el) && el.matches(":focus-visible")) correct(el, focusShift);
+    if (isFocused(el) && el.matches(":focus-visible")) {
+      correct(el, (box, clear) => focusShift(box, clear, ring(el)));
+    }
   };
   const onReveal = (event: { target: unknown }): void => {
     const el = event.target;
