@@ -9,6 +9,7 @@ import {
   onBound,
   parseNumber,
   resolveEntry,
+  editNumber,
   showNumber,
   speakNumber,
   stepValue,
@@ -94,7 +95,10 @@ export const NumberField = ({
   const input = useRef<HTMLInputElement | null>(null);
   // §1P: a click that focuses the field selects its whole value, so typing replaces it.
   const pressedIn = useRef(false);
-  const [draft, setDraft] = useState(() => showNumber(value));
+  const [draft, setDraft] = useState(() => editNumber(value));
+  // Form 4a: focused, the full typed value; at rest, a ×10 value at 3 significant figures.
+  const [focused, setFocused] = useState(false);
+  const display = focused || draft !== editNumber(value) ? draft : showNumber(value);
   const [status, setStatus] = useState<Status>({ kind: "ok" });
   const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value });
   live.current = { bounds, draft, emptyValue, onCommit, parse, step, value };
@@ -116,7 +120,7 @@ export const NumberField = ({
       sent.current = result.value;
       now.onCommit?.(result.value);
     }
-    setDraft(showNumber(result.value));
+    setDraft(editNumber(result.value));
     const clamped = result.kind === "clamped" || (stepped && atBound.current);
     setStatus(clamped ? { kind: "clamped", used: result.value } : { kind: "ok" });
   };
@@ -143,7 +147,7 @@ export const NumberField = ({
     const base = Number.isNaN(shown) ? now.value : shown;
     const next = stepValue(base, direction, now.step, now.bounds, big);
     atBound.current = onBound(next, now.bounds);
-    const text = showNumber(next);
+    const text = editNumber(next);
     // Several notches can land before React re-renders: the next step reads this draft.
     live.current = { ...now, draft: text };
     setDraft(text);
@@ -155,7 +159,7 @@ export const NumberField = ({
   useEffect(() => {
     sent.current = null;
     if (document.activeElement === input.current) return;
-    setDraft(showNumber(value));
+    setDraft(editNumber(value));
   }, [value]);
 
   useEffect(() => {
@@ -200,7 +204,7 @@ export const NumberField = ({
     if (event.key === "Escape") {
       wheel.cancel();
       hold.cancel();
-      setDraft(showNumber(value));
+      setDraft(editNumber(value));
       setStatus({ kind: "ok" });
       return;
     }
@@ -266,7 +270,7 @@ export const NumberField = ({
           aria-valuetext={spokenOf(value)}
           aria-valuemin={finite(bounds.min)}
           aria-valuemax={finite(bounds.max)}
-          value={draft}
+          value={display}
           disabled={disabled}
           aria-invalid={invalid ? true : undefined}
           aria-describedby={describedBy === "" ? undefined : describedBy}
@@ -274,6 +278,7 @@ export const NumberField = ({
             setDraft(event.target.value);
           }}
           onBlur={() => {
+            setFocused(false);
             if (held.current) {
               held.current = false;
               wheel.cancel();
@@ -281,9 +286,11 @@ export const NumberField = ({
               return;
             }
             if (wheel.flush()) return;
-            if (draft !== showNumber(value) || status.kind === "invalid") commit(draft);
+            if (draft !== editNumber(value) || status.kind === "invalid") commit(draft);
           }}
           onFocus={(event) => {
+            setFocused(true);
+            event.currentTarget.value = draft; // before select(), so React's re-render keeps it
             event.currentTarget.select();
           }}
           onPointerDown={(event) => {

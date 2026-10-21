@@ -94,8 +94,8 @@ const group = (int: string): string => int.replace(/\B(?=(\d{3})+$)/g, ",");
 /**
  * The shown text (Probe Minor 4: never "1e-7"): "1,000", "12,345.5", "0.1", "0.0000001";
  * from 1e9 up and below 1e-20, ×10 with real superscripts ("1.2 × 10¹²", "-2.5 × 10⁻²⁴"), the
- * mantissa at full precision so the shown value is the used one. m7 and
- * normalizeNumberText read every form back.
+ * mantissa at 3 significant figures, trailing zeros dropped (Form 4a); editNumber keeps it in full
+ * for a focused field. m7 and normalizeNumberText read every form back.
  */
 /** 1.2345e-7 → "0.00000012345": the shortest round-trip digits, written out in full. */
 const plainTiny = (n: number): string => {
@@ -110,18 +110,21 @@ const SCI_BELOW = 1e-20;
 /** No-break spaces round the ×, so "1.2 × 10¹²" never wraps; normalizeNumberText strips them. */
 const TIMES = "\u00A0×\u00A010";
 
-/** The ×10 form's mantissa and exponent, or undefined for grouped digits. */
-const sciOf = (n: number): [string, string] | undefined => {
+/** Form 4a: a shown ×10 mantissa keeps 3 significant figures (2 decimals), trailing zeros dropped. */
+const SHOWN_DECIMALS = 2;
+
+/** The ×10 form's mantissa and exponent (full, or to `decimals`), or undefined for grouped digits. */
+const sciOf = (n: number, decimals?: number): [string, string] | undefined => {
   const a = Math.abs(n);
   if (a === 0 || (a < SCI_FROM && a >= SCI_BELOW)) return undefined;
-  const [m = "", e = ""] = n.toExponential().split("e");
-  return [m, e.replace("+", "")];
+  const [m = "", e = ""] = n.toExponential(decimals).split("e");
+  return [decimals === undefined ? m : m.replace(/\.?0+$/, ""), e.replace("+", "")];
 };
 
-export const showNumber = (n: number): string => {
+const formNumber = (n: number, decimals?: number): string => {
   if (!Number.isFinite(n)) return "";
   const a = Math.abs(n);
-  const sci = sciOf(n);
+  const sci = sciOf(n, decimals);
   if (sci !== undefined) {
     const [m, e] = sci;
     const exp = Array.from(e, String)
@@ -133,13 +136,18 @@ export const showNumber = (n: number): string => {
   return s.replace(/^(-?)(\d+)/, (_, sign: string, int: string) => sign + group(int));
 };
 
+/** The resting text: a ×10 value at 3 significant figures ("1.23 × 10⁹"). */
+export const showNumber = (n: number): string => formNumber(n, SHOWN_DECIMALS);
+/** A focused field's text: the full value, so editing never loses digits ("1.23456789 × 10⁹"). */
+export const editNumber = (n: number): string => formNumber(n);
+
 /**
  * What a screen reader hears for a field value (Probe R2 m3, Form ruling 4): the shown digits, the
  * ×10 form in words ("1.2 times 10 to the 12"), and "minus" for a sign; never a long digit string.
  */
 export const speakNumber = (n: number): string => {
   if (!Number.isFinite(n)) return "";
-  const sci = sciOf(n);
+  const sci = sciOf(n, SHOWN_DECIMALS);
   const shown =
     sci === undefined
       ? showNumber(n)

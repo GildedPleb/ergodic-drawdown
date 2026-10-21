@@ -7,6 +7,7 @@ import { strings } from "../../src/v2/app/strings";
 import { NumberField } from "../../src/v2/design/primitives/NumberField";
 import {
   normalizeNumberText,
+  editNumber,
   showNumber,
   onBound,
   parseNumber,
@@ -408,31 +409,47 @@ test("Probe 1MP M2: a slider drag commits live (≤100 ms behind the thumb) and 
   expect(sent.at(-1)).toBe(0.5); // the first move of a hold lands at once; cancel drops the rest
 });
 
-test("Form ruling 4: grouped digits to 999,999,999, then ×10; tiny written out; all read back exactly", () => {
+test("Form rulings 4 / 4a: grouped digits to 999,999,999, then ×10 at 3 significant figures; a focused field's full form reads back exactly", () => {
   const X = "\u00A0×\u00A010";
-  const cases: [number, string][] = [
-    [999_999_999, "999,999,999"],
-    [1e9, `1${X}⁹`],
-    [1.2e12, `1.2${X}¹²`],
-    [1_234_567_890, `1.23456789${X}⁹`],
-    [-1.2e12, `-1.2${X}¹²`],
-    [1e-7, "0.0000001"],
-    [1.23456789e-7, "0.000000123456789"],
-    [1e300, `1${X}³⁰⁰`],
-    [-2.5e-24, `-2.5${X}⁻²⁴`],
+  const cases: [number, string, string][] = [
+    [999_999_999, "999,999,999", "999,999,999"],
+    [1e9, `1${X}⁹`, `1${X}⁹`],
+    [1.2e12, `1.2${X}¹²`, `1.2${X}¹²`],
+    [1_234_567_890, `1.23${X}⁹`, `1.23456789${X}⁹`],
+    [1.2e12 + 1e9, `1.2${X}¹²`, `1.201${X}¹²`], // 3 figures, trailing zeros dropped
+    [9.996e9, `1${X}¹⁰`, `9.996${X}⁹`], // rounding carries into the exponent
+    [-1.2e12, `-1.2${X}¹²`, `-1.2${X}¹²`],
+    [1e-7, "0.0000001", "0.0000001"],
+    [1.23456789e-7, "0.000000123456789", "0.000000123456789"],
+    [1e300, `1${X}³⁰⁰`, `1${X}³⁰⁰`],
+    [-2.54321e-24, `-2.54${X}⁻²⁴`, `-2.54321${X}⁻²⁴`],
   ];
-  for (const [n, shown] of cases) {
-    expect(showNumber(n)).toBe(shown);
-    expect(parseNumber(shown, "float")).toBe(n);
-    expect(/e/i.test(shown)).toBe(false);
+  for (const [n, shown, full] of cases) {
+    expect([showNumber(n), editNumber(n)]).toEqual([shown, full]);
+    expect(parseNumber(full, "float")).toBe(n);
+    expect(/e/i.test(shown + full)).toBe(false);
   }
+  expect(parseNumber(`1.23${X}⁹`, "float")).toBe(1.23e9); // the shown form reads back as shown
   expect(parseNumber("1.2 × 10¹²", "float")).toBe(1.2e12); // typed with plain spaces too
+  const html = renderToStaticMarkup(
+    createElement(NumberField, {
+      id: "f",
+      label: "x",
+      value: 1_234_567_890,
+      bounds: { min: 0, max: Infinity },
+    }),
+  );
+  // At rest the field shows (and speaks) 3 figures; focus swaps in editNumber's full form.
+  expect(
+    html.includes(`value="1.23${X}⁹"`) && html.includes('aria-valuetext="1.23 times 10 to the 9"'),
+  ).toBe(true);
 });
 
 test("Probe R2 m3 / ruling 4: the spoken value is the shown one, the ×10 form in words", async () => {
   const { speakNumber } = await import("../../src/v2/design/primitives/NumberField/entry");
   expect(speakNumber(1.2e12)).toBe("1.2 times 10 to the 12");
   expect(speakNumber(1e300)).toBe("1 times 10 to the 300");
+  expect(speakNumber(1_234_567_890)).toBe("1.23 times 10 to the 9"); // 4a: as shown, 3 figures
   expect(speakNumber(-2.5e-24)).toBe("minus 2.5 times 10 to the minus 24");
   expect(speakNumber(999_999_999)).toBe("999,999,999");
   expect(speakNumber(1e-7)).toBe("0.0000001");
