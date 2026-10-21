@@ -6,7 +6,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 1px var(--s-3);
+    column-gap: var(--s-3);
     min-block-size: var(--hit);
     padding: var(--s-2) 0 var(--s-2) var(--_col);
   }

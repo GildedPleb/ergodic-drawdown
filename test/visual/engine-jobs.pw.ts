@@ -88,7 +88,7 @@ for (const [id, ms] of [
     await openModels(page, `row-${id}`);
     const cdp = await page.context().newCDPSession(page);
     const field = page.locator(`#v2-${id}`);
-    const start = Number(await field.inputValue());
+    const start = Number((await field.inputValue()).replaceAll(",", "")); // shown as "1,000"
     await field.focus();
     const before = await jobs(page);
     const heapBefore = await bufferBytes(cdp);
@@ -113,7 +113,7 @@ for (const [id, ms] of [
     }
     const held = await jobs(page);
     await page.keyboard.up("ArrowUp");
-    await expect(field).toHaveValue(String(start + steps));
+    await expect(field).toHaveValue((start + steps).toLocaleString("en-US"));
     const settled = await idle(page);
     const gaps = waveTimes.slice(1).map((t, i) => t - (waveTimes[i] ?? 0));
     const median = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)] ?? 0;

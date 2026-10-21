@@ -11,24 +11,23 @@ test.beforeEach(({ browserName }, info) => {
 });
 
 const pick = async (page: Page, id: string, option: string): Promise<void> => {
-  await page.locator(id).click();
-  await page.getByRole("option", { name: option, exact: true }).click();
+  // §1MP: tapping the pick opens the checked list; tapping a row picks it.
+  await page.locator(`${id} [aria-selected="true"]`).click();
+  await page.locator(`${id} [role=option]`).filter({ hasText: option }).first().click();
 };
 
 test("held ArrowUp steps the draft and commits once on release", async ({ page }) => {
   await gotoStory(page, "models-sheet/default");
-  const epochs = page.locator("#v2-epochs");
-  const hint = page.locator("#v2-epochs-hint");
-  await epochs.focus();
+  const years = page.locator("#v2-years");
+  await years.focus();
   for (let i = 0; i < 16; i += 1) await page.keyboard.down("ArrowUp"); // held: draft only
-  await expect(epochs).toHaveValue("26");
-  await expect(hint).toHaveText("(~40 years)");
+  await expect(years).toHaveValue("56");
   await page.keyboard.up("ArrowUp");
-  await expect(hint).toHaveText("(~104 years)");
-  // Steps stop at the field's max (30).
-  for (let i = 0; i < 20; i += 1) await page.keyboard.down("ArrowUp");
+  await expect(years).toHaveValue("56");
+  // Steps stop at the field's max (main's 120 with no live cap in the story).
+  for (let i = 0; i < 80; i += 1) await page.keyboard.down("ArrowUp");
   await page.keyboard.up("ArrowUp");
-  await expect(epochs).toHaveValue("30");
+  await expect(years).toHaveValue("120");
 });
 
 test("the wheel does nothing unless the field is focused, then commits once it settles", async ({
@@ -45,12 +44,12 @@ test("the wheel does nothing unless the field is focused, then commits once it s
 });
 
 for (const [id, typed, used, message] of [
-  ["#v2-samples", "1000000000", "10000", "We used 10,000."],
+  ["#v2-samples", "1000000000", "10,000", "We used 10,000."],
   ["#v2-samples", "-1", "1", "We used 1."],
   ["#v2-vol", "1e9", "1", "We used 1."],
   ["#v2-vol", "-1", "0", "We used 0."],
-  ["#v2-epochs", "1e9", "30", "We used 30."],
-  ["#v2-epochs", "-4", "1", "We used 1."],
+  ["#v2-years", "1e9", "120", "We used 120."],
+  ["#v2-years", "-4", "1", "We used 1."],
 ] as const) {
   test(`${id} "${typed}" clamps to ${used} with a visible message`, async ({ page }) => {
     await gotoStory(page, "models-sheet/default");
@@ -59,7 +58,7 @@ for (const [id, typed, used, message] of [
     await field.press("Enter");
     await expect(field).toHaveValue(used);
     await expect(page.locator(`${id}-message`)).toContainText(message);
-    await expect(page.locator("#v2-epochs-hint")).not.toContainText("NaN");
+    await expect(page.locator("[data-pane], body").first()).not.toContainText("NaN");
   });
 }
 
@@ -74,7 +73,7 @@ test("text that isn't a number is the defined invalid state; the last value stay
   await expect(page.locator("#v2-vol-message")).toContainText("0.1, is still in use");
   await field.blur();
   await expect(field).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#v2-epochs-hint")).not.toContainText("NaN");
+  await expect(page.locator("[data-pane], body").first()).not.toContainText("NaN");
   // Fixing the text clears it.
   await field.fill("0.2");
   await field.press("Enter");

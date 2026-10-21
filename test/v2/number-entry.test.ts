@@ -6,6 +6,7 @@ import { expect, test } from "bun:test";
 import { NumberField } from "../../src/v2/design/primitives/NumberField";
 import {
   normalizeNumberText,
+  showNumber,
   onBound,
   parseNumber,
   resolveEntry,
@@ -360,4 +361,17 @@ test("held step through the coalesced engine: one job in flight, superseded conf
   // ~1 config per tick requested, but only ~1 per run started; the final value always runs.
   expect(jobs.started * 2).toBeLessThanOrEqual(jobs.requested - 1);
   expect(seen.at(-1)).toBe(draft);
+});
+
+test("showNumber groups thousands on the integer part only; the parse reads it back", () => {
+  expect([1000, 10_000, 1_234_567.25, -2500, 40, 0.125, Number.NaN].map(showNumber)).toEqual([
+    "1,000",
+    "10,000",
+    "1,234,567.25",
+    "-2,500",
+    "40",
+    "0.125",
+    "",
+  ]);
+  expect(parseNumber(showNumber(1_234_567.25), "float")).toBe(1_234_567.25);
 });

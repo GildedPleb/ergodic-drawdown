@@ -76,4 +76,9 @@ export const onBound = (n: number, bounds: Bounds): boolean =>
   (Number.isFinite(bounds.max) && n === bounds.max);
 
 /** Display text for a committed value (no exponent for the ranges the back end accepts). */
-export const showNumber = (n: number): string => (Number.isFinite(n) ? String(n) : "");
+/** The shown text: "1,000", "12,345.5", "0.1" (thousands commas on the integer part; m7 parses them back). */
+export const showNumber = (n: number): string => {
+  if (!Number.isFinite(n)) return "";
+  const s = String(n);
+  return s.includes("e") ? s : s.replace(/^(-?\d+)/, (i) => i.replace(/\B(?=(\d{3})+$)/g, ","));
+};

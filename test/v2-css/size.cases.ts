@@ -10,7 +10,7 @@ test("R11: v2 CSS source bytes stay within the +5% ratchet in css-budget.json", 
   expect(checkSize(realTree, budget)).toEqual([]);
 });
 
-// Temporary, pending the dead-style audit, Keel to ratify (TOKENS.md §1MP): both limits sit at
+// Temporary, ratified by Keel, expires when the dead-style audit lands (TOKENS.md §1MP): both limits sit at
 // §1MP's measured 8,787 B gzip / 62,040 B source (+0). The audit ratchets them to actual + 2%.
 test("R11 Slice 1: limits held at §1MP's measured size (temporary, pending the audit)", () => {
   const raw: unknown = JSON.parse(

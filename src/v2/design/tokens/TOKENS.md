@@ -379,7 +379,12 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   as R4 (`isOwnLocal`). The ModelsSheet item was approved by Keel at about +206 B; cuts tried:
   font shorthands −13, key hit area −19, token reuse −29, Swatches trim, a shared button reset
   (+19 B, reverted). Over +200, approved by Keel.
-- **Limits temporary, pending dead-style audit, Keel to ratify.** §1MP ships over the 8,600
+- **Limits temporary, ratified by Keel, expires when the dead-style audit lands.** §1MP ships over the 8,600
   ceiling, so `css-budget.json` holds both limits at the measured size +0:
   `builtGzipCeiling` 8,600 → 8,787 and `sourceCeiling` 61,809 → 62,040. The dead-style audit
   follows as its own commit and then ratchets both down to measured actual + 2%.
+- §1MP polish (Form): 62,011 B source / 8,782 B gzip, −5 on 8,787. `--thumb-w` 5px → 1px and
+  `--thumb-h` 1.125rem → 0.875rem (the v54 1×14 thumb; the Slider ships only in the Models pane).
+  Spacing to the v54 shots: LedgerRow rows lose the 1px row gap (`column-gap` only); SectionLabel
+  pads `--s-6` / `--s-2` with no `min-block-size`. Text lines now sit within 2.5px of the v54
+  shots at 390 and 1440 (up to 25px of drift before). Limits unchanged.

@@ -5,8 +5,7 @@
     display: flex;
     align-items: center;
     gap: var(--s-3);
-    min-block-size: var(--s-6);
-    padding: var(--s-6) 0 var(--s-3) var(--_col);
+    padding: var(--s-6) 0 var(--s-2) var(--_col);
     color: var(--accent);
     font: 600 var(--t-section)/1 var(--f-sans);
     letter-spacing: var(--tr-section);

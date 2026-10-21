@@ -61,8 +61,8 @@
     --line-median-focus: 2.5px;
     --line-casing: 1.5px;
     /* slider thumb */
-    --thumb-w: 5px;
-    --thumb-h: 1.125rem; /* 18px at 100%; rem so it scales with text */
+    --thumb-w: 1px;
+    --thumb-h: 0.875rem; /* 14px at 100%; rem so it scales with text */
   }
   /* Probe m4: recompute the sheet shadow inside every themed subtree, so a nested
      [data-theme="linen"] uses its own --shadow-ink instead of inheriting the dark value. */
