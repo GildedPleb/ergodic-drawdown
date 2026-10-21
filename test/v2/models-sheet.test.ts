@@ -10,6 +10,8 @@ import {
   SAMPLE_BOUNDS,
   SAMPLES_LABEL,
   summaryOf,
+  usedVariable,
+  variableBounds,
 } from "../../src/v2/app/models/ModelsSheet";
 import { resolveEntry } from "../../src/v2/design/primitives/NumberField/entry";
 import { defaultModelsValues, type ModelsValues } from "../../src/v2/app/models/values";
@@ -291,4 +293,36 @@ test('the samples label is exactly "Statistical Sample Count (1-10k):", from the
   const html = render();
   expect(html.includes(">Statistical Sample Count (1-10k):<")).toBe(true);
   expect(uncovered([SAMPLES_LABEL], await loadCmaps())).toEqual([]);
+});
+
+const metaOf = (name: string) => modelsPaneSchema.models.find((m) => m.name === name);
+
+test("Probe 1MP M3: Previous Halvings is 2–3 with a slider; R (%) stays 0 to ∞ (§1Q Rule 0)", () => {
+  expect(variableBounds(metaOf("Historic"))).toEqual({ min: 2, max: 3 });
+  expect(variableBounds(metaOf("CAGR"))).toEqual({ min: 0, max: Infinity });
+  expect(resolveEntry("1000", "float", variableBounds(metaOf("Historic")), null)).toEqual({
+    kind: "clamped",
+    value: 3,
+    typed: 1000,
+  });
+  expect(strings.fields.clamped({ name: "Previous Halvings", plural: true }, 2, 3, 3)).toBe(
+    "Previous Halvings go from 2 to 3. We used 3.",
+  );
+  const v = { ...defaultModelsValues(), model: "Historic" as const, variable: 1000 };
+  // A count stored before the clamp reads as what the back end uses (3), formatted like the field.
+  expect(usedVariable(v)).toBe(3);
+  expect(summaryOf(v).startsWith("Replays 3 past halving cycles")).toBe(true);
+  expect(summaryOf({ ...v, model: "CAGR", variable: 1000 }).startsWith("Grows 1,000% a year")).toBe(
+    true,
+  );
+  const html = renderToStaticMarkup(
+    createElement(ModelsSheet, {
+      values: { ...v, variable: 2 },
+      onChange: () => undefined,
+      initialOpen: ["bitcoin"],
+    }),
+  );
+  expect(html.includes('role="slider"') && html.includes('aria-label="Previous Halvings"')).toBe(
+    true,
+  );
 });

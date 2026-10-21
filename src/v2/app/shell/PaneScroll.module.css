@@ -15,6 +15,7 @@
 
     min-block-size: 0;
     overflow-y: auto;
+    cursor: var(--cursor-rest); /* §1O: the arrow over static text; controls set their own */
     overscroll-behavior: contain;
     scroll-padding-block-start: var(--hit);
     scrollbar-gutter: stable;

@@ -21,12 +21,13 @@ const SYSTEM = new Set([
   "progress",
   "text",
   "not-allowed",
+  "default",
 ]);
 
 test("1O: the cursor tokens are system shapes, and every other cursor reads one", async () => {
   const motion = await file(`${V2}/design/tokens/motion-etc.css`).text();
   const tokens = [...motion.matchAll(/--cursor-([a-z]+):\s*([a-z-]+);/g)];
-  expect(tokens.length).toBe(7);
+  expect(tokens.length).toBe(8); // + --cursor-rest (Probe 1MP m2: the arrow over static pane text)
   for (const [, , value] of tokens) expect(SYSTEM.has(value ?? "")).toBe(true);
   const names = new Set(tokens.map(([, name]) => `--cursor-${name ?? ""}`));
   let uses = 0;

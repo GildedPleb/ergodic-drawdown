@@ -6,6 +6,7 @@ import { Icon } from "../../design/primitives/Icon";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
 import type { Bounds } from "../../design/primitives/NumberField";
+import { showNumber } from "../../design/primitives/NumberField/entry";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Select } from "../../design/primitives/Select";
 import { Slider } from "../../design/primitives/Slider";
@@ -134,15 +135,37 @@ export type ModelsSheetProps = {
 
 type AssetId = (typeof copy.assets)[number]["id"];
 
+type ModelMeta = (typeof modelsPaneSchema.models)[number];
+
+/**
+ * A model's variable range. §1Q Rule 0 (Form) opens the top only for a field with a focus range
+ * (R (%): 0 to ∞, its rangeMax the slider's soft top). Every other variable keeps the model's own
+ * rangeMin…rangeMax (G12-mirrored): Previous Halvings is 2–3 (Probe M3; the back end uses at most
+ * the 3 halvings before the current one, so a larger count changes nothing).
+ */
+export const variableBounds = (meta: ModelMeta | undefined): Bounds => {
+  const min = meta === undefined || meta.rangeMin === "Infinity" ? 0 : meta.rangeMin;
+  const open = meta === undefined || strings.fields.focus[meta.varInput] !== undefined;
+  const max = open || meta.rangeMax === "Infinity" ? Infinity : meta.rangeMax;
+  return { min, max };
+};
+
+/** The variable as the back end uses it (a stored value from before a clamp reads clamped). */
+export const usedVariable = (values: ModelsValues): number => {
+  const b = variableBounds(modelsPaneSchema.models.find((m) => m.name === values.model));
+  return Math.min(b.max, Math.max(b.min, values.variable));
+};
+
 /** §1MP 9: "{model part}, {walk} walk, volatility {Volatility}", live from the settings. */
 export const summaryOf = (values: ModelsValues): string => {
+  const used = showNumber(usedVariable(values));
   const part =
     values.model === "CAGR"
-      ? copy.grows(values.variable)
+      ? copy.grows(used)
       : values.model === "Historic"
-        ? copy.replays(values.variable)
+        ? copy.replays(used)
         : values.model;
-  return copy.summary(part, values.walk, values.volatility);
+  return copy.summary(part, values.walk, showNumber(values.volatility));
 };
 
 /**
@@ -177,12 +200,7 @@ export const ModelsSheet = ({
   const [modelList, setModelList] = useState(false);
   const [colour, setColour] = useState<string>(copy.colours[0].name);
   const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
-  // §1Q (Rule 0, Form): R (%) accepts 0 to ∞; only the slider's mapping is front end. The model's
-  // rangeMax (G12-mirrored) is the slider's soft top, not a clamp.
-  const varBounds: Bounds = {
-    min: meta === undefined || meta.rangeMin === "Infinity" ? 0 : meta.rangeMin,
-    max: Infinity,
-  };
+  const varBounds = variableBounds(meta);
   const softTop = meta === undefined || meta.rangeMax === "Infinity" ? undefined : meta.rangeMax;
   const volStep =
     values.walk === "Bubble" ? controls.volatility.stepBubble : controls.volatility.stepOther;
@@ -205,7 +223,7 @@ export const ModelsSheet = ({
           key={values.model}
           id="variable"
           label={meta.varInput}
-          value={values.variable}
+          value={usedVariable(values)}
           bounds={varBounds}
           parse={controls.variable.parse}
           step={controls.variable.step}

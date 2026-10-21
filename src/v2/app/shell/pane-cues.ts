@@ -108,3 +108,79 @@ export const resizeWith = <E>(Ctor: RO<E> | undefined): Observe<E> | undefined =
           observer.disconnect();
         };
       };
+
+/** §1MP 12: each fade is 1.5rem (`--s-6`), measured against the root font size. */
+export const FADE_REM = 1.5;
+
+/**
+ * §1MP 10, Probe M1: how far to scroll the zone so a focused box sits in the clear band (below the
+ * pinned header and the top fade, above the bottom fade). 0 leaves it. A box taller than the band
+ * aligns its top.
+ */
+export const focusShift = (box: Box, clear: Box): number => {
+  if (box.top < clear.top || box.bottom - box.top > clear.bottom - clear.top) {
+    return box.top - clear.top;
+  }
+  return box.bottom > clear.bottom ? box.bottom - clear.bottom : 0;
+};
+
+type Focused = {
+  matches: (sel: string) => boolean;
+  closest: (sel: string) => { querySelector: (sel: string) => Focused | null } | null;
+  contains: (el: Focused) => boolean;
+  getBoundingClientRect: () => Box & { height: number };
+};
+export type FocusZone = {
+  scrollTop: number;
+  getBoundingClientRect: () => Box;
+  addEventListener: (type: "focusin", fn: (event: { target: unknown }) => void) => void;
+  removeEventListener: (type: "focusin", fn: (event: { target: unknown }) => void) => void;
+};
+export type Frames = { request: (fn: () => void) => number; cancel: (id: number) => void };
+const realFrames: Frames = {
+  request: (fn) => requestAnimationFrame(fn),
+  cancel: (id) => {
+    cancelAnimationFrame(id);
+  },
+};
+const isFocused = (t: unknown): t is Focused =>
+  typeof t === "object" && t !== null && "matches" in t && "closest" in t;
+
+/**
+ * Keyboard focus lands clear of the pinned header and both fades. Chromium reads scroll-padding
+ * when it decides whether a focused control needs scrolling, but WebKit doesn't, so the zone
+ * corrects after the browser's own focus scroll. The header that can cover a control is its own
+ * asset's (sticky only inside that asset), measured live. `fade` is the fade height in px.
+ */
+export const keepFocusClear = (
+  zone: FocusZone | null,
+  fade: () => number,
+  frames: Frames = realFrames,
+): (() => void) => {
+  if (zone === null) return () => undefined;
+  let frame = 0;
+  const onFocus = (event: { target: unknown }): void => {
+    const el = event.target;
+    if (!isFocused(el) || !el.matches(":focus-visible")) return;
+    frames.cancel(frame);
+    frame = frames.request(() => {
+      const head = el.closest("[data-asset]")?.querySelector(PIN) ?? null;
+      if (head?.contains(el) === true) return;
+      const z = zone.getBoundingClientRect();
+      const f = fade();
+      const hh = head?.getBoundingClientRect().height ?? 0;
+      const shift = focusShift(el.getBoundingClientRect(), {
+        top: z.top + hh + f,
+        bottom: z.bottom - f,
+      });
+      // Whole pixels away from zero: WebKit keeps scrollTop integral, and a truncated 0.9px
+      // would leave the control's foot in the fade.
+      if (shift !== 0) zone.scrollTop += shift > 0 ? Math.ceil(shift) : Math.floor(shift);
+    });
+  };
+  zone.addEventListener("focusin", onFocus);
+  return () => {
+    frames.cancel(frame);
+    zone.removeEventListener("focusin", onFocus);
+  };
+};

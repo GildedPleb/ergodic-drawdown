@@ -1,12 +1,15 @@
 import type { JSX, KeyboardEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
+import { createLive, type Live } from "./live";
 import { linearScale, type Scale, snapTo } from "./scale";
 import styles from "./Slider.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
   disabled: ["true", "false"] as const,
+  /** §1O: set only while the thumb is dragged (the grabbing cursor). */
+  dragging: ["true"] as const,
 };
 
 export type SliderProps = {
@@ -16,7 +19,7 @@ export type SliderProps = {
   min: number;
   max: number;
   step: number;
-  /** Saves on release: pointer up, or key up after a (held) step key. */
+  /** Commits live while dragged or a key is held (at most every 100 ms), and once on release. */
   onCommit?: (next: number) => void;
   /** Spoken value (aria-valuetext). */
   valueText?: ((value: number) => string) | undefined;
@@ -49,6 +52,14 @@ export const keyStep = (
 
 const pct = (pos: number): string => `${pos * 100}%`;
 
+/** §1O: while a thumb is dragged the whole page shows the grabbing cursor, wherever the pointer is. */
+const dragHold = (on: boolean): void => {
+  if (typeof document === "undefined") return;
+  const html = document.documentElement.style;
+  if (on) html.setProperty("cursor", "var(--cursor-drag)");
+  else html.removeProperty("cursor");
+};
+
 /**
  * Certificate slider (V32-BUILD §1f): 1px --control-line track, 2px --accent fill, a 5×18 square
  * --accent thumb with a 2px --surface halo, and a muted tick at the value it had when it mounted.
@@ -71,13 +82,44 @@ export const Slider = ({
   const [previous] = useState(value);
   const track = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  // A drag or a held key is live: the parent's value lags the thumb, so it mustn't reset it.
+  const active = useRef(false);
+  const [drag, setDrag] = useState(false);
+  const props = useRef({ onCommit, value });
+  props.current = { onCommit, value };
+  const live = useRef<Live | null>(null);
+  live.current ??= createLive(
+    (n) => props.current.onCommit?.(n),
+    () => props.current.value,
+  );
+  const hold = live.current;
 
   useEffect(() => {
-    if (!dragging.current) setDraft(value);
-  }, [value]);
+    hold.settled();
+    if (!active.current) setDraft(value);
+  }, [value, hold]);
 
-  const commit = (n: number): void => {
-    if (n !== value) onCommit?.(n);
+  useEffect(
+    () => () => {
+      hold.cancel();
+      if (dragging.current) dragHold(false);
+    },
+    [hold],
+  );
+
+  const move = (n: number): void => {
+    active.current = true;
+    setDraft(n);
+    hold.move(n);
+  };
+  const release = (n: number): void => {
+    active.current = false;
+    hold.release(n);
+  };
+  const grab = (on: boolean): void => {
+    dragging.current = on;
+    setDrag(on);
+    dragHold(on);
   };
 
   const range = { min, max, step, scale };
@@ -92,11 +134,11 @@ export const Slider = ({
     const next = keyStep(event.key, draft, range);
     if (next === null) return;
     event.preventDefault();
-    setDraft(next);
+    move(next);
   };
 
   const onKeyUp = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (KEYS.has(event.key) || ENDS.has(event.key)) commit(draft);
+    if (KEYS.has(event.key) || ENDS.has(event.key)) release(draft);
   };
 
   const root = styles["root"] ?? "slider-root";
@@ -114,22 +156,25 @@ export const Slider = ({
       ref={track}
       className={root}
       data-disabled={disabled ? "true" : "false"}
+      data-dragging={drag ? "true" : undefined}
       onPointerDown={(event) => {
         if (disabled) return;
-        dragging.current = true;
+        grab(true);
         event.currentTarget.setPointerCapture(event.pointerId);
-        setDraft(fromPointer(event));
+        move(fromPointer(event));
       }}
       onPointerMove={(event) => {
-        if (dragging.current) setDraft(fromPointer(event));
+        if (dragging.current) move(fromPointer(event));
       }}
       onPointerUp={(event) => {
         if (!dragging.current) return;
-        dragging.current = false;
-        commit(fromPointer(event));
+        grab(false);
+        release(fromPointer(event));
       }}
       onPointerCancel={() => {
-        dragging.current = false;
+        grab(false);
+        active.current = false;
+        hold.cancel();
         setDraft(value);
       }}
     >
@@ -159,7 +204,7 @@ export const Slider = ({
         onKeyDown={onKeyDown}
         onKeyUp={onKeyUp}
         onBlur={() => {
-          commit(draft);
+          if (active.current) release(draft);
         }}
       />
     </div>

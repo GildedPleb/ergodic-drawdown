@@ -2,7 +2,7 @@ import type { JSX, ReactNode } from "react";
 import { useLayoutEffect, useRef } from "react";
 
 import styles from "./PaneScroll.module.css";
-import { resizeWith, watchCues } from "./pane-cues";
+import { FADE_REM, keepFocusClear, resizeWith, watchCues } from "./pane-cues";
 import type { Pane } from "./panes";
 
 /** R7: the scroll listener's flags (absent = false). */
@@ -23,14 +23,21 @@ type PaneScrollProps = { id: Pane; children: ReactNode };
  */
 export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
   const zone = useRef<HTMLDivElement>(null);
-  useLayoutEffect(
-    () =>
-      watchCues<Element>(
-        zone.current,
-        resizeWith<Element>(typeof ResizeObserver === "undefined" ? undefined : ResizeObserver),
-      ),
-    [],
-  );
+  useLayoutEffect(() => {
+    const stopCues = watchCues<Element>(
+      zone.current,
+      resizeWith<Element>(typeof ResizeObserver === "undefined" ? undefined : ResizeObserver),
+    );
+    const stopFocus = keepFocusClear(
+      zone.current,
+      () =>
+        FADE_REM * (Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16),
+    );
+    return () => {
+      stopCues();
+      stopFocus();
+    };
+  }, []);
   const root = styles["root"] ?? "pane-root";
   const zoneCls = styles["zone"] ?? "pane-zone";
   const content = styles["content"] ?? "pane-content";

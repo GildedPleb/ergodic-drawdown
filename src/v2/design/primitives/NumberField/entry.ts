@@ -9,9 +9,22 @@
  * - Postel-liberal text (m7): commas, spaces, NBSP, narrow/thin spaces and U+2212 normalise first.
  */
 
+/** Superscript digits, for the ×10ⁿ form. */
+const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+
 /** m7: "1,000", "2 000", "2\u00A0000", "\u22120.4" → plain numeric text. */
 export const normalizeNumberText = (text: string): string =>
-  text.replace(/[\s,\u00A0\u202F\u2009]/g, "").replace(/\u2212/g, "-");
+  text
+    .replace(/[\s,\u00A0\u202F\u2009]/g, "")
+    .replace(/\u2212/g, "-")
+    // "1×10³⁰⁰" / "2.5×10⁻²⁴" (showNumber's large and tiny forms) → "1e300" / "2.5e-24".
+    .replace(
+      /[×x]10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/,
+      (_, exp: string) =>
+        `e${Array.from(exp, String)
+          .map((c) => (c === "⁻" ? "-" : String(SUP.indexOf(c))))
+          .join("")}`,
+    );
 
 export type NumberParse = "float" | "int";
 
@@ -76,9 +89,31 @@ export const onBound = (n: number, bounds: Bounds): boolean =>
   (Number.isFinite(bounds.max) && n === bounds.max);
 
 /** Display text for a committed value (no exponent for the ranges the back end accepts). */
-/** The shown text: "1,000", "12,345.5", "0.1" (thousands commas on the integer part; m7 parses them back). */
+const group = (int: string): string => int.replace(/\B(?=(\d{3})+$)/g, ",");
+
+/**
+ * The shown text (Probe Minor 4: never "1e-7"): "1,000", "12,345.5", "0.1", "0.0000001";
+ * below 1e-20 and from 1e21 up, ×10 with real superscripts as §1h writes huge money ("1×10³⁰⁰",
+ * "-2.5×10⁻²⁴"), the mantissa at full precision so the shown value is the used one. m7 and
+ * normalizeNumberText read every form back.
+ */
+/** 1.2345e-7 → "0.00000012345": the shortest round-trip digits, written out in full. */
+const plainTiny = (n: number): string => {
+  const [m = "", e = ""] = Math.abs(n).toExponential().split("e");
+  const digits = m.replace(".", "");
+  return `${n < 0 ? "-" : ""}0.${"0".repeat(-Number(e) - 1)}${digits}`;
+};
+
 export const showNumber = (n: number): string => {
   if (!Number.isFinite(n)) return "";
-  const s = String(n);
-  return s.includes("e") ? s : s.replace(/^(-?\d+)/, (i) => i.replace(/\B(?=(\d{3})+$)/g, ","));
+  const a = Math.abs(n);
+  if (a !== 0 && (a >= 1e21 || a < 1e-20)) {
+    const [m = "", e = ""] = n.toExponential().split("e");
+    const exp = Array.from(e.replace("+", ""), String)
+      .map((c) => (c === "-" ? "⁻" : SUP[Number(c)]))
+      .join("");
+    return `${m}×10${exp}`;
+  }
+  const s = a < 1e-6 && a !== 0 ? plainTiny(n) : String(n);
+  return s.replace(/^(-?)(\d+)/, (_, sign: string, int: string) => sign + group(int));
 };

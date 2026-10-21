@@ -16,9 +16,12 @@
     max-inline-size: var(--_chips-max);
   }
 
+  /* 44×44 even when the track is narrower (40.75px at 390): centred, so the faces don't move. */
   .chip {
     display: grid;
     place-items: center;
+    justify-self: center;
+    inline-size: var(--hit);
     block-size: var(--hit);
     padding: 0;
     background: none;

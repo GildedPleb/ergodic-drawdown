@@ -375,3 +375,49 @@ test("showNumber groups thousands on the integer part only; the parse reads it b
   ]);
   expect(parseNumber(showNumber(1_234_567.25), "float")).toBe(1_234_567.25);
 });
+
+test("Probe 1MP M2: a slider drag commits live (≤100 ms behind the thumb) and once on release", async () => {
+  const { createLive } = await import("../../src/v2/design/primitives/Slider/live");
+  const c = clock();
+  const sent: number[] = [];
+  let value = 0.1;
+  const live = createLive(
+    (n) => sent.push((value = n)),
+    () => value,
+    c.timers,
+  );
+  // A drag from 0.1 to 0.9: one move every 16 ms (a frame), 50 frames.
+  for (let i = 1; i <= 50; i += 1) {
+    live.move(Math.round((0.1 + i * 0.016) * 1000) / 1000);
+    c.advance(16);
+  }
+  // Live, not frozen: the first move at once, then about every 100 ms (800 ms / 100 = 8 more).
+  expect(sent[0]).toBe(0.116);
+  expect(sent.length).toBeGreaterThanOrEqual(8);
+  expect(sent.length).toBeLessThanOrEqual(10);
+  live.release(0.9);
+  expect(sent.at(-1)).toBe(0.9);
+  const n = sent.length;
+  live.release(0.9); // a repeat of the applied value sends nothing
+  c.advance(500);
+  expect(sent.length).toBe(n);
+  live.move(0.5);
+  live.cancel();
+  c.advance(500);
+  expect(sent.at(-1)).toBe(0.5); // the first move of a hold lands at once; cancel drops the rest
+});
+
+test("Probe 1MP m4: tiny and huge values never show exponent notation, and read back exactly", () => {
+  const cases: [number, string][] = [
+    [1e-7, "0.0000001"],
+    [1.23456789e-7, "0.000000123456789"],
+    [1e300, "1×10³⁰⁰"],
+    [-2.5e-24, "-2.5×10⁻²⁴"],
+    [1.2345e25, "1.2345×10²⁵"],
+  ];
+  for (const [n, shown] of cases) {
+    expect(showNumber(n)).toBe(shown);
+    expect(parseNumber(shown, "float")).toBe(n);
+    expect(/e/i.test(shown)).toBe(false);
+  }
+});

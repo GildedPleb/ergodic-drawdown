@@ -97,12 +97,12 @@ export const strings = {
       { id: "inflation", name: "Inflation", colour: "var(--path-inflation)" },
     ],
     /** §1MP 9: "{model part}, {walk} walk, volatility {Volatility}". */
-    summary: (model: string, walk: string, volatility: number): string =>
-      `${model}, ${walk} walk, volatility ${String(volatility)}`,
+    summary: (model: string, walk: string, volatility: string): string =>
+      `${model}, ${walk} walk, volatility ${volatility}`,
     /** CAGR's model part (cagr.ts L6–10). */
-    grows: (r: number): string => `Grows ${String(r)}% a year`,
+    grows: (r: string): string => `Grows ${r}% a year`,
     /** Historic's model part (historic.ts L26–27). */
-    replays: (n: number): string => `Replays ${String(n)} past halving cycles`,
+    replays: (n: string): string => `Replays ${n} past halving cycles`,
     notYet: "Not yet modelled",
     /** A stand-in's open body. */
     standIn: (name: string): string =>

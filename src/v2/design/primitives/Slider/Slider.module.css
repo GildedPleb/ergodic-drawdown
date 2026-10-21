@@ -17,6 +17,12 @@
     cursor: var(--cursor-press);
   }
 
+  /* §1O: grabbing for the whole drag, on and off the thumb. */
+  .root[data-dragging="true"],
+  .root[data-dragging="true"] .thumb {
+    cursor: var(--cursor-drag);
+  }
+
   .rail {
     position: relative;
     display: block;

@@ -7,6 +7,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PaneScroll } from "../../src/v2/app/shell/PaneScroll";
 import {
   cuesOf,
+  focusShift,
+  keepFocusClear,
   paintCues,
   PIN,
   resizeWith,
@@ -181,4 +183,54 @@ test("1MP 11–12: fades by mask (zero unless flagged), the scrollbar column unm
   expect(/transition|animation/.test(pane)).toBe(false);
   const row = await file(`${v2}/design/primitives/AssetRow/AssetRow.module.css`).text();
   expect(row.includes("position: sticky;")).toBe(true);
+});
+
+test("Probe 1MP M1: focus lands below the pinned header and its fade, above the bottom fade", () => {
+  // WebKit 390: zone 115.5–832, header 48.2 tall, fades 24 → clear band 187.7–808.
+  const clear = { top: 115.5 + 48.2 + 24, bottom: 832 - 24 };
+  expect(Math.abs(focusShift({ top: 131, bottom: 151 }, clear) - (131 - 187.7)) < 1e-9).toBe(true); // under the header
+  expect(Math.abs(focusShift({ top: 184.6, bottom: 202.6 }, clear) - -3.1) < 1e-9).toBe(true); // in the top fade
+  expect(Math.abs(focusShift({ top: 799.5, bottom: 817.5 }, clear) - 9.5) < 1e-9).toBe(true); // in the bottom fade
+  expect(focusShift({ top: 400, bottom: 444 }, clear)).toBe(0); // clear: leave it
+  expect(Math.abs(focusShift({ top: 100, bottom: 900 }, clear) - (100 - 187.7)) < 1e-9).toBe(true); // taller: top
+});
+
+test("Probe 1MP M1: keyboard focus under the asset's pinned header scrolls up clear of it; mouse focus and the header itself don't", () => {
+  let listener: ((e: { target: unknown }) => void) | undefined;
+  const zone = {
+    scrollTop: 500,
+    getBoundingClientRect: () => ({ top: 115.5, bottom: 832 }),
+    addEventListener: (_: "focusin", fn: (e: { target: unknown }) => void) => {
+      listener = fn;
+    },
+    removeEventListener: () => {
+      listener = undefined;
+    },
+  };
+  const queued: (() => void)[] = [];
+  const frames = {
+    request: (fn: () => void) => queued.push(fn),
+    cancel: () => undefined,
+  };
+  const header = {
+    matches: () => false,
+    closest: () => null,
+    contains: (el: unknown) => el === header,
+    getBoundingClientRect: () => ({ top: 115.5, bottom: 163.7, height: 48.2 }),
+  };
+  const control = (top: number, visible = true) => ({
+    matches: () => visible,
+    closest: () => ({ querySelector: () => header }),
+    contains: () => false,
+    getBoundingClientRect: () => ({ top, bottom: top + 20, height: 20 }),
+  });
+  const stop = keepFocusClear(zone, () => 24, frames);
+  listener?.({ target: control(131) });
+  listener?.({ target: control(131, false) }); // a click: the browser's own scroll stands
+  listener?.({ target: header }); // the header holds focus itself: nothing to clear
+  listener?.({ target: "text" });
+  for (const run of queued.splice(0)) run();
+  expect(zone.scrollTop).toBe(500 + Math.floor(131 - (115.5 + 48.2 + 24))); // whole px, up
+  stop();
+  expect(listener).toBeUndefined();
 });
