@@ -13,9 +13,7 @@
     --linen-200: #d6c6a5;
     --linen-225: #cbbd9f;
     --stone-350: #a99e86;
-    --stone-375: #9c9387;
     --stone-525: #7d725f;
-    --stone-675: #574e43;
     --umber-550: #7a6a55;
     --umber-625: #6b5434;
     --umber-675: #5e4b36;
@@ -57,22 +55,7 @@
     --leaf-525: #1f8240;
     --red-500: #d9404a;
     --red-775: #6e1219;
-    /* alphas (themeable raw numbers) */
-    --alpha-0: 0;
-    --alpha-4: 0.04;
-    --alpha-5: 0.05;
-    --alpha-8: 0.08;
-    --alpha-10: 0.1;
-    --alpha-12: 0.12;
-    --alpha-14: 0.14;
-    --alpha-16: 0.16;
-    --alpha-22: 0.22;
-    --alpha-55: 0.55;
-    --alpha-70: 0.7;
-    --alpha-80: 0.8;
-    --alpha-85: 0.85;
     /* mix percentages for state tints */
     --mix-5: 5%;
-    --mix-14: 14%;
   }
 }

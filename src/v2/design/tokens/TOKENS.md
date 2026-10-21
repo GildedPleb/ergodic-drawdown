@@ -383,8 +383,48 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   ceiling, so `css-budget.json` holds both limits at the measured size +0:
   `builtGzipCeiling` 8,600 → 8,787 and `sourceCeiling` 61,809 → 62,040. The dead-style audit
   follows as its own commit and then ratchets both down to measured actual + 2%.
+  **Expired:** the dead-style audit below landed and replaced these limits.
 - §1MP polish (Form): 62,011 B source / 8,782 B gzip, −5 on 8,787. `--thumb-w` 5px → 1px and
   `--thumb-h` 1.125rem → 0.875rem (the v54 1×14 thumb; the Slider ships only in the Models pane).
   Spacing to the v54 shots: LedgerRow rows lose the 1px row gap (`column-gap` only); SectionLabel
   pads `--s-6` / `--s-2` with no `min-block-size`. Text lines now sit within 2.5px of the v54
   shots at 390 and 1440 (up to 25px of drift before). Limits unchanged.
+- **Dead-style audit (user; Keel's ratchet, final for Slice 1):** 54,041 B source / 7,749 B
+  gzip, down from 62,011 / 8,782 (−7,970 source, −1,033 gzip; built CSS 37,916 → 32,371 B).
+  Evidence: every selector in the production bundle was tested against the live DOM in 16 states
+  (landing, half and full sheet, Bitcoin open, both lists open, CAGR mid-scroll, Historic at
+  the end, Bitcoin off, S&P and Inflation open, a clamp message, an invalid entry, keyboard
+  focus on a key and a field, hover, Show historic price on) × 390 and 1440 × dark and linen.
+  Each deletion was then checked with grep over src/v2, test and scripts. Deleted, per file
+  (source bytes):
+  - `semantic.css` −3,525: the 30 `--fan-*-fill|edge|halo` (both themes) and the 12 fan/path alphas
+    (`--fan-focus-*`, `--fan-ctx-*`, `--fan-edge-*-a`, `--fan-dim`, `--fan-band-1..4`,
+    `--path-unfocused-alpha`; the chart reads its paint from `--asset-btc` / `--band-gain`),
+    `--ghost` and `--risk-line` (both themes).
+  - `type.css` −2,260: the `.t-*` role classes and the `[class^="t-"]` reset (no element
+    carries a `t-` class), then the tokens only they used: `--t-headline`, `--t-big`,
+    `--t-readout`, `--t-tab`, `--t-group`, `--tr-group`, `--tr-small`, `--lh-display`,
+    `--lh-num`, `--figs`.
+  - `motion-etc.css` −1,506: `--dur-instant|fade|panel|swap|swap-lead|sheet`, `--ease-swap`,
+    `--ease-linear`, `--depth-back-*` (4), `--motion-transform` and their reduced-motion
+    overrides, `--z-chart-back`, `--z-toast`, `--z-focus`, `--shadow-none`,
+    `--rule-double(-line|-gap)`, `--line-path(-focus)`, `--line-fan-edge-inner|outer`,
+    `--line-median-focus`.
+  - `palette.css` −388: the 13 `--alpha-*`, `--mix-14`, `--stone-375` and `--stone-675` (only
+    `--ghost` used them). `--ink-850` and `--linen-200` stay (`--raised`).
+  - `space.css` −291: `--tk-h`, `--tk-gap`, `--tk-sel-bg`, `--seg-pad`, `--card-pad`,
+    `--grab-row`, `--grab-row-gap`, `--mag-nudge`.
+    Kept although nothing live paints them: `--raised` (Form's contrast table, G1),
+    `--optical-offset-jost|garamond` (glyphs.test re-reads the shipped fonts against them),
+    `--danger-floor`, `--dur-fast`, `--ease-out`, `--shadow-sheet` (test seeds and the contrast
+    table); reachable states (disabled, visible labels and hints, the dock rail and its 🔍/⚙,
+    drag, landscape, zoom reset, retry, reduced motion); and the stories-only primitives
+    Amount, Cluster, Grid and Stack (2,973 B source, 0 B shipped; their contracts are pinned by
+    R6 and the Amount format tests). Pixel proof: 64 shots before and after at 1× DPR, chart
+    seeded (Math.random, Date and one worker fixed; network replayed). Two before runs agree
+    except a 16×3 px strip on the logo mark at 390 (its press glow, timing); every after shot is
+    identical to at least one before run, so the diff is zero.
+- **Ratchet (Keel, final for Slice 1):** `css-budget.json` re-baselined to the audit's
+  measurement and both limits set to it + 2%: `builtGzipCeiling` 8,787 → 7,903 (7,749 × 1.02),
+  `sourceCeiling` 62,040 → 55,121 (54,041 × 1.02); `builtGzipBytes` 7,917 → 7,749,
+  `sourceBytes` 56,901 → 54,041.
