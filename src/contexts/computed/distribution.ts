@@ -115,28 +115,31 @@ export const handleDistribution = async (
   if (cutoffs.length % 2 !== 1) throw new Error("cutoffs must be odd");
 
   // Dates come from `now`. The percentile values do not, so a new day must not rerun workers.
-  // Drawdown passes the volume hash: a balance change is not a price-band hit.
-  const cacheKey = `${sourceHash}:${samples}:${dataLength}:${weeksSince}:${kind}`;
+  // The year length is not in the key. A shorter year reads the stored front.
+  const cacheKey = `${sourceHash}:${weeksSince}:${samples}:${kind}`;
   const slot = ySlots[character][kind];
-  if (slot.values !== null && slot.key === cacheKey) {
-    return pointsFrom(config, slot.values, now, dataLength);
+  const stored = slot.values;
+  if (stored !== null && slot.key === cacheKey && dataLength <= slot.weeks) {
+    return pointsFrom(config, stored, now, dataLength);
   }
 
+  const origin = stored !== null && slot.key === cacheKey ? slot.weeks : 0;
+  const added = dataLength - origin;
   const slots = bufferSlots[character];
-  let grouped = acquire(slots.grouped, Float64Array.BYTES_PER_ELEMENT * dataLength * samples);
+  let grouped = acquire(slots.grouped, Float64Array.BYTES_PER_ELEMENT * added * samples);
   if (grouped === null) {
     grouped = await acquireWhenFree(
       slots.grouped,
-      Float64Array.BYTES_PER_ELEMENT * dataLength * samples,
+      Float64Array.BYTES_PER_ELEMENT * added * samples,
       signal,
     );
     if (grouped === null) return [];
   }
-  let values = acquire(slots.values, Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length);
+  let values = acquire(slots.values, Float64Array.BYTES_PER_ELEMENT * added * cutoffs.length);
   if (values === null) {
     values = await acquireWhenFree(
       slots.values,
-      Float64Array.BYTES_PER_ELEMENT * dataLength * cutoffs.length,
+      Float64Array.BYTES_PER_ELEMENT * added * cutoffs.length,
       signal,
     );
     if (values === null) {
@@ -161,12 +164,12 @@ export const handleDistribution = async (
       return {
         payload: {
           buffer: exported,
-          dataLength,
+          dataLength: added,
           getZero: character === "drawdown",
           groupedDataBuffer: grouped.buffer,
           samples,
           task,
-          weeksSince,
+          weeksSince: weeksSince + origin,
         },
         type: "RUN_DISTRIBUTION_GROUP",
       } satisfies DistributionGroupEvent;
@@ -186,7 +189,7 @@ export const handleDistribution = async (
 
   let statTasks: WorkerTasks[];
   try {
-    statTasks = createTaskQueue(dataLength, worker.count, dataLength, 0).map((task) => ({
+    statTasks = createTaskQueue(added, worker.count, added, 0).map((task) => ({
       payload: {
         cutoffs,
         groupedDataBuffer: grouped.buffer,
@@ -214,11 +217,13 @@ export const handleDistribution = async (
     return [];
   }
 
-  const liveCount = dataLength * cutoffs.length;
-  const copy = new Float64Array(liveCount);
-  copy.set(new Float64Array(values.buffer).subarray(0, liveCount));
+  const liveCount = added * cutoffs.length;
+  const copy = new Float64Array((origin + added) * cutoffs.length);
+  if (origin > 0 && stored !== null) copy.set(stored.subarray(0, origin * cutoffs.length));
+  copy.set(new Float64Array(values.buffer).subarray(0, liveCount), origin * cutoffs.length);
   slot.key = cacheKey;
   slot.values = copy;
+  slot.weeks = origin + added;
   grouped.release();
   values.release();
   return pointsFrom(config, copy, now, dataLength);

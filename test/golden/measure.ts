@@ -8,6 +8,7 @@ import { handleSimulation } from "../../src/contexts/workers/simulation";
 import { handleQuantile } from "../../src/contexts/workers/quantile";
 import { type WalkTypes } from "../../src/data/walks";
 import { WALK_STATE_LENGTH } from "../../src/data/walks/prng";
+import { type BoundSlot } from "../../src/engine/memory";
 import { numberAt } from "../../src/number-at";
 import { type Full, type ModelNames, type OneOffItem, type ReoccurringItem } from "../../src/types";
 
@@ -55,13 +56,21 @@ const measure = (run: () => void): number => {
   return median(samples);
 };
 
+const boundSlot = (): BoundSlot => ({
+  key: "",
+  logs: new Float64Array(0),
+  points: new Float64Array(0),
+  seriesHash: "",
+  weeks: 0,
+});
+
 const bounds = (): { maxArray: Float64Array[]; minArray: Float64Array[] } => {
   const signal = new AbortController().signal;
   const model: ModelNames = "Power Law Regression Median";
   const shared = [CURRENT_BLOCK, 3, model, 0, CURRENT_PRICE, NOW, WEEKS] as const;
   return {
-    maxArray: handleMaxArray(signal, "bench", ...shared),
-    minArray: handleMinArray(signal, "bench", ...shared),
+    maxArray: handleMaxArray(signal, "bench", ...shared, 0, boundSlot()),
+    minArray: handleMinArray(signal, "bench", ...shared, 0, boundSlot()),
   };
 };
 

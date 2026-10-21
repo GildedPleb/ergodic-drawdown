@@ -95,10 +95,6 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
       if (current === null) throw new Error("engine has no config");
       return current.derived;
     },
-    hashOf: (name) => {
-      if (graph === null) throw new Error("graph is not ready");
-      return graph.currentHash(name);
-    },
     memory,
     slots,
     worker,

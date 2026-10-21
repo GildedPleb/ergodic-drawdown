@@ -1,3 +1,5 @@
+import hashSum from "hash-sum";
+
 import { MAX_FIAT_VARIABLES } from "../constants";
 import type VariableDrawdownCache from "./variable-drawdown-cache";
 
@@ -63,6 +65,12 @@ export class VariableDrawdownFinal {
       }
     }
     return undefined;
+  }
+
+  // Pairs of the samples already walked. A later sample is a new row, not a new spend.
+  spendHash(sampleLimit = this.sampleCount): string {
+    const count = Math.max(0, Math.min(sampleLimit, this.sampleCount));
+    return hashSum(Array.from(this.view.subarray(0, count * this.weekCount * 2)));
   }
 
   exportState(): {

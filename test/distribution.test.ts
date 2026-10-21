@@ -3,6 +3,7 @@ import { afterEach, expect, test } from "bun:test";
 import GrowableSharedArray from "../src/classes/growable-shared-array";
 import { MS_PER_WEEK } from "../src/constants";
 import { handleDistribution } from "../src/contexts/computed/distribution";
+import { acquire, bufferSlots } from "../src/engine/memory";
 import { type WorkerContextType } from "../src/contexts/workers/types";
 import {
   type DistributionGroupEvent,
@@ -219,20 +220,39 @@ test("a new source hash misses that chart and leaves the other chart stored", as
   expect(calls).toBe(started + 4);
 });
 
-test("samples, week count, and weeks since each miss the stored bands", async () => {
+test("a longer week count appends and a shorter one clips", async () => {
   const sourceHash = "size-price";
-  await finish(run({ dataLength: 3, samples: 4, sourceHash, weeksSince: 2 }));
+  const first = await finish(run({ dataLength: 3, samples: 4, sourceHash, weeksSince: 2 }));
   const started = calls;
+  const firstY = point(first, 0, 0).y;
 
-  await finish(run({ dataLength: 3, samples: 5, sourceHash, weeksSince: 2 }));
+  const longerPending = run({ dataLength: 5, samples: 4, sourceHash, weeksSince: 2 });
+  const group = posts[0]?.task;
+  if (group === undefined || group.type !== "RUN_DISTRIBUTION_GROUP") {
+    throw new Error("missing group task");
+  }
+  expect(group.payload.dataLength).toBe(2);
+  expect(group.payload.weeksSince).toBe(5);
+  const longer = await finish(longerPending);
+  const stat = seen.at(-1);
+  if (stat === undefined || stat.type !== "RUN_DISTRIBUTION_QUANTILE") {
+    throw new Error("missing quantile task");
+  }
+  expect(stat.payload.task.startIndex).toBe(0);
+  expect(stat.payload.task.endIndex).toBe(2);
   expect(calls).toBe(started + 2);
-  expect((await run({ dataLength: 3, samples: 5, sourceHash, weeksSince: 2 })).length).toBe(9);
-  expect(calls).toBe(started + 2);
+  expect(longer[0]?.data.length).toBe(5);
+  expect(point(longer, 0, 0).y).toBe(firstY);
+  expect(point(longer, 0, 3).y === firstY).toBe(false);
 
-  await finish(run({ dataLength: 4, samples: 4, sourceHash, weeksSince: 2 }));
-  await finish(run({ dataLength: 3, samples: 4, sourceHash, weeksSince: 0 }));
-  expect(calls).toBe(started + 6);
-  expect((await run({ dataLength: 3, samples: 4, sourceHash, weeksSince: 0 })).length).toBe(9);
+  const clipped = await run({ dataLength: 2, samples: 4, sourceHash, weeksSince: 2 });
+  expect(calls).toBe(started + 2);
+  expect(clipped[0]?.data.length).toBe(2);
+  expect(point(clipped, 0, 0).y).toBe(firstY);
+
+  await finish(run({ dataLength: 2, samples: 5, sourceHash, weeksSince: 2 }));
+  expect(calls).toBe(started + 4);
+  await finish(run({ dataLength: 2, samples: 4, sourceHash, weeksSince: 0 }));
   expect(calls).toBe(started + 6);
 });
 
@@ -248,6 +268,57 @@ test("a failed wave does not store bands", async () => {
   const retry = run({ sourceHash: "failed-price" });
   expect(posts.length).toBe(1);
   await finish(retry);
+});
+
+test("a failed append leaves the stored weeks", async () => {
+  const sourceHash = "append-fail";
+  const stored = await finish(run({ dataLength: 3, sourceHash }));
+  const pending = run({ dataLength: 5, sourceHash });
+  const group = take();
+  group.resolve("aborted");
+  await flush();
+  expect(await pending).toEqual([]);
+  group.note();
+  await flush();
+
+  const started = calls;
+  const again = await run({ dataLength: 3, sourceHash });
+  expect(calls).toBe(started);
+  expect(point(again, 0, 0).y).toBe(point(stored, 0, 0).y);
+  expect(again[0]?.data.length).toBe(3);
+});
+
+test("an appended band waits for the new weeks", async () => {
+  const sourceHash = "wait-price";
+  await finish(run({ dataLength: 3, samples: 4, sourceHash }));
+  const slot = bufferSlots.price.grouped;
+  const held = acquire(slot, Float64Array.BYTES_PER_ELEMENT);
+  const spare = acquire(slot, Float64Array.BYTES_PER_ELEMENT);
+  if (held === null || spare === null) throw new Error("missing loan");
+  const controller = new AbortController();
+  const pending = handleDistribution(
+    controller.signal,
+    "graph-hash",
+    grid,
+    1_700_000_000_000,
+    worker,
+    4,
+    5,
+    2,
+    "Quantile",
+    "price",
+    false,
+    sourceHash,
+  );
+  await flush();
+  try {
+    expect(slot.waiter?.bytes).toBe(Float64Array.BYTES_PER_ELEMENT * 2 * 4);
+    controller.abort();
+    expect(await pending).toEqual([]);
+  } finally {
+    held.release();
+    spare.release();
+  }
 });
 
 test("a week count past the task cap fails and the next chart still runs", async () => {

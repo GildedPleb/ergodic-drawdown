@@ -61,6 +61,9 @@ export default class GrowableSharedArray {
 
   private cacheWidth: number;
 
+  // Chart weeks filled under cacheHash. Workers never read it, so it stays out of the export.
+  private coveredWeeks: number;
+
   constructor(
     initialWidth: number,
     initialHeight: number = DEFAULT_SIMULATION_COUNT,
@@ -73,6 +76,7 @@ export default class GrowableSharedArray {
     this.cacheHash = "init";
     this.cacheHeight = 0;
     this.cacheWidth = 0;
+    this.coveredWeeks = 0;
     this.activeWidth = initialWidth;
     this.activeHeight = initialHeight;
 
@@ -112,6 +116,24 @@ export default class GrowableSharedArray {
     return [0, 0];
   }
 
+  // The published series, including when the caller grew the sample count.
+  storedValidity(): { hash: string; height: number; width: number } {
+    return { hash: this.cacheHash, height: this.cacheHeight, width: this.cacheWidth };
+  }
+
+  // The copied weeks did not change. File them under the longer series.
+  // Width, height, covered weeks, and the bytes stay. A spend suffix stays too.
+  adoptSeries(previousKey: string, nextKey: string): void {
+    if (previousKey === "" || previousKey === nextKey) return;
+    if (this.cacheHash === previousKey) {
+      this.cacheHash = nextKey;
+      return;
+    }
+    const marker = `${previousKey}:`;
+    if (!this.cacheHash.startsWith(marker)) return;
+    this.cacheHash = `${nextKey}${this.cacheHash.slice(previousKey.length)}`;
+  }
+
   setValidity(currentHash: string, coveredWidth?: number): void {
     const width = coveredWidth ?? this.activeWidth;
     if (this.cacheHash === currentHash) {
@@ -124,6 +146,17 @@ export default class GrowableSharedArray {
       this.cacheHeight = this.activeHeight;
       this.cacheWidth = width;
     }
+  }
+
+  getCoveredWeeks(currentHash: string): number {
+    if (currentHash !== this.cacheHash) return 0;
+    return this.coveredWeeks;
+  }
+
+  // A matching series only grows. A shorter year must not forget the tail.
+  setCoveredWeeks(currentHash: string, weeks: number): void {
+    if (currentHash !== this.cacheHash || weeks <= this.coveredWeeks) return;
+    this.coveredWeeks = weeks;
   }
 
   // A trailing 0 means the column was never written. NaN is a written tail.
@@ -188,6 +221,7 @@ export default class GrowableSharedArray {
     this.view.fill(0);
     this.cacheHeight = 0;
     this.cacheWidth = 0;
+    this.coveredWeeks = 0;
   }
 
   resize(newActiveWidth: number, newActiveHeight: number): void {

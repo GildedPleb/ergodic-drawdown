@@ -1,4 +1,5 @@
 import { MS_PER_WEEK } from "../../constants";
+import { numberAt } from "../../number-at";
 import { type DatasetList } from "../../types";
 
 export const handleMinModel = (
@@ -7,18 +8,18 @@ export const handleMinModel = (
   renderModelMin: boolean,
   minArray: Float64Array[],
   now: number,
+  dataLength: number,
 ): DatasetList => {
   if (!renderModelMin) return [];
   const series = minArray[0];
   if (series === undefined) throw new Error("missing min series");
+  const count = Math.min(dataLength, series.length);
   const minPoints = [];
-  let index = 0;
-  for (const price of series) {
+  for (let index = 0; index < count; index += 1) {
     minPoints.push({
       x: now + index * MS_PER_WEEK,
-      y: price,
+      y: numberAt(series, index),
     });
-    index++;
   }
   return [
     {
