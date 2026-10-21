@@ -29,7 +29,7 @@ export const slide11 = {
   component: Slide11,
   requirements: {
     bitcoin: 0,
-    epochCount: 10,
+    years: 40,
     renderDrawdownWalks: false,
     renderPriceDistribution: "Quantile",
     renderPriceWalks: false,

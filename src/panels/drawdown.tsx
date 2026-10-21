@@ -8,7 +8,10 @@ import DrawdownTable from "../components/drawdown-table";
 import { SecureFileOperationsModal } from "../components/file-operations-modal";
 import BitcoinInput from "../components/input/bitcoin";
 import InflationInput from "../components/input/inflation";
-import { isMobile } from "../constants";
+import { isMobile, WEEKS_PER_YEAR } from "../constants";
+import { loadHalvings, weeksSinceLastHalving } from "../halvings";
+import { savedHorizon } from "../helpers";
+import { legacySpan } from "../horizon";
 import { fieldLabels } from "../content";
 import { useDrawdown } from "../contexts/drawdown";
 import { useModel } from "../contexts/model";
@@ -226,7 +229,17 @@ const Drawdown = (): JSX.Element => {
       drawdownState.setShowDrawdown(state.showDrawdown);
       modelState.setClampBottom(state.clampBottom);
       modelState.setClampTop(state.clampTop);
-      modelState.setEpochCount(state.epochCount);
+      if (state.pinnedWeeks !== undefined) {
+        modelState.pinSpan(
+          state.pinnedWeeks,
+          Math.max(1, Math.floor(state.pinnedWeeks / WEEKS_PER_YEAR)),
+        );
+      } else if (state.years === undefined) {
+        const span = legacySpan(state.epochCount, weeksSinceLastHalving(loadHalvings()));
+        modelState.pinSpan(span, Math.max(1, Math.floor(span / WEEKS_PER_YEAR)));
+      } else {
+        modelState.setYears(state.years);
+      }
       modelState.setLoadingPriceData(state.loadingPriceData);
       modelState.setMinMaxMultiple(state.minMaxMultiple);
       modelState.setModel(state.model);
@@ -250,12 +263,18 @@ const Drawdown = (): JSX.Element => {
     [drawdownState, modelState, renderState],
   );
 
-  const appState = useMemo(
-    (): SavedAppState => ({
+  const appState = useMemo((): SavedAppState => {
+    const weeksSince = weeksSinceLastHalving(loadHalvings());
+    const { epochCount, ...horizon } = savedHorizon(
+      weeksSince,
+      modelState.years,
+      modelState.pinnedWeeks,
+    );
+    return {
       bitcoin: drawdownState.bitcoin,
       clampBottom: modelState.clampBottom,
       clampTop: modelState.clampTop,
-      epochCount: modelState.epochCount,
+      epochCount,
       hideResults: renderState.hideResults,
       inflation: drawdownState.inflation,
       loadingPriceData: modelState.loadingPriceData,
@@ -282,9 +301,9 @@ const Drawdown = (): JSX.Element => {
       version: 1,
       volatility: modelState.volatility,
       walk: modelState.walk,
-    }),
-    [drawdownState, modelState, renderState],
-  );
+      ...horizon,
+    };
+  }, [drawdownState, modelState, renderState]);
 
   const toggleModelExpansion = useCallback(() => {
     if (isMobile() && !showDrawdown) {

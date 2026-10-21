@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-import { DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT } from "../constants";
+import { DEFAULT_SIMULATION_COUNT } from "../constants";
+import { DEFAULT_YEAR_COUNT } from "../horizon";
 import { models } from "../data/models";
 import { type WalkTypes } from "../data/walks";
 import { type ModelNames, type ProviderProperties } from "../types";
@@ -14,19 +15,20 @@ if (initialModel === undefined) throw new Error("missing price model");
 export interface ModelContextType {
   clampBottom: boolean;
   clampTop: boolean;
-  epochCount: number;
   loadingPriceData: boolean;
   minMaxMultiple: number;
   model: ModelNames;
+  pinnedWeeks: number | null;
   samples: number;
+  pinSpan: (weeks: number, displayYears: number) => void;
   setClampBottom: React.Dispatch<React.SetStateAction<boolean>>;
   setClampTop: React.Dispatch<React.SetStateAction<boolean>>;
-  setEpochCount: React.Dispatch<React.SetStateAction<number>>;
   setLoadingPriceData: React.Dispatch<React.SetStateAction<boolean>>;
   setMinMaxMultiple: React.Dispatch<React.SetStateAction<number>>;
   setModel: React.Dispatch<React.SetStateAction<ModelNames>>;
   setSamples: React.Dispatch<React.SetStateAction<number>>;
   setShowModel: React.Dispatch<React.SetStateAction<boolean>>;
+  setYears: React.Dispatch<React.SetStateAction<number>>;
   setVariable: React.Dispatch<React.SetStateAction<number>>;
   setVolatility: React.Dispatch<React.SetStateAction<number>>;
   setWalk: React.Dispatch<React.SetStateAction<WalkTypes>>;
@@ -34,6 +36,7 @@ export interface ModelContextType {
   variable: number;
   volatility: number;
   walk: WalkTypes;
+  years: number;
 }
 
 const ModelContext = createContext<ModelContextType | null>(null);
@@ -49,21 +52,30 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [clampBottom, setClampBottom] = useState<boolean>(false);
   const [volatility, setVolatility] = useState<number>(0.1);
   const [samples, setSamples] = useState<number>(DEFAULT_SIMULATION_COUNT);
-  const [epochCount, setEpochCount] = useState<number>(DEFAULT_EPOCH_COUNT);
+  const [yearsState, setYearsState] = useState<number>(DEFAULT_YEAR_COUNT);
+  const [pinnedWeeks, setPinnedWeeks] = useState<number | null>(null);
+  const setYears = useCallback<React.Dispatch<React.SetStateAction<number>>>((next) => {
+    setPinnedWeeks(null);
+    setYearsState(next);
+  }, []);
+  const pinSpan = useCallback((weeks: number, displayYears: number) => {
+    setPinnedWeeks(weeks);
+    setYearsState(displayYears);
+  }, []);
 
   const value = useMemo(
     () =>
       ({
         clampBottom,
         clampTop,
-        epochCount,
         loadingPriceData,
         minMaxMultiple,
         model,
+        pinSpan,
+        pinnedWeeks,
         samples,
         setClampBottom,
         setClampTop,
-        setEpochCount,
         setLoadingPriceData,
         setMinMaxMultiple,
         setModel,
@@ -72,23 +84,26 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
         setVariable,
         setVolatility,
         setWalk,
+        setYears,
         showModel,
         variable,
         volatility,
         walk,
+        years: yearsState,
       }) satisfies ModelContextType,
     [
       showModel,
       clampBottom,
       clampTop,
-      epochCount,
+      loadingPriceData,
       minMaxMultiple,
       model,
+      pinnedWeeks,
       samples,
       variable,
       volatility,
       walk,
-      loadingPriceData,
+      yearsState,
     ],
   );
 

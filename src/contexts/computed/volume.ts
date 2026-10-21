@@ -20,10 +20,11 @@ export const handleVolume = async (
   volumeCacheHash: string,
   variableCacheHash: string,
   weeksSince: number,
+  dataLength: number,
   worker: WorkerContextType,
   showModel: boolean,
 ): Promise<string> => {
-  const returnHash = volumeCacheHash + samples + epochCount + variableCacheHash;
+  const returnHash = volumeCacheHash + samples + epochCount + dataLength + variableCacheHash;
   if (showModel) return "not shown:" + returnHash;
 
   const variableCache = variableDrawdownCache.get(variableCacheHash);
@@ -31,7 +32,7 @@ export const handleVolume = async (
   const exportedVariableCache = variableCache.exportState();
 
   // A new variable result moves spend weeks inside epochs that were already walked.
-  const gridHash = `${volumeCacheHash}:${variableCacheHash}:${weeksSince}`;
+  const gridHash = `${volumeCacheHash}:${variableCacheHash}:${weeksSince}:${dataLength}`;
   const [validWidth, validHeight] = drawdownData.getValidity(gridHash);
   if (validHeight === 0) drawdownData.clear();
   drawdownData.resize(epochCount, samples);

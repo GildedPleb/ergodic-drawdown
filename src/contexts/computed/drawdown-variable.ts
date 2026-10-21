@@ -11,7 +11,7 @@ const NO_CACHE_ERROR = "No cache for variable drawdown";
 export const handleDrawdownVariables = async (
   signal: AbortSignal,
   _hash: string,
-  epochCount: number,
+  dataLength: number,
   samples: number,
   fullHashInflation: string,
   simulationData: GrowableSharedArray,
@@ -24,7 +24,7 @@ export const handleDrawdownVariables = async (
   variableCacheHash: string,
   showModel: boolean,
 ): Promise<string> => {
-  const returnHash = epochCount + samples + variableCacheHash + fullHashInflation;
+  const returnHash = dataLength + samples + variableCacheHash + fullHashInflation;
 
   if (showModel) return "not rendering:" + returnHash;
   const simulationExport = simulationData.exportState();
@@ -47,7 +47,7 @@ export const handleDrawdownVariables = async (
 
     const { validHeight, validWidth } = variableCache.getValidity(validityHash);
     // The spend week is the last unaffordable week inside this series. Another length is another answer.
-    const seriesChanged = validHeight !== 0 && epochCount !== validWidth;
+    const seriesChanged = validHeight !== 0 && dataLength !== validWidth;
     if (validHeight === 0 || seriesChanged) variableCache.clear();
     const searchedSamples = validHeight === 0 || seriesChanged ? 0 : validHeight;
     if (samples > searchedSamples)
@@ -67,6 +67,7 @@ export const handleDrawdownVariables = async (
             oneOffFiatVariable,
             simulationExport,
             task,
+            dataLength,
             variableDrawdownBuffer: variableCache.getBuffer(),
             weeksSince,
           },
@@ -79,7 +80,7 @@ export const handleDrawdownVariables = async (
     for (const { hash } of activeOneOffVariables) {
       const variableCache = variableDrawdownCache.get(hash);
       if (variableCache === undefined) throw new Error(NO_CACHE_ERROR);
-      variableCache.setValidity(validityHash, samples, epochCount);
+      variableCache.setValidity(validityHash, samples, dataLength);
       if (variableCache.isFull()) caches.push(variableCache);
     }
     const finalResults = new VariableDrawdownFinal(caches, activeOneOffVariables.length, samples);
