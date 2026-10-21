@@ -6,15 +6,15 @@ import { type SlideRequirement } from "../../types";
 const Slide10: FC = () => (
   <SlideContent>
     <p>
-      Two key inputs significantly impact this tool's quality: <strong>Epoch Count</strong> and{" "}
+      Two key inputs significantly impact this tool's quality: <strong>Years</strong> and{" "}
       <strong>Sample Count</strong>.
     </p>
     <p>
-      <strong>Epoch Count</strong> (Model ▼, Epoch Count) represents the number of 4-year halving
-      cycles on the chart. Monte Carlo Simulators are resource-intensive, especially in browsers.
-      While limits are in place, exercise caution with your device as this app can easily eat all
-      memory. Remember, longer projections are more computationally expensive and less relevant
-      (e.g. if fiat collapses, this entire app is irrelevant, and we know that's coming eventually).
+      <strong>Years</strong> (Model ▼, Years) is how many years the chart runs from today. Monte
+      Carlo Simulators are resource-intensive, especially in browsers. While limits are in place,
+      exercise caution with your device as this app can easily eat all memory. Remember, longer
+      projections are more computationally expensive and less relevant (e.g. if fiat collapses, this
+      entire app is irrelevant, and we know that's coming eventually).
     </p>
     <p>
       <strong>Samples</strong> (Model ▼, Statistical Sample Count) determine data granularity. More

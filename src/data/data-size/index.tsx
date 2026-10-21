@@ -6,14 +6,14 @@ import { useModel } from "../../contexts/model";
 import { getDataSetSize } from "./get-dataset-size";
 export const useMemory = (): number => {
   const dataProperties = useEngineSelector((snapshot) => snapshot.dataProperties);
-
-  const { epochCount, samples } = useModel();
+  const epochs = useEngineSelector((snapshot) => snapshot.epochs);
+  const { samples } = useModel();
 
   return useMemo(() => {
     return (
       // Model size * 2 === Model and Drawdown Data CONSIDER ADDING CACHE COUNTS
-      (8 * WEEKS_PER_EPOCH * epochCount * samples * 2) / (1024 * 1024) +
+      (8 * WEEKS_PER_EPOCH * epochs * samples * 2) / (1024 * 1024) +
       getDataSetSize(dataProperties?.datasets ?? [])
     );
-  }, [dataProperties?.datasets, epochCount, samples]);
+  }, [dataProperties?.datasets, epochs, samples]);
 };

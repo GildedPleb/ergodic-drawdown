@@ -5,6 +5,7 @@ import { type DatasetList } from "../types";
 export interface Snapshot {
   chartOptions: ChartOptions<"line"> | null;
   dataLength: number;
+  epochs: number;
   dataProperties: { datasets: DatasetList } | null;
   errors: Readonly<Record<string, string>>;
   simulationStats: { average: number; median: number } | null;
@@ -15,6 +16,7 @@ export interface Snapshot {
 export const emptySnapshot = (): Snapshot => ({
   chartOptions: null,
   dataLength: 0,
+  epochs: 0,
   dataProperties: null,
   errors: {},
   simulationStats: null,

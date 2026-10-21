@@ -26,14 +26,15 @@ const EngineBridge = ({ children }: { children: ReactNode }): ReactNode => {
   const {
     clampBottom,
     clampTop,
-    epochCount,
     minMaxMultiple,
     model,
     samples,
     showModel,
+    pinnedWeeks,
     variable,
     volatility,
     walk,
+    years,
   } = useModel();
   const currentPrice = useCurrentPrice();
   const now = useTime();
@@ -43,11 +44,11 @@ const EngineBridge = ({ children }: { children: ReactNode }): ReactNode => {
     set({
       currentBlock,
       currentPrice,
-      epochs: epochCount,
       halvings,
       inflation: { annualPercent: inflation, mode: "constant" },
       interim,
       now,
+      pinnedWeeks,
       render: {
         renderDrawdownDistribution,
         renderDrawdownWalks,
@@ -74,6 +75,7 @@ const EngineBridge = ({ children }: { children: ReactNode }): ReactNode => {
       },
       seed: simulationSeed,
       stack: { bitcoin },
+      years,
     });
   }, [
     bitcoin,
@@ -81,7 +83,6 @@ const EngineBridge = ({ children }: { children: ReactNode }): ReactNode => {
     clampTop,
     currentBlock,
     currentPrice,
-    epochCount,
     halvings,
     inflation,
     interim,
@@ -90,6 +91,7 @@ const EngineBridge = ({ children }: { children: ReactNode }): ReactNode => {
     now,
     oneOffFiatVariables,
     oneOffItems,
+    pinnedWeeks,
     reoccurringItems,
     renderDrawdownDistribution,
     renderDrawdownWalks,
@@ -105,6 +107,7 @@ const EngineBridge = ({ children }: { children: ReactNode }): ReactNode => {
     variable,
     volatility,
     walk,
+    years,
   ]);
 
   return children;

@@ -4,7 +4,7 @@ export const inputLabels = {
   clampTop: "Max",
   distributions: "Distribution:",
   drawdownDate: "Starts:",
-  epoch: "Epoch Count (1-30):",
+  years: (max: number): string => `Years (1-${max}):`,
   historic: "Historic Price",
   inflation: "Inflation:",
   model: "Model:",

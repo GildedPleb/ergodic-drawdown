@@ -15,6 +15,7 @@ export const handleDrawdownVariable = (
     oneOffFiatVariable: { amountToday, btcWillingToSpend, delay, start },
     simulationExport,
     task: { arrayIndex, endIndex, startIndex },
+    dataLength,
     variableDrawdownBuffer,
     weeksSince,
   } = payload;
@@ -41,7 +42,8 @@ export const handleDrawdownVariable = (
       markSearched(sample);
       continue;
     }
-    const graphLength = graph.length - weeksSince;
+    const span = graph.length - weeksSince;
+    const graphLength = Math.min(span, dataLength);
     const adjustedGraph = graph.slice(weeksSince);
 
     let first;
