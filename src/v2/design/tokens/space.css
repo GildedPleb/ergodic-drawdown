@@ -19,19 +19,13 @@
     --tk-box: 1rem;
     --tk-sel-bg: var(--selected);
     --seg-pad: var(--s-3) var(--s-4);
-    --row-pad: 0.5625rem var(--s-3) 0.5625rem var(--s-3);
     --card-pad: var(--s-3) var(--s-4);
     /* v2 repo additions (Form review 2026-10-19; Form to mirror in p3/tokens) */
     --glyph-dot: max(0.5rem, 0.7em); /* walk dot: cap height, never under 8px */
     --glyph-gap: 0.12em; /* walk dots spaced like letters */
     --icon-size: 1em; /* Icon: text-sized */
-    --tray-indent: 1rem; /* §1N: a Select tray's rows, one step in */
     --field-col: 9rem; /* the one field column in a form pane */
-    --section-rule-len: 70%; /* SectionLabel hairline taper, section */
-    --group-rule-len: 45%; /* SectionLabel hairline taper, group */
-    --group-label-h: 1rem; /* SectionLabel group row (WALK STRATEGY:), one --t-group line */
     /* v32 Slice 1 shell (V32-BUILD §1a/§1d/§1e, measured on dock/app.html; Form to mirror in p3/tokens) */
-    --radio-box: 0.5625rem; /* radio list square, 9px */
     --shell-m: round(
       clamp(0rem, (100vw - 35rem) / 12, 3rem),
       1px

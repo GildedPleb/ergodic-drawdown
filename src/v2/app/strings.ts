@@ -88,33 +88,94 @@ export const strings = {
         : [strings.chart.endLabel(spread.median, spread.low, spread.high)];
     },
   },
-  /** §1M: the Models pane as an asset ledger, in this locked order. */
+  /** §1MP: the Models pane as an asset ledger, in this locked order (copy: v54-book/COPY.md). */
   models: {
     label: "Assets",
     assets: [
-      { id: "bitcoin", name: "Bitcoin" },
-      { id: "sp", name: "S&P" },
-      { id: "inflation", name: "Inflation" },
+      { id: "bitcoin", name: "Bitcoin", colour: "var(--path-btc-price)" },
+      { id: "sp", name: "S&P", colour: "var(--path-sp)" },
+      { id: "inflation", name: "Inflation", colour: "var(--path-inflation)" },
     ],
-    /** §1V: "CAGR 28% · Bubble · 1,000 futures"; a percent variable joins its model's name. */
-    summary: (model: string, walk: string, samples: number): string =>
-      `${model} \u00B7 ${walk} \u00B7 ${samples.toLocaleString("en-US")} ${samples === 1 ? "future" : "futures"}`,
-    percent: (model: string, value: number): string => `${model} ${String(value)}%`,
+    /** §1MP 9: "{model part}, {walk} walk, volatility {Volatility}". */
+    summary: (model: string, walk: string, volatility: number): string =>
+      `${model}, ${walk} walk, volatility ${String(volatility)}`,
+    /** CAGR's model part (cagr.ts L6–10). */
+    grows: (r: number): string => `Grows ${String(r)}% a year`,
+    /** Historic's model part (historic.ts L26–27). */
+    replays: (n: number): string => `Replays ${String(n)} past halving cycles`,
     notYet: "Not yet modelled",
-    /** §1V: a stand-in's open body. */
+    /** A stand-in's open body. */
     standIn: (name: string): string =>
       `${name} isn\u2019t modelled yet. When it is, its settings will open here.`,
-    /** §1V: the open Bitcoin header names what you're editing. */
-    openName: (name: string): string => `${name} \u00B7 price model`,
+    /** §1MP 5: the colour square's name. */
     showOn: (name: string): string => `Show ${name} on chart`,
-    /** §2A: the tick row under Bitcoin. */
+    inertOn: (name: string): string => `${name} on chart (not yet modelled)`,
+    /** §2A: the tick row under "On the chart". */
     showHistoric: "Show historic price",
-    /** §1N: a Select's tray, named for the choice it belongs to. */
-    settings: (choice: string): string => `${choice} settings`,
+    /** §1MP 7 Clamp: the toggles' names (the visible words stay the engine's Min / Max). */
+    clampMin: "Clamp minimum price",
+    clampMax: "Clamp maximum price",
+    ergodic: "ergodic",
+    notErgodic: "not ergodic",
+    colour: "Colour",
+    /** §1MP 8: the Colour chips, in order (₿ orange is the default). */
+    colours: [
+      { name: "\u20BF orange", colour: "var(--path-btc-price)" },
+      { name: "Jade", colour: "var(--path-plan-1)" },
+      { name: "Lapis", colour: "var(--path-plan-2)" },
+      { name: "Amethyst", colour: "var(--path-plan-3)" },
+      { name: "Citron", colour: "var(--path-plan-4)" },
+      { name: "Orchid", colour: "var(--path-plan-5)" },
+      { name: "Coral", colour: "var(--path-plan-6)" },
+      { name: "$ green", colour: "var(--path-usd)" },
+    ],
+    /** COPY.md "Price models": one line per engine name, written from the source. */
+    modelDesc: {
+      "Power Law Regression Median":
+        "Price follows a power curve of the days since 3 January 2009; the top is the same curve six years ahead.",
+      "Power Law Support Line":
+        "A power-law support line is the floor; a slower-rising power-law line is the top, never below the floor.",
+      "Rainbow Chart": "One curve through time sets the top; the floor is a tenth of it.",
+      CAGR: "Today\u2019s price compounded at R% a year; the top starts +/- times higher, the bottom +/- times lower.",
+      "Stock-To-Flow 2024 Refit":
+        "Price from the stock-to-flow ratio, coins mined so far against the past year\u2019s new coins; the band is 68% either side.",
+      "Stock-To-Flow":
+        "Price from the stock-to-flow ratio on a curve that sits above the 2024 refit; the band is 65% either side.",
+      Historic:
+        "Starts from the price at the last halving and replays past halving cycles: the top follows the best of them, the bottom the worst.",
+    } as Record<string, string | undefined>,
+    /** COPY.md "Walks". */
+    walkDesc: {
+      Bubble:
+        "Each four-year cycle it climbs ever faster to the top, slides back to the floor, then rests just above it.",
+      Momentum:
+        "Rolls off the middle, speeding up until it hits the floor or the top, which kicks it back to the middle.",
+      Pong: "Moves steadily from floor to top and back again, one crossing every four years.",
+      Random: "Steps up or down by chance each week, with no pull either way.",
+      Saw: "Creeps slowly upward, then snaps back to the floor and starts climbing again.",
+      Shark:
+        "Grows by a fixed share each week until it reaches the top, then shrinks by one until it nears the floor.",
+      Sin: "Rises for two years and falls for two, along one smooth wave each four-year cycle.",
+      "Vote Count":
+        "Slides down a little every week; when it reaches the floor it jumps back to the top.",
+      "\u{1F7E2}\u{1F7E2}\u{1F7E2}\u{1F534}":
+        "Each four-year cycle it rises to the top in year one, falls to the floor in year two, then climbs slowly through years three and four.",
+    } as Record<string, string | undefined>,
+    /** COPY.md "Settings with a description line", v47, v50 and v52, keyed by the engine label. */
+    settingDesc: {
+      "R (%)": "The yearly growth rate the price compounds at.",
+      "+/-": "How many times above and below today\u2019s price the top and bottom start.",
+      "Previous Halvings": "How many past halving cycles to replay, besides the current one.",
+      "Clamp Price:": "Min stops a walk going below the floor; Max stops it going above the top.",
+      "Volatility (0-1):": "How big each week\u2019s random step is.",
+      samples: "How many separate futures are drawn; each runs its own random walk.",
+      years: "How many years ahead the simulation runs.",
+    } as Record<string, string | undefined>,
   },
   sections: {
-    priceModel: "Price model",
-    pricesMove: "How prices move",
+    grow: "How prices grow",
+    bumpy: "How bumpy the ride is",
+    chart: "On the chart",
     simulation: "Simulation",
   },
   dock: {

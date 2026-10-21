@@ -40,17 +40,18 @@ const sheetHtml = (historic?: boolean): string =>
     createElement(ModelsSheet, {
       values: defaultModelsValues(),
       onChange: () => undefined,
-      initialOpen: "bitcoin",
+      initialOpen: ["bitcoin"],
       ...(historic === undefined ? {} : { historic }),
     }),
   );
 
-test("2A: the tick row sits first in Bitcoin's open frame, labelled, off unless told", () => {
+test('2A / §1MP 8: the tick row heads Bitcoin\'s "On the chart", labelled, off unless told', () => {
   const off = sheetHtml();
   const at = off.indexOf(strings.models.showHistoric);
   expect(strings.models.showHistoric).toBe("Show historic price");
   expect(at > 0).toBe(true);
-  expect(at < off.indexOf('id="grp-price-model"')).toBe(true);
+  expect(at > off.indexOf(">On the chart<")).toBe(true);
+  expect(at < off.indexOf('id="row-colour"')).toBe(true);
   expect(off.slice(off.lastIndexOf("<button", at), at).includes('aria-checked="false"')).toBe(true);
   // r2 (Form): just the tick and the label, no ON/OFF word.
   const row = off.slice(off.lastIndexOf("<button", at), off.indexOf("</button>", at));

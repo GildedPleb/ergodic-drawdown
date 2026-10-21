@@ -11,16 +11,23 @@ export default { title: "Primitives/LedgerRow" };
 const Live = ({ label = "Volatility (0-1):" }: { label?: string }): ReactElement => {
   const [value, setValue] = useState(0.1);
   return (
-    <LedgerRow id="ledger-story" label={label} htmlFor="ledger-story-input">
-      <NumberField
-        id="ledger-story-input"
-        label={label}
-        labelHidden
-        value={value}
-        bounds={{ min: 0, max: 1 }}
-        step={0.005}
-        onCommit={setValue}
-      />
+    <LedgerRow
+      id="ledger-story"
+      label={label}
+      htmlFor="ledger-story-input"
+      description="How big each week\u2019s random step is."
+      value={
+        <NumberField
+          id="ledger-story-input"
+          label={label}
+          labelHidden
+          value={value}
+          bounds={{ min: 0, max: 1 }}
+          step={0.005}
+          onCommit={setValue}
+        />
+      }
+    >
       <Slider label={label} value={value} min={0} max={1} step={0.005} onCommit={setValue} />
     </LedgerRow>
   );

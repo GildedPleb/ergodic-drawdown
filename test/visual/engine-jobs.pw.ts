@@ -65,98 +65,70 @@ const idle = async (page: Page): Promise<Jobs> => {
   return jobs(page);
 };
 
-const openSamples = async (page: Page): Promise<void> => {
+const openModels = async (page: Page, row: string): Promise<void> => {
   await page.goto("/");
   await expect(page.getByRole("img", { name: /reaches/ })).toBeVisible({ timeout: 60_000 });
   await page.locator("#tab-models").click();
-  await page.locator("#asset-bitcoin").click(); // §1M: the settings live in the open row
-  await page.locator("#row-samples").click();
+  await page.locator("#asset-bitcoin").click(); // §1MP: Bitcoin's settings live in its open row
+  await page.locator(`#${row}`).scrollIntoViewIfNeeded();
   await idle(page);
 };
+const openSamples = (page: Page): Promise<void> => openModels(page, "row-samples");
 
-// Oct 20 (user): held steps and the wheel render live. Commits land at most every HELD_COMMIT_MS
-// (100 ms) while held plus one trailing commit; the coalescer keeps one job in flight and drops
-// superseded configs, so the engine starts far fewer runs than steps and memory stays flat.
-test("B1: a 300-notch wheel flood renders live, one job in flight, final value runs, memory flat", async ({
-  page,
-}) => {
-  test.setTimeout(120_000);
-  await openSamples(page);
-  const cdp = await page.context().newCDPSession(page);
-  const field = page.locator("#v2-samples");
-  const start = Number(await field.inputValue());
-  const before = await jobs(page);
-  const heapBefore = await bufferBytes(cdp);
-  await field.focus();
-  await field.hover();
-  const t0 = Date.now();
-  for (let i = 0; i < 300; i += 1) {
-    await page.mouse.wheel(0, -100);
-    await page.waitForTimeout(30); // ~30 notches a second: ordinary fast scrolling
-  }
-  const spun = Date.now() - t0;
-  const mid = await jobs(page);
-  // Mid-spin the engine already moved (live), but never once per notch.
-  expect(mid.started - before.started).toBeGreaterThan(1);
-  expect(mid.requested - before.requested).toBeLessThanOrEqual(Math.ceil(spun / 100) + 2);
-  await expect(field).toHaveValue(String(start + 300));
-  const settled = await idle(page);
-  expect(settled.maxInFlight).toBe(1);
-  expect(settled.started).toBeLessThanOrEqual(settled.requested);
-  const heapAfter = await bufferBytes(cdp);
-  expect(heapAfter - heapBefore).toBeLessThan(FLAT_BOUND);
-  console.log(
-    `B1 wheel ${spun} ms; buffers ${(heapBefore / MB).toFixed(1)} MB -> ${(heapAfter / MB).toFixed(1)} MB; jobs ${JSON.stringify({ before, mid, settled })}`,
-  );
-});
-
-test("held ArrowUp for 10 s renders live every ~100 ms, one trailing commit, memory flat", async ({
-  page,
-}) => {
-  test.setTimeout(120_000);
-  await openSamples(page);
-  const cdp = await page.context().newCDPSession(page);
-  const field = page.locator("#v2-samples");
-  const start = Number(await field.inputValue());
-  await field.focus();
-  const before = await jobs(page);
-  const heapBefore = await bufferBytes(cdp);
-  // Time from the first held step to the first engine run that finishes (a wave lands).
-  const t0 = Date.now();
-  await page.keyboard.down("ArrowUp");
-  await expect
-    .poll(async () => (await jobs(page)).waves, { intervals: [5], timeout: 10_000 })
-    .toBeGreaterThan(before.waves);
-  const firstWave = Date.now() - t0;
-  const waveTimes: number[] = [];
-  let lastWaves = (await jobs(page)).waves;
-  let steps = 1;
-  while (Date.now() - t0 < 10_000) {
-    await page.keyboard.down("ArrowUp"); // OS key repeat: one keydown every ~33 ms
-    steps += 1;
-    await page.waitForTimeout(33);
-    const now = await jobs(page);
-    if (now.waves > lastWaves) waveTimes.push(Date.now() - t0);
-    lastWaves = now.waves;
-    expect(now.inFlight).toBeLessThanOrEqual(1);
-  }
-  const held = await jobs(page);
-  await page.keyboard.up("ArrowUp");
-  await expect(field).toHaveValue(String(start + steps));
-  const settled = await idle(page);
-  const gaps = waveTimes.slice(1).map((t, i) => t - (waveTimes[i] ?? 0));
-  const median = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)] ?? 0;
-  expect(settled.maxInFlight).toBe(1);
-  expect(held.requested - before.requested).toBeLessThanOrEqual(Math.ceil(10_000 / 100) + 2);
-  // Exactly one trailing commit on release (the last throttled one may already carry the value).
-  expect(settled.requested - held.requested).toBeLessThanOrEqual(1);
-  expect(waveTimes.length).toBeGreaterThan(5);
-  const heapAfter = await bufferBytes(cdp);
-  expect(heapAfter - heapBefore).toBeLessThan(FLAT_BOUND);
-  console.log(
-    `HOLD steps ${steps}; first render ${firstWave} ms; renders while held ${waveTimes.length}, median gap ${median} ms; buffers ${(heapBefore / MB).toFixed(1)} -> ${(heapAfter / MB).toFixed(1)} MB; jobs ${JSON.stringify({ before, held, settled })}`,
-  );
-});
+// §1MP: Bitcoin's samples (the engine's one sample count) and Simulation's Years (main's years
+// input, 1 to the live cap; 2 s of key repeat stays under it) both render live while held.
+for (const [id, ms] of [
+  ["samples", 10_000],
+  ["years", 2_000],
+] as const) {
+  test(`held ArrowUp on ${id} for ${ms / 1000} s renders live every ~100 ms, one trailing commit, memory flat`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    await openModels(page, `row-${id}`);
+    const cdp = await page.context().newCDPSession(page);
+    const field = page.locator(`#v2-${id}`);
+    const start = Number(await field.inputValue());
+    await field.focus();
+    const before = await jobs(page);
+    const heapBefore = await bufferBytes(cdp);
+    // Time from the first held step to the first engine run that finishes (a wave lands).
+    const t0 = Date.now();
+    await page.keyboard.down("ArrowUp");
+    await expect
+      .poll(async () => (await jobs(page)).waves, { intervals: [5], timeout: 10_000 })
+      .toBeGreaterThan(before.waves);
+    const firstWave = Date.now() - t0;
+    const waveTimes: number[] = [];
+    let lastWaves = (await jobs(page)).waves;
+    let steps = 1;
+    while (Date.now() - t0 < ms) {
+      await page.keyboard.down("ArrowUp"); // OS key repeat: one keydown every ~33 ms
+      steps += 1;
+      await page.waitForTimeout(33);
+      const now = await jobs(page);
+      if (now.waves > lastWaves) waveTimes.push(Date.now() - t0);
+      lastWaves = now.waves;
+      expect(now.inFlight).toBeLessThanOrEqual(1);
+    }
+    const held = await jobs(page);
+    await page.keyboard.up("ArrowUp");
+    await expect(field).toHaveValue(String(start + steps));
+    const settled = await idle(page);
+    const gaps = waveTimes.slice(1).map((t, i) => t - (waveTimes[i] ?? 0));
+    const median = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)] ?? 0;
+    expect(settled.maxInFlight).toBe(1);
+    expect(held.requested - before.requested).toBeLessThanOrEqual(Math.ceil(ms / 100) + 2);
+    // Exactly one trailing commit on release (the last throttled one may already carry the value).
+    expect(settled.requested - held.requested).toBeLessThanOrEqual(1);
+    expect(waveTimes.length).toBeGreaterThan(5);
+    const heapAfter = await bufferBytes(cdp);
+    expect(heapAfter - heapBefore).toBeLessThan(FLAT_BOUND);
+    console.log(
+      `HOLD ${id} steps ${steps}; first render ${firstWave} ms; renders while held ${waveTimes.length}, median gap ${median} ms; requested while held ${held.requested - before.requested}, after release ${settled.requested - held.requested}; buffers ${(heapBefore / MB).toFixed(1)} -> ${(heapAfter / MB).toFixed(1)} MB`,
+    );
+  });
+}
 
 test("M1: 40 Enter commits run one job at a time and leave the buffers flat", async ({ page }) => {
   test.setTimeout(120_000);

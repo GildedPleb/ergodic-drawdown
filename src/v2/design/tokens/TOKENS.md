@@ -367,3 +367,19 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   .288). At the spec ladder linen's .04→.07 step is ΔE 1.84 on --ground (under a JND); ×1.6 puts
   every step at ΔE ≥ 2.97 (dark's smallest is 3.98). Read by `draw.ts` paint `bandGain`; the
   four fills (min–max, p1–p99, p5–p95, p25–p75) are canvas, no outlines.
+- §1MP Models pane (Form; supersedes §1M, §1N, §1V, §1W, §1Y): 62,040 B source / 8,787 B gzip,
+  +189 net on 8,598. Per item, measured against dc8b922: ModelsSheet +71, PaneScroll (scroll
+  fades and the 2px house scrollbar, edge lines removed) +147, Swatches (new, pane-only colour
+  picker) +131, AssetRow (ringed key, CSS caret, chip bleed) +117, Select (checked list, no tray)
+  −262, NumberField −42, SectionLabel −41, LedgerRow −20, TickToggle −12, `space.css` −57,
+  `motion-etc.css` −2. Deleted (dead after §1MP; user approved): `--row-pad`, `--tray-indent`,
+  `--section-rule-len`, `--group-rule-len`, `--group-label-h`, `--radio-box`, `--rule-step`.
+  The pane's sizes stay local `--_*` variables in their own modules (no new tokens); the
+  stylelint gate now accepts a `--_*` only where the same file declares it, the same predicate
+  as R4 (`isOwnLocal`). The ModelsSheet item was approved by Keel at about +206 B; cuts tried:
+  font shorthands −13, key hit area −19, token reuse −29, Swatches trim, a shared button reset
+  (+19 B, reverted). Over +200, approved by Keel.
+- **Limits temporary, pending dead-style audit, Keel to ratify.** §1MP ships over the 8,600
+  ceiling, so `css-budget.json` holds both limits at the measured size +0:
+  `builtGzipCeiling` 8,600 → 8,787 and `sourceCeiling` 61,809 → 62,040. The dead-style audit
+  follows as its own commit and then ratchets both down to measured actual + 2%.

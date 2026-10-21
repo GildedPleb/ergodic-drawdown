@@ -1,24 +1,26 @@
 import type { JSX } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { AssetRow } from "../../design/primitives/AssetRow";
-import { spokenLabel } from "../../design/primitives/LabelGlyphs";
+import { Icon } from "../../design/primitives/Icon";
 import { LedgerRow } from "../../design/primitives/LedgerRow";
 import { NumberField } from "../../design/primitives/NumberField";
 import type { Bounds } from "../../design/primitives/NumberField";
-import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { SectionLabel } from "../../design/primitives/SectionLabel";
 import { Select } from "../../design/primitives/Select";
 import { Slider } from "../../design/primitives/Slider";
 import { focusScale } from "../../design/primitives/Slider/scale";
+import { Swatches } from "../../design/primitives/Swatches";
 import { TickToggle } from "../../design/primitives/TickToggle";
+import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
+import { useMedia } from "../shell/useMedia";
 import { strings } from "../strings";
 import styles from "./ModelsSheet.module.css";
-import { closeOnPress } from "./outside";
 import { modelsPaneSchema } from "./schema";
 import { choosePatch, type ModelsValues } from "./values";
 
 const { controls } = modelsPaneSchema;
+const copy = strings.models;
 const count = (n: number): string => n.toLocaleString("en-US");
 /** "Previous Halvings" → plural, "R (%)" → singular (for "goes" / "go"). */
 const noun = (name: string): { name: string; plural: boolean } => ({
@@ -30,6 +32,9 @@ const noun = (name: string): { name: string; plural: boolean } => ({
  * Gap 10 (Form, m2): samples clamp to a minimum of 1 (zero futures draws nothing, so it is never a
  * valid result). 1 is main's own samples input `min` (G12 snapshot); the max is its accept max.
  */
+/** §1MP 6: desktop, where the open walk list takes two columns (read here, inside the pane). */
+const DESKTOP = "(min-width: 64rem)";
+
 export const SAMPLE_BOUNDS = {
   min: controls.samples.min,
   max: controls.samples.accept.max,
@@ -38,7 +43,9 @@ export const SAMPLE_BOUNDS = {
 export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMPLE_BOUNDS.max);
 
 type EditorProps = {
+  /** The row is `row-{id}`; the input `v2-{input ?? id}`. */
   id: string;
+  input?: string;
   label: string;
   value: number;
   bounds: Bounds;
@@ -47,15 +54,16 @@ type EditorProps = {
   emptyValue: number | null;
   who: { name: string; plural: boolean };
   slider: boolean;
-  hint?: string | undefined;
+  description?: string | undefined;
   /** §1Q: the soft top for a field in the focus-range table (the model's rangeMax). */
   softTop?: number | undefined;
   onCommit: (n: number) => void;
 };
 
 /**
- * One live field (§1P): the NumberField (Probe gate) as the value cell, plus a slider when both
- * bounds are finite or the field has a focus range (§1Q).
+ * One setting row (§1MP 7) with its live field (§1P): the NumberField (Probe gate) as the value
+ * cell, the description, and a slider on the next line when both bounds are finite or the field
+ * has a focus range (§1Q).
  */
 const Editor = (p: EditorProps): JSX.Element => {
   const focus = strings.fields.focus[p.label];
@@ -64,50 +72,53 @@ const Editor = (p: EditorProps): JSX.Element => {
       ? undefined
       : focusScale(p.bounds.min, { ...focus, softTop: p.softTop });
   const finite = Number.isFinite(p.bounds.min) && Number.isFinite(p.bounds.max);
-  const slide = styles["slide"] ?? "models-slide";
   return (
-    <>
-      <NumberField
-        id={p.id}
-        label={p.label}
-        labelHidden
-        value={p.value}
-        bounds={p.bounds}
-        parse={p.parse}
-        step={p.step}
-        emptyValue={p.emptyValue}
-        hint={p.hint}
-        clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used)}
-        invalidMessage={(current) =>
-          strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current)
-        }
-        onCommit={p.onCommit}
-      />
+    <LedgerRow
+      id={`row-${p.id}`}
+      label={p.label}
+      htmlFor={`v2-${p.input ?? p.id}`}
+      description={p.description}
+      value={
+        <NumberField
+          id={`v2-${p.input ?? p.id}`}
+          label={p.label}
+          labelHidden
+          value={p.value}
+          bounds={p.bounds}
+          parse={p.parse}
+          step={p.step}
+          emptyValue={p.emptyValue}
+          clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used)}
+          invalidMessage={(current) =>
+            strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current)
+          }
+          onCommit={p.onCommit}
+        />
+      }
+    >
       {p.slider && (finite || scale !== undefined) ? (
-        <div className={slide}>
-          <Slider
-            label={p.label}
-            value={p.value}
-            min={p.bounds.min}
-            max={p.bounds.max}
-            step={focus?.step ?? p.step}
-            scale={scale}
-            marks={focus?.marks.map((value) =>
-              value === focus.labelled ? { value, label: count(value) } : { value },
-            )}
-            valueText={focus?.spoken}
-            onCommit={p.onCommit}
-          />
-        </div>
-      ) : null}
-    </>
+        <Slider
+          label={p.label}
+          value={p.value}
+          min={p.bounds.min}
+          max={p.bounds.max}
+          step={focus?.step ?? p.step}
+          scale={scale}
+          marks={focus?.marks.map((value) =>
+            value === focus.labelled ? { value, label: count(value) } : { value },
+          )}
+          valueText={focus?.spoken}
+          onCommit={p.onCommit}
+        />
+      ) : undefined}
+    </LedgerRow>
   );
 };
 
 export type ModelsSheetProps = {
   values: ModelsValues;
   onChange: (patch: Partial<ModelsValues>) => void;
-  /** §1M: Bitcoin's ledger tick box (shown on the chart). */
+  /** §1MP 5: Bitcoin's colour square (shown on the chart); starts ON. */
   on?: boolean;
   onOn?: (next: boolean) => void;
   /** §2A: "Show historic price" (render.showHistoric), off by default. */
@@ -115,25 +126,40 @@ export type ModelsSheetProps = {
   onHistoric?: (next: boolean) => void;
   /** main's live Years cap (maxYears of the weeks since the last halving); the absolute cap before halvings load. */
   yearsMax?: number;
-  /** Stories and tests: the row open on first render. */
-  initialOpen?: string | null;
+  /** Stories and tests: force the two-column walk list (the pane otherwise reads DESKTOP). */
+  wide?: boolean;
+  /** Stories and tests: the assets open on first render. */
+  initialOpen?: readonly string[];
 };
 
-type AssetId = (typeof strings.models.assets)[number]["id"];
+type AssetId = (typeof copy.assets)[number]["id"];
 
-/** §1V: "CAGR 28% · Bubble · 1,000 futures": a percent variable joins its model's name. */
+/** §1MP 9: "{model part}, {walk} walk, volatility {Volatility}", live from the settings. */
 export const summaryOf = (values: ModelsValues): string => {
-  const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
-  const model =
-    meta?.varInput.includes("(%)") === true
-      ? strings.models.percent(values.model, values.variable)
-      : values.model;
-  return strings.models.summary(model, values.walk, values.samples);
+  const part =
+    values.model === "CAGR"
+      ? copy.grows(values.variable)
+      : values.model === "Historic"
+        ? copy.replays(values.variable)
+        : values.model;
+  return copy.summary(part, values.walk, values.volatility);
 };
 
 /**
- * The v32 Models pane: every back-end setting in Certificate controls, in the back end's own words (§1f); a field that exists only because of a Select's
- * choice lives in that Select's tray (§1N). Rows a model hides are removed, never disabled.
+ * §1MP 7: "ergodic" when Volatility > 0; both clamps are on or the walk is neither Random nor
+ * Sin; and the walk isn't Random or Volatility ≥ 0.05.
+ */
+export const ergodicOf = (
+  v: Pick<ModelsValues, "walk" | "volatility" | "clampTop" | "clampBottom">,
+) =>
+  v.volatility > 0 &&
+  ((v.clampTop && v.clampBottom) || (v.walk !== "Random" && v.walk !== "Sin")) &&
+  (v.walk !== "Random" || v.volatility >= 0.05);
+
+/**
+ * V32-BUILD §1MP, the Models pane: the asset ledger (Bitcoin, S&P, Inflation) and the top-level
+ * Simulation group. Every back-end setting in the back end's own words (§1f); a model's own
+ * options sit under the price-model selector and change with it.
  */
 export const ModelsSheet = ({
   values,
@@ -142,28 +168,14 @@ export const ModelsSheet = ({
   onOn,
   historic = false,
   onHistoric,
-  initialOpen = null,
   yearsMax = controls.years.max,
+  wide,
+  initialOpen = [],
 }: ModelsSheetProps): JSX.Element => {
-  const [open, setOpen] = useState<string | null>(initialOpen);
-  const ledgerRef = useRef<HTMLDivElement>(null);
-  // §1V: a press anywhere in the sheet outside the ledger closes the open row (settings already
-  // applied). A press on another row's header is that header's own click (it switches rows), so
-  // nothing moves under the pointer between its press and its click.
-  useEffect(() => {
-    if (open === null) return undefined;
-    return closeOnPress(
-      document,
-      (target) => {
-        const list = ledgerRef.current;
-        if (list === null || !(target instanceof Node)) return false;
-        return (list.closest("section") ?? list).contains(target) && !list.contains(target);
-      },
-      () => {
-        setOpen(null);
-      },
-    );
-  }, [open]);
+  const desktop = useMedia(DESKTOP);
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(initialOpen));
+  const [modelList, setModelList] = useState(false);
+  const [colour, setColour] = useState<string>(copy.colours[0].name);
   const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
   // §1Q (Rule 0, Form): R (%) accepts 0 to ∞; only the slider's mapping is front end. The model's
   // rangeMax (G12-mirrored) is the slider's soft top, not a clamp.
@@ -174,16 +186,24 @@ export const ModelsSheet = ({
   const softTop = meta === undefined || meta.rangeMax === "Infinity" ? undefined : meta.rangeMax;
   const volStep =
     values.walk === "Bubble" ? controls.volatility.stepBubble : controls.volatility.stepOther;
+  const ergodic = ergodicOf(values);
+  const btcColour = copy.colours.find((c) => c.name === colour)?.colour ?? copy.colours[0].colour;
 
   const root = styles["root"] ?? "models-root";
-  const section = styles["section"] ?? "models-section";
-  const group = styles["group"] ?? "models-group";
+  const list = styles["list"] ?? "models-list";
+  const erg = styles["erg"] ?? "models-erg";
+  const standIn = styles["standin"] ?? "models-standin";
+  const val = styles["value"] ?? "models-value";
+  const pair = styles["pair"] ?? "models-pair";
+  const tick = styles["tick"] ?? "models-tick";
+  const assets = styles["assets"] ?? "models-assets";
 
-  const variableRow =
-    meta?.showVariable === true ? (
-      <LedgerRow key={values.model} id="row-variable" label={meta.varInput} htmlFor="v2-variable">
+  const options = modelList ? null : (
+    <>
+      {meta?.showVariable === true ? (
         <Editor
-          id="v2-variable"
+          key={values.model}
+          id="variable"
           label={meta.varInput}
           value={values.variable}
           bounds={varBounds}
@@ -193,18 +213,15 @@ export const ModelsSheet = ({
           who={noun(meta.varInput)}
           softTop={softTop}
           slider
+          description={copy.settingDesc[meta.varInput]}
           onCommit={(variable) => {
             onChange({ variable });
           }}
         />
-      </LedgerRow>
-    ) : null;
-
-  const minMaxRow =
-    meta?.showMinMaxMultiple === true ? (
-      <LedgerRow id="row-minmax" label="+/-" htmlFor="v2-minmax">
+      ) : null}
+      {meta?.showMinMaxMultiple === true ? (
         <Editor
-          id="v2-minmax"
+          id="minmax"
           label="+/-"
           value={values.minMaxMultiple}
           bounds={{ min: controls.minMaxMultiple.floor, max: Infinity }}
@@ -213,26 +230,84 @@ export const ModelsSheet = ({
           emptyValue={null}
           who={strings.fields.nouns.minMaxMultiple}
           slider={false}
+          description={copy.settingDesc["+/-"]}
           onCommit={(minMaxMultiple) => {
             onChange({ minMaxMultiple });
           }}
         />
-      </LedgerRow>
-    ) : null;
+      ) : null}
+    </>
+  );
 
-  const modelTray =
-    variableRow === null && minMaxRow === null ? undefined : (
-      <>
-        {variableRow}
-        {minMaxRow}
-      </>
-    );
-
-  const walkTray = (
+  const bitcoin = (
     <>
-      <LedgerRow id="row-volatility" label={controls.volatility.label} htmlFor="v2-vol">
+      <SectionLabel text={strings.sections.grow} id="grp-grow" />
+      <div className={list}>
+        <Select
+          id="v2-model"
+          labelledBy="grp-grow"
+          options={modelsPaneSchema.modelOrder}
+          value={values.model}
+          describe={(m) => copy.modelDesc[m] ?? ""}
+          onOpenChange={setModelList}
+          onChange={(choice) => {
+            onChange(choosePatch(choice));
+          }}
+        />
+        {options}
+      </div>
+      <SectionLabel text={strings.sections.bumpy} />
+      <div className={list}>
+        <Select
+          id="v2-walk"
+          label={controls.walk.label}
+          options={modelsPaneSchema.walks}
+          value={values.walk}
+          describe={(w) => copy.walkDesc[w] ?? ""}
+          columns={wide ?? desktop}
+          onChange={(walk) => {
+            onChange({ walk });
+          }}
+        />
+        <LedgerRow
+          id="row-clamp"
+          label={controls.clamp.label}
+          kind="pair"
+          description={copy.settingDesc[controls.clamp.label]}
+          value={
+            <span className={pair}>
+              <TickToggle
+                size="pair"
+                label={controls.clamp.bottomLabel}
+                name={copy.clampMin}
+                checked={values.clampBottom}
+                onChange={(clampBottom) => {
+                  onChange({ clampBottom });
+                }}
+              />
+              <TickToggle
+                size="pair"
+                label={controls.clamp.topLabel}
+                name={copy.clampMax}
+                checked={values.clampTop}
+                onChange={(clampTop) => {
+                  onChange({ clampTop });
+                }}
+              />
+            </span>
+          }
+        />
+        <p className={erg} aria-live="polite">
+          {ergodic ? copy.ergodic : copy.notErgodic}
+          {ergodic ? (
+            <span className={tick} aria-hidden="true">
+              <Icon name="check" />
+            </span>
+          ) : null}
+        </p>
         <Editor
-          id="v2-vol"
+          id="volatility"
+          input="vol"
           label={controls.volatility.label}
           value={values.volatility}
           bounds={controls.volatility.accept}
@@ -241,140 +316,109 @@ export const ModelsSheet = ({
           emptyValue={controls.volatility.emptyValue}
           who={strings.fields.nouns.volatility}
           slider
+          description={copy.settingDesc[controls.volatility.label]}
           onCommit={(volatility) => {
             onChange({ volatility });
           }}
         />
-      </LedgerRow>
-      <SectionLabel text={controls.clamp.label} level="group" id="grp-clamp" />
-      <div className={group} role="group" aria-labelledby="grp-clamp">
-        <TickToggle
-          label={controls.clamp.topLabel}
-          checked={values.clampTop}
-          onChange={(clampTop) => {
-            onChange({ clampTop });
+        {/* §1MP 7: samples are per asset; Bitcoin's is the engine's one sample count. */}
+        <Editor
+          id="samples"
+          label={SAMPLES_LABEL}
+          value={values.samples}
+          bounds={SAMPLE_BOUNDS}
+          parse={controls.samples.parse}
+          step={1}
+          emptyValue={controls.samples.emptyValue}
+          who={strings.fields.nouns.samples}
+          slider
+          description={copy.settingDesc["samples"]}
+          onCommit={(samples) => {
+            onChange({ samples });
           }}
         />
+      </div>
+      <SectionLabel text={strings.sections.chart} />
+      <div className={list}>
         <TickToggle
-          label={controls.clamp.bottomLabel}
-          checked={values.clampBottom}
-          onChange={(clampBottom) => {
-            onChange({ clampBottom });
-          }}
+          label={copy.showHistoric}
+          checked={historic}
+          onChange={(next) => onHistoric?.(next)}
         />
+        <LedgerRow
+          id="row-colour"
+          label={copy.colour}
+          value={<span className={val}>{colour}</span>}
+        >
+          <Swatches
+            labelledBy="row-colour-label"
+            options={copy.colours}
+            value={colour}
+            onChange={setColour}
+          />
+        </LedgerRow>
       </div>
     </>
   );
 
-  const rows = strings.models.assets.map(({ id, name }: { id: AssetId; name: string }) => {
-    const bitcoin = id === "bitcoin";
-    return (
-      <AssetRow
-        key={id}
-        id={`asset-${id}`}
-        asset={id}
-        name={name}
-        openName={bitcoin ? strings.models.openName(name) : undefined}
-        summary={bitcoin ? summaryOf(values) : strings.models.notYet}
-        open={open === id}
-        dim={open !== null && open !== id}
-        onToggle={(next) => {
-          setOpen(next ? id : null);
-        }}
-        tick={
-          bitcoin
-            ? { on, label: strings.models.showOn(name), onChange: (next) => onOn?.(next) }
-            : undefined
-        }
-      >
-        {bitcoin ? (
-          <>
-            {/* §2A: directly under the asset's headline, the existing tick box only. */}
-            <TickToggle
-              label={strings.models.showHistoric}
-              stateWord={false}
-              checked={historic}
-              onChange={(next) => onHistoric?.(next)}
-            />
-            <div className={section} role="group" aria-labelledby="grp-price-model">
-              <SectionLabel text={strings.sections.priceModel} level="group" id="grp-price-model" />
-              <Select
-                id="v2-model"
-                labelledBy="grp-price-model"
-                options={modelsPaneSchema.modelOrder}
-                value={values.model}
-                onChange={(choice) => {
-                  onChange(choosePatch(choice));
-                }}
-                tray={modelTray}
-                trayLabel={strings.models.settings(values.model)}
-              />
-            </div>
-            <div className={section} role="group" aria-labelledby="grp-prices-move">
-              <SectionLabel text={strings.sections.pricesMove} level="group" id="grp-prices-move" />
-              {/* §1M: the engine's label names the walk Select; no duplicate header. */}
-              <VisuallyHidden id="lbl-walk">{controls.walk.label}</VisuallyHidden>
-              <Select
-                id="v2-walk"
-                labelledBy="lbl-walk"
-                options={modelsPaneSchema.walks}
-                value={values.walk}
-                onChange={(walk) => {
-                  onChange({ walk });
-                }}
-                tray={walkTray}
-                trayLabel={strings.models.settings(spokenLabel(values.walk))}
-              />
-            </div>
-            <div className={section} role="group" aria-labelledby="grp-simulation">
-              <SectionLabel text={strings.sections.simulation} level="group" id="grp-simulation" />
-              <LedgerRow id="row-samples" label={SAMPLES_LABEL} htmlFor="v2-samples">
-                <Editor
-                  id="v2-samples"
-                  label={SAMPLES_LABEL}
-                  value={values.samples}
-                  bounds={SAMPLE_BOUNDS}
-                  parse={controls.samples.parse}
-                  step={1}
-                  emptyValue={controls.samples.emptyValue}
-                  who={strings.fields.nouns.samples}
-                  slider={false}
-                  onCommit={(samples) => {
-                    onChange({ samples });
-                  }}
-                />
-              </LedgerRow>
-              <LedgerRow id="row-years" label={strings.fields.yearsLabel} htmlFor="v2-years">
-                <Editor
-                  id="v2-years"
-                  label={strings.fields.yearsLabel}
-                  value={values.years}
-                  bounds={{ min: controls.years.min, max: yearsMax }}
-                  parse={controls.years.parse}
-                  step={1}
-                  emptyValue={controls.years.emptyValue}
-                  who={strings.fields.nouns.years}
-                  slider
-                  onCommit={(years) => {
-                    onChange({ years });
-                  }}
-                />
-              </LedgerRow>
-            </div>
-          </>
-        ) : (
-          <p>{strings.models.standIn(name)}</p>
-        )}
-      </AssetRow>
-    );
-  });
+  const rows = copy.assets.map(
+    ({ id, name, colour: c }: { id: AssetId; name: string; colour: string }) => {
+      const btc = id === "bitcoin";
+      return (
+        <AssetRow
+          key={id}
+          id={`asset-${id}`}
+          asset={id}
+          name={name}
+          summary={btc ? summaryOf(values) : copy.notYet}
+          colour={btc ? btcColour : c}
+          open={open.has(id)}
+          onToggle={(next) => {
+            setOpen((was) => {
+              const s = new Set(was);
+              if (next) s.add(id);
+              else s.delete(id);
+              return s;
+            });
+          }}
+          square={
+            btc
+              ? { on, label: copy.showOn(name), onChange: (next) => onOn?.(next) }
+              : { on: false, label: copy.inertOn(name), inert: true }
+          }
+        >
+          {btc ? bitcoin : <p className={standIn}>{copy.standIn(name)}</p>}
+        </AssetRow>
+      );
+    },
+  );
 
   return (
     <div className={root}>
-      {/* Form m1: no visible pane title; the sheet keeps its h2 for headings navigation. */}
+      {/* No visible pane title (the MODELS tab names it); the h2 is for headings navigation. */}
       <VisuallyHidden as="h2">{modelsPaneSchema.title}</VisuallyHidden>
-      <div ref={ledgerRef} role="list" aria-label={strings.models.label}>
+      <div className={assets} role="list" aria-label={copy.label}>
         {rows}
+      </div>
+      <div role="group" aria-labelledby="grp-sim">
+        <SectionLabel text={strings.sections.simulation} id="grp-sim" />
+        <div className={list}>
+          <Editor
+            id="years"
+            label={strings.fields.yearsLabel}
+            value={values.years}
+            bounds={{ min: controls.years.min, max: yearsMax }}
+            parse={controls.years.parse}
+            step={1}
+            emptyValue={controls.years.emptyValue}
+            who={strings.fields.nouns.years}
+            slider
+            description={copy.settingDesc["years"]}
+            onCommit={(years) => {
+              onChange({ years });
+            }}
+          />
+        </div>
       </div>
     </div>
   );

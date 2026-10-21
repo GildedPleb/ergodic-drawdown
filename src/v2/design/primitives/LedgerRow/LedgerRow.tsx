@@ -3,32 +3,64 @@ import type { JSX, ReactNode } from "react";
 import { LabelGlyphs } from "../LabelGlyphs";
 import styles from "./LedgerRow.module.css";
 
+/** R7: variant keys and values. */
+export const variants = {
+  /** "pair": the label shares its line with a pair of 44px toggles that overhang it (Clamp). */
+  kind: ["pair"] as const,
+};
+
 export type LedgerRowProps = {
   /** The back end's label, verbatim. */
   label: string;
-  /** The live field: a label-hidden NumberField (the value cell), plus a Slider if any. */
-  children?: ReactNode;
   id: string;
-  /** The value cell's input id: the label focuses it. */
-  htmlFor: string;
+  /** The value cell's input id: the label focuses it. None: the label is plain text. */
+  htmlFor?: string;
+  /** The right-hand cell: a label-hidden NumberField, a value, or a pair of toggles. */
+  value?: ReactNode;
+  /** One italic line under the label, across the row. */
+  description?: string | undefined;
+  /** Lines after the description, the full text-column width (a slider, the colour chips). */
+  children?: ReactNode;
+  kind?: (typeof variants.kind)[number];
+  /** Defaults to a group named by the label. */
+  role?: "group" | "radiogroup";
 };
 
 /**
- * Certificate ledger row (V32-BUILD §1f, §1P): the label in --t-row on the left and the live
- * value cell on the right, a --hairline below; the first line is --hit tall and never changes
- * height. §1P: no edit mode. The value cell is always an input and the slider always draggable:
- * under 30rem of container width the slider takes the row's second line; at 30rem and up it sits
- * between the label and the value. Messages and the hint fall to the lines below.
+ * V32-BUILD §1MP item 7, a setting row: the label in EB Garamond --t-row on the text column, the
+ * value right-aligned (always a live field, §1P), the description 1px under the label in italic
+ * --text-muted, then a slider on the next line. --s-2 above and below; at least --hit tall; no
+ * hairline.
  */
-export const LedgerRow = ({ label, children, id, htmlFor }: LedgerRowProps): JSX.Element => {
+export const LedgerRow = ({
+  label,
+  id,
+  htmlFor,
+  value,
+  description,
+  children,
+  kind,
+  role = "group",
+}: LedgerRowProps): JSX.Element => {
   const row = styles["row"] ?? "ledger-row";
   const labelCls = styles["label"] ?? "ledger-label";
+  const desc = styles["desc"] ?? "ledger-desc";
+  const line = styles["line"] ?? "ledger-line";
+  const text = <LabelGlyphs text={label} />;
   return (
-    <div className={row} id={id} role="group" aria-labelledby={`${id}-label`}>
-      <label className={labelCls} id={`${id}-label`} htmlFor={htmlFor}>
-        <LabelGlyphs text={label} />
-      </label>
-      {children}
+    <div className={row} id={id} role={role} aria-labelledby={`${id}-label`} data-kind={kind}>
+      {htmlFor === undefined ? (
+        <span className={labelCls} id={`${id}-label`}>
+          {text}
+        </span>
+      ) : (
+        <label className={labelCls} id={`${id}-label`} htmlFor={htmlFor}>
+          {text}
+        </label>
+      )}
+      {value}
+      {description === undefined ? null : <span className={desc}>{description}</span>}
+      {children === undefined ? null : <div className={line}>{children}</div>}
     </div>
   );
 };

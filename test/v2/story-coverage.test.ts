@@ -12,6 +12,8 @@ const SKIP: Record<string, readonly string[]> = {
   "Icon.stories.tsx": ["Focus", "LongText"],
   "Amount.stories.tsx": ["Focus", "LongText"],
   "VisuallyHidden.stories.tsx": ["Focus", "LongText"],
+  // §1MP 8: a fixed set of eight unlabelled chips; there is no text to lengthen.
+  "Swatches.stories.tsx": ["LongText"],
   "SectionLabel.stories.tsx": ["Focus"],
   "LabelGlyphs.stories.tsx": ["Focus"],
 };

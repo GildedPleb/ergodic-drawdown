@@ -4,7 +4,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
 
 import { modelsPaneSchema } from "../../src/v2/app/models";
-import { ModelsSheet, SAMPLE_BOUNDS, SAMPLES_LABEL } from "../../src/v2/app/models/ModelsSheet";
+import {
+  ergodicOf,
+  ModelsSheet,
+  SAMPLE_BOUNDS,
+  SAMPLES_LABEL,
+  summaryOf,
+} from "../../src/v2/app/models/ModelsSheet";
 import { resolveEntry } from "../../src/v2/design/primitives/NumberField/entry";
 import { defaultModelsValues, type ModelsValues } from "../../src/v2/app/models/values";
 import { strings } from "../../src/v2/app/strings";
@@ -15,7 +21,7 @@ const render = (patch: Partial<ModelsValues> = {}): string =>
     createElement(ModelsSheet, {
       values: { ...defaultModelsValues(), ...patch },
       onChange: () => undefined,
-      initialOpen: "bitcoin",
+      initialOpen: ["bitcoin"],
     }),
   );
 
@@ -28,10 +34,11 @@ const editor = (field: "volatility" | "samples" | "years"): string => {
   return html.slice(start, next < 0 ? undefined : next);
 };
 
-test("Models sheet: an open row edits in place, with a slider only when both bounds are finite", () => {
+test("§1MP 7: Volatility and samples edit in place, each with its plain slider (1–10k for samples)", () => {
   expect(editor("volatility").includes('role="slider"')).toBe(true);
-  expect(editor("samples").includes('role="slider"')).toBe(false);
+  expect(editor("samples").includes('role="slider"')).toBe(true);
   expect(editor("samples").includes('id="v2-samples"')).toBe(true);
+  expect(editor("samples").includes('aria-valuemax="10000"')).toBe(true);
 });
 
 test("m2 (Gap 10): samples clamp to 1..10,000 with the standard clamp message; 0 is never used", () => {
@@ -59,41 +66,39 @@ test("Models sheet: Years is main's years input, 1 to the live cap (120 before h
     createElement(ModelsSheet, {
       values: defaultModelsValues(),
       onChange: () => undefined,
-      initialOpen: "bitcoin",
+      initialOpen: ["bitcoin"],
       yearsMax: 117,
     }),
   );
   expect(live.includes('aria-valuemax="117"')).toBe(true);
 });
 
-/** Option text per listbox: plain names, or the LabelGlyphs data-text of an SVG label. */
+/** Option names per listbox (plain names, or the LabelGlyphs data-text of an SVG label). */
 const optionsOf = (html: string, id: string): string[] => {
-  const list = new RegExp(`id="${id}-list"[^>]*>(.*?)</ul>`).exec(html)?.[1] ?? "";
-  return [
-    ...list.matchAll(/role="option"[^>]*>(?:<span[^>]*><\/span>)<span[^>]*>(.*?)<\/span><\/li>/g),
-  ].map((m) => /data-text="([^"]+)"/.exec(m[1] ?? "")?.[1] ?? m[1] ?? "");
+  const at = html.indexOf(`id="${id}"`);
+  const list = html.slice(at, html.indexOf("</div>", at));
+  return [...list.matchAll(/role="option"[^>]*><span[^>]*>(.*?)<\/span>/g)].map(
+    (m) => /data-text="([^"]+)"/.exec(m[1] ?? "")?.[1] ?? m[1] ?? "",
+  );
 };
 
-test("1L.3: price model and walk are Certificate Selects whose options are the engine's names", () => {
+test("§1MP 6: price model and walk are in-place listboxes; closed, only the pick shows", () => {
   const html = render();
-  expect(html.includes('role="radio"')).toBe(false);
-  expect((html.match(/role="combobox"/g) ?? []).length).toBe(2);
-  expect(optionsOf(html, "v2-model")).toEqual([...modelsPaneSchema.modelOrder]);
-  expect(optionsOf(html, "v2-walk")).toEqual([...modelsPaneSchema.walks]);
-  expect(html.includes('id="v2-model" class')).toBe(true);
-  expect(html.includes('aria-labelledby="grp-price-model"')).toBe(true);
-  expect(html.includes('aria-labelledby="lbl-walk"')).toBe(true);
+  expect((html.match(/role="listbox"/g) ?? []).length).toBe(2);
+  expect(html.includes('role="combobox"')).toBe(false);
+  expect(optionsOf(html, "v2-model")).toEqual([modelsPaneSchema.defaultModel]);
+  expect(optionsOf(html, "v2-walk")).toEqual([modelsPaneSchema.defaultWalk]);
+  expect(tagWith(html, 'id="v2-model"').includes('aria-labelledby="grp-grow"')).toBe(true);
+  expect(tagWith(html, 'id="v2-walk"').includes('aria-label="Walk Strategy:"')).toBe(true);
+  // The pick carries its engine description beneath it.
+  expect(html.includes(strings.models.walkDesc["Bubble"] ?? "?")).toBe(true);
 });
 
-test("1L.3: the defaults are the Selects' values (■ on the current option)", () => {
-  const html = render();
-  const on = [
-    ...html.matchAll(/data-state="on"[^>]*>(?:<span[^>]*><\/span>)<span[^>]*>(.*?)<\/span>/g),
-  ];
-  expect(on.map((m) => m[1])).toEqual([
-    modelsPaneSchema.defaultModel,
-    modelsPaneSchema.defaultWalk,
-  ]);
+test("§1MP 6: every engine model and walk has its description line", () => {
+  for (const m of modelsPaneSchema.modelOrder)
+    expect((strings.models.modelDesc[m] ?? "").length > 0).toBe(true);
+  for (const w of modelsPaneSchema.walks)
+    expect((strings.models.walkDesc[w] ?? "").length > 0).toBe(true);
 });
 
 const rows = (html: string): boolean[] => [
@@ -104,6 +109,70 @@ const rows = (html: string): boolean[] => [
 test("Models sheet: CAGR shows the variable and +/- rows; Power Law removes them", () => {
   expect(rows(render())).toEqual([false, false]);
   expect(rows(render({ model: "CAGR", variable: 50 }))).toEqual([true, true]);
+  expect(rows(render({ model: "Historic", variable: 2 }))).toEqual([true, false]);
+});
+
+test("§1MP 3: the landing ledger is Bitcoin, S&P, Inflation, all collapsed, then Simulation", () => {
+  const html = renderToStaticMarkup(
+    createElement(ModelsSheet, { values: defaultModelsValues(), onChange: () => undefined }),
+  );
+  const names = [...html.matchAll(/id="asset-([a-z]+)"[^>]*aria-expanded="([a-z]+)"/g)];
+  expect(names.map((m) => [m[1], m[2]])).toEqual([
+    ["bitcoin", "false"],
+    ["sp", "false"],
+    ["inflation", "false"],
+  ]);
+  expect(html.includes('id="v2-model"')).toBe(false);
+  expect(html.indexOf('id="grp-sim"') > html.indexOf('id="asset-inflation"')).toBe(true);
+  expect(html.includes('id="v2-years"')).toBe(true);
+  // Bitcoin's summary is live; the stand-ins say "Not yet modelled" and their squares are inert.
+  expect(html.includes(summaryOf(defaultModelsValues()))).toBe(true);
+  expect((html.match(/aria-disabled="true"/g) ?? []).length).toBe(2);
+  expect(html.includes('aria-label="S&amp;P on chart (not yet modelled)"')).toBe(true);
+});
+
+test("§1MP 9: the summary is '{model part}, {walk} walk, volatility {v}'", () => {
+  const v = defaultModelsValues();
+  expect(summaryOf({ ...v, model: "CAGR", variable: 20, walk: "Bubble", volatility: 0.1 })).toBe(
+    "Grows 20% a year, Bubble walk, volatility 0.1",
+  );
+  expect(summaryOf({ ...v, model: "Historic", variable: 2 })).toBe(
+    `Replays 2 past halving cycles, ${v.walk} walk, volatility ${String(v.volatility)}`,
+  );
+  expect(summaryOf({ ...v, model: "Rainbow Chart" }).startsWith("Rainbow Chart, ")).toBe(true);
+});
+
+test("§1MP 7: ergodic needs volatility, clamps for Random/Sin, and ≥ 0.05 for Random", () => {
+  const base = { walk: "Bubble", volatility: 0.1, clampTop: false, clampBottom: false };
+  expect(ergodicOf(base)).toBe(true);
+  expect(ergodicOf({ ...base, volatility: 0 })).toBe(false);
+  expect(ergodicOf({ ...base, walk: "Sin" })).toBe(false);
+  expect(ergodicOf({ ...base, walk: "Sin", clampTop: true, clampBottom: true })).toBe(true);
+  expect(ergodicOf({ ...base, walk: "Random", clampTop: true, clampBottom: true })).toBe(true);
+  expect(
+    ergodicOf({ ...base, walk: "Random", volatility: 0.04, clampTop: true, clampBottom: true }),
+  ).toBe(false);
+  expect(render().includes(">ergodic<")).toBe(true);
+  expect(render({ volatility: 0 }).includes(">not ergodic<")).toBe(true);
+});
+
+test("§1MP 7: Clamp is one row of two named switches, Min then Max", () => {
+  const html = render();
+  const row = html.slice(html.indexOf('id="row-clamp"'), html.indexOf('id="row-volatility"'));
+  const names = [...row.matchAll(/role="switch"[^>]*aria-label="([^"]+)"/g)].map((m) => m[1]);
+  expect(names).toEqual(["Clamp minimum price", "Clamp maximum price"]);
+  expect(row.includes(">Min<") && row.indexOf(">Min<") < row.indexOf(">Max<")).toBe(true);
+});
+
+test("§1MP 8: Colour is one radiogroup of eight named chips, ₿ orange picked", () => {
+  const html = render();
+  const group = tagWith(html, 'role="radiogroup"');
+  expect(group.includes('aria-labelledby="row-colour-label"')).toBe(true);
+  const chips = [
+    ...html.matchAll(/role="radio" aria-checked="(true|false)" aria-label="([^"]+)"/g),
+  ];
+  expect(chips.map((m) => decode(m[2] ?? ""))).toEqual(strings.models.colours.map((c) => c.name));
+  expect(chips.filter((m) => m[1] === "true").map((m) => m[2])).toEqual(["\u20BF orange"]);
 });
 
 test("Models sheet imports only design primitives, its module, schema, values, its press helper, strings and main's constants", async () => {
@@ -117,7 +186,7 @@ test("Models sheet imports only design primitives, its module, schema, values, i
         "./ModelsSheet.module.css",
         "./schema",
         "./values",
-        "./outside", // §1V: the ledger's close-on-press listener (front end only)
+        "../shell/useMedia", // §1MP 6: the pane reads the desktop query itself
         "../strings",
         "../../../constants",
       ].includes(s),
@@ -160,7 +229,7 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
     ...Object.values(strings.dock.grab),
   );
   const list = [...new Set(out)].filter((s) => s.trim().length > 0);
-  expect(list.includes("Model")).toBe(true);
+  expect(list.includes("How prices grow")).toBe(true);
   expect(uncovered(list, await loadCmaps())).toEqual([]);
 });
 
@@ -193,69 +262,15 @@ test("1Q (supersedes the 0..1000 clamp): R (%) clamps at 0 only; 1000 is the sli
   expect(big.includes('aria-valuenow="5000"')).toBe(true);
 });
 
-// §1N: the Select tray and in-place editing (one file with the sheet: one module load).
-const renderWith = render;
-const open = renderWith;
-
-/** The element that opens with `<tag ... id="id"` up to its closing `</tag>` (no nesting of tag). */
+/** The opening tag that carries `attr`. */
 const tagWith = (html: string, attr: string): string => {
   const at = html.indexOf(attr);
   const start = html.lastIndexOf("<", at);
   return html.slice(start, html.indexOf(">", at) + 1);
 };
 
-test("1N strings: a tray is named for its choice", () => {
-  expect(strings.models.settings("CAGR")).toBe("CAGR settings");
-});
-
-test("1N groups: left-aligned group labels; the engine's label names the walk Select", () => {
-  const html = renderWith({ model: "CAGR" });
-  expect(html.includes('data-level="section"')).toBe(false);
-  expect((html.match(/data-level="group"/g) ?? []).length >= 3).toBe(true);
-  expect(html.includes(">Walk Strategy:<")).toBe(true); // the Select's own (hidden) label
-  expect(/data-level="group"[^>]*>(?:(?!<\/div>).)*Walk Strategy:/.test(html)).toBe(false);
-});
-
-test("1N tray: CAGR's fields hang in the model Select's tray, labelled '<choice> settings'", () => {
-  const html = open({ model: "CAGR" });
-  const tray = tagWith(html, 'id="v2-model-tray"');
-  expect(tray.includes('role="group"') && tray.includes('aria-label="CAGR settings"')).toBe(true);
-  const combo = tagWith(html, 'id="v2-model"');
-  expect(combo.includes('aria-controls="v2-model-list v2-model-tray"')).toBe(true);
-  const trayAt = html.indexOf('id="v2-model-tray"');
-  expect(html.indexOf('id="row-variable"') > trayAt).toBe(true);
-  expect(html.indexOf('id="row-minmax"') > trayAt).toBe(true);
-  expect(html.indexOf('id="v2-walk"') > html.indexOf('id="row-minmax"')).toBe(true);
-});
-
-test("1N tray: a choice with no fields draws no tray; Historic gets just its one field", () => {
-  const plain = open();
-  expect(plain.includes('id="v2-model-tray"')).toBe(false);
-  expect(tagWith(plain, 'id="v2-model"').includes('aria-controls="v2-model-list"')).toBe(true);
-  const historic = open({ model: "Historic" });
-  expect(tagWith(historic, 'id="v2-model-tray"').includes('aria-label="Historic settings"')).toBe(
-    true,
-  );
-  expect(historic.includes('id="row-minmax"')).toBe(false);
-});
-
-test("1N tray: every walk's fields live in the walk Select's tray", () => {
-  for (const [walk, said] of [
-    ["Bubble", "Bubble"],
-    ["Saw", "Saw"],
-    ["\u{1F7E2}\u{1F7E2}\u{1F7E2}\u{1F534}", "3 up, 1 down"],
-  ] as const) {
-    const html = open({ walk });
-    const trayAt = html.indexOf('id="v2-walk-tray"');
-    expect(tagWith(html, 'id="v2-walk-tray"').includes(`aria-label="${said} settings"`)).toBe(true);
-    expect(tagWith(html, 'id="v2-walk"').includes("v2-walk-tray")).toBe(true);
-    expect(html.indexOf('id="row-volatility"') > trayAt).toBe(true);
-    expect(html.indexOf('role="switch"', trayAt) > trayAt).toBe(true);
-  }
-});
-
 test("1P live: every value cell is an input and its slider is there with no click; no duplicate", () => {
-  const html = open({ model: "CAGR", variable: 20 });
+  const html = render({ model: "CAGR", variable: 20 });
   const start = html.indexOf('id="row-variable"');
   const row = html.slice(start, html.indexOf('id="row-minmax"'));
   expect(row.includes('id="v2-variable"') && row.includes('role="slider"')).toBe(true);

@@ -55,17 +55,19 @@ const ALIASES: Record<string, string> = { "tick-row": "tick-toggle" };
 /** The Models sheet with live state (no engine): every control really commits. */
 const Sheet = ({
   initial,
-  open = "bitcoin",
+  open = ["bitcoin"],
+  on: startOn = true,
 }: {
+  on?: boolean;
   initial?: Partial<ModelsValues>;
-  /** §1M: the row open on landing in the story (the app lands with every row closed). */
-  open?: string | null;
+  /** §1MP: the assets open on landing in the story (the app lands with every row closed). */
+  open?: readonly string[];
 }): JSX.Element => {
   const [values, setValues] = useState<ModelsValues>(() => ({
     ...defaultModelsValues(),
     ...initial,
   }));
-  const [on, setOn] = useState(true);
+  const [on, setOn] = useState(startOn);
   return (
     <ModelsSheet
       initialOpen={open}
@@ -90,9 +92,12 @@ const STORIES = new Map<string, Story>([
   ["models-sheet/cagr", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
   // §1P: no edit mode; the matrix focuses the live value cell (CAGR: R (%) and its focus slider).
   ["models-sheet/editing", () => <Sheet initial={{ model: "CAGR", variable: 20 }} />],
-  // §1M/§1V: the ledger as it lands (every row closed), and a stand-in open.
-  ["models-sheet/collapsed", () => <Sheet open={null} />],
-  ["models-sheet/sp", () => <Sheet open="sp" />],
+  // §1MP: the ledger as it lands (every row closed), and a stand-in open.
+  ["models-sheet/collapsed", () => <Sheet open={[]} />],
+  ["models-sheet/sp", () => <Sheet open={["sp"]} />],
+  // §1MP: Bitcoin square off (collapsed and open).
+  ["models-sheet/off", () => <Sheet open={["bitcoin"]} on={false} />],
+  ["models-sheet/collapsed-off", () => <Sheet open={[]} on={false} />],
 ]);
 for (const [group, mod] of Object.entries(GROUPS)) {
   for (const [name, value] of Object.entries(mod)) {

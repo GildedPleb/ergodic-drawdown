@@ -1,31 +1,54 @@
 @layer app {
-  /* §1L.2: Price model, How prices move and Simulation stack in the Models pane. */
-  .root {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--s-5);
-    min-inline-size: 0;
-    container-type: inline-size;
-  }
+  /* §1MP 1–2: the ledger, then Simulation; no lines but the section rules. */
+  .root,
+  .assets {
+    --_col: calc(var(--s-5) + var(--s-3));
 
-  .section {
     display: grid;
-    gap: var(--s-2);
     min-inline-size: 0;
   }
 
-  .group {
+  .assets {
+    row-gap: var(--s-5);
+  }
+
+  .list {
     display: grid;
+    row-gap: var(--s-2);
   }
 
-  /* §1P: a row's slider takes the row's second line; from 30rem it sits between label and value. */
-  .slide {
-    grid-column: 1 / -1;
+  /* Clamp: Min then Max, --s-1 apart; "Max" ends on the text column's right edge. */
+  .pair {
+    position: relative;
+    inset-inline-start: var(--s-2);
+    display: flex;
+    gap: var(--s-1);
   }
 
-  @container (min-width: 30rem) {
-    .slide {
-      grid-area: 1 / 2;
-    }
+  /* The ergodic line: its own short line under Clamp, right-aligned, quiet. */
+  .erg {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--s-1);
+    padding-inline-start: var(--_col);
+    color: var(--text-muted);
+    font: italic var(--t-caption)/1 var(--f-text);
+  }
+
+  .tick {
+    display: flex;
+    color: var(--accent);
+    font-size: var(--s-3);
+  }
+
+  .value {
+    font: 500 var(--t-value)/var(--lh-row) var(--f-sans);
+  }
+
+  .standin {
+    padding: 0 0 var(--s-2) var(--_col);
+    color: var(--text-muted);
+    font: italic var(--t-caption)/1.4 var(--f-text);
   }
 }

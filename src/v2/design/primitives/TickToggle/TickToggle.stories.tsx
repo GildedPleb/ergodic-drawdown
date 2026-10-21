@@ -28,6 +28,29 @@ export const Disabled = (): ReactElement => <Live initial={false} disabled />;
 export const LongText = (): ReactElement => (
   <Live label="A longer control label that wraps to two lines before truncating" initial />
 );
+/** §1MP 7 Clamp: the compact pair, named for what it does. */
+export const Pair = (): ReactElement => {
+  const [min, setMin] = useState(false);
+  const [max, setMax] = useState(true);
+  return (
+    <span>
+      <TickToggle
+        size="pair"
+        label="Min"
+        name="Clamp minimum price"
+        checked={min}
+        onChange={setMin}
+      />
+      <TickToggle
+        size="pair"
+        label="Max"
+        name="Clamp maximum price"
+        checked={max}
+        onChange={setMax}
+      />
+    </span>
+  );
+};
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
     <Live initial />

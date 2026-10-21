@@ -48,7 +48,6 @@
     --rule-double-gap: 2px;
     --rule-double: 4px; /* Certificate double rule: 1px line, 2px gap, 1px line = 4px total */
     --rule-strong: 3px;
-    --rule-step: 2px; /* §1Y: a Deco rule's bar */
     --bevel-comp: 1.2; /* §1X: the bevel's 45° stroke is this × --rule-hair (Form: 1.2) */
     --focus-w: 2px;
     --focus-offset: 2px;

@@ -1,24 +1,31 @@
 import type { JSX, KeyboardEvent } from "react";
 
 import { Icon } from "../Icon";
-import { VisuallyHidden } from "../VisuallyHidden";
 import styles from "./TickToggle.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
-  state: ["on", "off"] as const,
-  disabled: ["true", "false"] as const,
+  /** Absent = off / enabled / the full-width row. */
+  state: ["on"] as const,
+  disabled: ["true"] as const,
+  size: ["pair"] as const,
 };
 
 export type TickToggleProps = {
+  /** The visible word(s) after the box. */
   label: string;
+  /** The switch's accessible name when it differs from the visible word ("Clamp minimum price"). */
+  name?: string;
   checked: boolean;
   disabled?: boolean;
   onChange?: (next: boolean) => void;
-  /** §1M ledger tick box: only ON/OFF shows; the label names the switch for assistive tech. */
-  labelHidden?: boolean;
-  /** §2A r2 (Form): false drops the ON/OFF word, leaving the tick and the label. */
-  stateWord?: boolean;
+  /**
+   * §1MP: "row" is a tick-box row with the box on the text column and, when on, a --selected
+   * fill from --tk-pad-x before the box to the scrollbar; "pair" is one compact toggle of a pair
+   * (Clamp Min / Max), box and word one 44px target with --s-2 side padding.
+   */
+  /** "row": the full-width row (default); "pair": the compact Clamp pair. */
+  size?: "row" | "pair";
 };
 
 /**
@@ -29,50 +36,38 @@ const blockRepeat = (event: KeyboardEvent<HTMLButtonElement>): void => {
   if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
 };
 
-/** Tick-box + ON/OFF. 14px side pad (floor 12). Focus offset tight (0). ✓ via Icon SVG. */
+/** A switch: a 1rem tick box (filled --accent with a --ground ✓ when on) and its words; no ON/OFF. */
 export const TickToggle = ({
   label,
+  name,
   checked,
   disabled = false,
   onChange,
-  labelHidden = false,
-  stateWord = true,
+  size = "row",
 }: TickToggleProps): JSX.Element => {
   const root = styles["root"] ?? "tick-root";
   const box = styles["box"] ?? "tick-box";
-  const check = styles["check"] ?? "tick-check";
-  const labelCls = styles["label"] ?? "tick-label";
-  const state: (typeof variants.state)[number] = checked ? "on" : "off";
+  const text = styles["label"] ?? "tick-label";
   return (
     <button
       type="button"
       className={root}
       role="switch"
       aria-checked={checked}
+      aria-label={name}
       disabled={disabled}
-      data-state={state}
-      data-disabled={disabled ? "true" : "false"}
+      data-state={checked ? "on" : undefined}
+      data-size={size === "pair" ? "pair" : undefined}
+      data-disabled={disabled ? "true" : undefined}
       onKeyDown={blockRepeat}
       onClick={() => {
         if (!disabled) onChange?.(!checked);
       }}
     >
       <span className={box} aria-hidden="true">
-        <span className={check}>
-          <Icon name="check" />
-        </span>
+        <Icon name="check" />
       </span>
-      {/* m3: the state is aria-checked; the ON/OFF word is visual only. */}
-      {stateWord ? (
-        <span className={labelCls} aria-hidden="true">
-          {checked ? "ON" : "OFF"}
-        </span>
-      ) : null}
-      {labelHidden ? (
-        <VisuallyHidden>{label}</VisuallyHidden>
-      ) : (
-        <span className={labelCls}>{label}</span>
-      )}
+      <span className={text}>{label}</span>
     </button>
   );
 };

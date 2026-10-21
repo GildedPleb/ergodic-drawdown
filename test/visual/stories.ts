@@ -7,6 +7,7 @@ export const TICK_ROW_STORIES = [
   "tick-row/disabled",
   "tick-row/long-text",
   "tick-row/linen",
+  "tick-row/pair",
 ] as const;
 
 /**
@@ -23,6 +24,7 @@ export const FIELD_STORIES = [
   "tick-row/disabled",
   "tick-row/long-text",
   "tick-row/linen",
+  "tick-row/pair",
   "number-field/default",
   "number-field/focus",
   "number-field/disabled",
@@ -44,15 +46,14 @@ export const FIELD_STORIES = [
   "amount/fonts-failed",
   "amount/usd",
   "section-label/default",
-  "section-label/group",
   "section-label/long-text",
   "section-label/linen",
   "select/default",
-  "select/hover",
   "select/focus",
   "select/open",
   "select/long-text",
   "select/linen",
+  "select/columns",
   "models-sheet/default",
   "models-sheet/emoji-walk",
   "models-sheet/linen",

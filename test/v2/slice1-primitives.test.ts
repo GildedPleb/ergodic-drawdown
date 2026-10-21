@@ -6,15 +6,7 @@ import { Dock } from "../../src/v2/design/primitives/Dock";
 import { FanDiamond, GrabPoint } from "../../src/v2/design/primitives/GrabPoint";
 import { LedgerRow } from "../../src/v2/design/primitives/LedgerRow";
 import { Select } from "../../src/v2/design/primitives/Select";
-import {
-  closedState,
-  listPlace,
-  lockWhileOpen,
-  placeList,
-  selectKey,
-  type SelectState,
-  TYPEAHEAD_MS,
-} from "../../src/v2/design/primitives/Select/logic";
+import { listKey } from "../../src/v2/design/primitives/Select/logic";
 import { Slider } from "../../src/v2/design/primitives/Slider";
 
 const html = (el: ReturnType<typeof createElement>): string => renderToStaticMarkup(el);
@@ -47,10 +39,23 @@ test("Slider: role=slider with its range, value and the previous-value tick", ()
   expect(out.includes("--dyn-was")).toBe(true);
 });
 
-test("LedgerRow (§1P): always live, its label names the value cell; no button, no edit mode", () => {
-  const out = html(createElement(LedgerRow, { id: "r", label: "Samples", htmlFor: "f" }, "field"));
-  expect(out.includes('for="f"') && out.includes("field</div>")).toBe(true);
+test("LedgerRow (§1P/§1MP 7): always live; its label names the value cell; description, then line", () => {
+  const out = html(
+    createElement(
+      LedgerRow,
+      { id: "r", label: "Samples", htmlFor: "f", value: "field", description: "What it does." },
+      "slider",
+    ),
+  );
+  expect(out.includes('for="f"') && out.includes('id="r-label"')).toBe(true);
+  expect(out.indexOf("field") < out.indexOf("What it does.")).toBe(true);
+  expect(out.indexOf("What it does.") < out.indexOf("slider</div>")).toBe(true);
+  expect(out.includes('role="group" aria-labelledby="r-label"')).toBe(true);
   expect(out.includes("<button")).toBe(false);
+  // No htmlFor (a row naming a group, e.g. Colour or Clamp): the label is plain text.
+  const plain = html(createElement(LedgerRow, { id: "c", label: "Colour", kind: "pair" }));
+  expect(plain.includes("<label")).toBe(false);
+  expect(plain.includes('data-kind="pair"')).toBe(true);
 });
 
 test("GrabPoint: a named button reporting the sheet's expanded state", () => {
@@ -83,156 +88,50 @@ const MODELS = [
   "Historic",
 ];
 
-/** Walk keys from a state; returns the last state and every commit. */
-const walk = (
-  keys: Array<string | [string, { altKey?: boolean }]>,
-  selected = 0,
-  start: SelectState = closedState(selected),
-  t0 = 0,
-): { s: SelectState; commits: number[]; handled: boolean[] } => {
-  let s = start;
-  const commits: number[] = [];
-  const handled: boolean[] = [];
-  keys.forEach((k, i) => {
-    const [key, mods] = typeof k === "string" ? [k, {}] : k;
-    const step = selectKey(s, { key, ...mods }, MODELS, selected, t0 + i * 100);
-    s = step.state;
-    handled.push(step.handled);
-    if (step.commit !== undefined) commits.push(step.commit);
-  });
-  return { s, commits, handled };
-};
-
-test("1L.3 Select keys, closed: ↓/Enter/Space open on the value; ↑/Home first; End last", () => {
-  for (const key of ["ArrowDown", "Enter", " "])
-    expect(walk([key], 3).s).toEqual({ ...closedState(3), open: true });
-  expect(walk(["ArrowUp"], 3).s.active).toBe(0);
-  expect(walk([["ArrowUp", { altKey: true }]], 3).s.active).toBe(3);
-  expect(walk(["Home"], 3).s.active).toBe(0);
-  expect(walk(["End"], 3).s.active).toBe(6);
-  expect(walk(["x"], 3).s.open).toBe(true);
-  expect(walk(["Tab"], 3).handled).toEqual([false]);
+test("§1MP 6 Select keys, open: ↑↓ move one row without wrapping, Home/End jump, Esc closes", () => {
+  const n = MODELS.length;
+  expect(listKey(true, 0, n, "ArrowDown")).toEqual({ open: true, active: 1, handled: true });
+  expect(listKey(true, 0, n, "ArrowUp").active).toBe(0);
+  expect(listKey(true, n - 1, n, "ArrowDown").active).toBe(n - 1);
+  expect(listKey(true, 3, n, "Home").active).toBe(0);
+  expect(listKey(true, 3, n, "End").active).toBe(n - 1);
+  expect(listKey(true, 3, n, "Escape")).toEqual({ open: false, active: 3, handled: true });
+  // Enter / Space are the row button's own click; other keys pass through.
+  expect(listKey(true, 3, n, "Enter").handled).toBe(false);
+  expect(listKey(true, 3, n, "Tab").handled).toBe(false);
+  // Closed, the pick is a plain button: no list keys.
+  expect(listKey(false, 3, n, "ArrowDown")).toEqual({ open: false, active: 3, handled: false });
 });
 
-test("1L.3 Select keys, open: ↑↓ move without wrapping, Home/End, PageUp/PageDown, Enter picks", () => {
-  expect(walk(["ArrowDown", "ArrowDown", "ArrowDown", "Enter"], 0).commits).toEqual([2]);
-  expect(walk(["ArrowDown", "ArrowUp", "ArrowUp", "ArrowUp"], 0).s.active).toBe(0);
-  expect(walk(["End", "ArrowDown", "ArrowDown"], 0).s.active).toBe(6);
-  expect(walk(["ArrowDown", "PageDown"], 0).s.active).toBe(6);
-  expect(walk(["End", "PageUp"], 0).s.active).toBe(0);
-  expect(walk(["ArrowDown", "End", "Home", " "], 2).commits).toEqual([0]);
-  expect(walk(["ArrowDown", "ArrowDown", ["ArrowUp", { altKey: true }]], 1).commits).toEqual([2]);
-});
-
-test("1L.3 Select keys: Esc closes with no change; Tab picks and lets focus move on", () => {
-  const esc = walk(["ArrowDown", "ArrowDown", "Escape"], 1);
-  expect(esc.commits).toEqual([]);
-  expect(esc.s).toEqual(closedState(1));
-  const tab = walk(["ArrowDown", "ArrowDown", "Tab"], 1);
-  expect(tab.commits).toEqual([2]);
-  expect(tab.handled.at(-1)).toBe(false);
-  expect(tab.s.open).toBe(false);
-});
-
-test("1L.3 Select type-ahead: a prefix jumps, a repeated key cycles, 500ms resets the buffer", () => {
-  // "s" then "t" → "st" → Stock-To-Flow 2024 Refit (the first match from the value).
-  expect(walk(["ArrowDown", "s", "t"], 0).s.active).toBe(4);
-  // "p" "p" cycles the two Power Law models from the current one.
-  expect(walk(["ArrowDown", "p"], 0).s.active).toBe(1);
-  expect(walk(["ArrowDown", "p", "p"], 0).s.active).toBe(0);
-  expect(walk(["ArrowDown", "c"], 0).s.active).toBe(3);
-  // A pause longer than 500ms starts a new buffer.
-  let s = selectKey(closedState(0), { key: "h" }, MODELS, 0, 0).state;
-  expect(s.active).toBe(6);
-  s = selectKey(s, { key: "r" }, MODELS, 0, TYPEAHEAD_MS + 1).state;
-  expect(s.active).toBe(2);
-  // Space inside a typed prefix is a character ("stock-to-flow 2…"), not a pick.
-  expect(
-    walk(["ArrowDown", "s", "t", "o", "c", "k", "-", "t", "o", "-", "f", "l", "o", "w", " "], 0)
-      .commits,
-  ).toEqual([]);
-  expect(walk(["ArrowDown", "z"], 2).s.active).toBe(2);
-});
-
-test("1U Select placement: every row when it fits (below first, then above); else whole rows", () => {
-  // Fits below: all rows, no scroll, however many (8 or fewer is every engine list today).
-  expect(placeList(400, 100, 44, 7)).toEqual({ up: false, maxHeight: 308 });
-  expect(placeList(352, 0, 44, 8)).toEqual({ up: false, maxHeight: 352 });
-  // Only fits above.
-  expect(placeList(100, 400, 44, 7)).toEqual({ up: true, maxHeight: 308 });
-  // The frame (borders) counts: 8 rows + 3px only fit above here.
-  expect(placeList(353, 400, 44, 8, 3)).toEqual({ up: true, maxHeight: 355 });
-  // Fits neither way: the roomier side, cut to whole rows (never a half row), frame kept.
-  expect(placeList(100, 200, 44, 9)).toEqual({ up: true, maxHeight: 176 });
-  expect(placeList(150, 120, 44, 9, 3)).toEqual({ up: false, maxHeight: 135 });
-  // Never less than one row.
-  expect(placeList(10, 5, 44, 9)).toEqual({ up: false, maxHeight: 44 });
-});
-
-test("1L.3 Select markup: a select-only combobox (APG) naming its listbox; options are the names", () => {
+test("§1MP 6 Select markup: closed, a listbox showing only the pick, its description beneath", () => {
   const out = html(
-    createElement(Select, { id: "pm", labelledBy: "lbl", options: MODELS, value: "CAGR" }),
+    createElement(Select, {
+      id: "pm",
+      labelledBy: "lbl",
+      options: MODELS,
+      value: "CAGR",
+      describe: (o: string) => `about ${o}`,
+    }),
   );
-  expect(out.includes('role="combobox"')).toBe(true);
-  expect(out.includes('aria-haspopup="listbox"')).toBe(true);
-  expect(out.includes('aria-expanded="false"')).toBe(true);
-  expect(out.includes('aria-controls="pm-list"')).toBe(true);
-  expect(out.includes('aria-labelledby="lbl"')).toBe(true);
-  expect(out.includes('tabindex="0"')).toBe(true);
-  expect(out.includes("aria-activedescendant")).toBe(false);
-  expect((out.match(/role="option"/g) ?? []).length).toBe(7);
-  const names = [
-    ...out.matchAll(/role="option"[^>]*>(?:<span[^>]*><\/span>)?<span[^>]*>(.*?)<\/span>/g),
-  ].map((m) => m[1]);
-  expect(names).toEqual(MODELS);
-  expect(out.includes('id="pm-opt-3" aria-selected="true"')).toBe(true);
-});
-
-test("1U Select box: flush under the field when it fits, flush above it otherwise; field width", () => {
-  const field = { top: 561, bottom: 605, left: 12, width: 366 };
-  expect(listPlace(field, 844, 44, 7, 4)).toEqual({
-    up: true,
-    maxHeight: 312,
-    x: 12,
-    y: 249,
-    w: 366,
-  });
-  expect(listPlace({ ...field, top: 100, bottom: 144 }, 844, 44, 7, 4)).toEqual({
-    up: false,
-    maxHeight: 312,
-    x: 12,
-    y: 144,
-    w: 366,
-  });
-});
-
-test("1U Select lock: outside wheel/touch-move stopped and close; outside scroll, resize close", () => {
-  const doc = new EventTarget();
-  const win = new EventTarget();
-  let inList = false;
-  let closes = 0;
-  const detach = lockWhileOpen(
-    doc,
-    win,
-    () => inList,
-    () => {
-      closes += 1;
-    },
+  expect(out.includes('id="pm" class')).toBe(true);
+  expect(out.includes('role="listbox" aria-labelledby="lbl"')).toBe(true);
+  expect(out.includes('role="combobox"')).toBe(false);
+  expect((out.match(/role="option"/g) ?? []).length).toBe(1);
+  expect(out.includes('id="pm-opt-3"') && out.includes('aria-selected="true" tabindex="0"')).toBe(
+    true,
   );
-  const wheel = new Event("wheel", { cancelable: true });
-  doc.dispatchEvent(wheel);
-  expect([wheel.defaultPrevented, closes]).toEqual([true, 1]);
-  inList = true;
-  const own = new Event("touchmove", { cancelable: true });
-  doc.dispatchEvent(own);
-  doc.dispatchEvent(new Event("scroll"));
-  expect([own.defaultPrevented, closes]).toEqual([false, 1]);
-  inList = false;
-  doc.dispatchEvent(new Event("scroll"));
-  win.dispatchEvent(new Event("resize"));
-  expect(closes).toBe(3);
-  detach();
-  doc.dispatchEvent(new Event("wheel", { cancelable: true }));
-  win.dispatchEvent(new Event("resize"));
-  expect(closes).toBe(3);
+  expect(out.includes(">CAGR<") && out.includes(">about CAGR<")).toBe(true);
+  expect(out.includes("data-state")).toBe(false);
+  // Named by a plain label when no visible heading does.
+  const walk = html(
+    createElement(Select, {
+      id: "w",
+      label: "Walk Strategy:",
+      options: ["Bubble", "Saw"],
+      value: "Saw",
+      describe: () => "",
+      columns: true,
+    }),
+  );
+  expect(walk.includes('aria-label="Walk Strategy:"')).toBe(true);
 });

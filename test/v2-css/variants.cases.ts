@@ -31,7 +31,7 @@ test("R7: seeded violations fail", () => {
     {
       name: "declared value with no rule",
       path: TICK_TSX,
-      edit: (c) => c.replace('state: ["on", "off"]', 'state: ["on", "off", "mixed"]'),
+      edit: (c) => c.replace('state: ["on"]', 'state: ["on", "mixed"]'),
     },
     {
       name: "conditional className",

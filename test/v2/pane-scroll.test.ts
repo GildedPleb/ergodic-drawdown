@@ -8,35 +8,45 @@ import { PaneScroll } from "../../src/v2/app/shell/PaneScroll";
 import {
   cuesOf,
   paintCues,
+  PIN,
   resizeWith,
+  SCROLL_IDLE_MS,
   watchCues,
   type Zone,
 } from "../../src/v2/app/shell/pane-cues";
 
-// V32-BUILD §1Y: a dock pane's scroll zone, its Deco rules and cues (no fades anywhere).
+// V32-BUILD §1MP items 10–12 (supersede §1Y): a dock pane's scroll zone, fades, no edge lines.
 const v2 = `${import.meta.dir}/../../src/v2`;
 
-type Flags = { dataset: Record<string, string | undefined> };
-type FakeRow = Flags & { getBoundingClientRect: () => { top: number } };
+type Box = { top: number; bottom: number };
+type FakeZone = Zone<unknown> & {
+  fire: () => void;
+  listening: () => boolean;
+  props: Map<string, string>;
+};
 
 const fakeZone = (
   over: Partial<{ scrollTop: number; scrollHeight: number; clientHeight: number }> = {},
-  rows: FakeRow[] = [],
-  openTop: number | null = null,
-): Zone<unknown> & { fire: () => void; listening: () => boolean } => {
+  pins: Box[] = [],
+): FakeZone => {
   let fn: (() => void) | null = null;
-  const open: FakeRow | null =
-    openTop === null ? null : { dataset: {}, getBoundingClientRect: () => ({ top: openTop }) };
-  const all = open === null ? rows : [...rows, open];
+  const props = new Map<string, string>();
   return {
     scrollTop: 0,
     scrollHeight: 1000,
     clientHeight: 400,
     ...over,
     firstElementChild: "content",
-    getBoundingClientRect: () => ({ top: 100 }),
-    querySelector: (sel) => (sel === '[data-state="open"]' ? open : null),
-    querySelectorAll: () => all.filter((r) => r.dataset["stuck"] !== undefined),
+    dataset: {},
+    style: {
+      setProperty: (k, v) => {
+        props.set(k, v);
+      },
+    },
+    props,
+    getBoundingClientRect: () => ({ top: 100, bottom: 500 }),
+    querySelectorAll: (sel) =>
+      sel === PIN ? pins.map((b) => ({ getBoundingClientRect: () => b })) : [],
     addEventListener: (_type, f) => {
       fn = f;
     },
@@ -50,73 +60,89 @@ const fakeZone = (
   };
 };
 
-test("1Y: ▲ only once scrolled, ▼ only while more is below (a sub-pixel remainder is not more)", () => {
-  expect(cuesOf(fakeZone())).toEqual({ top: false, more: true, stuck: false });
-  expect(cuesOf(fakeZone({ scrollTop: 300 }))).toEqual({ top: true, more: true, stuck: false });
-  expect(cuesOf(fakeZone({ scrollTop: 600 }))).toEqual({ top: true, more: false, stuck: false });
+test("1MP 11: top fade only once scrolled, foot fade only while more is below (sub-pixel is not more)", () => {
+  expect(cuesOf(fakeZone())).toEqual({ top: false, more: true, hh: 0 });
+  expect(cuesOf(fakeZone({ scrollTop: 300 }))).toEqual({ top: true, more: true, hh: 0 });
+  expect(cuesOf(fakeZone({ scrollTop: 600 }))).toEqual({ top: true, more: false, hh: 0 });
   expect(cuesOf(fakeZone({ scrollTop: 599.5 })).more).toBe(false);
   expect(cuesOf(fakeZone({ scrollTop: 598 })).more).toBe(true);
-  // Content that fits: neither cue.
-  expect(cuesOf(fakeZone({ scrollHeight: 400 }))).toEqual({
-    top: false,
-    more: false,
-    stuck: false,
-  });
+  // Content that fits: no fades.
+  expect(cuesOf(fakeZone({ scrollHeight: 400 }))).toEqual({ top: false, more: false, hh: 0 });
 });
 
-test("1Y: the open header is stuck once its row's top has passed the zone's top", () => {
-  expect(cuesOf(fakeZone({ scrollTop: 50 }, [], 100)).stuck).toBe(false);
-  expect(cuesOf(fakeZone({ scrollTop: 50 }, [], 99.6)).stuck).toBe(false);
-  expect(cuesOf(fakeZone({ scrollTop: 50 }, [], 40)).stuck).toBe(true);
+test("1MP 10–11: the top fade starts at the foot of a header pinned over the zone's top", () => {
+  // Pinned (its top at the zone's top): the fade starts 52px down.
+  expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 100, bottom: 152 }])).hh).toBe(52);
+  // A header still in the flow below the top, or one that has scrolled off: no offset.
+  expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 180, bottom: 232 }])).hh).toBe(0);
+  expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 20, bottom: 90 }])).hh).toBe(0);
+  // Not scrolled: nothing is pinned yet.
+  expect(cuesOf(fakeZone({}, [{ top: 100, bottom: 152 }])).hh).toBe(0);
 });
 
-test("1Y: paint writes the pane's flags and moves data-stuck to the open row only", () => {
-  const pane: Flags = { dataset: {} };
-  const old: FakeRow = { dataset: { stuck: "true" }, getBoundingClientRect: () => ({ top: 0 }) };
-  const zone = fakeZone({ scrollTop: 200 }, [old], 20);
-  expect(paintCues(pane, zone)).toEqual({ top: true, more: true, stuck: true });
-  expect(pane.dataset).toEqual({ top: "true", more: "true" });
-  expect(old.dataset["stuck"]).toBe(undefined);
-  expect(zone.querySelector('[data-state="open"]')?.dataset["stuck"]).toBe("true");
-  // Back at the top: nothing stuck, ▲ gone.
-  const top = fakeZone({}, [], 150);
-  paintCues(pane, top);
-  expect(pane.dataset).toEqual({ top: "false", more: "true" });
-  expect(top.querySelector('[data-state="open"]')?.dataset["stuck"]).toBe(undefined);
+test("1MP 11: paint writes the zone's flags and --dyn-hh", () => {
+  const zone = fakeZone({ scrollTop: 200 }, [{ top: 100, bottom: 140 }]);
+  expect(paintCues(zone)).toEqual({ top: true, more: true, hh: 40 });
+  expect(zone.dataset).toEqual({ top: "true", more: "true" });
+  expect(zone.props.get("--dyn-hh")).toBe("40.00px");
+  const top = fakeZone();
+  paintCues(top);
+  expect(top.dataset).toEqual({ top: "false", more: "true" });
+  expect(top.props.get("--dyn-hh")).toBe("0.00px");
 });
 
-test("1Y: watch paints now, on scroll and on resize of the zone and its content; detach stops both", () => {
-  const pane: Flags = { dataset: {} };
+test("1MP 11–12: watch paints now, on scroll and on resize; scrolling flags ~1s; detach stops all", () => {
   const zone = fakeZone();
   let watched: unknown[] = [];
   let resize: (() => void) | null = null;
   let disconnected = false;
-  const stop = watchCues(zone, pane, (els, fn) => {
-    watched = els;
-    resize = fn;
-    return () => {
-      disconnected = true;
-    };
-  });
-  expect(pane.dataset["top"]).toBe("false");
+  const pending: { fn: () => void; ms: number; id: number }[] = [];
+  let ids = 0;
+  const timers = {
+    set: (fn: () => void, ms: number) => {
+      ids += 1;
+      pending.push({ fn, ms, id: ids });
+      return ids;
+    },
+    clear: (id: unknown) => {
+      const at = pending.findIndex((t) => t.id === id);
+      if (at >= 0) pending.splice(at, 1);
+    },
+  };
+  const stop = watchCues(
+    zone,
+    (els, fn) => {
+      watched = els;
+      resize = fn;
+      return () => {
+        disconnected = true;
+      };
+    },
+    timers,
+  );
+  expect(zone.dataset["top"]).toBe("false");
   expect(watched.length).toBe(2);
   zone.scrollTop = 600;
   zone.fire();
-  expect(pane.dataset).toEqual({ top: "true", more: "false" });
+  expect(zone.dataset).toEqual({ top: "true", more: "false", scrolling: "true" });
+  zone.fire(); // a second scroll restarts the one idle timer
+  expect(pending.map((t) => t.ms)).toEqual([SCROLL_IDLE_MS]);
+  pending[0]?.fn();
+  expect(zone.dataset["scrolling"]).toBe(undefined);
   zone.scrollHeight = 2000;
   (resize as (() => void) | null)?.();
-  expect(pane.dataset["more"]).toBe("true");
+  expect(zone.dataset["more"]).toBe("true");
   stop();
   expect(zone.listening()).toBe(false);
   expect(disconnected).toBe(true);
   // No zone (not mounted) or no ResizeObserver: no-ops.
-  watchCues(null, pane)();
+  watchCues(null)();
   const bare = fakeZone();
-  watchCues(bare, pane)();
+  watchCues(bare)();
   expect(bare.listening()).toBe(false);
 });
 
-test("1Y: resizeWith wraps a ResizeObserver over every element; none without one", () => {
+test("1MP: resizeWith wraps a ResizeObserver over every element; none without one", () => {
   expect(resizeWith(undefined)).toBe(undefined);
   const seen: string[] = [];
   let off = false;
@@ -135,36 +161,24 @@ test("1Y: resizeWith wraps a ResizeObserver over every element; none without one
   expect(off).toBe(true);
 });
 
-test("1Y: the pane renders rule, zone and foot; rules are aria-hidden, the zone carries data-pane", () => {
+test("1MP 11: the pane renders the zone alone: no edge-line elements, data-pane on the zone", () => {
   const html = renderToStaticMarkup(createElement(PaneScroll, { id: "models", children: "x" }));
-  expect(html.match(/aria-hidden="true"/g)?.length).toBe(2);
-  expect(html.includes('data-pane="models"')).toBe(true);
+  expect(html.includes("aria-hidden")).toBe(false);
+  expect(/data-pane="models"[^>]*style="--dyn-hh:0px"/.test(html)).toBe(true);
+  expect((html.match(/<div/g) ?? []).length).toBe(3);
 });
 
-test("1Y: no gradient or fade anywhere in the pane's CSS; cues instant, no pointer events", async () => {
-  const paths = [
-    "app/shell/PaneScroll.module.css",
-    "app/shell/AppShell.module.css",
-    "app/models/ModelsSheet.module.css",
-    "design/primitives/AssetRow/AssetRow.module.css",
-    "design/primitives/SectionLabel/SectionLabel.module.css",
-    "design/primitives/LedgerRow/LedgerRow.module.css",
-    "design/primitives/TickToggle/TickToggle.module.css",
-    "design/primitives/Select/Select.module.css",
-    "design/primitives/NumberField/NumberField.module.css",
-    "design/primitives/Slider/Slider.module.css",
-  ];
-  for (const p of paths) {
-    const css = await file(`${v2}/${p}`).text();
-    expect(/gradient\(|mask-image/.test(css)).toBe(false);
-  }
+test("1MP 11–12: fades by mask (zero unless flagged), the scrollbar column unmasked, no edge lines", async () => {
   const pane = await file(`${v2}/app/shell/PaneScroll.module.css`).text();
-  expect(/transition|animation/.test(pane)).toBe(false);
-  expect(pane.includes("pointer-events: none;")).toBe(true);
+  expect(/\.rule|\.foot|border/.test(pane)).toBe(false);
+  expect(pane.includes("mask:")).toBe(true);
+  expect(/\[data-top="true"\] \{\s*--_ft: var\(--s-6\);/.test(pane)).toBe(true);
+  expect(/\[data-more="true"\] \{\s*--_fb: var\(--s-6\);/.test(pane)).toBe(true);
+  expect(pane.includes("scrollbar-gutter: stable;")).toBe(true);
   expect(pane.includes("overflow-y: auto;")).toBe(true);
   expect(pane.includes("overscroll-behavior: contain;")).toBe(true);
   expect(pane.includes("scroll-padding-block-start: var(--hit);")).toBe(true);
+  expect(/transition|animation/.test(pane)).toBe(false);
   const row = await file(`${v2}/design/primitives/AssetRow/AssetRow.module.css`).text();
   expect(row.includes("position: sticky;")).toBe(true);
-  expect(/\[data-state="open"\] \.summary \{\s*display: none;/.test(row)).toBe(true);
 });

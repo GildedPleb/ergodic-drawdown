@@ -1,31 +1,36 @@
 @layer primitives {
-  /* Label | live value on a grid whose first line is --hit tall (§1P: never changes height on
-     focus); the slider takes the second line, and a message or hint the lines below it. */
   .row {
+    --_col: calc(var(--s-5) + var(--s-3));
+    --_pair-h: calc(var(--hit) - 2 * var(--s-2));
+
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: minmax(var(--hit), auto);
     align-items: center;
-    gap: 0 var(--s-3);
-    padding: 0 var(--s-3);
-    border-block-end: 1px solid var(--hairline);
+    gap: 1px var(--s-3);
+    min-block-size: var(--hit);
+    padding: var(--s-2) 0 var(--s-2) var(--_col);
+  }
+
+  /* Clamp: the 44px toggles centre on a --pair-h line and overhang it; the ergodic line follows
+     --s-2 closer. */
+  .row[data-kind="pair"] {
+    grid-template-rows: var(--_pair-h);
+    padding-block-end: 0;
   }
 
   .label {
     min-inline-size: 0;
-    font-family: var(--f-text);
-    font-size: var(--t-row);
-    line-height: var(--lh-row);
+    font: 400 var(--t-row)/var(--lh-row) var(--f-text);
     overflow-wrap: break-word;
-    transform: translateY(
-      calc((var(--optical-offset-jost) - var(--optical-offset-garamond)) * 1em)
-    );
   }
 
-  /* §1P: at 30rem of container width the slider sits between the label and the value. */
-  @container (min-width: 30rem) {
-    .row {
-      grid-template-columns: auto minmax(0, 1fr) var(--field-col);
-    }
+  .desc,
+  .line {
+    grid-column: 1 / -1;
+  }
+
+  .desc {
+    color: var(--text-muted);
+    font: italic var(--t-caption)/1.3 var(--f-text);
   }
 }

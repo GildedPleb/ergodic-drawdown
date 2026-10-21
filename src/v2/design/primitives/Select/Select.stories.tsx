@@ -30,9 +30,11 @@ const WALKS = [
 const Live = ({
   options = MODELS,
   start = MODELS[0] ?? "",
+  columns = false,
 }: {
   options?: string[];
   start?: string;
+  columns?: boolean;
 }): ReactElement => {
   const [value, setValue] = useState(start);
   return (
@@ -43,6 +45,8 @@ const Live = ({
         labelledBy="story-select-label"
         options={options}
         value={value}
+        describe={(o) => `What ${o} does, in one short line.`}
+        columns={columns}
         onChange={setValue}
       />
     </div>
@@ -50,14 +54,14 @@ const Live = ({
 };
 
 export const Default = (): ReactElement => <Live />;
-/** The visual matrix points at the field before the screenshot. */
-export const Hover = (): ReactElement => <Live />;
 /** The visual matrix focuses it with the keyboard before the screenshot. */
 export const Focus = (): ReactElement => <Live start="CAGR" />;
-/** The visual matrix opens it (Tab, ↓) before axe and the screenshot. */
+/** The visual matrix opens it (Tab, Enter) before axe and the screenshot. */
 export const Open = (): ReactElement => <Live start="CAGR" />;
 /** The walk list: nine options (scrolls past 7) and the 🟢🔴 label drawn as SVG. */
 export const LongText = (): ReactElement => <Live options={WALKS} start="🟢🟢🟢🔴" />;
+/** Desktop: the open walk list in two columns. */
+export const Columns = (): ReactElement => <Live options={WALKS} start="Bubble" columns />;
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
     <Live />

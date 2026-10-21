@@ -1,47 +1,33 @@
 @layer primitives {
   .root {
+    --_col: calc(var(--s-5) + var(--s-3));
+
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--s-3);
-    min-inline-size: 0;
-  }
-
-  /* The hairlines give way first; the words keep to one line unless the pane is narrower. */
-  .text {
-    flex: 0 0 auto;
-    max-inline-size: 100%;
+    min-block-size: var(--s-6);
+    padding: var(--s-6) 0 var(--s-3) var(--_col);
     color: var(--accent);
-    font-family: var(--f-sans);
-    font-size: var(--t-section);
-    font-weight: 600;
+    font: 600 var(--t-section)/1 var(--f-sans);
     letter-spacing: var(--tr-section);
-    text-align: center;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
-  .rule {
-    flex: 0 1 var(--section-rule-len);
-    min-inline-size: 0;
-    block-size: var(--rule-hair);
-    background: var(--rule);
+  /* The rules: 2px, tapering to a point and fading out at the outer end; the end one mirrored. */
+  .root::before,
+  .root::after {
+    flex: 1 1 0;
+    min-inline-size: var(--s-5);
+    block-size: var(--s-0);
+    content: "";
+    background: currentColor;
+    opacity: 0.7;
+    clip-path: polygon(0 50%, 100% 0, 100% 100%);
+    mask: linear-gradient(90deg, transparent, black 70%);
   }
 
-  .root[data-level="section"] .rule {
-    flex-basis: var(--section-rule-len);
-  }
-
-  .root[data-level="group"] {
-    justify-content: flex-start;
-    block-size: var(--group-label-h);
-  }
-
-  .root[data-level="group"] .rule {
-    flex-basis: var(--group-rule-len);
-  }
-
-  .root[data-level="group"] .text {
-    font-size: var(--t-group);
-    letter-spacing: var(--tr-group);
+  .root::after {
+    scale: -1 1;
   }
 }

@@ -1,83 +1,90 @@
 import type { JSX, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
-import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
-import { TickToggle } from "../TickToggle";
 import styles from "./AssetRow.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
-  /** A modelled asset (its colour mark, a tick box); absent for a stand-in (the neutral mark). */
-  kind: ["supported"] as const,
-  /** Absent at rest (normal --text); "dim" while another row is open (§1V). */
-  state: ["open", "dim"] as const,
-  /** §1Y: set by the pane's scroll listener while the open header is stuck (not rendered). */
-  stuck: ["true"] as const,
+  /** Absent while closed: header only. */
+  state: ["open"] as const,
+  /** The colour square's switch: on (outline + core) or off (outline; the header dims). */
+  on: ["false"] as const,
 };
 
-/** §1M: the row's body opens over this long (instant under reduced motion). */
-const OPEN_MS = 200;
+type AssetKey = {
+  on: boolean;
+  /** The square's accessible name ("Show Bitcoin on chart"). */
+  label: string;
+  /** Not modelled yet: shows off, never toggles, no hover (aria-disabled, still focusable). */
+  inert?: boolean;
+  onChange?: (next: boolean) => void;
+};
 
 export type AssetRowProps = {
   /** The disclosure button's id; the body is `${id}-body`. */
   id: string;
   /** `data-asset` on the list item. */
   asset: string;
-  /** The header's name; while open, `openName` ("Bitcoin · price model") when given. */
   name: string;
-  openName?: string | undefined;
-  /** One line under the name: the settings in short, or "Not yet modelled". */
+  /** Collapsed only: one italic line under the name; wraps, never truncated. */
   summary: string;
+  /** The asset's colour (a `var(--path-…)` token): its square. */
+  colour: string;
   open: boolean;
-  /** Another row is open: this one falls back to muted text (§1V). */
-  dim: boolean;
   onToggle: (next: boolean) => void;
-  /** Modelled assets: the ON/OFF ledger tick box, a separate 44px target; none for stand-ins. */
-  tick?: { on: boolean; label: string; onChange: (next: boolean) => void } | undefined;
-  /** The body: the settings, or a stand-in's one line. Rendered only while open. */
+  /** The colour square: the asset's chart switch, a separate 44px target. */
+  square: AssetKey;
+  /** The body (settings, or a stand-in's one line), rendered only while open. */
   children?: ReactNode;
 };
 
-const reduced = (): boolean => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** The nearest ancestor that scrolls vertically (the pane's zone). */
+const scrollerOf = (el: HTMLElement): HTMLElement | null => {
+  for (let p = el.parentElement; p !== null; p = p.parentElement) {
+    if (/auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
+  }
+  return null;
+};
 
 /**
- * Certificate ledger entry (V32-BUILD §1M, amended by §1V), a listitem (a div: no list reset). The header is a
- * disclosure button: colour mark, name in Jost, a one-line italic summary, ▾/▴; at the right
- * the ON/OFF tick box for a modelled asset (never expands the row). Open: ■ before the name, the
- * --hover fill, the double rule round header and body; the body opens in place (200ms) and
- * scrolls into view. Closed shows nothing below the header. Esc, or the header again, closes it
- * and returns focus to the header.
+ * Opening scrolls the asset's header to the top of the scroll region (where it pins), as far as
+ * the content allows: smooth, or instant under reduced motion.
+ */
+const headerToTop = (row: HTMLElement): void => {
+  const zone = scrollerOf(row);
+  if (zone === null) return;
+  const top = zone.scrollTop + row.getBoundingClientRect().top - zone.getBoundingClientRect().top;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  zone.scrollTo({ top, behavior: still ? "instant" : "smooth" });
+};
+
+/**
+ * V32-BUILD §1MP item 4/5: one asset of the ledger, a listitem. The colour square hangs in the
+ * gutter and is the asset's chart switch (a toggle button, never opens the row); the name button
+ * is the disclosure (name, ▾/▴, and the summary while collapsed). Open: the header pins to the
+ * top of the scroll region on the surface, the body shows at once. Esc in the body (unless a
+ * control took it) collapses the asset and puts focus back on its header.
  */
 export const AssetRow = ({
   id,
   asset,
   name,
-  openName,
   summary,
+  colour,
   open,
-  dim,
   onToggle,
-  tick,
+  square,
   children,
 }: AssetRowProps): JSX.Element => {
   const header = useRef<HTMLButtonElement>(null);
-  const body = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const was = useRef(open);
   const back = useRef(false);
 
   useLayoutEffect(() => {
-    const el = body.current;
-    if (!open || was.current || el === null) return;
-    el.scrollIntoView({ block: "nearest" });
-    if (reduced() || typeof el.animate !== "function") return;
-    el.animate(
-      [
-        { blockSize: "0px", overflow: "hidden" },
-        { blockSize: `${String(el.offsetHeight)}px`, overflow: "hidden" },
-      ],
-      { duration: OPEN_MS, easing: "ease-out" },
-    );
+    const el = root.current;
+    if (open && !was.current && el !== null) headerToTop(el);
   }, [open]);
 
   useEffect(() => {
@@ -94,62 +101,62 @@ export const AssetRow = ({
     onToggle(false);
   };
 
-  const root = styles["root"] ?? "asset-root";
+  const rootCls = styles["root"] ?? "asset-root";
   const head = styles["head"] ?? "asset-head";
-  const markCls = styles["mark"] ?? "asset-mark";
+  const keyCls = styles["key"] ?? "asset-key";
   const toggle = styles["toggle"] ?? "asset-toggle";
-  const text = styles["text"] ?? "asset-text";
   const nameCls = styles["name"] ?? "asset-name";
   const summaryCls = styles["summary"] ?? "asset-summary";
-  const bodyCls = styles["body"] ?? "asset-body";
-  const sel = styles["sel"] ?? "asset-sel";
-  const kind: (typeof variants.kind)[number] | undefined =
-    tick === undefined ? undefined : "supported";
-  const rest: (typeof variants.state)[number] | undefined = dim ? "dim" : undefined;
-  const state: (typeof variants.state)[number] | undefined = open ? "open" : rest;
+  const chev = styles["chev"] ?? "asset-chev";
+  const on = square.inert === true ? false : square.on;
+  const state: (typeof variants.state)[number] | undefined = open ? "open" : undefined;
 
   return (
     <div
-      className={root}
+      ref={root}
+      className={rootCls}
       role="listitem"
       data-asset={asset}
-      data-kind={kind}
       data-state={state}
+      data-on={on ? undefined : "false"}
+      style={{ "--dyn-asset": colour }}
       onKeyDown={onKey}
     >
-      <div className={head}>
+      <div className={head} data-pin={open ? "" : undefined}>
+        <button
+          type="button"
+          className={keyCls}
+          aria-pressed={on}
+          aria-disabled={square.inert === true ? true : undefined}
+          aria-label={square.label}
+          onClick={() => {
+            if (square.inert !== true) square.onChange?.(!on);
+          }}
+        />
         <button
           ref={header}
           type="button"
           id={id}
           className={toggle}
           aria-expanded={open}
-          aria-controls={`${id}-body`}
+          aria-controls={open ? `${id}-body` : undefined}
           onClick={() => {
             back.current = open;
             onToggle(!open);
           }}
         >
-          <span className={markCls} aria-hidden="true" />
-          {/* §1V: ■, the selected marker, before the name while open (a square, not a glyph). */}
-          {open ? <span className={sel} aria-hidden="true" /> : null}
-          <span className={text}>
-            <span className={nameCls}>{open ? (openName ?? name) : name}</span>
+          <span className={nameCls}>
+            {name}
+            <span className={chev} aria-hidden="true" />
+          </span>
+          {open ? null : (
             <span className={summaryCls}>
               <LabelGlyphs text={summary} />
             </span>
-          </span>
-          <Icon name="chevron" />
+          )}
         </button>
-        {tick === undefined ? null : (
-          <TickToggle label={tick.label} labelHidden checked={tick.on} onChange={tick.onChange} />
-        )}
       </div>
-      {open ? (
-        <div ref={body} className={bodyCls} id={`${id}-body`}>
-          {children}
-        </div>
-      ) : null}
+      {open ? <div id={`${id}-body`}>{children}</div> : null}
     </div>
   );
 };

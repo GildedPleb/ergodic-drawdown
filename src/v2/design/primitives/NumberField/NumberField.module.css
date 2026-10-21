@@ -18,10 +18,7 @@
   .label {
     min-inline-size: 0;
     color: var(--text-muted);
-    font-family: var(--f-text);
-    font-size: var(--t-row);
-    font-weight: 400;
-    line-height: var(--lh-row);
+    font: 400 var(--t-row)/var(--lh-row) var(--f-text);
     overflow-wrap: normal;
   }
 
@@ -41,9 +38,7 @@
     border-radius: var(--radius-0);
     background: var(--surface);
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-value);
-    font-weight: 500;
+    font: 500 var(--t-value) var(--f-sans);
     font-variant-numeric: lining-nums tabular-nums;
     text-align: end;
   }
@@ -55,9 +50,7 @@
 
   .hint {
     color: var(--text-muted);
-    font-family: var(--f-sans);
-    font-size: var(--t-small);
-    font-weight: 500;
+    font: 500 var(--t-small) var(--f-sans);
     text-align: end;
   }
 
@@ -88,47 +81,34 @@
     align-items: flex-start;
     gap: var(--s-1);
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-small);
-    font-weight: 500;
-    line-height: var(--lh-caption);
+    font: 500 var(--t-small)/var(--lh-caption) var(--f-sans);
   }
 
   .message:empty {
     display: none;
   }
 
-  /* §1N, in a ledger row: the field is the row's value cell (the row shows the label; the input
-     carries it as its name). Same spot and height as the value, a 1px --accent underline, the
-     focus ring; the hint and message fall to the row's next lines. FL-001 rules unchanged. */
+  /* §1MP 7, in a setting row: the field is the row's value cell (the row shows the label; the
+     input carries it as its name): Jost --t-value, right-aligned, no frame; the focus ring shows
+     it's live. The hint and message fall to the row's next lines. FL-001 rules unchanged. */
   .root[data-label="hidden"],
   .root[data-label="hidden"] .field {
     display: contents;
   }
 
   .root[data-label="hidden"] .control {
-    inline-size: var(--field-col);
-    max-inline-size: 100%;
+    --_value-w: 4.5rem;
+
+    inline-size: var(--_value-w);
     min-block-size: 0;
     padding: 0;
     border: 0;
-    border-block-end: var(--rule-hair) solid var(--control-line);
     background: transparent;
     line-height: var(--lh-row);
   }
 
-  .root[data-label="hidden"] .control:focus {
-    border-block-end-color: var(--accent);
-  }
-
   .root[data-label="hidden"] .hint {
     grid-column: 1 / -1;
-  }
-
-  @container (min-width: 30rem) {
-    .root[data-label="hidden"] .control {
-      grid-area: 1 / 3;
-    }
   }
 
   .errorIcon {

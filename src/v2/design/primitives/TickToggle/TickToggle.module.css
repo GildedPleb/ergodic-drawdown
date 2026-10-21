@@ -1,29 +1,43 @@
 @layer primitives {
+  /* §1MP 7–8: the box on the text column, EB Garamond --t-row words --s-3 after it. */
   .root {
+    --_col: calc(var(--s-5) + var(--s-3));
+    --_bleed-end: calc(var(--s-0) - var(--tk-pad-x));
+
+    position: relative;
     display: flex;
     align-items: center;
-    gap: var(--tk-gap);
+    gap: var(--s-3);
     min-block-size: var(--hit);
-    padding-inline: var(--tk-pad-x);
-    background: transparent;
+    padding: 0 0 0 var(--_col);
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-small);
-    font-weight: 500;
-    letter-spacing: var(--tr-small);
-    text-transform: uppercase;
+    font: 400 var(--t-row)/var(--lh-row) var(--f-text);
+    text-align: start;
+    background: none;
     border: 0;
     border-radius: var(--radius-0);
     cursor: var(--cursor-press);
   }
 
-  .root[data-state="on"] {
-    background: var(--selected);
-    color: var(--accent);
+  /* The --selected fill: --tk-pad-x before the box, out to the scrollbar (a pair: its target). */
+  .root::before {
+    position: absolute;
+    inset: 0 var(--_bleed-end) 0 var(--tk-pad-x);
+    content: "";
   }
 
-  .root[data-state="off"] {
-    color: var(--text-muted);
+  .root[data-state="on"]::before {
+    background: var(--selected);
+  }
+
+  .root[data-size="pair"] {
+    gap: var(--s-2);
+    padding-inline: var(--s-2);
+    line-height: 1;
+  }
+
+  .root[data-size="pair"]::before {
+    inset: 0;
   }
 
   .root[data-disabled="true"] {
@@ -31,50 +45,36 @@
     cursor: var(--cursor-off);
   }
 
-  .root[data-disabled="false"] {
-    cursor: var(--cursor-press);
-  }
-
   .root:focus-visible {
     outline: var(--focus-w) solid var(--focus);
     outline-offset: var(--focus-offset-tight);
   }
 
-  /* Interim (Form): a single 1px rule in --control-line (≥3:1 boundary in both themes). */
-  .box {
+  /* Above the fill (positioned, later in tree order). */
+  .box,
+  .label {
     position: relative;
+  }
+
+  .box {
     display: grid;
-    place-items: center;
     flex: none;
     inline-size: var(--tk-box);
     block-size: var(--tk-box);
-    border: var(--rule-double-line) solid var(--control-line);
-    background: transparent;
+    place-items: center;
+    color: transparent;
+    font-size: var(--s-4);
+    border: 1px solid var(--control-line);
+  }
+
+  .root[data-state="on"] .box {
+    color: var(--ground);
+    background: var(--accent);
+    border-color: var(--accent);
   }
 
   /* M4: disabled is a shape change, not colour alone: the rule dashed. */
   .root[data-disabled="true"] .box {
     border-style: dashed;
-    border-color: var(--text-faint);
-  }
-
-  .root[data-state="on"] .box {
-    background: var(--accent);
-    border-color: var(--accent);
-  }
-
-  .check {
-    inline-size: 100%;
-    block-size: 100%;
-    opacity: 0;
-    color: var(--ground);
-  }
-
-  .root[data-state="on"] .check {
-    opacity: 1;
-  }
-
-  .label {
-    white-space: normal;
   }
 }

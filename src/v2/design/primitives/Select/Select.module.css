@@ -1,127 +1,69 @@
 @layer primitives {
   .root {
+    display: grid;
+    row-gap: var(--s-2);
     min-inline-size: 0;
   }
 
-  /* Closed: one field row in the Certificate style, the height of a number-field row. */
-  .field,
-  .option,
-  .option[data-state="off"] {
-    display: flex;
-    align-items: center;
+  .root[data-cols="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--s-5);
+  }
+
+  /* One row: the name on the text column, ▾ or ✓ at the right edge, the description beneath
+     across the full row. */
+  .opt {
+    --_col: calc(var(--s-5) + var(--s-3));
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 1px var(--s-3);
     min-block-size: var(--hit);
+    padding: var(--s-2) 0 var(--s-2) var(--_col);
     color: var(--text);
-    font-family: var(--f-sans);
-    font-size: var(--t-row);
-    font-weight: 500;
-    line-height: var(--lh-row);
+    text-align: start;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-0);
     cursor: var(--cursor-press);
   }
 
-  .field {
-    gap: var(--s-2);
-    padding-inline: var(--s-3);
-    border: var(--rule-double) double var(--control-line);
-    border-radius: var(--radius-0);
-    background: var(--surface);
-  }
-
-  .value,
-  .text {
+  .name {
     min-inline-size: 0;
-    overflow-wrap: anywhere;
+    font: 500 var(--t-pane)/1.15 var(--f-serif);
+    overflow-wrap: break-word;
   }
 
-  .value {
-    flex: 1;
+  .opt[data-state="pick"] .name {
+    color: var(--accent);
   }
 
-  .caret,
-  .mark {
-    flex: none;
-    inline-size: var(--radio-box);
-    block-size: var(--radio-box);
+  .end,
+  .check {
+    display: flex;
+    align-self: center;
+    grid-row: 1;
+    grid-column: 2;
+    font-size: var(--s-2);
   }
 
-  .caret {
-    fill: var(--accent);
+  /* ▾: a 0.5rem muted triangle (drawn here; the shared icon set is not this pane's). */
+  .end {
+    inline-size: var(--s-2);
+    block-size: var(--s-2);
+    background: var(--text-muted);
+    clip-path: polygon(0 10%, 100% 10%, 50% 90%);
   }
 
-  /* §1U open: a popover in the top layer, flush to the field and as wide; the double rule runs on
-     round it, the joining side open; opaque --surface; every row shown (whole rows if cut). */
-  .list {
-    position: fixed;
-    inset-block: var(--dyn-list-y) auto;
-    inset-inline: var(--dyn-list-x) auto;
-    inline-size: var(--dyn-list-w);
-    max-block-size: var(--dyn-list-max);
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;
-    padding: 0;
-    list-style: none;
-    border: var(--rule-double) double var(--control-line);
-    background: var(--surface);
+  .check {
+    color: var(--accent);
+    font-size: var(--s-4);
   }
 
-  /* The field's rule on the joining side thins to one line: field and list read as one control. */
-  .root[data-placement="down"] .list {
-    border-block-start: 0;
-  }
-
-  .root[data-placement="up"] .list {
-    border-block-end: 0;
-  }
-
-  .root[data-placement="down"] .field[aria-expanded="true"] {
-    border-block-end: var(--rule-hair) solid var(--control-line);
-  }
-
-  .root[data-placement="up"] .field[aria-expanded="true"] {
-    border-block-start: var(--rule-hair) solid var(--control-line);
-  }
-
-  .option {
-    scroll-snap-align: start;
-    gap: var(--s-3);
-    padding: var(--row-pad);
-    border-block-end: 1px solid var(--hairline);
-    border-inline-start: var(--rule-double) solid transparent;
-  }
-
-  /* Active option (keyboard focus): tint plus an accent start rule, not a hover wash. */
-  .option[data-active="true"] {
-    border-inline-start-color: var(--accent);
-    background: var(--selected);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .field:hover,
-    .option[data-active="false"]:hover {
-      background: var(--hover);
-    }
-  }
-
-  .option[data-state="on"] {
-    font-weight: 600;
-  }
-
-  /* ■ marks the current value: a filled 9px square, never colour alone (weight 600 too). */
-  .option[data-state="on"] .mark {
-    background: var(--accent);
-  }
-
-  /* §1N tray: a fine rule down the left and across the bottom in the frame colour, closing the
-     unit; rows indented --tray-indent. ::after lies over the last row's hairline. */
-  .tray {
-    position: relative;
-    padding-inline-start: var(--tray-indent);
-    border-inline-start: var(--rule-hair) solid var(--control-line);
-  }
-
-  .tray::after {
-    content: "";
-    position: absolute;
-    inset: auto 0 0;
-    border-block-end: var(--rule-hair) solid var(--control-line);
+  .desc {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font: italic var(--t-caption)/1.3 var(--f-text);
   }
 }

@@ -1,54 +1,71 @@
 @layer app {
-  /* §1Y: the Deco rule, the zone (the only scroller, clipped at the rule), the foot rule. */
+  /* §1MP 11–12: the zone (the only scroller), 6px under the tab bar; fades instead of edge lines.
+     The mask's first layer fades the content (from the pinned header's foot, --dyn-hh); the
+     second keeps the 2px scrollbar column unfaded. */
   .root {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
     min-block-size: 0;
-  }
-
-  .rule,
-  .foot {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    block-size: var(--rule-hair);
-    background: var(--rule);
-    pointer-events: none;
-  }
-
-  /* The 3rem bar on the rule; ▲ (0.5rem) in its place once scrolled, ▼ while more is below. */
-  .rule::before,
-  .foot::before {
-    inline-size: var(--s-8);
-    block-size: var(--rule-step);
-    content: "";
-    background: var(--accent);
-  }
-
-  .root[data-top="true"] .rule::before,
-  .foot::before {
-    inline-size: var(--s-2);
-    block-size: var(--s-2);
-    clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  }
-
-  .foot::before {
-    scale: 1 -1;
-    opacity: 0;
-  }
-
-  .root[data-more="true"] .foot::before {
-    opacity: 1;
+    padding-block-start: var(--sheet-gap);
   }
 
   .zone {
+    --_pad-end: calc(var(--tk-pad-x) - var(--s-0));
+    --_ft: 0px;
+    --_fb: 0px;
+
+    min-block-size: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
     scroll-padding-block-start: var(--hit);
+    scrollbar-gutter: stable;
+    mask:
+      linear-gradient(
+          black var(--dyn-hh),
+          transparent var(--dyn-hh),
+          black calc(var(--dyn-hh) + var(--_ft)),
+          black calc(100% - var(--_fb)),
+          transparent
+        )
+        0 0 / calc(100% - var(--s-0)) 100% no-repeat,
+      linear-gradient(black, black) 100% 0 / var(--s-0) 100% no-repeat;
   }
 
-  /* Padding inside the scroller, so a sticky header's top: 0 is the rule. */
+  .zone[data-top="true"] {
+    --_ft: var(--s-6);
+  }
+
+  .zone[data-more="true"] {
+    --_fb: var(--s-6);
+  }
+
+  .zone::-webkit-scrollbar {
+    inline-size: var(--s-0);
+  }
+
+  .zone::-webkit-scrollbar-track {
+    background: var(--rule);
+  }
+
+  .zone::-webkit-scrollbar-thumb {
+    background: var(--accent);
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    .zone {
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent) var(--rule);
+    }
+  }
+
+  /* Touch: shown while scrolling, hidden about 1s after. Desktop: always shown. */
+  @media (pointer: coarse) {
+    .zone:not([data-scrolling="true"])::-webkit-scrollbar-track,
+    .zone:not([data-scrolling="true"])::-webkit-scrollbar-thumb {
+      background: transparent;
+    }
+  }
+
   .content {
-    padding-block: var(--s-3) var(--s-5);
+    padding: 0 var(--_pad-end) var(--s-6) var(--tk-pad-x);
   }
 }

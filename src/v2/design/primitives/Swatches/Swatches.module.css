@@ -1,0 +1,40 @@
+@layer primitives {
+  /* §1MP 8: eight 44px targets spread to the text column's edges (the outer chips' targets run
+     --s-2 past them), shrinking together when the column is narrow. */
+  .root {
+    --_neg-s-2: calc(-1 * var(--s-2));
+    --_chips-w: calc(100% + 2 * var(--s-2));
+    --_chips-max: 22rem;
+
+    position: relative;
+    inset-inline-start: var(--_neg-s-2);
+    display: grid;
+    grid-auto-columns: minmax(0, var(--hit));
+    grid-auto-flow: column;
+    justify-content: space-between;
+    inline-size: var(--_chips-w);
+    max-inline-size: var(--_chips-max);
+  }
+
+  .chip {
+    display: grid;
+    place-items: center;
+    block-size: var(--hit);
+    padding: 0;
+    background: none;
+    border: 0;
+    cursor: var(--cursor-press);
+  }
+
+  .face {
+    --_chip: 1.25rem;
+
+    display: grid;
+    place-items: center;
+    inline-size: var(--_chip);
+    block-size: var(--_chip);
+    color: var(--ground);
+    font-size: var(--s-4);
+    background: var(--dyn-c);
+  }
+}

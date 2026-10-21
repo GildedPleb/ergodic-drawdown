@@ -35,19 +35,16 @@ for (const id of FIELD_STORIES) {
       const control = id.startsWith("tick-row/")
         ? page.getByRole("switch")
         : id.startsWith("select/")
-          ? page.getByRole("combobox")
+          ? page.getByRole("option", { selected: true })
           : page.getByRole("spinbutton");
       if (id.endsWith("/focus") || id === "select/open") {
         await page.keyboard.press("Tab");
         await expect(control).toBeFocused();
       }
-      if (id === "select/hover") await control.hover();
       if (id === "select/open") {
-        // 1L.3: APG select-only combobox; ↓ opens on the value, axe then checks the open listbox.
-        await page.keyboard.press("ArrowDown");
-        await expect(control).toHaveAttribute("aria-expanded", "true");
-        await expect(page.getByRole("listbox")).toBeVisible();
-        await expect(control).toHaveAttribute("aria-activedescendant", "story-select-opt-3");
+        // §1MP 6: the in-place list; Enter on the pick opens it, axe then checks every option.
+        await page.keyboard.press("Enter");
+        await expect(page.getByRole("option")).toHaveCount(7);
       }
       if (id.endsWith("/invalid")) {
         await expect(control).toHaveAttribute("aria-invalid", "true");

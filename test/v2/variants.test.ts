@@ -9,9 +9,9 @@ import { variants as select } from "../../src/v2/design/primitives/Select/Select
 import { variants as slider } from "../../src/v2/design/primitives/Slider/Slider";
 import { variants as cluster } from "../../src/v2/design/primitives/Cluster/Cluster";
 import { variants as grid } from "../../src/v2/design/primitives/Grid/Grid";
+import { variants as ledger } from "../../src/v2/design/primitives/LedgerRow/LedgerRow";
 import { variants as glyphs } from "../../src/v2/design/primitives/LabelGlyphs/LabelGlyphs";
 import { variants as numberField } from "../../src/v2/design/primitives/NumberField/NumberField";
-import { variants as sectionLabel } from "../../src/v2/design/primitives/SectionLabel/SectionLabel";
 import { variants as stack } from "../../src/v2/design/primitives/Stack/Stack";
 import { variants as tick } from "../../src/v2/design/primitives/TickToggle/TickToggle";
 import { space } from "../../src/v2/design/tokens/tokens";
@@ -21,18 +21,17 @@ test("R6: Stack, Cluster and Grid gap props cover exactly the --s-* scale", () =
 });
 
 test("R7: exported variants are the data-* values the components render", () => {
-  expect([...tick.state]).toEqual(["on", "off"]);
-  expect([...tick.disabled]).toEqual(["true", "false"]);
+  expect([...tick.state, ...tick.disabled, ...tick.size]).toEqual(["on", "true", "pair"]);
+  expect([...ledger.kind]).toEqual(["pair"]);
   expect([...amount.unit]).toEqual(["btc", "usd"]);
   expect([...glyphs.tone]).toEqual(["up", "down"]);
   expect([...grid.columns]).toEqual(["1", "2", "3", "4"]);
   expect([...cluster.align, ...cluster.justify].length).toBe(7);
   expect([...numberField.invalid]).toEqual(["true", "false"]);
   expect([...numberField.disabled]).toEqual(["true", "false"]);
-  expect([...sectionLabel.level]).toEqual(["section", "group"]);
-  expect("side" in sectionLabel).toBe(false); // §1Y: solid hairlines, no fade sides
-  expect([...assetRow.kind, ...assetRow.state]).toEqual(["supported", "open", "dim"]);
-  expect([...assetRow.stuck, ...pane.top, ...pane.more]).toEqual(["true", "true", "true"]);
+  // §1MP: SectionLabel has one look (no levels); AssetRow is open or not, its square on or off.
+  expect([...assetRow.state, ...assetRow.on]).toEqual(["open", "false"]);
+  expect([...pane.top, ...pane.more, ...pane.scrolling]).toEqual(["true", "true", "true"]);
   expect([...dock.orientation, ...dock.shown, ...dock.selected]).toEqual([
     "row",
     "rail",
@@ -52,5 +51,5 @@ test("R7: exported variants are the data-* values the components render", () => 
     "closed",
   ]);
   expect([...slider.disabled]).toEqual(["true", "false"]);
-  expect([...select.placement, ...select.state]).toEqual(["down", "up", "on", "off"]);
+  expect([...select.cols, ...select.state]).toEqual(["2", "pick"]);
 });
