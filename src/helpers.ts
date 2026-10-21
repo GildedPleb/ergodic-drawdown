@@ -1,3 +1,5 @@
+import { MAX_EPOCH_COUNT, MAX_WEEKS } from "./constants";
+import { MAX_YEAR_COUNT, resolveHorizon } from "./horizon";
 import { numberAt } from "./number-at";
 import { isModelName } from "./data/models";
 import { isWalk } from "./data/walks";
@@ -371,13 +373,46 @@ const readItems = <T>(
   return value;
 };
 
-const readSavedAppState = (value: unknown): SavedAppState => {
+const readBoundedInteger = (
+  record: Record<string, unknown>,
+  field: string,
+  min: number,
+  max: number,
+): number => {
+  const value = readNumber(record, field);
+  if (!Number.isInteger(value) || value < min || value > max) throw invalidSavedState();
+  return value;
+};
+
+const readYears = (record: Record<string, unknown>): number | undefined => {
+  if (record["years"] === undefined) return undefined;
+  return readBoundedInteger(record, "years", 1, MAX_YEAR_COUNT);
+};
+
+const readPinnedWeeks = (record: Record<string, unknown>): number | undefined => {
+  if (record["pinnedWeeks"] === undefined) return undefined;
+  return readBoundedInteger(record, "pinnedWeeks", 1, MAX_WEEKS);
+};
+
+export const savedHorizon = (
+  weeksSince: number,
+  years: number,
+  pinnedWeeks: number | null,
+): { epochCount: number; pinnedWeeks?: number; years?: number } => {
+  const epochCount = resolveHorizon(weeksSince, years, pinnedWeeks).epochs;
+  if (pinnedWeeks === null) return { epochCount, years };
+  return { epochCount, pinnedWeeks };
+};
+
+export const readSavedAppState = (value: unknown): SavedAppState => {
   if (!isRecord(value) || value["version"] !== 1) throw invalidSavedState();
+  const pinnedWeeks = readPinnedWeeks(value);
+  const years = readYears(value);
   return {
     bitcoin: readNumber(value, "bitcoin"),
     clampBottom: readBoolean(value, "clampBottom"),
     clampTop: readBoolean(value, "clampTop"),
-    epochCount: readNumber(value, "epochCount"),
+    epochCount: readBoundedInteger(value, "epochCount", 1, MAX_EPOCH_COUNT),
     hideResults: readBoolean(value, "hideResults"),
     inflation: readNumber(value, "inflation"),
     loadingPriceData: readBoolean(value, "loadingPriceData"),
@@ -386,6 +421,7 @@ const readSavedAppState = (value: unknown): SavedAppState => {
     model: readModel(value),
     oneOffFiatVariables: readItems(value, "oneOffFiatVariables", isOneOffFiatVariable),
     oneOffItems: readItems(value, "oneOffItems", isOneOffItem),
+    ...(pinnedWeeks === undefined ? {} : { pinnedWeeks }),
     renderDrawdownDistribution: readDistribution(value, "renderDrawdownDistribution"),
     renderDrawdownWalks: readBoolean(value, "renderDrawdownWalks"),
     renderModelMax: readBoolean(value, "renderModelMax"),
@@ -404,6 +440,7 @@ const readSavedAppState = (value: unknown): SavedAppState => {
     version: 1,
     volatility: readNumber(value, "volatility"),
     walk: readWalk(value),
+    ...(years === undefined ? {} : { years }),
   };
 };
 

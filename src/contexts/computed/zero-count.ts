@@ -5,9 +5,10 @@ export const calculateBalanceAndZero = (
   _hash: string,
   drawdownData: GrowableSharedArray,
   showModel: boolean,
+  week: number,
 ): { finalBalance: Float64Array; zero: number } => {
   if (showModel) return { finalBalance: new Float64Array(), zero: 0 };
-  const finalBalance = drawdownData.getLastArray();
+  const finalBalance = drawdownData.valuesAt(week);
   let zero = 0;
   for (const item of finalBalance) {
     zero += item <= 0 ? 1 : 0;

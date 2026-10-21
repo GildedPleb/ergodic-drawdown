@@ -39,7 +39,7 @@ const Slide4: FC = () => (
 export const slide4 = {
   component: Slide4,
   requirements: {
-    epochCount: 10,
+    years: 40,
     model: "Rainbow Chart",
     renderModelMax: true,
     samplesToRender: 0,

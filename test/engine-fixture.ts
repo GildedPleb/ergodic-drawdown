@@ -1,5 +1,7 @@
 import { MS_PER_YEAR } from "../src/constants";
 import { type EngineConfig } from "../src/engine/keys";
+import { weeksSinceLastHalving } from "../src/halvings";
+import { legacySpan } from "../src/horizon";
 import { type DistributionType } from "../src/types";
 
 const halvings = {
@@ -14,17 +16,22 @@ export const engineConfig = (
     distribution?: DistributionType;
     epochs?: number;
     items?: boolean;
+    pinnedWeeks?: number | null;
     samples?: number;
     showModel?: boolean;
+    years?: number;
   } = {},
 ): EngineConfig => ({
   currentBlock: 840_000,
   currentPrice: 64_000,
-  epochs: patch.epochs ?? 1,
   halvings,
   inflation: { annualPercent: 8, mode: "constant" },
   interim: [],
   now: Date.now(),
+  pinnedWeeks:
+    patch.years === undefined
+      ? (patch.pinnedWeeks ?? legacySpan(patch.epochs ?? 1, weeksSinceLastHalving(halvings)))
+      : (patch.pinnedWeeks ?? null),
   render: {
     renderDrawdownDistribution: patch.distribution ?? "Quantile",
     renderDrawdownWalks: false,
@@ -65,4 +72,5 @@ export const engineConfig = (
   },
   seed: 1,
   stack: { bitcoin: 1 },
+  years: patch.years ?? 1,
 });

@@ -73,12 +73,12 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
   const {
     setClampBottom,
     setClampTop,
-    setEpochCount,
     setModel,
     setSamples,
     setShowModel,
     setVolatility,
     setWalk,
+    setYears,
   } = useModel();
 
   const {
@@ -134,7 +134,7 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
     (requirements: SlideRequirement) => {
       if (requirements.clampBottom !== undefined) setClampBottom(requirements.clampBottom);
       if (requirements.clampTop !== undefined) setClampTop(requirements.clampTop);
-      if (requirements.epochCount !== undefined) setEpochCount(requirements.epochCount);
+      if (requirements.years !== undefined) setYears(requirements.years);
       if (requirements.model !== undefined) setModel(requirements.model);
       if (requirements.samples !== undefined) setSamples(requirements.samples);
       if (requirements.showModel !== undefined) setShowModel(requirements.showModel);
@@ -168,7 +168,6 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
       setBitcoin,
       setClampBottom,
       setClampTop,
-      setEpochCount,
       setHideResults,
       setInflation,
       setModel,
@@ -183,6 +182,7 @@ const Tutorial = ({ close }: { close: () => void }): JSX.Element => {
       setReoccurringItems,
       setSamples,
       setSamplesToRender,
+      setYears,
       setShowDrawdown,
       setShowModel,
       setShowRender,

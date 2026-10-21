@@ -110,6 +110,7 @@ test("a new weeksSince rebuilds a finished balance grid", async () => {
       "volume",
       "variables",
       weeksSince,
+      4,
       worker,
       false,
     );
@@ -169,6 +170,7 @@ test("a new variable result walks a finished balance from the start", async () =
       "volume",
       variableCacheHash,
       0,
+      4,
       worker,
       false,
     );
@@ -210,10 +212,11 @@ test("an aborted volume wave does not mark the balance grid valid", async () => 
     "volume",
     "variables",
     0,
+    1,
     worker,
     false,
   );
 
-  expect(outcome).toBe("failed:volume11variables");
-  expect(balances.getValidity("volume:variables:0")).toEqual([0, 0]);
+  expect(outcome).toBe("failed:volume111variables");
+  expect(balances.getValidity("volume:variables:0:1")).toEqual([0, 0]);
 });

@@ -3,7 +3,7 @@ import styled from "styled-components";
 
 import CaretSVG from "../components/caret";
 import ClampInput from "../components/input/clamp";
-import EpochInput from "../components/input/epoch";
+import YearsInput from "../components/input/years";
 import ModelInput from "../components/input/model";
 import SampleInput from "../components/input/samples";
 import VolInput from "../components/input/volatility";
@@ -81,7 +81,7 @@ const PriceModel = (): JSX.Element => {
         <WalkInput />
         <ClampInput />
         <VolInput />
-        <EpochInput />
+        <YearsInput />
         <SampleInput />
       </Container>
       <ModelSize isExpanded={showModel} />

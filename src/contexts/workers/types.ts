@@ -48,6 +48,7 @@ export interface RunDrawdownVariableEvent {
     inflationFactors: Float64Array;
     oneOffFiatVariable: NarrowedOneOffFiat;
     simulationExport: ExportedState;
+    dataLength: number;
     task: Task;
     variableDrawdownBuffer: SharedArrayBuffer;
     weeksSince: number;
