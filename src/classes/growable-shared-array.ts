@@ -112,15 +112,40 @@ export default class GrowableSharedArray {
     return [0, 0];
   }
 
-  setValidity(currentHash: string): void {
+  setValidity(currentHash: string, coveredWidth?: number): void {
+    const width = coveredWidth ?? this.activeWidth;
     if (this.cacheHash === currentHash) {
-      this.cacheHeight = Math.max(this.activeHeight, this.cacheHeight);
-      this.cacheWidth = Math.max(this.activeWidth, this.cacheWidth);
+      // Rows above the live sample count were not rewritten with this wave.
+      this.cacheHeight = this.activeHeight;
+      this.cacheWidth =
+        coveredWidth === undefined ? Math.max(this.activeWidth, this.cacheWidth) : width;
     } else {
       this.cacheHash = currentHash;
       this.cacheHeight = this.activeHeight;
-      this.cacheWidth = this.activeWidth;
+      this.cacheWidth = width;
     }
+  }
+
+  // A trailing 0 means the column was never written. NaN is a written tail.
+  clearEpoch(epoch: number): void {
+    if (epoch < 0 || epoch >= this.activeWidth) return;
+    for (let y = 0; y < this.activeHeight; y++) {
+      const start = this.getIndex(epoch, y);
+      this.view.fill(0, start, start + this.itemLength);
+    }
+  }
+
+  valuesAt(week: number): Float64Array {
+    const result = new Float64Array(this.activeHeight);
+    const rowLength = this.activeWidth * this.itemLength;
+    if (week < 0 || week >= rowLength || this.itemLength === 0) {
+      result.fill(Number.NaN);
+      return result;
+    }
+    for (let y = 0; y < this.activeHeight; y++) {
+      result[y] = numberAt(this.view, this.getIndex(0, y) + week);
+    }
+    return result;
   }
 
   get(x: number, y: number): Float64Array | undefined {

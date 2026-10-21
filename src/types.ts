@@ -177,6 +177,7 @@ export interface SavedAppState {
   model: ModelNames;
   oneOffFiatVariables: OneOffFiatVariable[];
   oneOffItems: OneOffItem[];
+  pinnedWeeks?: number;
   renderDrawdownDistribution: DistributionType;
   renderDrawdownWalks: boolean;
   renderModelMax: boolean;
@@ -195,13 +196,14 @@ export interface SavedAppState {
   version: 1;
   volatility: number;
   walk: WalkTypes;
+  years?: number;
 }
 
 export interface SlideRequirement {
   bitcoin?: number;
   clampBottom?: boolean;
   clampTop?: boolean;
-  epochCount?: number;
+  years?: number;
   hideResults?: boolean;
   inflation?: number;
   model?: ModelNames;

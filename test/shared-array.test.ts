@@ -185,6 +185,19 @@ test("coalesce stops at the active end of a row", () => {
   expect(Array.from(end)).toEqual([4]);
 });
 
+test("valuesAt reads a zero balance and a NaN tail stays past that week", () => {
+  const zeros = new GrowableSharedArray(1, 1, 2);
+  zeros.set(0, 0, new Float64Array([8, 0]));
+  expect(zeros.get(0, 0)).toBeUndefined();
+  expect(zeros.valuesAt(1)[0]).toBe(0);
+  expect(Number.isNaN(zeros.valuesAt(2)[0])).toBe(true);
+
+  const tailed = new GrowableSharedArray(1, 1, 4);
+  tailed.set(0, 0, new Float64Array([8, 3, Number.NaN, Number.NaN]));
+  expect(tailed.valuesAt(1)[0]).toBe(3);
+  expect(Number.isNaN(tailed.getLastArray()[0])).toBe(true);
+});
+
 test("a zero-width grid has no final price", () => {
   const array = new GrowableSharedArray(1, 2, 2);
   array.set(0, 0, new Float64Array([1, 2]));

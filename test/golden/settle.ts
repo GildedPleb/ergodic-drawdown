@@ -493,19 +493,20 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       input.samples,
       worker,
       input.weeksSince,
+      dataLength,
       full,
       fullHash,
     ),
   );
   expectOk(input.name, simulation);
   const simulationStats = await runNode((signal) =>
-    handleSimulationStats(signal, hash, memory.prices),
+    handleSimulationStats(signal, hash, memory.prices, input.epochs * WEEKS_PER_EPOCH - 1),
   );
   const variables = await runNode((signal) =>
     handleDrawdownVariables(
       signal,
       hash,
-      input.epochs,
+      dataLength,
       input.samples,
       fullHashInflation,
       memory.prices,
@@ -551,13 +552,20 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       volumeCacheHash,
       variableCacheHash,
       input.weeksSince,
+      dataLength,
       worker,
       input.showModel,
     ),
   );
   expectOk(input.name, volume);
   const zeroCount = await runNode((signal) =>
-    calculateBalanceAndZero(signal, hash, memory.balance, input.showModel),
+    calculateBalanceAndZero(
+      signal,
+      hash,
+      memory.balance,
+      input.showModel,
+      input.epochs * WEEKS_PER_EPOCH - 1,
+    ),
   );
   const volumeStats = await runNode((signal) =>
     calculateVolumeStatistics(signal, hash, dataLength, zeroCount, input.showModel),
@@ -588,6 +596,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       input.renderPriceWalks,
       goldenPins.samplesToRender,
       input.weeksSince,
+      dataLength,
     ),
   );
   const drawdownBands = await runNode((signal) =>
@@ -615,6 +624,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       false,
       goldenPins.samplesToRender,
       input.weeksSince,
+      dataLength,
       input.showModel,
     ),
   );

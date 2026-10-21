@@ -1,4 +1,5 @@
 import type GrowableSharedArray from "../../classes/growable-shared-array";
+import { coveredEpochs } from "../../horizon";
 import { createTaskQueue } from "../../helpers";
 import { type Full } from "../../types";
 import { type WorkerContextType } from "../workers/types";
@@ -16,10 +17,11 @@ export const handleSimulation = async (
   samples: number,
   worker: WorkerContextType,
   weeksSince: number,
+  dataLength: number,
   full: Full,
   fullHash: string,
 ): Promise<string> => {
-  const returnHash = fullHash + epochCount + samples;
+  const returnHash = fullHash + epochCount + samples + dataLength;
   // The leading NaN prefix is weeksSince long. The model hash does not cover it.
   const gridHash = `${fullHash}:${weeksSince}`;
   const [priceWidth, priceHeight] = simulationData.getValidity(gridHash);
@@ -35,11 +37,18 @@ export const handleSimulation = async (
   if (validHeight === 0) {
     simulationData.clear();
     walkState.clear();
+  } else if (validWidth < epochCount) {
+    // A longer year reaches weeks that were stored as NaN in the last column.
+    for (let epoch = validWidth; epoch < epochCount; epoch += 1) {
+      simulationData.clearEpoch(epoch);
+      walkState.clearEpoch(epoch);
+    }
   }
   const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
+  const liveSamples = Math.min(validHeight, samples);
 
   const taskQueueEpochs: SupplementedTask[] = needTasksForWidth
-    ? createTaskQueue(validHeight, worker.count, samples, 0).map((task) => ({
+    ? createTaskQueue(liveSamples, worker.count, samples, 0).map((task) => ({
         ...task,
         startEpoch: validWidth,
       }))
@@ -76,7 +85,8 @@ export const handleSimulation = async (
     return "failed:" + returnHash;
   }
 
-  simulationData.setValidity(gridHash);
-  walkState.setValidity(gridHash);
+  const covered = coveredEpochs(weeksSince, dataLength);
+  simulationData.setValidity(gridHash, covered);
+  walkState.setValidity(gridHash, covered);
   return "success:" + returnHash;
 };

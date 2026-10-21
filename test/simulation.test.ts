@@ -222,6 +222,7 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
       1,
       worker,
       weeksSince,
+      weeks - weeksSince,
       full,
       "model",
     );
@@ -237,6 +238,64 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
   state.setValidity("other");
   await run(9);
   expect(writes).toBe(3);
+});
+
+test("shrinking samples on a partial horizon stays inside the live grid", async () => {
+  const ranges: { end: number; start: number }[] = [];
+  const worker: WorkerContextType = {
+    addTasks: (tasks) => {
+      for (const task of tasks) {
+        if (task.type !== "RUN_PRICE_SIMULATION") throw new Error("unexpected task");
+        ranges.push({ end: task.payload.task.endIndex, start: task.payload.task.startIndex });
+        handleSimulation(task.payload, { aborted: false });
+      }
+      return Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "completed" })));
+    },
+    count: 1,
+  };
+  const data = new GrowableSharedArray(1, 2, weeks);
+  const state = walkGrid(1, 2);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const visible = 100;
+  const run = (samples: number): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      spot,
+      minArray,
+      maxArray,
+      1,
+      data,
+      state,
+      samples,
+      worker,
+      0,
+      visible,
+      full,
+      "model",
+    );
+
+  await run(2);
+  ranges.length = 0;
+  const shrunk = await run(1);
+  expect(shrunk.startsWith("success:")).toBe(true);
+  expect(ranges.every((range) => range.start === 0 && range.end <= 1)).toBe(true);
+  expect(data.getValidity("model:0")).toEqual([0, 1]);
+  expect(state.getValidity("model:0")).toEqual([0, 1]);
+
+  ranges.length = 0;
+  await run(2);
+  expect(ranges.some((range) => range.start === 1)).toBe(true);
 });
 
 test("a priced epoch without a cycle is a broken cache", () => {
@@ -350,11 +409,12 @@ test("an aborted simulation wave does not mark the price grid valid", async () =
     1,
     worker,
     0,
+    weeks,
     full,
     "model",
   );
 
-  expect(outcome).toBe("failed:model11");
+  expect(outcome).toBe(`failed:model11${weeks}`);
   expect(data.getValidity("model:0")).toEqual([0, 0]);
   expect(state.getValidity("model:0")).toEqual([0, 0]);
 });

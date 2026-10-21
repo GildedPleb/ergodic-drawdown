@@ -48,7 +48,7 @@ export const slide18 = {
     bitcoin: 0,
     clampBottom: true,
     clampTop: true,
-    epochCount: 18,
+    years: 70,
     inflation: 3,
     model: "Power Law Regression Median",
     oneOffFiatVariables: [],

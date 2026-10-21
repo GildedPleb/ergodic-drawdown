@@ -1,6 +1,7 @@
 import hashSum from "hash-sum";
 
-import { WEEKS_PER_EPOCH, WEEKS_PER_YEAR } from "../constants";
+import { WEEKS_PER_YEAR } from "../constants";
+import { resolveHorizon } from "../horizon";
 import { type WalkTypes } from "../data/walks";
 import {
   type BitcoinDataPoint,
@@ -42,16 +43,17 @@ interface EngineRender {
 export interface EngineConfig {
   currentBlock: number;
   currentPrice: number;
-  epochs: number;
   halvings: HalvingData;
   inflation: { annualPercent: number; mode: "constant" };
   interim: BitcoinDataPoint[];
   now: number;
+  pinnedWeeks: number | null;
   render: EngineRender;
   samples: number;
   scenario: EngineScenario;
   seed: number;
   stack: { bitcoin: number };
+  years: number;
 }
 
 export interface DerivedKeys {
@@ -59,6 +61,7 @@ export interface DerivedKeys {
   activeOneOffVariablesHash: string;
   activeToProcess: NarrowedOneOffFiat[];
   dataLength: number;
+  epochs: number;
   full: Full;
   fullHash: string;
   fullHashInflation: string;
@@ -97,9 +100,10 @@ export const deriveKeys = (config: EngineConfig, weeksSince: number): DerivedKey
       .toSorted()
       .join(","),
   });
+  const horizon = resolveHorizon(weeksSince, config.years, config.pinnedWeeks);
   const variableCacheHash = hashSum({
     activeOneOffVariablesHash,
-    epochCount: config.epochs,
+    dataLength: horizon.dataLength,
     fullHash,
     inflation: config.inflation.annualPercent,
     samples: config.samples,
@@ -118,7 +122,8 @@ export const deriveKeys = (config: EngineConfig, weeksSince: number): DerivedKey
     activeOneOffVariables,
     activeOneOffVariablesHash,
     activeToProcess,
-    dataLength: config.epochs * WEEKS_PER_EPOCH - weeksSince,
+    dataLength: horizon.dataLength,
+    epochs: horizon.epochs,
     full,
     fullHash,
     fullHashInflation,
@@ -140,14 +145,15 @@ const sameList = (left: readonly unknown[], right: readonly unknown[]): boolean 
 export const sameConfig = (left: EngineConfig, right: EngineConfig): boolean =>
   left.currentBlock === right.currentBlock &&
   left.currentPrice === right.currentPrice &&
-  left.epochs === right.epochs &&
   left.halvings === right.halvings &&
   left.inflation.annualPercent === right.inflation.annualPercent &&
   left.inflation.mode === right.inflation.mode &&
   left.interim === right.interim &&
   left.now === right.now &&
+  left.pinnedWeeks === right.pinnedWeeks &&
   left.samples === right.samples &&
   left.seed === right.seed &&
+  left.years === right.years &&
   left.stack.bitcoin === right.stack.bitcoin &&
   left.scenario.clampBottom === right.scenario.clampBottom &&
   left.scenario.clampTop === right.scenario.clampTop &&

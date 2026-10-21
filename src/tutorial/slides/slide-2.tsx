@@ -22,7 +22,7 @@ export const slide2 = {
   component: Slide2,
   requirements: {
     bitcoin: 0,
-    epochCount: 10,
+    years: 40,
     hideResults: true,
     oneOffFiatVariables: [],
     oneOffItems: [],
