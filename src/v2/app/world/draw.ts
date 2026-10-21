@@ -59,6 +59,8 @@ export type Ctx2D = Pick<
 export type Paint = {
   hairline: string;
   muted: string;
+  /** --text: the end label's value lines (Form: 4.5:1 for every chip; the mark carries the hue). */
+  ink: string;
   rule: string;
   today: string;
   price: string;
@@ -115,6 +117,7 @@ export const paintFrom = (
   return {
     hairline: v("--hairline"),
     muted: v("--text-muted"),
+    ink: v("--text"),
     rule: v("--rule"),
     today: v("--today-line"),
     price: v("--_price") || v("--asset-btc"), // WorldLayer.module.css: the Colour pick
@@ -413,7 +416,9 @@ const endLayout = (
   if (all.length === 0) return null;
   x.font = p.serif;
   const serif = serifRuns(p);
-  const textWidth = Math.max(...all.map((line) => runsWidth(x, line, serif)));
+  // Form EL: the asset's colour mark before the value lines counts in the label's width.
+  const mark = lines.length > 0 ? p.serifPx * MARK_EM : 0;
+  const textWidth = Math.max(...all.map((line) => runsWidth(x, line, serif))) + mark;
   const at: LabelPlace = endsFinite
     ? endLabelAt(
         box,
@@ -450,6 +455,9 @@ const serifRuns = (p: Paint): RunFont => ({
   kern: p.supKern * p.serifPx,
 });
 
+/** Form EL: the colour mark, 0.5em square, 0.25em before the first value line (0.75em in all). */
+const MARK_EM = 0.75;
+
 const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
   const { lines, all, at, textWidth, plate } = layout;
   if (plate !== null) {
@@ -459,9 +467,22 @@ const drawEndLabel = (x: Ctx2D, p: Paint, layout: EndLayout): void => {
   }
   const serif = serifRuns(p);
   all.forEach((line, k) => {
-    x.fillStyle = k < lines.length ? p.price : p.muted;
+    x.fillStyle = k < lines.length ? p.ink : p.muted;
     drawRuns(x, line, { right: at.x }, at.y + k * LABEL_LINE, serif);
   });
+  const [first] = lines;
+  if (first !== undefined) {
+    // The pane's colour square at chart scale (3:1 is its floor), centred on the cap height.
+    const size = p.serifPx * 0.5;
+    x.font = p.serif;
+    x.fillStyle = p.price;
+    x.fillRect(
+      at.x - runsWidth(x, first, serif) - p.serifPx * (MARK_EM - 0.5) - size,
+      at.y - (CAP + size) / 2,
+      size,
+      size,
+    );
+  }
   if (at.leader === null) return;
   // A muted hairline on a surface casing from the plate's lower edge, so it reads across the band;
   // it stops short of the median's end so the point it names stays clear.

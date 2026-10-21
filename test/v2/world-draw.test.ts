@@ -28,6 +28,7 @@ const WEEK = 7 * 24 * 60 * 60 * 1000;
 const PAINT: Paint = {
   hairline: "#333",
   muted: "#999",
+  ink: "#ddd",
   rule: "#c90",
   today: "#eee",
   price: "#f93",
@@ -344,7 +345,7 @@ test("n10: the caption sits on the line under the end label, muted; the end labe
   expect(caption?.x).toBe(label?.x);
   expect(caption?.y).toBe((label?.y ?? 0) + LABEL_LINE);
   expect(caption?.style).toBe(PAINT.muted);
-  expect(label?.style).toBe(PAINT.price);
+  expect(label?.style).toBe(PAINT.ink); // Form EL
 });
 
 test("n10: the $ scale stays, and a tick covers the data's top ($10,000T drawn inside the plot)", () => {
@@ -1211,4 +1212,25 @@ test("user ruling (Colour): the chart's series paint follows the Colour pick, â‚
       expect(Number(row?.[1])).toBeGreaterThanOrEqual(3);
     }
   }
+});
+
+test("Form EL: the end label's text is ink; a 0.5em square in the asset colour stands just before it", async () => {
+  const ops = paint(pack([1e5, 2e5, 3e5, 4e5], [2e5, 4e5, 8e5, 1.6e6], [4e5, 1e7, PAST, 3e6]));
+  const label = ops.find((o) => o.t?.startsWith("\u20BF price"));
+  const mark = ops.find((o) => o.op === "fillRect" && o.style === PAINT.price);
+  expect(label?.style).toBe(PAINT.ink);
+  expect([mark?.w, mark?.h]).toEqual([6.5, 6.5]);
+  const width = (label?.t?.length ?? 0) * 6; // the recorder measures 6px a character
+  expect(mark?.x).toBe((label?.x ?? 0) - width - 3.25 - 6.5); // 0.25em gap, right-aligned text
+  expect(mark?.y).toBe((label?.y ?? 0) - (10 + 6.5) / 2); // centred on the cap height
+  expect(ops.filter((o) => o.op === "fill").every((o) => o.style === PAINT.price)).toBe(true);
+  // The ink reaches 4.5:1 on the chart's ground in both themes (G1 validates these rows).
+  const table = await file(`${import.meta.dir}/../../src/v2/design/tokens/contrast.txt`).text();
+  for (const theme of ["dark", "linen"]) {
+    const row = new RegExp(`^${theme}\\s+text\\s+ground\\s+\\S+\\s+(\\S+)`, "m").exec(table);
+    expect(Number(row?.[1])).toBeGreaterThanOrEqual(4.5);
+  }
+  expect(paintFrom({ getPropertyValue: (k) => (k === "--text" ? "#e9dfc8" : "") }, 16).ink).toBe(
+    "#e9dfc8",
+  );
 });
