@@ -52,12 +52,29 @@ export const keyStep = (
 
 const pct = (pos: number): string => `${pos * 100}%`;
 
-/** §1O: while a thumb is dragged the whole page shows the grabbing cursor, wherever the pointer is. */
+type Styled = {
+  style: { setProperty: (k: string, v: string) => void; removeProperty: (k: string) => void };
+};
+
+/**
+ * §1O drag rule: while a thumb is held, <html> shows grabbing and drops text selection, wherever
+ * the pointer goes. Without `user-select: none` Chromium's mousedown starts a selection drag that
+ * pointer capture doesn't cancel, and its selection autoscroll runs the pane away from a thumb
+ * near the bottom edge (Probe R2 N1).
+ */
+export const holdDrag = (root: Styled, on: boolean): void => {
+  const props: [string, string][] = [
+    ["cursor", "var(--cursor-drag)"],
+    ["user-select", "none"],
+  ];
+  for (const [k, v] of props) {
+    if (on) root.style.setProperty(k, v);
+    else root.style.removeProperty(k);
+  }
+};
+
 const dragHold = (on: boolean): void => {
-  if (typeof document === "undefined") return;
-  const html = document.documentElement.style;
-  if (on) html.setProperty("cursor", "var(--cursor-drag)");
-  else html.removeProperty("cursor");
+  if (typeof document !== "undefined") holdDrag(document.documentElement, on);
 };
 
 /**

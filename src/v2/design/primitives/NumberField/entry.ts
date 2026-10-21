@@ -104,16 +104,39 @@ const plainTiny = (n: number): string => {
   return `${n < 0 ? "-" : ""}0.${"0".repeat(-Number(e) - 1)}${digits}`;
 };
 
+/** Below 1e-20 and from 1e21 up a field shows ×10 form; the mantissa and exponent. */
+const sciOf = (n: number): [string, string] | undefined => {
+  const a = Math.abs(n);
+  if (a === 0 || (a < 1e21 && a >= 1e-20)) return undefined;
+  const [m = "", e = ""] = n.toExponential().split("e");
+  return [m, e.replace("+", "")];
+};
+
 export const showNumber = (n: number): string => {
   if (!Number.isFinite(n)) return "";
   const a = Math.abs(n);
-  if (a !== 0 && (a >= 1e21 || a < 1e-20)) {
-    const [m = "", e = ""] = n.toExponential().split("e");
-    const exp = Array.from(e.replace("+", ""), String)
+  const sci = sciOf(n);
+  if (sci !== undefined) {
+    const [m, e] = sci;
+    const exp = Array.from(e, String)
       .map((c) => (c === "-" ? "⁻" : SUP[Number(c)]))
       .join("");
     return `${m}×10${exp}`;
   }
   const s = a < 1e-6 && a !== 0 ? plainTiny(n) : String(n);
   return s.replace(/^(-?)(\d+)/, (_, sign: string, int: string) => sign + group(int));
+};
+
+/**
+ * What a screen reader hears for a field value (Probe R2 m3): the shown digits, with the ×10 form
+ * in words as the headline says money ("1 times ten to the 300"), and "minus" for a sign.
+ */
+export const speakNumber = (n: number): string => {
+  if (!Number.isFinite(n)) return "";
+  const sci = sciOf(n);
+  const shown =
+    sci === undefined
+      ? showNumber(n)
+      : `${sci[0]} times ten to the ${sci[1].replace("-", "minus ")}`;
+  return shown.replace(/^-/, "minus ");
 };

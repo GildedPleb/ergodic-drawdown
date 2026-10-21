@@ -2,6 +2,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
+import { strings } from "../../src/v2/app/strings";
 
 import { NumberField } from "../../src/v2/design/primitives/NumberField";
 import {
@@ -420,4 +421,15 @@ test("Probe 1MP m4: tiny and huge values never show exponent notation, and read 
     expect(parseNumber(shown, "float")).toBe(n);
     expect(/e/i.test(shown)).toBe(false);
   }
+});
+
+test("Probe R2 m3: the spoken value is the shown one, the ×10 form in words", async () => {
+  const { speakNumber } = await import("../../src/v2/design/primitives/NumberField/entry");
+  expect(speakNumber(1e300)).toBe("1 times ten to the 300");
+  expect(speakNumber(-2.5e-24)).toBe("minus 2.5 times ten to the minus 24");
+  expect(speakNumber(1e9)).toBe("1,000,000,000");
+  expect(speakNumber(1e-7)).toBe("0.0000001");
+  expect(speakNumber(123.456789)).toBe("123.456789");
+  expect(speakNumber(-3)).toBe("minus 3");
+  expect(strings.fields.focus["R (%)"]?.spoken(1e300)).toBe("1 times ten to the 300 percent");
 });

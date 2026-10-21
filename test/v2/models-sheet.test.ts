@@ -326,3 +326,14 @@ test("Probe 1MP M3: Previous Halvings is 2â€“3 with a slider; R (%) stays 0 to â
     true,
   );
 });
+
+test("Probe R2 m3: R = 1e300 is spoken in the field's short form, not 409 digits", () => {
+  const html = renderToStaticMarkup(
+    createElement(ModelsSheet, {
+      values: { ...defaultModelsValues(), model: "CAGR", variable: 1e300 },
+      onChange: () => undefined,
+      initialOpen: ["bitcoin"],
+    }),
+  );
+  expect(html.includes('aria-valuetext="1 times ten to the 300 percent"')).toBe(true);
+});

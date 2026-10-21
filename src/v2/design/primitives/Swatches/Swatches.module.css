@@ -1,6 +1,8 @@
 @layer primitives {
   /* §1MP 8: eight 44px targets spread to the text column's edges (the outer chips' targets run
-     --s-2 past them), shrinking together when the column is narrow. */
+     --s-2 past them), at most 22rem (8 × 44px) across. Narrower than that, eight separate 44px
+     targets can't fit one row, so they wrap to two rows of four: each target owns its quarter of
+     the row and never overlaps a neighbour or spills past the pane (Probe R2 m1, N1 landscape). */
   .root {
     --_neg-s-2: calc(-1 * var(--s-2));
     --_chips-w: calc(100% + 2 * var(--s-2));
@@ -8,20 +10,17 @@
 
     position: relative;
     inset-inline-start: var(--_neg-s-2);
-    display: grid;
-    grid-auto-columns: minmax(0, var(--hit));
-    grid-auto-flow: column;
-    justify-content: space-between;
+    display: flex;
+    flex-wrap: wrap;
     inline-size: var(--_chips-w);
     max-inline-size: var(--_chips-max);
   }
 
-  /* 44×44 even when the track is narrower (40.75px at 390): centred, so the faces don't move. */
+  /* An eighth of the row when it holds 22rem (exactly 44px), else a quarter. */
   .chip {
     display: grid;
+    flex: 0 0 clamp(12.5%, (var(--_chips-max) - 100%) * 999, 25%);
     place-items: center;
-    justify-self: center;
-    inline-size: var(--hit);
     block-size: var(--hit);
     padding: 0;
     background: none;

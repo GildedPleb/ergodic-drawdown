@@ -5,6 +5,7 @@
  * Numbers always go through money.ts.
  */
 import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
+import { speakNumber } from "../design/primitives/NumberField/entry";
 import type { Spread } from "./world/spread";
 
 const count = (n: number): string => n.toLocaleString("en-US");
@@ -206,7 +207,7 @@ export const strings = {
         step: 1,
         marks: [0, 10, 25, 50],
         labelled: 50,
-        spoken: (n: number): string => `${count(n)} percent`,
+        spoken: (n: number): string => `${speakNumber(n)} percent`,
       },
     } as Record<
       string,

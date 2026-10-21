@@ -167,3 +167,39 @@ test("1O: the document press listener flashes touch presses only, until detached
   press({ target, pointerType: "touch" });
   expect(flashes).toBe(1);
 });
+
+test("Probe R2 N1: a slider hold takes grabbing and drops text selection on <html>, and gives both back", async () => {
+  const { holdDrag } = await import("../../src/v2/design/primitives/Slider/Slider");
+  const style = new Map<string, string>();
+  const root = {
+    style: {
+      setProperty: (k: string, v: string) => style.set(k, v),
+      removeProperty: (k: string) => style.delete(k),
+    },
+  };
+  holdDrag(root, true);
+  // Without user-select Chromium's mousedown starts a selection drag whose autoscroll runs the pane.
+  expect(Object.fromEntries(style)).toEqual({
+    cursor: "var(--cursor-drag)",
+    "user-select": "none",
+  });
+  holdDrag(root, false);
+  expect(style.size).toBe(0);
+});
+
+test("Probe R2 m1: eight chips are 44px only at 22rem; narrower they wrap to quarters, never overlap or spill", async () => {
+  const space = await file(`${V2}/design/tokens/space.css`).text();
+  const hit = Number(/--hit:\s*([\d.]+)rem;/.exec(space)?.[1]);
+  const css = await file(`${V2}/design/primitives/Swatches/Swatches.module.css`).text();
+  expect(css.includes("--_chips-max: 22rem;")).toBe(true);
+  expect(8 * hit).toBe(22); // an eighth of 22rem is exactly one --hit
+  // The basis: an eighth at 22rem, a quarter below; a 44px box in a narrower track overlapped.
+  const chip = /\.chip \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(chip.includes("flex: 0 0 clamp(12.5%, (var(--_chips-max) - 100%) * 999, 25%);")).toBe(
+    true,
+  );
+  expect(chip.includes("inline-size")).toBe(false);
+  expect(css.includes("flex-wrap: wrap;")).toBe(true);
+  // Tracks a quarter of the row: 326px at 390 → 81.5px; landscape 263px → 65.75px; both ≥ 44px.
+  for (const row of [326, 263]) expect(row / 4).toBeGreaterThanOrEqual(hit * 16);
+});
