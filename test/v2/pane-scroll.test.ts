@@ -291,3 +291,15 @@ test("ruling: the pane scroller never scrolls sideways (overflow-x: clip)", asyn
   const zone = /\.zone \{([^}]*)\}/.exec(css)?.[1] ?? "";
   expect(zone.includes("overflow-x: clip;") && zone.includes("overflow-y: auto;")).toBe(true);
 });
+
+test("Probe N2: a pick taller than the band shows its top; the list never starts under the header", () => {
+  // 320×568: zone 382.7–556, header 48.2, fades 24 → band 454.9–532 (77px); rows are 80–124px.
+  const clear = { top: 382.7 + 48.2 + 24, bottom: 556 - 24 };
+  const list = { top: 480, bottom: 1230 };
+  const pick0 = { top: 480, bottom: 604 }; // the pick is row 0, 124px
+  expect(revealShift(list, pick0, clear)).toBe(Math.floor(480 - clear.top)); // list top = band top
+  const pick3 = { top: 860, bottom: 940 }; // a later pick, 80px: its top at the band top
+  expect(revealShift(list, pick3, clear)).toBe(Math.floor(860 - clear.top));
+  const small = { top: 860, bottom: 904 }; // a 44px pick fits: its foot at the band foot
+  expect(revealShift(list, small, clear)).toBe(Math.ceil(904 - clear.bottom));
+});

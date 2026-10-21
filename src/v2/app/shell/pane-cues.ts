@@ -153,13 +153,15 @@ const isFocused = (t: unknown): t is Focused =>
 
 /**
  * Form §1MP ruling 5: an opened list scrolls the pane just enough to show all of it in the clear
- * band. A list taller than the band shows its top, unless that would hide its focused option.
+ * band. A list taller than the band shows its top, unless that would hide its focused option; then
+ * as much of the pick as fits, its top first.
  */
 export const revealShift = (list: Box, focused: Box | null, clear: Box): number => {
   const s = focusShift(list, clear);
-  return focused !== null && focused.bottom - s > clear.bottom
-    ? Math.ceil(focused.bottom - clear.bottom)
-    : s;
+  if (focused === null || focused.bottom - s <= clear.bottom) return s;
+  // Up to show the pick's foot, but never past its own top (Probe N2: at 320 the band is 77px and
+  // every row 80–124px, so uncapped this ran the list top under the pinned header).
+  return Math.min(Math.ceil(focused.bottom - clear.bottom), Math.floor(focused.top - clear.top));
 };
 
 /**
