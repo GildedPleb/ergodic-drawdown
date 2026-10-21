@@ -5,7 +5,7 @@
  * Numbers always go through money.ts.
  */
 import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
-import { speakNumber } from "../design/primitives/NumberField/entry";
+import { showNumber, speakNumber } from "../design/primitives/NumberField/entry";
 import type { Spread } from "./world/spread";
 
 const count = (n: number): string => n.toLocaleString("en-US");
@@ -14,7 +14,9 @@ const count = (n: number): string => n.toLocaleString("en-US");
 type Noun = { name: string; plural: boolean };
 
 const range = (min: number, max: number): string =>
-  Number.isFinite(max) ? `from ${count(min)} to ${count(max)}` : `from ${count(min)} up`;
+  Number.isFinite(max)
+    ? `from ${showNumber(min)} to ${showNumber(max)}`
+    : `from ${showNumber(min)} up`;
 
 /** 10000 → "10k"; anything not a whole thousand stays as written. */
 const kilo = (n: number): string =>
@@ -222,10 +224,10 @@ export const strings = {
     >,
     /** Clamp (Gap 11): the value used is shown, not silently swapped. */
     clamped: (noun: Noun, min: number, max: number, used: number): string =>
-      `${noun.name} ${noun.plural ? "go" : "goes"} ${range(min, max)}. We used ${count(used)}.`,
+      `${noun.name} ${noun.plural ? "go" : "goes"} ${range(min, max)}. We used ${showNumber(used)}.`,
     /** Invalid text: cause, next step, reassurance (Probe M2). */
     invalid: (noun: Noun, kind: "int" | "float", min: number, max: number, current: number) =>
-      `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${count(current)}, is still in use.`,
+      `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${showNumber(current)}, is still in use.`,
     /** §1MP: the Years row's front-end label (main's own reads "Years (1-N):"). */
     yearsLabel: "Years",
     /** The samples row's label, its range from the G12-mirrored bounds: 1 to 10,000 reads "1-10k". */

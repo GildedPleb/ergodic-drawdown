@@ -1,3 +1,5 @@
+import { REVEAL } from "../../design/primitives/Select/logic";
+
 /**
  * V32-BUILD §1MP items 10–12: a dock pane's scroll cues, written straight onto the zone (no
  * re-render): data-top while scrolled away from the top, data-more while more is below,
@@ -118,23 +120,26 @@ export const FADE_REM = 1.5;
  * aligns its top.
  */
 export const focusShift = (box: Box, clear: Box): number => {
+  // Whole pixels (WebKit keeps scrollTop integral), rounded so the aligned edge lands inside the
+  // band: down to align a top, up to align a foot. A truncated 0.9px left a foot in the fade.
   if (box.top < clear.top || box.bottom - box.top > clear.bottom - clear.top) {
-    return box.top - clear.top;
+    return Math.floor(box.top - clear.top);
   }
-  return box.bottom > clear.bottom ? box.bottom - clear.bottom : 0;
+  return box.bottom > clear.bottom ? Math.ceil(box.bottom - clear.bottom) : 0;
 };
-
 type Focused = {
   matches: (sel: string) => boolean;
   closest: (sel: string) => { querySelector: (sel: string) => Focused | null } | null;
   contains: (el: Focused) => boolean;
   getBoundingClientRect: () => Box & { height: number };
+  querySelector?: (sel: string) => Focused | null;
 };
+type Listen = "focusin" | typeof REVEAL;
 export type FocusZone = {
   scrollTop: number;
   getBoundingClientRect: () => Box;
-  addEventListener: (type: "focusin", fn: (event: { target: unknown }) => void) => void;
-  removeEventListener: (type: "focusin", fn: (event: { target: unknown }) => void) => void;
+  addEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
+  removeEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
 };
 export type Frames = { request: (fn: () => void) => number; cancel: (id: number) => void };
 const realFrames: Frames = {
@@ -147,10 +152,22 @@ const isFocused = (t: unknown): t is Focused =>
   typeof t === "object" && t !== null && "matches" in t && "closest" in t;
 
 /**
+ * Form §1MP ruling 5: an opened list scrolls the pane just enough to show all of it in the clear
+ * band. A list taller than the band shows its top, unless that would hide its focused option.
+ */
+export const revealShift = (list: Box, focused: Box | null, clear: Box): number => {
+  const s = focusShift(list, clear);
+  return focused !== null && focused.bottom - s > clear.bottom
+    ? Math.ceil(focused.bottom - clear.bottom)
+    : s;
+};
+
+/**
  * Keyboard focus lands clear of the pinned header and both fades. Chromium reads scroll-padding
  * when it decides whether a focused control needs scrolling, but WebKit doesn't, so the zone
  * corrects after the browser's own focus scroll. The header that can cover a control is its own
- * asset's (sticky only inside that asset), measured live. `fade` is the fade height in px.
+ * asset's (sticky only inside that asset), measured live. `fade` is the fade height in px. An
+ * opened list (REVEAL) is shown whole the same way; it supersedes its option's focus correction.
  */
 export const keepFocusClear = (
   zone: FocusZone | null,
@@ -159,9 +176,7 @@ export const keepFocusClear = (
 ): (() => void) => {
   if (zone === null) return () => undefined;
   let frame = 0;
-  const onFocus = (event: { target: unknown }): void => {
-    const el = event.target;
-    if (!isFocused(el) || !el.matches(":focus-visible")) return;
+  const correct = (el: Focused, shiftOf: (box: Box, clear: Box) => number): void => {
     frames.cancel(frame);
     frame = frames.request(() => {
       const head = el.closest("[data-asset]")?.querySelector(PIN) ?? null;
@@ -169,18 +184,30 @@ export const keepFocusClear = (
       const z = zone.getBoundingClientRect();
       const f = fade();
       const hh = head?.getBoundingClientRect().height ?? 0;
-      const shift = focusShift(el.getBoundingClientRect(), {
+      const shift = shiftOf(el.getBoundingClientRect(), {
         top: z.top + hh + f,
         bottom: z.bottom - f,
       });
-      // Whole pixels away from zero: WebKit keeps scrollTop integral, and a truncated 0.9px
-      // would leave the control's foot in the fade.
-      if (shift !== 0) zone.scrollTop += shift > 0 ? Math.ceil(shift) : Math.floor(shift);
+      if (shift !== 0) zone.scrollTop += shift;
+    });
+  };
+  const onFocus = (event: { target: unknown }): void => {
+    const el = event.target;
+    if (isFocused(el) && el.matches(":focus-visible")) correct(el, focusShift);
+  };
+  const onReveal = (event: { target: unknown }): void => {
+    const el = event.target;
+    if (!isFocused(el)) return;
+    correct(el, (box, clear) => {
+      const inner = el.querySelector?.(":focus")?.getBoundingClientRect() ?? null;
+      return revealShift(box, inner, clear);
     });
   };
   zone.addEventListener("focusin", onFocus);
+  zone.addEventListener(REVEAL, onReveal);
   return () => {
     frames.cancel(frame);
     zone.removeEventListener("focusin", onFocus);
+    zone.removeEventListener(REVEAL, onReveal);
   };
 };

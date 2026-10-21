@@ -408,28 +408,43 @@ test("Probe 1MP M2: a slider drag commits live (≤100 ms behind the thumb) and 
   expect(sent.at(-1)).toBe(0.5); // the first move of a hold lands at once; cancel drops the rest
 });
 
-test("Probe 1MP m4: tiny and huge values never show exponent notation, and read back exactly", () => {
+test("Form ruling 4: grouped digits to 999,999,999, then ×10; tiny written out; all read back exactly", () => {
+  const X = "\u00A0×\u00A010";
   const cases: [number, string][] = [
+    [999_999_999, "999,999,999"],
+    [1e9, `1${X}⁹`],
+    [1.2e12, `1.2${X}¹²`],
+    [1_234_567_890, `1.23456789${X}⁹`],
+    [-1.2e12, `-1.2${X}¹²`],
     [1e-7, "0.0000001"],
     [1.23456789e-7, "0.000000123456789"],
-    [1e300, "1×10³⁰⁰"],
-    [-2.5e-24, "-2.5×10⁻²⁴"],
-    [1.2345e25, "1.2345×10²⁵"],
+    [1e300, `1${X}³⁰⁰`],
+    [-2.5e-24, `-2.5${X}⁻²⁴`],
   ];
   for (const [n, shown] of cases) {
     expect(showNumber(n)).toBe(shown);
     expect(parseNumber(shown, "float")).toBe(n);
     expect(/e/i.test(shown)).toBe(false);
   }
+  expect(parseNumber("1.2 × 10¹²", "float")).toBe(1.2e12); // typed with plain spaces too
 });
 
-test("Probe R2 m3: the spoken value is the shown one, the ×10 form in words", async () => {
+test("Probe R2 m3 / ruling 4: the spoken value is the shown one, the ×10 form in words", async () => {
   const { speakNumber } = await import("../../src/v2/design/primitives/NumberField/entry");
-  expect(speakNumber(1e300)).toBe("1 times ten to the 300");
-  expect(speakNumber(-2.5e-24)).toBe("minus 2.5 times ten to the minus 24");
-  expect(speakNumber(1e9)).toBe("1,000,000,000");
+  expect(speakNumber(1.2e12)).toBe("1.2 times 10 to the 12");
+  expect(speakNumber(1e300)).toBe("1 times 10 to the 300");
+  expect(speakNumber(-2.5e-24)).toBe("minus 2.5 times 10 to the minus 24");
+  expect(speakNumber(999_999_999)).toBe("999,999,999");
   expect(speakNumber(1e-7)).toBe("0.0000001");
   expect(speakNumber(123.456789)).toBe("123.456789");
   expect(speakNumber(-3)).toBe("minus 3");
-  expect(strings.fields.focus["R (%)"]?.spoken(1e300)).toBe("1 times ten to the 300 percent");
+  // The clamp and invalid messages use the shown form: never a long digit string.
+  const big = strings.fields.invalid(
+    { name: "+/-", plural: false },
+    "float",
+    1.01,
+    Infinity,
+    1e300,
+  );
+  expect(big.includes(`1\u00A0×\u00A010³⁰⁰`) && !big.includes("000,000")).toBe(true);
 });

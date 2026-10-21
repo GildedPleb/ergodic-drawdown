@@ -235,33 +235,37 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   expect(uncovered(list, await loadCmaps())).toEqual([]);
 });
 
-test("1Q (supersedes the 0..1000 clamp): R (%) clamps at 0 only; 1000 is the slider's soft top", () => {
+test("Form §1MP ruling 2: R (%) is the engine's 0–1000 and clamps to the nearest limit; +/- has no top, min 1.01", () => {
   const cagr = modelsPaneSchema.models.find((m) => m.name === "CAGR");
+  // The back end's own limit (src/data/models/cagr.ts rangeMax, G12-mirrored).
   expect([cagr?.default, cagr?.rangeMin, cagr?.rangeMax]).toEqual([20, 0, 1000]);
+  const bounds = variableBounds(cagr);
+  expect(bounds).toEqual({ min: 0, max: 1000 });
   const html = render({ model: "CAGR", variable: 28 });
   const field = html.slice(html.indexOf('id="v2-variable"') - 200, html.indexOf('id="row-minmax"'));
-  // The value cell: no upper bound. The slider: aria-valuenow is the real value, "28 percent".
-  expect(field.includes('aria-valuemin="0"') && !field.includes('aria-valuemax="1000" value')).toBe(
-    true,
-  );
+  expect(tagWith(field, 'role="spinbutton"').includes('aria-valuemax="1000"')).toBe(true);
   expect(
     field.includes('aria-valuenow="28"') && field.includes('aria-valuetext="28 percent"'),
   ).toBe(true);
-  expect(field.includes('aria-valuemax="1000"')).toBe(true); // the slider's soft top
-  // Typed 5000 is kept (no silent coercion), and -5 clamps to 0 with the standard message.
-  const bounds = { min: 0, max: Infinity };
-  expect(resolveEntry("5000", "float", bounds, 20)).toEqual({ kind: "ok", value: 5000 });
+  expect(resolveEntry("5000", "float", bounds, 20)).toEqual({
+    kind: "clamped",
+    value: 1000,
+    typed: 5000,
+  });
   expect(resolveEntry("-5", "float", bounds, 20)).toEqual({ kind: "clamped", value: 0, typed: -5 });
-  expect(strings.fields.clamped({ name: "R (%)", plural: false }, 0, Infinity, 0)).toBe(
-    "R (%) goes from 0 up. We used 0.",
+  expect(strings.fields.clamped({ name: "R (%)", plural: false }, 0, 1000, 1000)).toBe(
+    "R (%) goes from 0 to 1,000. We used 1,000.",
   );
   // The focus marks: ticks at 0, 10, 25, 50; only 50 is labelled.
   expect((field.match(/>50</g) ?? []).length).toBe(1);
-  // Typed 5000: the thumb pins at the right end, the slider still names the real value.
+  // A 5000 kept from before the ruling reads as the 1000 the back end gets: thumb at the end.
   const big = render({ model: "CAGR", variable: 5000 });
   const thumb = big.slice(big.indexOf('role="slider"') - 120, big.indexOf('role="slider"'));
   expect(thumb.includes("--dyn-at:100%")).toBe(true);
-  expect(big.includes('aria-valuenow="5000"')).toBe(true);
+  expect(big.includes('aria-valuenow="1000"') && !big.includes('aria-valuenow="5000"')).toBe(true);
+  // +/-: from 1.01 up, no top.
+  const mm = tagWith(html.slice(html.indexOf('id="row-minmax"')), 'role="spinbutton"');
+  expect(mm.includes('aria-valuemin="1.01"') && !mm.includes("aria-valuemax")).toBe(true);
 });
 
 /** The opening tag that carries `attr`. */
@@ -297,9 +301,9 @@ test('the samples label is exactly "Statistical Sample Count (1-10k):", from the
 
 const metaOf = (name: string) => modelsPaneSchema.models.find((m) => m.name === name);
 
-test("Probe 1MP M3: Previous Halvings is 2–3 with a slider; R (%) stays 0 to ∞ (§1Q Rule 0)", () => {
+test("Probe 1MP M3: Previous Halvings is 2–3 with a slider; R (%) is 0–1000 (ruling 2)", () => {
   expect(variableBounds(metaOf("Historic"))).toEqual({ min: 2, max: 3 });
-  expect(variableBounds(metaOf("CAGR"))).toEqual({ min: 0, max: Infinity });
+  expect(variableBounds(metaOf("CAGR"))).toEqual({ min: 0, max: 1000 });
   expect(resolveEntry("1000", "float", variableBounds(metaOf("Historic")), null)).toEqual({
     kind: "clamped",
     value: 3,
@@ -312,7 +316,7 @@ test("Probe 1MP M3: Previous Halvings is 2–3 with a slider; R (%) stays 0 to �
   // A count stored before the clamp reads as what the back end uses (3), formatted like the field.
   expect(usedVariable(v)).toBe(3);
   expect(summaryOf(v).startsWith("Replays 3 past halving cycles")).toBe(true);
-  expect(summaryOf({ ...v, model: "CAGR", variable: 1000 }).startsWith("Grows 1,000% a year")).toBe(
+  expect(summaryOf({ ...v, model: "CAGR", variable: 5000 }).startsWith("Grows 1,000% a year")).toBe(
     true,
   );
   const html = renderToStaticMarkup(
@@ -327,13 +331,10 @@ test("Probe 1MP M3: Previous Halvings is 2–3 with a slider; R (%) stays 0 to �
   );
 });
 
-test("Probe R2 m3: R = 1e300 is spoken in the field's short form, not 409 digits", () => {
-  const html = renderToStaticMarkup(
-    createElement(ModelsSheet, {
-      values: { ...defaultModelsValues(), model: "CAGR", variable: 1e300 },
-      onChange: () => undefined,
-      initialOpen: ["bitcoin"],
-    }),
-  );
-  expect(html.includes('aria-valuetext="1 times ten to the 300 percent"')).toBe(true);
+test("Probe R2 m3 / ruling 4: a huge value cell is spoken in words, never digits", () => {
+  const html = render({ model: "CAGR", variable: 20, minMaxMultiple: 1e300 });
+  const mm = tagWith(html.slice(html.indexOf('id="row-minmax"')), 'role="spinbutton"');
+  expect(mm.includes('aria-valuetext="1 times 10 to the 300"')).toBe(true);
+  expect(mm.includes('value="1\u00A0×\u00A010³⁰⁰"')).toBe(true);
+  expect(strings.fields.focus["R (%)"]?.spoken(1000)).toBe("1,000 percent");
 });

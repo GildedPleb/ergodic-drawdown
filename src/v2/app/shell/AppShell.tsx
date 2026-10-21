@@ -6,7 +6,7 @@ import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
 import { useWorld } from "../engine/useWorld";
 import { ModelsSheet } from "../models/ModelsSheet";
-import { loadValues, pageStore, saveValues } from "../models/store";
+import { loadValues, loadView, pageStore, saveValues, saveView } from "../models/store";
 import type { ModelsValues } from "../models/values";
 import { strings } from "../strings";
 import { outOfRange } from "../world/bands";
@@ -49,10 +49,14 @@ export const AppShell = (): JSX.Element => {
   useEffect(() => {
     saveValues(pageStore(), values);
   }, [values]);
-  // §1M: Bitcoin's ledger tick box. OFF: the empty frame and its caption, no headline.
-  const [on, setOn] = useState(true);
-  // §2A: "Show historic price" under Bitcoin (render.showHistoric), off on every load.
-  const [historic, setHistoric] = useState(false);
+  // §1M Bitcoin's square (OFF: the empty frame and its caption, no headline), §2A "Show historic
+  // price" (render.showHistoric) and the colour: kept across a reload too (Form §1MP ruling 3).
+  const [view, setView] = useState(() => loadView(pageStore()));
+  useEffect(() => {
+    saveView(pageStore(), view);
+  }, [view]);
+  const on = view.bitcoin;
+  const historic = view.historic;
   // The chart column reflows once, when the panel has finished sliding in (§1e).
   const [column, setColumn] = useState(false);
   const side = useMedia(SIDE_PANEL);
@@ -264,9 +268,17 @@ export const AppShell = (): JSX.Element => {
               <PaneScroll id="models">
                 <ModelsSheet
                   on={on}
-                  onOn={setOn}
+                  onOn={(bitcoin) => {
+                    setView((v) => ({ ...v, bitcoin }));
+                  }}
                   historic={historic}
-                  onHistoric={setHistoric}
+                  onHistoric={(next) => {
+                    setView((v) => ({ ...v, historic: next }));
+                  }}
+                  colour={view.colour}
+                  onColour={(colour) => {
+                    setView((v) => ({ ...v, colour }));
+                  }}
                   yearsMax={world.yearsMax}
                   values={values}
                   onChange={(patch) => {

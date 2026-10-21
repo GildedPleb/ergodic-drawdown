@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
-import { listKey } from "./logic";
+import { listKey, REVEAL } from "./logic";
 import styles from "./Select.module.css";
 
 /** R7: variant keys and values. */
@@ -71,6 +71,12 @@ export const Select = ({
     if (i === null) return;
     root.current?.querySelector<HTMLElement>(`#${CSS.escape(`${id}-opt-${String(i)}`)}`)?.focus();
   });
+
+  // Form §1MP ruling 5: opened in place, the list asks its scroller to show all of it (PaneScroll
+  // listens; elsewhere the event goes unheard). Nothing is locked: the pane and sheet still move.
+  useEffect(() => {
+    if (open) root.current?.dispatchEvent(new CustomEvent(REVEAL, { bubbles: true }));
+  }, [open]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const step = listKey(open, active, options.length, event.key);

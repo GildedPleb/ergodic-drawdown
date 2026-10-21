@@ -28,3 +28,6 @@ export const listKey = (open: boolean, active: number, count: number, key: strin
       return { open, active, handled: false };
   }
 };
+
+/** Dispatched (bubbling) from an opened listbox so its scroller can show it whole (ruling 5). */
+export const REVEAL = "pane:reveal";

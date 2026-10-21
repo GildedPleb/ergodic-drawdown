@@ -5,10 +5,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { PaneScroll } from "../../src/v2/app/shell/PaneScroll";
+import { REVEAL } from "../../src/v2/design/primitives/Select/logic";
 import {
   cuesOf,
   focusShift,
   keepFocusClear,
+  revealShift,
   paintCues,
   PIN,
   resizeWith,
@@ -188,11 +190,11 @@ test("1MP 11–12: fades by mask (zero unless flagged), the scrollbar column unm
 test("Probe 1MP M1: focus lands below the pinned header and its fade, above the bottom fade", () => {
   // WebKit 390: zone 115.5–832, header 48.2 tall, fades 24 → clear band 187.7–808.
   const clear = { top: 115.5 + 48.2 + 24, bottom: 832 - 24 };
-  expect(Math.abs(focusShift({ top: 131, bottom: 151 }, clear) - (131 - 187.7)) < 1e-9).toBe(true); // under the header
-  expect(Math.abs(focusShift({ top: 184.6, bottom: 202.6 }, clear) - -3.1) < 1e-9).toBe(true); // in the top fade
-  expect(Math.abs(focusShift({ top: 799.5, bottom: 817.5 }, clear) - 9.5) < 1e-9).toBe(true); // in the bottom fade
+  expect(focusShift({ top: 131, bottom: 151 }, clear)).toBe(Math.floor(131 - 187.7)); // under the header
+  expect(focusShift({ top: 184.6, bottom: 202.6 }, clear)).toBe(-4); // -3.1, down: top lands inside // in the top fade
+  expect(focusShift({ top: 799.5, bottom: 817.5 }, clear)).toBe(10); // 9.5, up: foot lands inside // in the bottom fade
   expect(focusShift({ top: 400, bottom: 444 }, clear)).toBe(0); // clear: leave it
-  expect(Math.abs(focusShift({ top: 100, bottom: 900 }, clear) - (100 - 187.7)) < 1e-9).toBe(true); // taller: top
+  expect(focusShift({ top: 100, bottom: 900 }, clear)).toBe(Math.floor(100 - 187.7)); // taller: top
 });
 
 test("Probe 1MP M1: keyboard focus under the asset's pinned header scrolls up clear of it; mouse focus and the header itself don't", () => {
@@ -200,8 +202,8 @@ test("Probe 1MP M1: keyboard focus under the asset's pinned header scrolls up cl
   const zone = {
     scrollTop: 500,
     getBoundingClientRect: () => ({ top: 115.5, bottom: 832 }),
-    addEventListener: (_: "focusin", fn: (e: { target: unknown }) => void) => {
-      listener = fn;
+    addEventListener: (type: string, fn: (e: { target: unknown }) => void) => {
+      if (type === "focusin") listener = fn;
     },
     removeEventListener: () => {
       listener = undefined;
@@ -233,4 +235,59 @@ test("Probe 1MP M1: keyboard focus under the asset's pinned header scrolls up cl
   expect(zone.scrollTop).toBe(500 + Math.floor(131 - (115.5 + 48.2 + 24))); // whole px, up
   stop();
   expect(listener).toBeUndefined();
+});
+
+test("Form ruling 5: an opened list scrolls the pane just enough to show all of it", () => {
+  // 1440: zone 598–878, header 50.44, fades 24 → clear band 672.44–854. The walk list 796–917.
+  const clear = { top: 598 + 50.44 + 24, bottom: 878 - 24 };
+  expect(revealShift({ top: 796, bottom: 917 }, null, clear)).toBe(917 - 854); // up by its overhang
+  expect(revealShift({ top: 700, bottom: 800 }, null, clear)).toBe(0); // shown already: stays
+  // Taller than the band: its top, unless the focused option would then sit in the bottom fade.
+  expect(revealShift({ top: 700, bottom: 1100 }, null, clear)).toBe(27); // 27.56 down: top inside
+  const focused = { top: 1040, bottom: 1084 };
+  expect(revealShift({ top: 700, bottom: 1100 }, focused, clear)).toBe(1084 - 854);
+});
+
+test("Form ruling 5: the reveal is heard on the zone, supersedes the option's focus correction, and detaches", () => {
+  const heard = new Map<string, (e: { target: unknown }) => void>();
+  const zone = {
+    scrollTop: 100,
+    getBoundingClientRect: () => ({ top: 598, bottom: 878 }),
+    addEventListener: (type: string, fn: (e: { target: unknown }) => void) => heard.set(type, fn),
+    removeEventListener: (type: string) => heard.delete(type),
+  };
+  const queued = new Map<number, () => void>();
+  let id = 0;
+  const frames = {
+    request: (fn: () => void) => {
+      queued.set(++id, fn);
+      return id;
+    },
+    cancel: (n: number) => queued.delete(n),
+  };
+  const option = {
+    matches: () => true,
+    closest: () => null,
+    contains: () => false,
+    getBoundingClientRect: () => ({ top: 820, bottom: 864, height: 44 }),
+  };
+  const list = {
+    ...option,
+    getBoundingClientRect: () => ({ top: 796, bottom: 917, height: 121 }),
+    querySelector: () => option,
+  };
+  const stop = keepFocusClear(zone, () => 24, frames);
+  heard.get("focusin")?.({ target: option });
+  heard.get(REVEAL)?.({ target: list });
+  expect(queued.size).toBe(1); // the option's correction was cancelled
+  for (const run of queued.values()) run();
+  expect(zone.scrollTop).toBe(100 + Math.ceil(917 - 854));
+  stop();
+  expect(heard.size).toBe(0);
+});
+
+test("ruling: the pane scroller never scrolls sideways (overflow-x: clip)", async () => {
+  const css = await file(`${v2}/app/shell/PaneScroll.module.css`).text();
+  const zone = /\.zone \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(zone.includes("overflow-x: clip;") && zone.includes("overflow-y: auto;")).toBe(true);
 });

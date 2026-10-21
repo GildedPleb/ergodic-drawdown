@@ -17,7 +17,7 @@ export const normalizeNumberText = (text: string): string =>
   text
     .replace(/[\s,\u00A0\u202F\u2009]/g, "")
     .replace(/\u2212/g, "-")
-    // "1×10³⁰⁰" / "2.5×10⁻²⁴" (showNumber's large and tiny forms) → "1e300" / "2.5e-24".
+    // "1 × 10³⁰⁰" / "2.5 × 10⁻²⁴" (showNumber's large and tiny forms, spaces already gone) → "1e300" / "2.5e-24".
     .replace(
       /[×x]10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/,
       (_, exp: string) =>
@@ -93,8 +93,8 @@ const group = (int: string): string => int.replace(/\B(?=(\d{3})+$)/g, ",");
 
 /**
  * The shown text (Probe Minor 4: never "1e-7"): "1,000", "12,345.5", "0.1", "0.0000001";
- * below 1e-20 and from 1e21 up, ×10 with real superscripts as §1h writes huge money ("1×10³⁰⁰",
- * "-2.5×10⁻²⁴"), the mantissa at full precision so the shown value is the used one. m7 and
+ * from 1e9 up and below 1e-20, ×10 with real superscripts ("1.2 × 10¹²", "-2.5 × 10⁻²⁴"), the
+ * mantissa at full precision so the shown value is the used one. m7 and
  * normalizeNumberText read every form back.
  */
 /** 1.2345e-7 → "0.00000012345": the shortest round-trip digits, written out in full. */
@@ -104,10 +104,16 @@ const plainTiny = (n: number): string => {
   return `${n < 0 ? "-" : ""}0.${"0".repeat(-Number(e) - 1)}${digits}`;
 };
 
-/** Below 1e-20 and from 1e21 up a field shows ×10 form; the mantissa and exponent. */
+/** Form §1MP ruling 4: grouped digits up to 999,999,999; from 1e9 up (and below 1e-20) ×10 form. */
+const SCI_FROM = 1e9;
+const SCI_BELOW = 1e-20;
+/** No-break spaces round the ×, so "1.2 × 10¹²" never wraps; normalizeNumberText strips them. */
+const TIMES = "\u00A0×\u00A010";
+
+/** The ×10 form's mantissa and exponent, or undefined for grouped digits. */
 const sciOf = (n: number): [string, string] | undefined => {
   const a = Math.abs(n);
-  if (a === 0 || (a < 1e21 && a >= 1e-20)) return undefined;
+  if (a === 0 || (a < SCI_FROM && a >= SCI_BELOW)) return undefined;
   const [m = "", e = ""] = n.toExponential().split("e");
   return [m, e.replace("+", "")];
 };
@@ -121,15 +127,15 @@ export const showNumber = (n: number): string => {
     const exp = Array.from(e, String)
       .map((c) => (c === "-" ? "⁻" : SUP[Number(c)]))
       .join("");
-    return `${m}×10${exp}`;
+    return `${m}${TIMES}${exp}`;
   }
   const s = a < 1e-6 && a !== 0 ? plainTiny(n) : String(n);
   return s.replace(/^(-?)(\d+)/, (_, sign: string, int: string) => sign + group(int));
 };
 
 /**
- * What a screen reader hears for a field value (Probe R2 m3): the shown digits, with the ×10 form
- * in words as the headline says money ("1 times ten to the 300"), and "minus" for a sign.
+ * What a screen reader hears for a field value (Probe R2 m3, Form ruling 4): the shown digits, the
+ * ×10 form in words ("1.2 times 10 to the 12"), and "minus" for a sign; never a long digit string.
  */
 export const speakNumber = (n: number): string => {
   if (!Number.isFinite(n)) return "";
@@ -137,6 +143,6 @@ export const speakNumber = (n: number): string => {
   const shown =
     sci === undefined
       ? showNumber(n)
-      : `${sci[0]} times ten to the ${sci[1].replace("-", "minus ")}`;
+      : `${sci[0]} times 10 to the ${sci[1].replace("-", "minus ")}`;
   return shown.replace(/^-/, "minus ");
 };

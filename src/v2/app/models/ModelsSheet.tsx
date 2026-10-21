@@ -125,6 +125,9 @@ export type ModelsSheetProps = {
   /** §2A: "Show historic price" (render.showHistoric), off by default. */
   historic?: boolean;
   onHistoric?: (next: boolean) => void;
+  /** §1MP 8: Bitcoin's colour name; kept by the shell (ruling 3). Without it the sheet keeps its own. */
+  colour?: string;
+  onColour?: (name: string) => void;
   /** main's live Years cap (maxYears of the weeks since the last halving); the absolute cap before halvings load. */
   yearsMax?: number;
   /** Stories and tests: force the two-column walk list (the pane otherwise reads DESKTOP). */
@@ -138,15 +141,15 @@ type AssetId = (typeof copy.assets)[number]["id"];
 type ModelMeta = (typeof modelsPaneSchema.models)[number];
 
 /**
- * A model's variable range. §1Q Rule 0 (Form) opens the top only for a field with a focus range
- * (R (%): 0 to ∞, its rangeMax the slider's soft top). Every other variable keeps the model's own
- * rangeMin…rangeMax (G12-mirrored): Previous Halvings is 2–3 (Probe M3; the back end uses at most
- * the 3 halvings before the current one, so a larger count changes nothing).
+ * A model's variable range: the model's own rangeMin…rangeMax (G12-mirrored), and a typed value
+ * outside it clamps to the nearest limit on commit. Form's §1MP ruling 2 replaces §1Q Rule 0's open
+ * top: R (%) is the engine's 0–1000 (cagr.ts rangeMax, the old UI's limit too), its slider's soft
+ * top the same 1000. Previous Halvings is 2–3 (Probe M3; the back end uses at most the 3 halvings
+ * before the current one, so a larger count changes nothing).
  */
 export const variableBounds = (meta: ModelMeta | undefined): Bounds => {
   const min = meta === undefined || meta.rangeMin === "Infinity" ? 0 : meta.rangeMin;
-  const open = meta === undefined || strings.fields.focus[meta.varInput] !== undefined;
-  const max = open || meta.rangeMax === "Infinity" ? Infinity : meta.rangeMax;
+  const max = meta === undefined || meta.rangeMax === "Infinity" ? Infinity : meta.rangeMax;
   return { min, max };
 };
 
@@ -191,6 +194,8 @@ export const ModelsSheet = ({
   onOn,
   historic = false,
   onHistoric,
+  colour: keptColour,
+  onColour,
   yearsMax = controls.years.max,
   wide,
   initialOpen = [],
@@ -198,7 +203,12 @@ export const ModelsSheet = ({
   const desktop = useMedia(DESKTOP);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(initialOpen));
   const [modelList, setModelList] = useState(false);
-  const [colour, setColour] = useState<string>(copy.colours[0].name);
+  const [ownColour, setOwnColour] = useState<string>(copy.colours[0].name);
+  const colour = keptColour ?? ownColour;
+  const setColour = (name: string): void => {
+    setOwnColour(name);
+    onColour?.(name);
+  };
   const meta = modelsPaneSchema.models.find((m) => m.name === values.model);
   const varBounds = variableBounds(meta);
   const softTop = meta === undefined || meta.rangeMax === "Infinity" ? undefined : meta.rangeMax;

@@ -4,7 +4,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "bun:test";
 
 import { ModelsSheet, summaryOf } from "../../src/v2/app/models/ModelsSheet";
-import { loadValues, pageStore, saveValues, STORE_KEY } from "../../src/v2/app/models/store";
+import {
+  defaultView,
+  loadValues,
+  loadView,
+  pageStore,
+  saveValues,
+  saveView,
+  STORE_KEY,
+  VIEW_KEY,
+} from "../../src/v2/app/models/store";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
 import { strings } from "../../src/v2/app/strings";
 
@@ -151,4 +160,51 @@ test("1MP 7: the tick box is a single 1px line, filled --accent with a --ground 
       css,
     ),
   ).toBe(true);
+});
+
+test("Form ruling 3: Show historic price, the colour and Bitcoin's on/off survive a reload (v2's own key)", () => {
+  const data = new Map<string, string>();
+  const store = {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      data.set(k, v);
+    },
+  };
+  expect(loadView(store)).toEqual({ bitcoin: true, historic: false, colour: "₿ orange" });
+  const kept = { bitcoin: false, historic: true, colour: strings.models.colours[2].name };
+  saveView(store, kept);
+  expect(data.has(VIEW_KEY) && !data.has(STORE_KEY)).toBe(true); // the Models values untouched
+  expect(loadView(store)).toEqual(kept);
+  // Field by field: a bad colour or a non-boolean falls back alone.
+  data.set(VIEW_KEY, JSON.stringify({ bitcoin: "no", historic: true, colour: "Mauve" }));
+  expect(loadView(store)).toEqual({ ...defaultView(), historic: true });
+  data.set(VIEW_KEY, "{not json");
+  expect(loadView(store)).toEqual(defaultView());
+  expect(loadView(undefined)).toEqual(defaultView());
+  // The sheet shows a kept colour and reports a change up.
+  const html = renderToStaticMarkup(
+    createElement(ModelsSheet, {
+      values: defaultModelsValues(),
+      onChange: () => undefined,
+      colour: kept.colour,
+      initialOpen: ["bitcoin"],
+    }),
+  );
+  expect(html.includes(`>${kept.colour}</span>`)).toBe(true);
+});
+
+test("Form ruling 6: S&P and Inflation headers keep the pointer; only their inert square is the arrow", async () => {
+  const css = await file(
+    `${import.meta.dir}/../../src/v2/design/primitives/AssetRow/AssetRow.module.css`,
+  ).text();
+  // The square takes the press cursor only when it isn't inert; the header toggle always does.
+  expect(css.includes(".key:not([aria-disabled]) {\n    cursor: var(--cursor-press);")).toBe(true);
+  const toggle = /\.toggle \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(toggle.includes("cursor: var(--cursor-press);")).toBe(true);
+  const pane = await file(`${import.meta.dir}/../../src/v2/app/shell/PaneScroll.module.css`).text();
+  expect(pane.includes("cursor: var(--cursor-rest);")).toBe(true); // what an inert square shows
+  const html = renderToStaticMarkup(
+    createElement(ModelsSheet, { values: defaultModelsValues(), onChange: () => undefined }),
+  );
+  expect((html.match(/aria-disabled="true"/g) ?? []).length >= 2).toBe(true); // S&P, Inflation
 });

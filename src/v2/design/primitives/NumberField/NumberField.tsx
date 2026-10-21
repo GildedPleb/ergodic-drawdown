@@ -10,6 +10,7 @@ import {
   parseNumber,
   resolveEntry,
   showNumber,
+  speakNumber,
   stepValue,
 } from "./entry";
 import styles from "./NumberField.module.css";
@@ -65,6 +66,10 @@ type Status = { kind: "ok" } | { kind: "clamped"; used: number } | { kind: "inva
  * or when the wheel settles (settle.ts). A step that lands on a bound shows the same clamp message
  * on commit (Probe m6).
  */
+/** Form ruling 4: a ×10 value is spoken in words ("1.2 times 10 to the 12"), never as digits. */
+const spokenOf = (value: number): string | undefined =>
+  showNumber(value).includes("×") ? speakNumber(value) : undefined;
+
 export const NumberField = ({
   label,
   labelHidden = false,
@@ -258,6 +263,7 @@ export const NumberField = ({
           spellCheck={false}
           aria-label={labelHidden ? label : undefined}
           aria-valuenow={finite(value)}
+          aria-valuetext={spokenOf(value)}
           aria-valuemin={finite(bounds.min)}
           aria-valuemax={finite(bounds.max)}
           value={draft}

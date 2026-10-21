@@ -3,6 +3,7 @@
  * these in React state only), so this is the one place they're kept: one localStorage key,
  * read back only when every value has the right type and names a real model and walk.
  */
+import { strings } from "../strings";
 import { modelsPaneSchema } from "./schema";
 import { defaultModelsValues, type ModelsValues } from "./values";
 
@@ -48,5 +49,48 @@ export const saveValues = (store: Storage | undefined, values: ModelsValues): vo
     store?.setItem(STORE_KEY, JSON.stringify(values));
   } catch {
     // Private mode or a full store: the settings still apply, they just aren't kept.
+  }
+};
+
+/**
+ * Form §1MP ruling 3: the pane's view settings survive a reload too: "Show historic price", the
+ * Bitcoin colour and each asset's on/off square (only Bitcoin's can change; S&P and Inflation are
+ * inert). They are not back-end settings, so they keep their own key beside the Models values.
+ */
+export const VIEW_KEY = "stackmath.v2.view";
+
+export type ViewValues = { bitcoin: boolean; historic: boolean; colour: string };
+
+export const defaultView = (): ViewValues => ({
+  bitcoin: true,
+  historic: false,
+  colour: strings.models.colours[0].name,
+});
+
+/** The kept view, field by field: a field that doesn't read back keeps its default. */
+export const loadView = (store: Storage | undefined): ViewValues => {
+  const out = defaultView();
+  try {
+    const raw: unknown = JSON.parse(store?.getItem(VIEW_KEY) ?? "null");
+    if (typeof raw !== "object" || raw === null) return out;
+    const bitcoin: unknown = Reflect.get(raw, "bitcoin");
+    const historic: unknown = Reflect.get(raw, "historic");
+    const colour: unknown = Reflect.get(raw, "colour");
+    if (typeof bitcoin === "boolean") out.bitcoin = bitcoin;
+    if (typeof historic === "boolean") out.historic = historic;
+    if (strings.models.colours.some((c) => c.name === colour) && typeof colour === "string") {
+      out.colour = colour;
+    }
+    return out;
+  } catch {
+    return out;
+  }
+};
+
+export const saveView = (store: Storage | undefined, view: ViewValues): void => {
+  try {
+    store?.setItem(VIEW_KEY, JSON.stringify(view));
+  } catch {
+    // As saveValues: still applied, just not kept.
   }
 };
