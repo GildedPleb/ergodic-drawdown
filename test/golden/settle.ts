@@ -26,6 +26,7 @@ import { handleVolume } from "../../src/contexts/computed/volume";
 import { calculateVolumeStatistics } from "../../src/contexts/computed/volume-statistics";
 import { calculateBalanceAndZero } from "../../src/contexts/computed/zero-count";
 import { simulationSeed } from "../../src/contexts/model";
+import { drawdownBandIdentity, walkedPriceIdentity } from "../../src/engine/keys";
 import { type WalkTypes } from "../../src/data/walks";
 import { WALK_STATE_LENGTH } from "../../src/data/walks/prng";
 import { loadHalvings, weeksSinceLastHalving } from "../../src/halvings";
@@ -436,6 +437,27 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
   const halvingAnnotations = await runNode((signal) =>
     handleHalvingAnnotations(signal, hash, halvings),
   );
+  const maxSlot = {
+    key: "",
+    logs: new Float64Array(0),
+    points: new Float64Array(0),
+    seriesHash: "",
+    weeks: 0,
+  };
+  const minSlot = {
+    key: "",
+    logs: new Float64Array(0),
+    points: new Float64Array(0),
+    seriesHash: "",
+    weeks: 0,
+  };
+  const cashflowSlot = {
+    bitcoin: new Float64Array(0),
+    fiat: new Float64Array(0),
+    key: "",
+    seriesHash: "",
+    weeks: 0,
+  };
   const maxArray = await runNode((signal) =>
     handleMaxArray(
       signal,
@@ -447,10 +469,12 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       goldenPins.price,
       now,
       dataLength,
+      input.weeksSince,
+      maxSlot,
     ),
   );
   const maxDataset = await runNode((signal) =>
-    handleMaxModel(signal, hash, input.renderModelMax, maxArray, now),
+    handleMaxModel(signal, hash, input.renderModelMax, maxArray, now, dataLength),
   );
   const minArray = await runNode((signal) =>
     handleMinArray(
@@ -463,10 +487,12 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       goldenPins.price,
       now,
       dataLength,
+      input.weeksSince,
+      minSlot,
     ),
   );
   const minDataset = await runNode((signal) =>
-    handleMinModel(signal, hash, input.renderModelMin, minArray, now),
+    handleMinModel(signal, hash, input.renderModelMin, minArray, now, dataLength),
   );
   const drawdownStatic = await runNode((signal) =>
     handleDrawdownStatic(
@@ -478,6 +504,8 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       reoccurring,
       inflationFactors,
       weeklyInflationRate,
+      input.weeksSince,
+      cashflowSlot,
     ),
   );
   const simulation = await runNode((signal) =>
@@ -496,6 +524,8 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       dataLength,
       full,
       fullHash,
+      minSlot.seriesHash,
+      maxSlot.seriesHash,
     ),
   );
   expectOk(input.name, simulation);
@@ -551,6 +581,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       memory.balance,
       volumeCacheHash,
       variableCacheHash,
+      walkedPriceIdentity(fullHash, goldenPins.price, minSlot.seriesHash, maxSlot.seriesHash),
       input.weeksSince,
       dataLength,
       worker,
@@ -584,7 +615,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       input.renderPriceDistribution,
       "price",
       false,
-      fullHash,
+      walkedPriceIdentity(fullHash, goldenPins.price, minSlot.seriesHash, maxSlot.seriesHash),
     ),
   );
   const priceWalks = await runNode((signal) =>
@@ -599,6 +630,8 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       dataLength,
     ),
   );
+  const storedFinal = memory.finals.get(variableCacheHash);
+  const spend = storedFinal === undefined ? "missing" : storedFinal.spendHash();
   const drawdownBands = await runNode((signal) =>
     handleDistribution(
       signal,
@@ -612,7 +645,12 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       input.renderDrawdownDistribution,
       "drawdown",
       input.showModel,
-      `${volumeCacheHash}:${variableCacheHash}`,
+      drawdownBandIdentity(
+        volumeCacheHash,
+        spend,
+        drawdownStatic.seriesHash,
+        walkedPriceIdentity(fullHash, goldenPins.price, minSlot.seriesHash, maxSlot.seriesHash),
+      ),
     ),
   );
   const drawdownWalks = await runNode((signal) =>

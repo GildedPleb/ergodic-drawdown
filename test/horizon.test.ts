@@ -2,7 +2,9 @@ import { expect, test } from "bun:test";
 
 import {
   allocatedEpochs,
-  coveredEpochs,
+  chartWeeksCovered,
+  columnOfChartWeek,
+  epochsForNewSamples,
   legacySpan,
   maxYears,
   resolveHorizon,
@@ -12,12 +14,23 @@ import {
 test("forty years is 2080 weeks and ten epochs from a halving", () => {
   expect(visibleWeeks(40)).toBe(2080);
   expect(resolveHorizon(0, 40, null)).toEqual({ dataLength: 2080, epochs: 10 });
-  expect(coveredEpochs(0, 2080)).toBe(10);
+  expect(chartWeeksCovered(0, 10)).toBe(2080);
+  expect(columnOfChartWeek(0, 2080)).toBe(10);
 });
 
-test("forty years from week 130 allocates the partial eleventh epoch", () => {
+test("forty years from week 130 keeps the partial eleventh column", () => {
   expect(resolveHorizon(130, 40, null)).toEqual({ dataLength: 2080, epochs: 11 });
-  expect(coveredEpochs(130, 2080)).toBe(10);
+  expect(chartWeeksCovered(130, 11)).toBe(11 * 208 - 130);
+  expect(columnOfChartWeek(130, chartWeeksCovered(130, 10))).toBe(10);
+  expect(columnOfChartWeek(130, chartWeeksCovered(130, 11))).toBe(11);
+});
+
+test("new samples walk the trusted columns when the year is shorter", () => {
+  expect(epochsForNewSamples(0, 416, 1, 2, 1)).toBe(2);
+  expect(epochsForNewSamples(0, 416, 1, 1, 1)).toBe(1);
+  expect(epochsForNewSamples(0, 0, 1, 2, 0)).toBe(1);
+  expect(epochsForNewSamples(130, chartWeeksCovered(130, 11), 4, 8, 4)).toBe(11);
+  expect(epochsForNewSamples(130, chartWeeksCovered(130, 11), 11, 8, 4)).toBe(11);
 });
 
 test("one year fits in the open epoch", () => {
