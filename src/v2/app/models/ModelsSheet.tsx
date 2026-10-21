@@ -15,7 +15,7 @@ import { Swatches } from "../../design/primitives/Swatches";
 import { TickToggle } from "../../design/primitives/TickToggle";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { useMedia } from "../shell/useMedia";
-import { strings } from "../strings";
+import { colourOf, strings } from "../strings";
 import styles from "./ModelsSheet.module.css";
 import { modelsPaneSchema } from "./schema";
 import { choosePatch, type ModelsValues } from "./values";
@@ -215,7 +215,7 @@ export const ModelsSheet = ({
   const volStep =
     values.walk === "Bubble" ? controls.volatility.stepBubble : controls.volatility.stepOther;
   const ergodic = ergodicOf(values);
-  const btcColour = copy.colours.find((c) => c.name === colour)?.colour ?? copy.colours[0].colour;
+  const btcColour = colourOf(colour);
 
   const root = styles["root"] ?? "models-root";
   const list = styles["list"] ?? "models-list";

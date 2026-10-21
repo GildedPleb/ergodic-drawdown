@@ -14,6 +14,8 @@ import styles from "./WorldLayer.module.css";
 
 export type WorldLayerProps = {
   bands: PriceBands | null;
+  /** The asset's Colour pick (a paint, e.g. var(--path-plan-1)): its series on the chart (--_price). */
+  colour?: string;
   /** §2A: the traded price ("Show historic price" on), else null. */
   history?: History | null;
   now: number;
@@ -80,6 +82,7 @@ const FRAMES = {
  */
 export const WorldLayer = ({
   bands,
+  colour = "var(--asset-btc)",
   history = null,
   now,
   horizon,
@@ -179,14 +182,14 @@ export const WorldLayer = ({
       bands,
     );
     lastDraw.current = performance.now() - t0;
-  }, [bands, history, now, horizon, size, fonts, live, view.from, view.to, shown]);
+  }, [bands, colour, history, now, horizon, size, fonts, live, view.from, view.to, shown]);
 
   const root = styles["root"] ?? "world-root";
   const front = styles["front"] ?? "world-front";
   const surface = styles["canvas"] ?? "world-canvas";
   const reset = styles["reset"] ?? "world-reset";
   return (
-    <div ref={box} className={root} data-layer-root="w">
+    <div ref={box} className={root} data-layer-root="w" style={{ "--dyn-asset": colour }}>
       <div
         ref={plot}
         className={front}

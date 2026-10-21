@@ -117,7 +117,7 @@ export const paintFrom = (
     muted: v("--text-muted"),
     rule: v("--rule"),
     today: v("--today-line"),
-    price: v("--asset-btc"),
+    price: v("--_price") || v("--asset-btc"), // WorldLayer.module.css: the Colour pick
     surface: v("--surface"),
     ground: v("--ground"),
     accent: v("--accent"),

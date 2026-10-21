@@ -241,3 +241,7 @@ export const strings = {
     },
   },
 } as const;
+
+/** A Colour pick's paint (§1MP 8): the square and the chart's series; ₿ orange by default. */
+export const colourOf = (name: string): string =>
+  strings.models.colours.find((c) => c.name === name)?.colour ?? strings.models.colours[0].colour;

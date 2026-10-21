@@ -28,6 +28,7 @@
 
   .canvas {
     --chart-end-lines: 1;
+    --_price: var(--dyn-asset);
 
     display: block;
     inline-size: 100%;

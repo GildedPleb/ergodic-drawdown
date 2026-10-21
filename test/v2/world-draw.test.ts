@@ -1176,3 +1176,39 @@ test("2A-r5 (user ruling): the same nine series at every N: the median and four 
   const texts = draw(693, { ...nine(), n: 2 }, 2).filter((t) => t.startsWith("\u20BF price"));
   expect(texts).toEqual([strings.chart.endLabel(4e5, 0.2 * 4e5, 5 * 4e5)]);
 });
+
+const priceCss = (dyn: string): { getPropertyValue: (k: string) => string } => ({
+  getPropertyValue: (k: string) => ({ "--asset-btc": "#f7931a", "--_price": dyn })[k] ?? "",
+});
+
+test("user ruling (Colour): the chart's series paint follows the Colour pick, ₿ orange by default", async () => {
+  const { colourOf } = await import("../../src/v2/app/strings");
+  const { WorldLayer } = await import("../../src/v2/app/world/WorldLayer");
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  expect(colourOf("Jade")).toBe("var(--path-plan-1)");
+  expect(colourOf("not a chip")).toBe("var(--path-btc-price)");
+  const html = renderToStaticMarkup(
+    createElement(WorldLayer, {
+      bands: null,
+      now: 0,
+      horizon: 52,
+      label: "x",
+      colour: colourOf("Jade"),
+    }),
+  );
+  expect(html.includes('style="--dyn-asset:var(--path-plan-1)"')).toBe(true);
+  expect(paintFrom(priceCss("#3fb58a"), 16).price).toBe("#3fb58a"); // every band, line and the end label use p.price
+  expect(paintFrom(priceCss(""), 16).price).toBe("#f7931a");
+  const shell = await file(`${import.meta.dir}/../../src/v2/app/shell/AppShell.tsx`).text();
+  expect(shell.includes("colour={colourOf(view.colour)}")).toBe(true); // the kept (persisted) pick
+  // Every chip clears 3:1 on the chart's ground in both themes (G1 checks these rows).
+  const table = await file(`${import.meta.dir}/../../src/v2/design/tokens/contrast.txt`).text();
+  for (const { colour } of strings.models.colours) {
+    const token = colour.slice(6, -1);
+    for (const theme of ["dark", "linen"]) {
+      const row = new RegExp(`^${theme}\\s+${token}\\s+ground\\s+\\S+\\s+(\\S+)`, "m").exec(table);
+      expect(Number(row?.[1])).toBeGreaterThanOrEqual(3);
+    }
+  }
+});

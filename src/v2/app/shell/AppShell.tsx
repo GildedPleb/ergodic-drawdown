@@ -8,7 +8,7 @@ import { useWorld } from "../engine/useWorld";
 import { ModelsSheet } from "../models/ModelsSheet";
 import { loadValues, loadView, pageStore, saveValues, saveView } from "../models/store";
 import type { ModelsValues } from "../models/values";
-import { strings } from "../strings";
+import { colourOf, strings } from "../strings";
 import { outOfRange } from "../world/bands";
 import { endSpread } from "../world/spread";
 import { endYear } from "../world/geometry";
@@ -225,6 +225,7 @@ export const AppShell = (): JSX.Element => {
         <div className={chart} data-layer-pane={pane}>
           <WorldLayer
             bands={on ? bands : null}
+            colour={colourOf(view.colour)}
             history={on ? world.history : null}
             now={now}
             horizon={world.horizon}
