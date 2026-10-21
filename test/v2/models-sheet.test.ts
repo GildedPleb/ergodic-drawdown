@@ -338,3 +338,13 @@ test("Probe R2 m3 / ruling 4: a huge value cell is spoken in words, never digits
   expect(mm.includes('value="1\u00A0×\u00A010³⁰⁰"')).toBe(true);
   expect(strings.fields.focus["R (%)"]?.spoken(1000)).toBe("1,000 percent");
 });
+
+test("Probe N3: the ledger's one column may shrink below its rows' min-content (320px: nothing past the pane)", async () => {
+  const css = await file(
+    `${import.meta.dir}/../../src/v2/app/models/ModelsSheet.module.css`,
+  ).text();
+  const rule = /\.root,\s*\.assets \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  // An implicit `auto` track grows to the Clamp row's min-content (275.3px in a 268px column).
+  expect(rule.includes("grid-template-columns: minmax(0, 1fr);")).toBe(true);
+  expect(rule.includes("min-inline-size: 0;")).toBe(true);
+});

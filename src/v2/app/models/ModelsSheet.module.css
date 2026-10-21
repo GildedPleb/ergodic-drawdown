@@ -1,10 +1,14 @@
 @layer app {
   /* §1MP 1–2: the ledger, then Simulation; no lines but the section rules. */
+  /* One track that may shrink below its rows' min-content (an `auto` track may not): at 320px the
+     Clamp row (label + Min + Max) widened the column ~7px past the pane, Max and the outer chips
+     with it (Probe N3). */
   .root,
   .assets {
     --_col: calc(var(--s-5) + var(--s-3));
 
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     min-inline-size: 0;
   }
 
