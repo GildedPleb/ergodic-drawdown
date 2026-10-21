@@ -210,11 +210,15 @@ const stroke = (
   x.stroke();
 };
 
+type Rect = { x0: number; y0: number; x1: number; y1: number };
+
 /** Text box around an alphabetic baseline: cap height above, descent below (chart sizes). */
 const CAP = 10;
 const DESCENT = 4;
 /** Half the height a $ label takes about its gridline (cap above the baseline at y+3, descent). */
 const TICK_ROW = 8;
+/** Form (ruling 3): the end-label plate keeps this far from the "Today · …" caption. */
+export const TODAY_CLEAR = 8;
 /** One end-label line, baseline to baseline. */
 export const LABEL_LINE = CAP + DESCENT + 2;
 
@@ -238,12 +242,34 @@ export type LabelPlace = {
  * 3. Else top-right inside the plot, with a short leader line to the end of the line.
  * Every line is nudged off any gridline it would strike through.
  */
+/**
+ * The top-right plate's first baseline (padded `pad` above and below, twice that at the sides).
+ * It sits on the row under the caption/Today rows. Form ruling 3 applies where the plate would
+ * come within TODAY_CLEAR of the "Today · …" caption's box: then it moves down below that caption
+ * line instead of crowding it.
+ */
+export const plateFloor = (
+  box: PlotBox,
+  label: { width: number; pad: number },
+  today: Rect | null,
+  short = false,
+): number => {
+  const ceiling = short ? box.T + CAP : box.T + 36;
+  if (today === null) return ceiling;
+  const x = box.R - 12;
+  const side = Math.max(x - label.width - 2 * label.pad - today.x1, today.x0 - (x + 2 * label.pad));
+  const top = ceiling - CAP - label.pad;
+  if (side >= TODAY_CLEAR || top >= today.y1 + TODAY_CLEAR) return ceiling;
+  return today.y1 + TODAY_CLEAR + CAP + label.pad + 0.01;
+};
+
 export const endLabelAt = (
   box: PlotBox,
   domain: LogDomain,
   band: { p5: Float64Array; p95: Float64Array; end: number; horizon: number },
   label: { width: number; lines: number; pad?: number },
   short = false,
+  today: Rect | null = null,
 ): LabelPlace => {
   // Never on the caption / Today rows (Today's baseline is T+24), except on a short chart.
   const ceiling = short ? box.T + CAP : box.T + 36;
@@ -289,7 +315,8 @@ export const endLabelAt = (
   // stepping down past one in the way while it still fits the plot; where the gridlines are too
   // dense for that, the $ label on its rows is dropped instead (endLayout's keepOut).
   const pad = label.pad ?? 0;
-  let corner = ceiling;
+  const floor = plateFloor(box, { width: label.width, pad }, today, short);
+  let corner = floor;
   for (let n = 0; n < ticks.length; n++) {
     const plateTop = corner - CAP - pad;
     const plateBottom = corner + span + DESCENT + pad;
@@ -298,7 +325,7 @@ export const endLabelAt = (
     corner = g + TICK_ROW + CAP + pad + 0.01;
   }
   // The plate drops the $ rows it covers (keepOut), so the fallback needs no climb off them.
-  if (corner + span + DESCENT + pad > box.Bt || corner - ceiling > near) corner = ceiling;
+  if (corner + span + DESCENT + pad > box.Bt || corner - floor > near) corner = floor;
   const blockTop = corner - CAP - pad;
   const blockBottom = corner + span + DESCENT + pad;
   // The leader leaves the plate's edge that faces the end of the line and aims at it, its whole
@@ -372,8 +399,6 @@ const drawRuns = (
   x.textAlign = align;
 };
 
-type Rect = { x0: number; y0: number; x1: number; y1: number };
-
 const overlaps = (a: Rect, b: Rect): boolean =>
   a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
 
@@ -403,7 +428,8 @@ const endLayout = (
     domain,
     horizon,
     short,
-  }: { box: PlotBox; domain: LogDomain; horizon: number; short: boolean },
+    today,
+  }: { box: PlotBox; domain: LogDomain; horizon: number; short: boolean; today: Rect | null },
   bands: PriceBands,
   overflow: boolean,
 ): EndLayout | null => {
@@ -430,8 +456,14 @@ const endLayout = (
         { p5: bands.min, p95: bands.max, end: mid, horizon },
         { width: textWidth, lines: all.length, pad: p.serifPx * 0.25 },
         short,
+        today,
       )
-    : { x: box.R - 12, y: short ? box.T + CAP : box.T + 36, mode: "corner", leader: null };
+    : {
+        x: box.R - 12,
+        y: plateFloor(box, { width: textWidth, pad: p.serifPx * 0.25 }, today, short),
+        mode: "corner",
+        leader: null,
+      };
   const bottom = at.y + (all.length - 1) * LABEL_LINE + DESCENT;
   const padX = p.serifPx * 0.5;
   const padY = p.serifPx * 0.25;
@@ -605,10 +637,24 @@ export const drawWorld = (
   x.textBaseline = "alphabetic";
   x.lineWidth = 1;
   // The end label is laid out first: a tick whose label would sit under its plate is dropped (m8).
+  // It keeps clear of the "Today · …" caption's box (drawn below, at todayX + 5, baseline T+24).
+  const todayText = strings.chart.today(monthYear(now));
+  x.font = p.serif;
+  const todayAt = todayX + 5;
+  const todayBox =
+    atToday && !short
+      ? {
+          x0: todayAt,
+          y0: box.T + 24 - CAP,
+          x1: todayAt + x.measureText(todayText).width,
+          y1: box.T + 24 + DESCENT,
+        }
+      : null;
+  x.font = p.chart;
   const layout =
     bands === null || !endShown
       ? null
-      : endLayout(x, p, { box: wide, domain, horizon, short }, bands, overflow);
+      : endLayout(x, p, { box: wide, domain, horizon, short, today: todayBox }, bands, overflow);
   const chartRuns: RunFont = { font: p.chart, upright: p.chart, kern: p.supKern * p.chartPx };
   // m10: a tick whose label would sit on the end label (its plate, or its bare box) is dropped,
   // gridline and all, in every layout.
@@ -751,7 +797,7 @@ export const drawWorld = (
     x.textAlign = "left";
     // §1b puts this at T+4, on top of the caption at T+12; v32's draw() has it at T+20. Clear
     // of the caption's cap height: T+24.
-    if (atToday) x.fillText(strings.chart.today(monthYear(now)), todayX + 5, box.T + 24);
+    if (atToday) x.fillText(todayText, todayAt, box.T + 24);
   }
 
   // End label (plus the out-of-range caption under it), its plate and leader inside the plot.

@@ -45,7 +45,7 @@ export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMP
 
 /** Form 2a: count fields take whole numbers; the percent and decimal fields (R, +/-) rest at 2. */
 export const COUNT_FIELDS: readonly string[] = ["Previous Halvings"];
-export const DECIMAL_FIELDS: readonly string[] = ["R (%)", "+/-"];
+const DECIMAL_FIELDS: readonly string[] = ["R (%)", "+/-"];
 /** A field's resting decimals, and (Form ruling) its one rest format wherever it's shown or spoken. */
 export const placesOf = (label: string): number | undefined =>
   DECIMAL_FIELDS.includes(label) ? DECIMAL_PLACES : undefined;

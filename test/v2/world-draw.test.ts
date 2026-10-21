@@ -16,6 +16,8 @@ import {
   LABEL_LINE,
   LEADER_INSET,
   type Paint,
+  plateFloor,
+  TODAY_CLEAR,
   paintFrom,
 } from "../../src/v2/app/world/draw";
 import { axisTicks, coverTop, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
@@ -295,10 +297,12 @@ test("m7 + Form (b): a top-right label sits on an opaque square --ground plate, 
   const text = ops.find((o) => o.t === OUT);
   const w = OUT.length * 6;
   expect(text?.x).toBe(box.R - 12);
-  expect(plate).toEqual({
+  expect({ ...plate, y: Math.round((plate?.y ?? 0) * 1e6) / 1e6 }).toEqual({
     op: "fillRect",
     x: box.R - 12 - w - 6.5,
-    y: box.T + 36 - 10 - 3.25,
+    // Form ruling 3: this wide plate would reach the "Today · …" caption, so it sits 8px under
+    // that caption's line (the caption box ends at T+24+4).
+    y: box.T + 24 + 4 + TODAY_CLEAR + 0.01,
     w: w + 13,
     h: 10 + 4 + 6.5,
     style: PAINT.ground,
@@ -603,7 +607,8 @@ test("m8 (Form c): a tick that would collide with the caption plate is dropped",
   const top = pack([1e5, 1e10, PAST], [1e5, 1e12, PAST], [1e5, 1e15, PAST]);
   expect(plateHits(top, 390, 693)).toEqual([]);
   expect(plateHits(top, 1440, 900)).toEqual([]);
-  expect(draw(693, top, 2).includes("$1,000T")).toBe(false);
+  // (Its $1,000T row is dropped while the plate covers it; under Form ruling 3 a plate as wide
+  // as this one sits below the Today caption's line, off that row, and plateHits stays empty.)
 });
 
 test("Form (d): --sup-kern opens 0.06em before an exponent in tick labels too", () => {
@@ -1283,4 +1288,39 @@ test("F3/F4 (R5): the end label is always inside the plot, and off a plate it ne
     }
   }
   expect(placements).toBe(72);
+});
+
+test("Form ruling 3: at 320 the corner plate keeps 8px from the Today caption, else drops below its line", () => {
+  const box = plotBox(320, 300);
+  const domain = fitDomain(50_000, 2e9);
+  // The fan fills the plot, so the label goes to the top-right corner (a plate).
+  const band = { p5: flat(100, domain.lo), p95: flat(100, domain.hi), end: 1e6, horizon: 99 };
+  const pad = 3;
+  const cap = (x0: number) => ({ x0, y0: box.T + 14, x1: x0 + 96, y1: box.T + 28 });
+  let crowded = 0;
+  for (const lines of [1, 2, 3]) {
+    for (let x0 = box.L + 5; x0 < box.R; x0 += 7) {
+      const today = cap(x0);
+      const label = { width: 70, lines, pad };
+      const at = endLabelAt(box, domain, band, label, false, today);
+      expect(at.mode).toBe("corner");
+      const plate = { x0: at.x - 70 - 2 * pad, x1: at.x + 2 * pad, y0: at.y - 10 - pad };
+      const side = Math.max(plate.x0 - today.x1, today.x0 - plate.x1);
+      // Either 8px to the side of the caption, or the whole plate under its line by 8px.
+      expect(side >= TODAY_CLEAR || plate.y0 >= today.y1 + TODAY_CLEAR).toBe(true);
+      if (side < TODAY_CLEAR) {
+        crowded++;
+        expect(plate.y0 >= today.y1 + TODAY_CLEAR).toBe(true);
+        expect(plate.y0 < today.y1 + TODAY_CLEAR + 1).toBe(true); // moved by just that much
+      }
+    }
+  }
+  expect(crowded > 0).toBe(true);
+  // History off (caption at the left edge) and no caption: unchanged, the row under the caption.
+  expect(plateFloor(box, { width: 70, pad }, cap(box.L + 5))).toBe(box.T + 36);
+  expect(plateFloor(box, { width: 70, pad }, null)).toBe(box.T + 36);
+  const one = { width: 70, lines: 1, pad };
+  expect(endLabelAt(box, domain, band, one, false, cap(box.L + 5))).toEqual(
+    endLabelAt(box, domain, band, one),
+  );
 });
