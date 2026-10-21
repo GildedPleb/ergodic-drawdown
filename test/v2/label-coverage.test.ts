@@ -6,6 +6,7 @@
 import { expect, test } from "bun:test";
 
 import { modelsPaneSchema } from "../../src/v2/app/models";
+import { strings } from "../../src/v2/app/strings";
 import { fmtUSD } from "../../src/v2/design/format/money";
 import { loadCmaps, uncovered } from "./support/cmaps";
 
@@ -21,7 +22,8 @@ const labels = (): string[] => {
     c.clamp.topLabel,
     c.clamp.bottomLabel,
     c.volatility.label,
-    c.epochs.label,
+    c.years.label,
+    strings.fields.yearsLabel,
     c.samples.label,
     modelsPaneSchema.title,
     c.walk.label,

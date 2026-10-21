@@ -36,14 +36,14 @@ const run = async (
   weeksSince: number,
   variableCacheHash: string,
   worker: WorkerContextType,
-  epochCount = 1,
+  dataLength = 1,
   simulationData = new GrowableSharedArray(1, 1),
   inflationFactors = new Float64Array([1, 1, 1, 1]),
 ): Promise<void> => {
   await handleDrawdownVariables(
     new AbortController().signal,
     "node",
-    epochCount,
+    dataLength,
     1,
     "model",
     simulationData,
@@ -136,6 +136,7 @@ test("a price row that never clears the threshold is a finished empty sample", (
 
   handleDrawdownVariable(
     {
+      dataLength: 4,
       inflationFactors: new Float64Array([1, 1, 1, 1]),
       oneOffFiatVariable: variable("rent"),
       simulationExport: prices.exportState(),
@@ -173,14 +174,14 @@ test("a longer epoch searches a sample that missed on the shorter series", async
   const finals = new Map<string, VariableDrawdownFinal>();
   const items = [variable("rent")];
 
-  await run(caches, finals, items, 0, "final-a", worker, 1, shortPrices);
-  await run(caches, finals, items, 0, "final-a", worker, 1, shortPrices);
+  await run(caches, finals, items, 0, "final-a", worker, 4, shortPrices);
+  await run(caches, finals, items, 0, "final-a", worker, 4, shortPrices);
   expect(writes).toBe(1);
   const missed = caches.get("rent")?.get(0);
   if (missed === undefined) throw new Error("missing variable cache");
   expect(Number.isNaN(missed[0])).toBe(true);
 
-  await run(caches, finals, items, 0, "final-a", worker, 2, longPrices);
+  await run(caches, finals, items, 0, "final-a", worker, 5, longPrices);
 
   expect(writes).toBe(2);
   const found = caches.get("rent")?.get(0);
@@ -211,20 +212,20 @@ test("a different series length searches every sample again", async () => {
   const items = [{ ...variable("rent"), start: 100 }];
 
   const ones = new Float64Array([1, 1, 1, 1, 1, 1]);
-  await run(caches, finals, items, 0, "final-short", worker, 1, shortPrices, ones);
+  await run(caches, finals, items, 0, "final-short", worker, 4, shortPrices, ones);
   expect(caches.get("rent")?.get(0)).toEqual([3, 100]);
 
-  await run(caches, finals, items, 0, "final-long", worker, 2, longPrices, ones);
+  await run(caches, finals, items, 0, "final-long", worker, 6, longPrices, ones);
   expect(writes).toBe(2);
   expect(caches.get("rent")?.get(0)).toEqual([5, 100]);
   expect(finals.get("final-long")?.get(0, 5)).toBe(100);
   expect(finals.has("final-short")).toBe(false);
 
-  await run(caches, finals, items, 0, "final-short-again", worker, 1, shortPrices, ones);
+  await run(caches, finals, items, 0, "final-short-again", worker, 4, shortPrices, ones);
   expect(writes).toBe(3);
   expect(caches.get("rent")?.get(0)).toEqual([3, 100]);
 
-  await run(caches, finals, items, 0, "final-short-again", worker, 1, shortPrices, ones);
+  await run(caches, finals, items, 0, "final-short-again", worker, 4, shortPrices, ones);
   expect(writes).toBe(3);
 });
 
@@ -248,15 +249,48 @@ test("a longer series that ends unaffordable drops the short-series spend", asyn
   const items = [{ ...variable("rent"), start: 100 }];
 
   const ones = new Float64Array([1, 1, 1, 1, 1]);
-  await run(caches, finals, items, 0, "final-short", worker, 1, shortPrices, ones);
+  await run(caches, finals, items, 0, "final-short", worker, 4, shortPrices, ones);
   expect(caches.get("rent")?.get(0)).toEqual([3, 100]);
 
-  await run(caches, finals, items, 0, "final-long", worker, 2, longPrices, ones);
+  await run(caches, finals, items, 0, "final-long", worker, 5, longPrices, ones);
   const stored = caches.get("rent")?.get(0);
   if (stored === undefined) throw new Error("missing variable cache");
   expect(Number.isNaN(stored[0])).toBe(true);
   expect(Number.isNaN(stored[1])).toBe(true);
   expect(finals.get("final-long")?.get(0, 3)).toBe(undefined);
+});
+
+const searchRow = (prices: Float64Array, dataLength: number, start: number): [number, number] => {
+  const grid = new GrowableSharedArray(1, 1, prices.length);
+  grid.set(0, 0, prices);
+  const cache = new VariableDrawdownCache();
+  handleDrawdownVariable(
+    {
+      dataLength,
+      inflationFactors: new Float64Array(prices.length).fill(1),
+      oneOffFiatVariable: { ...variable("rent"), start },
+      simulationExport: grid.exportState(),
+      task: { arrayIndex: 0, endIndex: 1, startIndex: 0 },
+      variableDrawdownBuffer: cache.getBuffer(),
+      weeksSince: 0,
+    },
+    { aborted: false },
+  );
+  return cache.get(0);
+};
+
+test("a price that falls back under the cost only past the horizon does not move the spend", () => {
+  const row = new Float64Array([50, 200, 200, 200, 50, 200]);
+  expect(searchRow(row, 4, 100)).toEqual([2, 100]);
+  expect(searchRow(row, 6, 100)).toEqual([5, 100]);
+});
+
+test("a row still under the cost at the horizon, with NaN after it, has no spend", () => {
+  const row = new Float64Array([200, 50, 50, 50, Number.NaN, Number.NaN]);
+  const clipped = searchRow(row, 4, 100);
+  expect(Number.isNaN(clipped[0])).toBe(true);
+  expect(Number.isNaN(clipped[1])).toBe(true);
+  expect(searchRow(row, 6, 100)).toEqual([4, 100]);
 });
 
 test("a series that ends unaffordable has no spend and no label", () => {
@@ -265,6 +299,7 @@ test("a series that ends unaffordable has no spend and no label", () => {
   const cache = new VariableDrawdownCache();
   handleDrawdownVariable(
     {
+      dataLength: 4,
       inflationFactors: new Float64Array([1, 1, 1, 1]),
       oneOffFiatVariable: { ...variable("rent"), start: 100 },
       simulationExport: prices.exportState(),

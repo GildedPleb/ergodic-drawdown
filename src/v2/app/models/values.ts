@@ -12,7 +12,7 @@ export type ModelsValues = {
   clampTop: boolean;
   clampBottom: boolean;
   samples: number;
-  epochCount: number;
+  years: number;
 };
 
 const { controls } = modelsPaneSchema;
@@ -26,7 +26,7 @@ export const defaultModelsValues = (): ModelsValues => ({
   clampTop: controls.clamp.topDefault,
   clampBottom: controls.clamp.bottomDefault,
   samples: controls.samples.default,
-  epochCount: controls.epochs.default,
+  years: controls.years.default,
 });
 
 /** main's setModel: a model with a variable resets it to that model's default. */

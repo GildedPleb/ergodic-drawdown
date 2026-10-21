@@ -61,17 +61,20 @@ export const oldUiDiffs = async (read: Read, schema: ModelsPaneSnapshot): Promis
     eq("title (fieldLabels.model)", schema.title, label(fieldBlock, "model"));
     eq("walk label", c.walk.label, label(inputBlock, "walk"));
     eq("volatility label", c.volatility.label, label(inputBlock, "vol"));
-    eq("epoch label", c.epochs.label, label(inputBlock, "epoch"));
+    // main's years label is a function of its live cap: `Years (1-${max}):`.
+    const yearsLabel = one(
+      inputBlock,
+      /\byears: \(max: number\): string => `([^`]*)`/,
+      "content.ts years",
+    )[1];
+    eq("years label", c.years.label, yearsLabel?.replace("${max}", String(c.years.max)));
     eq("samples label", c.samples.label, label(inputBlock, "samples"));
     eq("clamp label", c.clamp.label, label(inputBlock, "clamp"));
     eq("clamp top label", c.clamp.topLabel, label(inputBlock, "clampTop"));
     eq("clamp bottom label", c.clamp.bottomLabel, label(inputBlock, "clampBottom"));
 
     // useSettledNumber fields
-    const settled = async (
-      file: string,
-      control: (typeof c)["volatility" | "samples" | "epochs"],
-    ) => {
+    const settled = async (file: string, control: (typeof c)["volatility" | "samples"]) => {
       const text = await read(`components/input/${file}`);
       const acc = one(text, /accept: \(next\) => next >= ([\w.]+) && next <= ([\w.]+)/, file);
       const parse = one(text, /parse: (Number\.parseFloat|parseCanonicalInteger)/, file)[1];
@@ -91,7 +94,38 @@ export const oldUiDiffs = async (read: Read, schema: ModelsPaneSnapshot): Promis
     };
     const vol = await settled("volatility.tsx", c.volatility);
     await settled("samples.tsx", c.samples);
-    await settled("epoch.tsx", c.epochs);
+    // years.tsx: accept 1…cap, where cap = maxYears(weeksSinceLastHalving(halvings)) (horizon.ts).
+    const years = await read("components/input/years.tsx");
+    const yAcc = one(years, /accept: \(next\) => next >= ([\w.]+) && next <= (\w+)/, "years.tsx");
+    eq("years.tsx accept min", c.years.accept.min, n(yAcc[1]));
+    eq("years.tsx accept max is the live cap", yAcc[2], "cap");
+    one(years, /const cap = maxYears\(weeksSinceLastHalving\(halvings\)\);/, "years.tsx cap");
+    eq(
+      "years.tsx parse",
+      c.years.parse,
+      /parse: parseCanonicalInteger/.test(years) ? "int" : "float",
+    );
+    eq("years.tsx emptyValue", c.years.emptyValue, /emptyValue:/.test(years) ? "set" : null);
+    eq("years.tsx min", c.years.min, n(one(years, /\bmin="([\d.]+)"/, "years.tsx min")[1]));
+    one(years, /\bmax=\{cap\}/, "years.tsx max");
+    const horizon = await read("horizon.ts");
+    one(
+      horizon,
+      /export const MAX_YEAR_COUNT = \(MAX_EPOCH_COUNT \* WEEKS_PER_EPOCH\) \/ WEEKS_PER_YEAR;/,
+      "horizon.ts MAX_YEAR_COUNT",
+    );
+    one(
+      constantsText,
+      /export const WEEKS_PER_EPOCH = 4 \* WEEKS_PER_YEAR;/,
+      "constants WEEKS_PER_EPOCH",
+    );
+    eq("years max (MAX_YEAR_COUNT)", c.years.max, (constants["MAX_EPOCH_COUNT"] ?? 0) * 4);
+    eq("years accept max", c.years.accept.max, c.years.max);
+    const yDefault = one(
+      horizon,
+      /export const DEFAULT_YEAR_COUNT = ([\d_]+);/,
+      "horizon.ts default",
+    )[1];
     const step = one(vol, /walk === "(\w+)" \? ([\d.]+) : ([\d.]+)/, "volatility.tsx step");
     eq("volatility step walk", "Bubble", step[1]);
     eq("volatility step (Bubble)", c.volatility.stepBubble, n(step[2]));
@@ -137,7 +171,8 @@ export const oldUiDiffs = async (read: Read, schema: ModelsPaneSnapshot): Promis
     eq("default volatility", c.volatility.default, n(state("volatility")));
     eq("default variable", c.variable.default, n(state("variable")));
     eq("default samples", c.samples.default, n(state("samples")));
-    eq("default epochs", c.epochs.default, n(state("epochCount")));
+    eq("default years", c.years.default, n(yDefault));
+    one(ctx, /useState<number>\(DEFAULT_YEAR_COUNT\)/, "contexts years default");
     eq("default clamp top", c.clamp.topDefault, state("clampTop") === "true");
     eq("default clamp bottom", c.clamp.bottomDefault, state("clampBottom") === "true");
 

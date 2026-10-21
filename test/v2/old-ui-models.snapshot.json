@@ -146,17 +146,17 @@
       "default": 1000,
       "label": "Statistical Sample Count (1k-10k):"
     },
-    "epochs": {
+    "years": {
       "accept": {
         "min": 1,
-        "max": 100
+        "max": 120
       },
       "emptyValue": null,
       "parse": "int",
       "min": 1,
-      "max": 30,
-      "default": 10,
-      "label": "Epoch Count (1-30):"
+      "max": 120,
+      "default": 40,
+      "label": "Years (1-120):"
     }
   }
 }

@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 import { useEffect, useRef, useState } from "react";
-import { MAX_EPOCH_COUNT } from "../../../constants";
 
 import { AssetRow } from "../../design/primitives/AssetRow";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
@@ -27,11 +26,6 @@ const noun = (name: string): { name: string; plural: boolean } => ({
   plural: name.endsWith("s"),
 });
 
-/**
- * Gap 10 (Rule 0): the old input accepted 1–100, but the engine's buffers stop at
- * MAX_EPOCH_COUNT and a larger count fails the simulation. Clamp to what the engine runs.
- */
-const EPOCH_BOUNDS = { min: controls.epochs.accept.min, max: MAX_EPOCH_COUNT };
 /**
  * Gap 10 (Form, m2): samples clamp to a minimum of 1 (zero futures draws nothing, so it is never a
  * valid result). 1 is main's own samples input `min` (G12 snapshot); the max is its accept max.
@@ -119,6 +113,8 @@ export type ModelsSheetProps = {
   /** §2A: "Show historic price" (render.showHistoric), off by default. */
   historic?: boolean;
   onHistoric?: (next: boolean) => void;
+  /** main's live Years cap (maxYears of the weeks since the last halving); the absolute cap before halvings load. */
+  yearsMax?: number;
   /** Stories and tests: the row open on first render. */
   initialOpen?: string | null;
 };
@@ -147,6 +143,7 @@ export const ModelsSheet = ({
   historic = false,
   onHistoric,
   initialOpen = null,
+  yearsMax = controls.years.max,
 }: ModelsSheetProps): JSX.Element => {
   const [open, setOpen] = useState<string | null>(initialOpen);
   const ledgerRef = useRef<HTMLDivElement>(null);
@@ -347,20 +344,19 @@ export const ModelsSheet = ({
                   }}
                 />
               </LedgerRow>
-              <LedgerRow id="row-epochs" label={controls.epochs.label} htmlFor="v2-epochs">
+              <LedgerRow id="row-years" label={strings.fields.yearsLabel} htmlFor="v2-years">
                 <Editor
-                  id="v2-epochs"
-                  label={controls.epochs.label}
-                  value={values.epochCount}
-                  bounds={EPOCH_BOUNDS}
-                  parse={controls.epochs.parse}
+                  id="v2-years"
+                  label={strings.fields.yearsLabel}
+                  value={values.years}
+                  bounds={{ min: controls.years.min, max: yearsMax }}
+                  parse={controls.years.parse}
                   step={1}
-                  emptyValue={controls.epochs.emptyValue}
-                  who={strings.fields.nouns.epochs}
+                  emptyValue={controls.years.emptyValue}
+                  who={strings.fields.nouns.years}
                   slider
-                  hint={strings.fields.years(values.epochCount * 4)}
-                  onCommit={(epochCount) => {
-                    onChange({ epochCount });
+                  onCommit={(years) => {
+                    onChange({ years });
                   }}
                 />
               </LedgerRow>

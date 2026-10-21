@@ -27,7 +27,7 @@
     "models:snapshot": "bun scripts/v2/snapshot-old-ui.ts"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.104.2",
+    "@tanstack/react-query": "^5.104.4",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
     "chartjs-plugin-annotation": "^3.1.0",
@@ -36,9 +36,9 @@
     "hash-sum": "^2.0.0",
     "memoizee": "^0.4.17",
     "quickselect": "^3.0.0",
-    "react": "^19.3.0",
+    "react": "^19.3.1",
     "react-chartjs-2": "^5.3.1",
-    "react-dom": "^19.3.0",
+    "react-dom": "^19.3.1",
     "react-toastify": "^11.1.0",
     "styled-components": "^6.6.0",
     "styled-reset": "^5.0.0"
@@ -55,7 +55,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "knip": "^6.41.0",
-    "lefthook": "2.2.1",
+    "lefthook": "2.2.2",
     "oxc-parser": "0.153.0",
     "oxfmt": "*",
     "oxlint": "*",

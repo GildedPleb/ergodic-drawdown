@@ -1,18 +1,14 @@
 /**
  * Read-only projection of the current app's Models pane option set / defaults.
  * Sources: src/data/models, src/data/walks, src/constants, src/content,
- * plus control attributes from src/components/input/{model,walk,volatility,clamp,samples,epoch}.tsx
+ * plus control attributes from src/components/input/{model,walk,volatility,clamp,samples,years}.tsx
  * and defaults from src/contexts/model.tsx. No engine or old-UI mutation.
  * Literals that main keeps inline in components (steps, accept ranges, emptyValue, defaults,
  * the default walk) are re-read from main's source by test/v2/old-ui-source.test.ts, so a change
  * on main fails the suite instead of drifting silently.
  */
-import {
-  DEFAULT_EPOCH_COUNT,
-  DEFAULT_SIMULATION_COUNT,
-  MAX_EPOCH_COUNT,
-  MAX_SAMPLE_COUNT,
-} from "../../../constants";
+import { DEFAULT_SIMULATION_COUNT, MAX_SAMPLE_COUNT } from "../../../constants";
+import { DEFAULT_YEAR_COUNT, MAX_YEAR_COUNT } from "../../../horizon";
 import { fieldLabels, inputLabels } from "../../../content";
 import { models } from "../../../data/models";
 import { walks } from "../../../data/walks";
@@ -80,7 +76,12 @@ export type ModelsPaneSnapshot = {
       default: number;
       label: string;
     };
-    epochs: {
+    /**
+     * main's years input (components/input/years.tsx): 1 to `maxYears(weeksSinceLastHalving)`,
+     * the room left in the 30-epoch grid. `max` is the absolute cap (MAX_YEAR_COUNT); the live cap
+     * is computed from the halvings at run time.
+     */
+    years: {
       accept: Accept;
       emptyValue: number | null;
       parse: "int";
@@ -150,14 +151,14 @@ export const buildOldUiModelsSnapshot = (): ModelsPaneSnapshot => {
         default: DEFAULT_SIMULATION_COUNT,
         label: inputLabels.samples,
       },
-      epochs: {
-        accept: { min: 1, max: 100 },
+      years: {
+        accept: { min: 1, max: MAX_YEAR_COUNT },
         emptyValue: null,
         parse: "int",
         min: 1,
-        max: MAX_EPOCH_COUNT,
-        default: DEFAULT_EPOCH_COUNT,
-        label: inputLabels.epoch,
+        max: MAX_YEAR_COUNT,
+        default: DEFAULT_YEAR_COUNT,
+        label: inputLabels.years(MAX_YEAR_COUNT),
       },
     },
   };

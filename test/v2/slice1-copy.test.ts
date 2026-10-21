@@ -28,8 +28,8 @@ test("clamp and invalid messages name the range and the value in use", () => {
   expect(strings.fields.clamped(nouns.volatility, 0, 1, 1)).toBe(
     "Volatility goes from 0 to 1. We used 1.",
   );
-  expect(strings.fields.invalid(nouns.epochs, "int", 1, 100, 10)).toBe(
-    "Epochs take a whole number from 1 to 100. Your last value, 10, is still in use.",
+  expect(strings.fields.invalid(nouns.years, "int", 1, 117, 10)).toBe(
+    "Years take a whole number from 1 to 117. Your last value, 10, is still in use.",
   );
   expect(strings.fields.clamped(nouns.minMaxMultiple, 1.01, Infinity, 1.01)).toBe(
     "The +/- multiple goes from 1.01 up. We used 1.01.",

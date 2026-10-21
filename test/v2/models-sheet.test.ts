@@ -20,7 +20,7 @@ const render = (patch: Partial<ModelsValues> = {}): string =>
   );
 
 /** §1P: every field is live; the markup from the volatility row to the end of a row's group. */
-const editor = (field: "volatility" | "samples" | "epochs"): string => {
+const editor = (field: "volatility" | "samples" | "years"): string => {
   const html = render();
   const start = html.indexOf(`id="row-${field}"`);
   const rest = html.slice(start + 1).search(/id="row-[a-z]+"/);
@@ -52,8 +52,18 @@ test("m2 (Gap 10): samples clamp to 1..10,000 with the standard clamp message; 0
   );
 });
 
-test("Models sheet: epochs clamp to the engine's 30, not the old input's 100 (Gap 10)", () => {
-  expect(editor("epochs").includes('aria-valuemax="30"')).toBe(true);
+test("Models sheet: Years is main's years input, 1 to the live cap (120 before halvings load)", () => {
+  expect(editor("years").includes('aria-valuemin="1"')).toBe(true);
+  expect(editor("years").includes('aria-valuemax="120"')).toBe(true);
+  const live = renderToStaticMarkup(
+    createElement(ModelsSheet, {
+      values: defaultModelsValues(),
+      onChange: () => undefined,
+      initialOpen: "bitcoin",
+      yearsMax: 117,
+    }),
+  );
+  expect(live.includes('aria-valuemax="117"')).toBe(true);
 });
 
 /** Option text per listbox: plain names, or the LabelGlyphs data-text of an SVG label. */
@@ -135,7 +145,6 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
     out.push(f.clamped(who, 0, 10_000, 1000), f.invalid(who, "int", 1, Infinity, 0.1));
   }
   out.push(
-    f.years(40),
     strings.headline.sentence(
       { kind: "ninety", median: 1_200_000, low: 400_000, high: 3_100_000 },
       2066,
@@ -255,7 +264,7 @@ test("1P live: every value cell is an input and its slider is there with no clic
   expect(row.includes('for="v2-variable"')).toBe(true);
   expect((row.match(/>20</g) ?? []).length).toBe(0);
   expect((row.match(/value="20"/g) ?? []).length).toBe(1);
-  for (const id of ["v2-vol", "v2-samples", "v2-epochs"])
+  for (const id of ["v2-vol", "v2-samples", "v2-years"])
     expect(html.includes(`id="${id}"`)).toBe(true);
 });
 

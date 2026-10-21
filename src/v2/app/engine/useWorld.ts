@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { WEEKS_PER_EPOCH } from "../../../constants";
+import { weeksSinceLastHalving } from "../../../halvings";
+import { maxYears, visibleWeeks } from "../../../horizon";
 import { useEngineSelector, useEngineSet } from "../../../hooks/use-engine";
 import type { ModelsValues } from "../models/values";
 import { priceBands, type PriceBands } from "../world/bands";
@@ -14,8 +15,10 @@ export type World = {
   /** §2A: the traded weekly price while "Show historic price" is on, else null. */
   history: History | null;
   now: number;
-  /** Weeks on the time axis: the engine's horizon, or epochs × 4 years before it returns. */
+  /** Weeks on the time axis: the engine's horizon, or Years × 52 before it returns. */
   horizon: number;
+  /** main's live Years cap: `maxYears(weeksSinceLastHalving(halvings))` (components/input/years.tsx). */
+  yearsMax: number;
   /** §1h Chart · no data: where the price fetch stands ("ready" once bands are drawn). */
   phase: InputsPhase;
   retry: () => void;
@@ -75,7 +78,8 @@ export const useWorld = (values: ModelsValues, now: number, historic = false): W
     bands,
     history,
     now,
-    horizon: bands?.weeks ?? values.epochCount * WEEKS_PER_EPOCH,
+    horizon: bands?.weeks ?? visibleWeeks(values.years),
+    yearsMax: maxYears(weeksSinceLastHalving(inputs.halvings)),
     phase: bands === null ? phase : "ready",
     retry,
     busy,

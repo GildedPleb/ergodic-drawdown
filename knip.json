@@ -7,7 +7,9 @@
     "test/v2/**/*.test.ts",
     "src/v2/design/primitives/*/index.ts",
     "scripts/v2/**/*.ts",
-    "test/v2-css/**/*.test.ts"
+    "test/v2-css/**/*.test.ts",
+    "test/horizon.test.ts",
+    "test/saved-state.test.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

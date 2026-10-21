@@ -46,11 +46,11 @@ export const engineConfig = (
   return {
     currentBlock: inputs.currentBlock,
     currentPrice: inputs.currentPrice,
-    epochs: values.epochCount,
     halvings: inputs.halvings,
     inflation: { annualPercent: DEFAULT_INFLATION, mode: "constant" },
     interim: inputs.interim,
     now: inputs.now,
+    pinnedWeeks: null,
     render: {
       renderDrawdownDistribution: "None",
       renderDrawdownWalks: false,
@@ -77,5 +77,6 @@ export const engineConfig = (
     },
     seed: SIMULATION_SEED,
     stack: { bitcoin: 0 },
+    years: values.years,
   };
 };

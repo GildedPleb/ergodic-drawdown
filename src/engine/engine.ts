@@ -58,9 +58,11 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
 
   const publish = (): void => {
     const dataLength = current?.derived.dataLength ?? 0;
+    const epochs = current?.derived.epochs ?? 0;
     const next: Snapshot = {
       chartOptions: slots["Chart Options"],
       dataLength,
+      epochs,
       dataProperties: slots["Data Properties"],
       errors: { ...errors },
       simulationStats: slots["Simulation Stats"],
@@ -71,6 +73,7 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
     if (
       previous.chartOptions === next.chartOptions &&
       previous.dataLength === next.dataLength &&
+      previous.epochs === next.epochs &&
       previous.dataProperties === next.dataProperties &&
       previous.simulationStats === next.simulationStats &&
       previous.volumeStats === next.volumeStats &&

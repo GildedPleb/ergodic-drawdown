@@ -267,6 +267,7 @@ export const AppShell = (): JSX.Element => {
                   onOn={setOn}
                   historic={historic}
                   onHistoric={setHistoric}
+                  yearsMax={world.yearsMax}
                   values={values}
                   onChange={(patch) => {
                     setValues((v) => ({ ...v, ...patch }));

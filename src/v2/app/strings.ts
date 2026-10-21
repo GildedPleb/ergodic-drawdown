@@ -164,13 +164,14 @@ export const strings = {
     /** Invalid text: cause, next step, reassurance (Probe M2). */
     invalid: (noun: Noun, kind: "int" | "float", min: number, max: number, current: number) =>
       `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${count(current)}, is still in use.`,
-    years: (years: number): string => `(~${count(years)} years)`,
+    /** §1MP: the Years row's front-end label (main's own reads "Years (1-N):"). */
+    yearsLabel: "Years",
     /** The samples row's label, its range from the G12-mirrored bounds: 1 to 10,000 reads "1-10k". */
     samplesLabel: (min: number, max: number): string =>
       `Statistical Sample Count (${kilo(min)}-${kilo(max)}):`,
     nouns: {
       volatility: { name: "Volatility", plural: false },
-      epochs: { name: "Epochs", plural: true },
+      years: { name: "Years", plural: true },
       samples: { name: "Samples", plural: true },
       minMaxMultiple: { name: "The +/- multiple", plural: false },
     },

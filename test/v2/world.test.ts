@@ -167,8 +167,8 @@ test("1L.4: band range spans the lowest min to the highest max; end value is the
 
 test("engine config: Models values map onto main's EngineConfig fields, price quantiles only", () => {
   const inputs = { currentBlock: 1, currentPrice: 2, halvings: {}, interim: [], now: NOW };
-  const config = engineConfig({ ...defaultModelsValues(), epochCount: 7, walk: "Saw" }, inputs);
-  expect(config?.epochs).toBe(7);
+  const config = engineConfig({ ...defaultModelsValues(), years: 7, walk: "Saw" }, inputs);
+  expect([config?.years, config?.pinnedWeeks]).toEqual([7, null]);
   expect(config?.scenario.walk).toBe("Saw");
   expect(config?.seed).toBe(SIMULATION_SEED);
   expect(config?.render.renderPriceDistribution).toBe("Quantile");
@@ -300,7 +300,7 @@ test("B2: CAGR R 1e6 and 1e9 at 30 epochs, 1e300 at 10: out of range, finite axi
 test("priceBands reads a real engine snapshot (labels come from main's createDataSet)", async () => {
   const engine = createEngine({ worker: inProcessWorker() });
   const config = engineConfig(
-    { ...defaultModelsValues(), samples: 20, epochCount: 1 },
+    { ...defaultModelsValues(), samples: 20, years: 4 },
     {
       currentBlock: 840_000,
       currentPrice: 64_000,
