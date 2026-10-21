@@ -6,8 +6,9 @@ export const handleSimulationStats = (
   _signal: AbortSignal,
   _hash: string,
   simulationData: GrowableSharedArray,
+  week: number,
 ): { average: number; median: number } => {
-  const finalBalance = simulationData.getLastArray();
+  const finalBalance = simulationData.valuesAt(week);
 
   let sum = 0;
   const length = finalBalance.length;

@@ -1,9 +1,12 @@
-import { type JSX, useCallback, useMemo } from "react";
+import { type JSX, useCallback } from "react";
 import styled from "styled-components";
 
 import { inputLabels } from "../../content";
+import { useHalvings } from "../../contexts/computed/hooks/use-halvings";
 import { useDrawdown } from "../../contexts/drawdown";
 import { useModel } from "../../contexts/model";
+import { weeksSinceLastHalving } from "../../halvings";
+import { maxYears } from "../../horizon";
 import { parseCanonicalInteger, useSettledNumber } from "./settled-number";
 
 const Container = styled.div`
@@ -21,33 +24,33 @@ const Input = styled.input`
   font-size: inherit;
 `;
 
-const EpochInput = (): JSX.Element => {
+const YearsInput = (): JSX.Element => {
   const { setLoadingVolumeData } = useDrawdown();
-  const { epochCount, setEpochCount, setLoadingPriceData } = useModel();
-  const commitEpoch = useCallback(
+  const { setLoadingPriceData, setYears, years } = useModel();
+  const { halvings } = useHalvings();
+  const cap = maxYears(weeksSinceLastHalving(halvings));
+  const commitYears = useCallback(
     (next: number) => {
-      setEpochCount(next);
+      setYears(next);
       setLoadingPriceData(true);
       setLoadingVolumeData(true);
     },
-    [setEpochCount, setLoadingPriceData, setLoadingVolumeData],
+    [setLoadingPriceData, setLoadingVolumeData, setYears],
   );
   const field = useSettledNumber({
-    accept: (next) => next >= 1 && next <= 100,
-    commit: commitEpoch,
+    accept: (next) => next >= 1 && next <= cap,
+    commit: commitYears,
     parse: parseCanonicalInteger,
-    value: epochCount,
+    value: years,
   });
-
-  const epochLength = useMemo(() => ` (~${epochCount * 4} years)`, [epochCount]);
 
   return (
     <Container>
-      <label htmlFor="numberInput">{inputLabels.epoch}</label>
+      <label htmlFor="numberInput">{inputLabels.years(cap)}</label>
       <Input
         autoComplete="off"
         id="numberInput"
-        max="30"
+        max={cap}
         min="1"
         onBlur={field.onBlur}
         onChange={field.onChange}
@@ -55,9 +58,8 @@ const EpochInput = (): JSX.Element => {
         type="number"
         value={field.draft}
       />
-      {epochLength}
     </Container>
   );
 };
 
-export default EpochInput;
+export default YearsInput;

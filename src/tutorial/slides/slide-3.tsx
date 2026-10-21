@@ -28,7 +28,7 @@ const Slide3: FC = () => (
 export const slide3 = {
   component: Slide3,
   requirements: {
-    epochCount: 5,
+    years: 20,
     model: "Power Law Regression Median",
     renderModelMax: false,
     renderModelMin: true,
