@@ -1,7 +1,6 @@
 @layer app {
-  /* §1MP 11–12: the zone (the only scroller), 6px under the tab bar; fades instead of edge lines.
-     The mask's first layer fades the content (from the pinned header's foot, --dyn-hh); the
-     second keeps the 2px scrollbar column unfaded. */
+  /* §1MP 11–12: the zone (the only scroller), 6px under the tab bar. Mask layer 1 fades the
+     content (from the pinned header's foot, --dyn-hh); layer 2 keeps the bar's column (--_sb) clear. */
   .root {
     display: grid;
     min-block-size: 0;
@@ -10,6 +9,7 @@
 
   .zone {
     --_pad-end: calc(var(--tk-pad-x) - var(--s-0));
+    --_sb: var(--s-0);
     --_ft: 0px;
     --_fb: 0px;
 
@@ -28,8 +28,8 @@
           black calc(100% - var(--_fb)),
           transparent
         )
-        0 0 / calc(100% - var(--s-0)) 100% no-repeat,
-      linear-gradient(black, black) 100% 0 / var(--s-0) 100% no-repeat;
+        0 0 / calc(100% - var(--_sb)) 100% no-repeat,
+      linear-gradient(black, black) 100% 0 / var(--_sb) 100% no-repeat;
   }
 
   .zone[data-top="true"] {
@@ -54,6 +54,8 @@
 
   @supports not selector(::-webkit-scrollbar) {
     .zone {
+      --_sb: var(--tk-pad-x); /* Firefox draws its own bar */
+
       scrollbar-width: thin;
       scrollbar-color: var(--accent) var(--rule);
     }

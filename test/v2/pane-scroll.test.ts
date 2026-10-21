@@ -303,3 +303,15 @@ test("Probe N2: a pick taller than the band shows its top; the list never starts
   const small = { top: 860, bottom: 904 }; // a 44px pick fits: its foot at the band foot
   expect(revealShift(list, small, clear)).toBe(Math.ceil(904 - clear.bottom));
 });
+
+test("B2: the fades never cover the scrollbar at the browser's own width (Firefox's thin bar)", async () => {
+  const css = await file(`${v2}/app/shell/PaneScroll.module.css`).text();
+  const mask = /mask:([^;]*);/.exec(css)?.[1] ?? "";
+  expect(mask.includes("/ calc(100% - var(--_sb)) 100%")).toBe(true); // layer 1: content fade
+  expect(mask.includes("100% 0 / var(--_sb) 100%")).toBe(true); // layer 2: the bar's column, unfaded
+  expect(mask.includes("var(--s-0)")).toBe(false);
+  expect(/\.zone \{[^}]*--_sb: var\(--s-0\);/.test(css)).toBe(true); // ::-webkit-scrollbar: 2px
+  const own =
+    /@supports not selector\(::-webkit-scrollbar\) \{\s*\.zone \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(own.includes("--_sb: var(--tk-pad-x);")).toBe(true); // the whole end inset
+});
