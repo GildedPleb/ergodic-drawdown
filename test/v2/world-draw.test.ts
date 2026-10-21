@@ -1234,3 +1234,53 @@ test("Form EL: the end label's text is ink; a 0.5em square in the asset colour s
     "#e9dfc8",
   );
 });
+
+// A jagged N=1/N=2-like path (one or two draws: the fan is the line itself), rising to its end.
+const jagged = (n: number, lo: number, hi: number, wobble: number): Float64Array =>
+  Float64Array.from({ length: n }, (_, i) => {
+    const t = i / (n - 1);
+    return lo * (hi / lo) ** t * (1 + wobble * Math.sin(i * 1.7) * Math.cos(i * 0.31));
+  });
+test("F3/F4 (R5): the end label is always inside the plot, and off a plate it never sits on the fan", () => {
+  let placements = 0;
+  for (const [w, h] of [
+    [320, 300],
+    [320, 403],
+    [320, 470],
+    [390, 420],
+    [390, 679],
+    [1392, 703],
+  ] as const) {
+    const box = plotBox(w, h);
+    // Sparse $ rows (futures only) and dense ones (history on: decades from the first prints).
+    for (const domain of [fitDomain(5e4, 1.5e8), fitDomain(0.05, 2e9)]) {
+      for (const wobble of [0, 0.15, 0.4]) {
+        for (const lines of [1, 2]) {
+          const mid = jagged(100, 2e5, 1.1e8, wobble);
+          const p5 = mid.map((v) => v * 0.9);
+          const p95 = mid.map((v) => v * 1.1);
+          const end = mid[99] ?? 1;
+          const width = lines === 1 ? 89 : 100;
+          const pad = 13 * 0.25;
+          const at = endLabelAt(box, domain, { p5, p95, end, horizon: 99 }, { width, lines, pad });
+          placements++;
+          const plate = at.mode === "corner" ? pad : 0;
+          const top = at.y - 10 - plate;
+          const bottom = at.y + (lines - 1) * LABEL_LINE + 4 + plate;
+          // F3: never above the plot's top (or below its floor), where the plot clip erases it.
+          expect(top >= box.T && bottom <= box.Bt).toBe(true);
+          if (at.mode === "corner") continue;
+          // F4: without a plate, the fan over the label's columns passes outside its block.
+          for (let i = 0; i < 100; i++) {
+            const x = box.L + ((box.R - box.L) * i) / 99;
+            if (x < at.x - width || x > at.x) continue;
+            const hi = ly(p95[i] ?? 1, box, domain);
+            const lo = ly(p5[i] ?? 1, box, domain);
+            expect(lo < top || hi > bottom).toBe(true);
+          }
+        }
+      }
+    }
+  }
+  expect(placements).toBe(72);
+});

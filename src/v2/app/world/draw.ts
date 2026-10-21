@@ -266,12 +266,14 @@ export const endLabelAt = (
     }
   }
   const ticks = axisTicks(domain).map((v) => ly(v, box, domain));
-  // Shift a block (first baseline y) up off any gridline one of its lines would cross.
-  const clear = (y: number): number => {
+  // F3/F4: shift a block (first baseline y) off any gridline one of its lines would cross, away
+  // from the fan: up when above it, down when below it (toward the fan it would land on the line).
+  const clear = (y: number, down = false): number => {
     for (let k = 0; k < label.lines; k++) {
       const b = y + k * LABEL_LINE;
       const g = ticks.find((t) => t >= b - CAP - 2 && t <= b + DESCENT + 2);
-      if (g !== undefined) return clear(y - (b + DESCENT + 2 - g) - 0.01);
+      if (g === undefined) continue;
+      return clear(down ? y + (g - (b - CAP - 2)) + 0.01 : y - (b + DESCENT + 2 - g) - 0.01, down);
     }
     return y;
   };
@@ -279,7 +281,7 @@ export const endLabelAt = (
   if (above >= ceiling && endY - (above + span + DESCENT) <= near) {
     return { x, y: above, mode: "above", leader: null };
   }
-  const below = clear(bottom + 6 + CAP);
+  const below = clear(bottom + 6 + CAP, true);
   if (below + span + DESCENT <= box.Bt && below - CAP - endY <= near) {
     return { x, y: below, mode: "below", leader: null };
   }
@@ -295,7 +297,8 @@ export const endLabelAt = (
     if (g === undefined) break;
     corner = g + TICK_ROW + CAP + pad + 0.01;
   }
-  if (corner + span + DESCENT + pad > box.Bt || corner - ceiling > near) corner = clear(ceiling);
+  // The plate drops the $ rows it covers (keepOut), so the fallback needs no climb off them.
+  if (corner + span + DESCENT + pad > box.Bt || corner - ceiling > near) corner = ceiling;
   const blockTop = corner - CAP - pad;
   const blockBottom = corner + span + DESCENT + pad;
   // The leader leaves the plate's edge that faces the end of the line and aims at it, its whole
