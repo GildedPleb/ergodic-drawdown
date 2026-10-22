@@ -220,7 +220,7 @@ export const handleDistribution = async (
   const liveCount = added * cutoffs.length;
   const copy = new Float64Array((origin + added) * cutoffs.length);
   if (origin > 0 && stored !== null) copy.set(stored.subarray(0, origin * cutoffs.length));
-  copy.set(new Float64Array(values.buffer).subarray(0, liveCount), origin * cutoffs.length);
+  copy.set(values.view.subarray(0, liveCount), origin * cutoffs.length);
   slot.key = cacheKey;
   slot.values = copy;
   slot.weeks = origin + added;
