@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { acquire } from "../src/engine/memory";
+import { acquire, acquireWhenFree } from "../src/engine/memory";
 
 const slot = () => ({ checkedOut: null, held: null, spare: null, spareOut: null, waiter: null });
 const BYTES = Float64Array.BYTES_PER_ELEMENT;
@@ -91,4 +91,51 @@ test("headroom stops at the largest possible request", () => {
   }
   // Past the cap the request is still served exactly.
   expect(requested).toEqual([largest, largest, largest + BYTES]);
+});
+
+test("no buffer is loaned twice across overlapping, waiting, and aborted waves", async () => {
+  interface Held {
+    buffer: SharedArrayBuffer;
+    release: () => void;
+    view: Float64Array;
+  }
+  for (let seed = 1; seed <= 40; seed++) {
+    let state = seed;
+    const next = (): number => {
+      state = (state * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return state / 2_147_483_648;
+    };
+    const s = slot();
+    const out: Held[] = [];
+    const waits: AbortController[] = [];
+    const take = (held: Held, bytes: number): void => {
+      // A buffer still loaned to an earlier wave may be under a worker's kernel.
+      expect(out.some((other) => other.buffer === held.buffer)).toBe(false);
+      expect(held.buffer.byteLength >= bytes && held.view.length === bytes / BYTES).toBe(true);
+      out.push(held);
+    };
+    for (let step = 0; step < 300; step++) {
+      const roll = next();
+      const bytes = BYTES * (1 + Math.floor(next() * 3000));
+      if (roll < 0.4) {
+        const held = acquire(s, bytes);
+        if (held === null) expect(out.length).toBe(2);
+        else take(held, bytes);
+      } else if (roll < 0.55) {
+        const controller = new AbortController();
+        waits.push(controller);
+        void acquireWhenFree(s, bytes, controller.signal).then((held) => {
+          if (held !== null) take(held, bytes);
+        });
+      } else if (roll < 0.62) {
+        waits.splice(Math.floor(next() * waits.length), 1)[0]?.abort();
+      } else {
+        const held = out.splice(Math.floor(next() * out.length), 1)[0];
+        held?.release();
+        held?.release();
+      }
+      await Promise.resolve();
+      expect(out.length <= 2).toBe(true);
+    }
+  }
 });
