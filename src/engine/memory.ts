@@ -1,7 +1,13 @@
 import GrowableSharedArray from "../classes/growable-shared-array";
 import VariableDrawdownCache from "../classes/variable-drawdown-cache";
 import { type VariableDrawdownFinal } from "../classes/variable-drawdown-final";
-import { DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH } from "../constants";
+import {
+  DEFAULT_EPOCH_COUNT,
+  DEFAULT_SIMULATION_COUNT,
+  MAX_SAMPLE_COUNT,
+  MAX_WEEKS,
+  WEEKS_PER_EPOCH,
+} from "../constants";
 import { WALK_STATE_LENGTH } from "../data/walks/prng";
 
 export interface BoundSlot {
@@ -71,6 +77,7 @@ interface Waiter {
 interface BufferSlot {
   checkedOut: SharedArrayBuffer | null;
   held: SharedArrayBuffer | null;
+  spare: SharedArrayBuffer | null;
   spareOut: SharedArrayBuffer | null;
   waiter: Waiter | null;
 }
@@ -78,6 +85,8 @@ interface BufferSlot {
 interface Loan {
   buffer: SharedArrayBuffer;
   release: () => void;
+  // Exactly the bytes asked for, over the front of a buffer that may be larger.
+  view: Float64Array;
 }
 
 interface YSlot {
@@ -92,15 +101,38 @@ export type BandKind = "quantile" | "sd";
 const emptySlot = (): BufferSlot => ({
   checkedOut: null,
   held: null,
+  spare: null,
   spareOut: null,
   waiter: null,
 });
 
+// Every worker that reads a band buffer holds its own reference. A replaced buffer is
+// freed only after all of them collect it, and idle workers rarely do. So a buffer that
+// is too small is replaced by one 1.5 times the request: a sample spinner replaces it
+// O(log n) times instead of once per tick.
+const BUFFER_GROWTH = 1.5;
+
+// No band request is larger than every sample over every week. Headroom past that is never
+// read, and at the top settings it is 250 MB per buffer that the allocation must still find.
+const LARGEST_REQUEST = MAX_WEEKS * MAX_SAMPLE_COUNT * Float64Array.BYTES_PER_ELEMENT;
+
+const capacityFor = (bytes: number): number =>
+  Math.max(
+    bytes,
+    Math.min(
+      LARGEST_REQUEST,
+      Math.ceil((bytes * BUFFER_GROWTH) / Float64Array.BYTES_PER_ELEMENT) *
+        Float64Array.BYTES_PER_ELEMENT,
+    ),
+  );
+
 const emptyY = (): YSlot => ({ key: "", values: null, weeks: 0 });
 
-// One high-water buffer per chart per role, and one spare while it is checked
-// out. A third wave waits. A held sample spinner must not allocate a buffer
-// per tick. The spare stays out until its kernels reply.
+// One high-water buffer per chart per role, and one pooled spare for a wave that starts
+// while it is checked out. A third wave waits. A held sample spinner must not allocate a
+// buffer per tick. The spare stays out until its kernels reply, then waits for the next
+// overlapping wave. A smaller request keeps the larger buffer: a replacement would sit in
+// the workers until they collect it.
 export const bufferSlots: Record<BandCharacter, { grouped: BufferSlot; values: BufferSlot }> = {
   drawdown: { grouped: emptySlot(), values: emptySlot() },
   price: { grouped: emptySlot(), values: emptySlot() },
@@ -135,7 +167,12 @@ const handoff = (slot: BufferSlot): void => {
   settleWaiter(waiter, next);
 };
 
-const loan = (slot: BufferSlot, buffer: SharedArrayBuffer, kind: "checked" | "spare"): Loan => {
+const loan = (
+  slot: BufferSlot,
+  buffer: SharedArrayBuffer,
+  kind: "checked" | "spare",
+  bytes: number,
+): Loan => {
   if (kind === "checked") slot.checkedOut = buffer;
   else slot.spareOut = buffer;
   let released = false;
@@ -146,7 +183,6 @@ const loan = (slot: BufferSlot, buffer: SharedArrayBuffer, kind: "checked" | "sp
       released = true;
       if (kind === "checked" && slot.checkedOut === buffer) slot.checkedOut = null;
       if (kind === "spare" && slot.spareOut === buffer) slot.spareOut = null;
-      if (slot.held === null || buffer.byteLength > slot.held.byteLength) slot.held = buffer;
       const waiter = slot.waiter;
       if (
         kind === "spare" &&
@@ -159,31 +195,33 @@ const loan = (slot: BufferSlot, buffer: SharedArrayBuffer, kind: "checked" | "sp
         buffer !== slot.checkedOut
       ) {
         slot.waiter = null;
-        settleWaiter(waiter, loan(slot, buffer, "spare"));
+        settleWaiter(waiter, loan(slot, buffer, "spare", waiter.bytes));
         return;
       }
       handoff(slot);
     },
+    view: new Float64Array(buffer, 0, Math.floor(bytes / Float64Array.BYTES_PER_ELEMENT)),
   };
 };
 
+const fits = (buffer: SharedArrayBuffer | null, bytes: number): buffer is SharedArrayBuffer =>
+  buffer !== null && buffer.byteLength >= bytes;
+
 // Null means both the high-water buffer and the spare are already loaned.
 export const acquire = (slot: BufferSlot, bytes: number): Loan | null => {
-  if (
-    slot.checkedOut === null &&
-    slot.held !== null &&
-    slot.held !== slot.spareOut &&
-    slot.held.byteLength >= bytes
-  ) {
-    return loan(slot, slot.held, "checked");
-  }
-  if (slot.checkedOut !== null && slot.spareOut !== null) return null;
-  const buffer = new SharedArrayBuffer(bytes);
   if (slot.checkedOut === null) {
-    slot.held = buffer;
-    return loan(slot, buffer, "checked");
+    if (!fits(slot.held, bytes) && slot.spareOut === null && fits(slot.spare, bytes)) {
+      // The idle spare already fits: swap roles instead of allocating.
+      const held = slot.held;
+      slot.held = slot.spare;
+      slot.spare = held;
+    }
+    if (!fits(slot.held, bytes)) slot.held = new SharedArrayBuffer(capacityFor(bytes));
+    return loan(slot, slot.held, "checked", bytes);
   }
-  return loan(slot, buffer, "spare");
+  if (slot.spareOut !== null) return null;
+  if (!fits(slot.spare, bytes)) slot.spare = new SharedArrayBuffer(capacityFor(bytes));
+  return loan(slot, slot.spare, "spare", bytes);
 };
 
 export const acquireWhenFree = (
