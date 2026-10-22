@@ -44,7 +44,6 @@ interface Runtime {
 }
 
 export interface Graph {
-  currentHash(name: string): string;
   dispose(): void;
   inputWaves(): number;
   request(): void;
@@ -205,11 +204,6 @@ export const createGraph = (
   };
 
   return {
-    currentHash: (name) => {
-      const node = byName.get(name);
-      if (node === undefined) throw new Error(`missing node ${name}`);
-      return node.currentHash;
-    },
     dispose: () => {
       if (disposed) return;
       disposed = true;

@@ -1,5 +1,6 @@
 import type GrowableSharedArray from "../../classes/growable-shared-array";
-import { coveredEpochs } from "../../horizon";
+import { walkedPriceIdentity } from "../../engine/keys";
+import { chartWeeksCovered, columnOfChartWeek, epochsForNewSamples } from "../../horizon";
 import { createTaskQueue } from "../../helpers";
 import { type Full } from "../../types";
 import { type WorkerContextType } from "../workers/types";
@@ -20,37 +21,62 @@ export const handleSimulation = async (
   dataLength: number,
   full: Full,
   fullHash: string,
+  minSeriesHash: string,
+  maxSeriesHash: string,
 ): Promise<string> => {
   const returnHash = fullHash + epochCount + samples + dataLength;
-  // The leading NaN prefix is weeksSince long. The model hash does not cover it.
-  const gridHash = `${fullHash}:${weeksSince}`;
+  // The spot and the bound series name the walk. weeksSince is only the NaN prefix.
+  const gridHash = `${walkedPriceIdentity(fullHash, currentPrice, minSeriesHash, maxSeriesHash)}:${weeksSince}`;
   const [priceWidth, priceHeight] = simulationData.getValidity(gridHash);
   const [stateWidth, stateHeight] = walkState.getValidity(gridHash);
-  let validWidth = priceWidth;
+  const priceCovered = simulationData.getCoveredWeeks(gridHash);
+  const stateCovered = walkState.getCoveredWeeks(gridHash);
   let validHeight = priceHeight;
-  if (priceWidth !== stateWidth || priceHeight !== stateHeight) {
-    validWidth = 0;
+  let coveredWeeks = priceCovered;
+  if (priceWidth !== stateWidth || priceHeight !== stateHeight || priceCovered !== stateCovered) {
     validHeight = 0;
+    coveredWeeks = 0;
   }
+  const walkEpochs = epochsForNewSamples(
+    weeksSince,
+    coveredWeeks,
+    epochCount,
+    samples,
+    validHeight,
+  );
+  const catchingUp = walkEpochs > epochCount;
   simulationData.resize(epochCount, samples);
   walkState.resize(epochCount, samples);
+  // A shorter year is already in the walked columns. setValidity would lower the sample count.
+  // New rows are the exception: they have not reached the columns that year is hiding.
+  if (!catchingUp && validHeight !== 0 && dataLength <= coveredWeeks && samples <= validHeight) {
+    return "no tasks:" + returnHash;
+  }
+  const restoreWidth = (): void => {
+    simulationData.resize(epochCount, samples);
+    walkState.resize(epochCount, samples);
+  };
+  if (catchingUp) {
+    simulationData.resize(walkEpochs, samples);
+    walkState.resize(walkEpochs, samples);
+  }
+  const extending = validHeight !== 0 && dataLength > coveredWeeks;
+  const resume = extending ? columnOfChartWeek(weeksSince, coveredWeeks) : 0;
   if (validHeight === 0) {
     simulationData.clear();
     walkState.clear();
-  } else if (validWidth < epochCount) {
-    // A longer year reaches weeks that were stored as NaN in the last column.
-    for (let epoch = validWidth; epoch < epochCount; epoch += 1) {
+  } else if (extending) {
+    for (let epoch = resume; epoch < epochCount; epoch += 1) {
       simulationData.clearEpoch(epoch);
       walkState.clearEpoch(epoch);
     }
   }
-  const needTasksForWidth = validWidth === 0 || validWidth < epochCount;
   const liveSamples = Math.min(validHeight, samples);
 
-  const taskQueueEpochs: SupplementedTask[] = needTasksForWidth
+  const taskQueueEpochs: SupplementedTask[] = extending
     ? createTaskQueue(liveSamples, worker.count, samples, 0).map((task) => ({
         ...task,
-        startEpoch: validWidth,
+        startEpoch: resume,
       }))
     : [];
 
@@ -58,6 +84,7 @@ export const handleSimulation = async (
 
   const taskQueue = taskQueueEpochs.concat(taskQueueSamples);
   if (taskQueue.length === 0) {
+    if (catchingUp) restoreWidth();
     return "no tasks:" + returnHash;
   }
 
@@ -67,7 +94,7 @@ export const handleSimulation = async (
       payload: {
         bufferState,
         currentPrice,
-        epochCount,
+        epochCount: walkEpochs,
         full,
         maxArray,
         minArray,
@@ -82,11 +109,15 @@ export const handleSimulation = async (
 
   const results = await worker.addTasks(processedTasks, signal);
   if (results.some((result) => result.status !== "completed")) {
+    if (catchingUp) restoreWidth();
     return "failed:" + returnHash;
   }
 
-  const covered = coveredEpochs(weeksSince, dataLength);
-  simulationData.setValidity(gridHash, covered);
-  walkState.setValidity(gridHash, covered);
+  if (catchingUp) restoreWidth();
+  simulationData.setValidity(gridHash);
+  walkState.setValidity(gridHash);
+  const covered = chartWeeksCovered(weeksSince, walkEpochs);
+  simulationData.setCoveredWeeks(gridHash, covered);
+  walkState.setCoveredWeeks(gridHash, covered);
   return "success:" + returnHash;
 };

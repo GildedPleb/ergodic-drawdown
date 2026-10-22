@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 import GrowableSharedArray from "../src/classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../src/constants";
 import { handleSimulation as scheduleSimulation } from "../src/contexts/computed/simulation";
+import { walkedPriceIdentity } from "../src/engine/keys";
 import { cancelBoard, cancelSignal } from "../src/engine/pool/cancel";
 import type { WorkerContextType } from "../src/contexts/workers/types";
 import { handleSimulation } from "../src/contexts/workers/simulation";
@@ -79,6 +80,9 @@ test("a flat walk maps back through the stored price bounds", () => {
 });
 
 const spot = 10 ** 2.5;
+
+const gridKey = (weeksSince = 0, price = spot, minHash = "min", maxHash = "max"): string =>
+  `${walkedPriceIdentity("model", price, minHash, maxHash)}:${weeksSince}`;
 
 const bounds = (length: number, price: number): Float64Array[] => {
   const values = new Float64Array(length);
@@ -225,6 +229,8 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
       weeks - weeksSince,
       full,
       "model",
+      "min",
+      "max",
     );
 
   await run(4);
@@ -240,7 +246,7 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
   expect(writes).toBe(3);
 });
 
-test("shrinking samples on a partial horizon stays inside the live grid", async () => {
+test("a shorter year inside a walked column does not walk again", async () => {
   const ranges: { end: number; start: number }[] = [];
   const worker: WorkerContextType = {
     addTasks: (tasks) => {
@@ -272,8 +278,8 @@ test("shrinking samples on a partial horizon stays inside the live grid", async 
       signal,
       "node",
       spot,
-      minArray,
-      maxArray,
+      bounds(weeks, minPrice),
+      bounds(weeks, maxPrice),
       1,
       data,
       state,
@@ -283,19 +289,146 @@ test("shrinking samples on a partial horizon stays inside the live grid", async 
       visible,
       full,
       "model",
+      "min",
+      "max",
     );
 
   await run(2);
-  ranges.length = 0;
-  const shrunk = await run(1);
-  expect(shrunk.startsWith("success:")).toBe(true);
-  expect(ranges.every((range) => range.start === 0 && range.end <= 1)).toBe(true);
-  expect(data.getValidity("model:0")).toEqual([0, 1]);
-  expect(state.getValidity("model:0")).toEqual([0, 1]);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks);
+  expect(state.getCoveredWeeks(gridKey())).toBe(weeks);
+  expect(data.getValidity(gridKey())).toEqual([1, 2]);
 
   ranges.length = 0;
+  const shrunk = await run(1);
+  expect(shrunk.startsWith("no tasks:")).toBe(true);
+  expect(ranges).toEqual([]);
+  expect(data.getValidity(gridKey())).toEqual([1, 2]);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks);
+  expect(state.getCoveredWeeks(gridKey())).toBe(weeks);
+
   await run(2);
-  expect(ranges.some((range) => range.start === 1)).toBe(true);
+  expect(ranges).toEqual([]);
+});
+
+test("a new spot or bound series clears the walked prices", async () => {
+  let writes = 0;
+  const worker: WorkerContextType = {
+    addTasks: (tasks) => {
+      writes += tasks.length;
+      return Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "completed" })));
+    },
+    count: 1,
+  };
+  const data = new GrowableSharedArray(1, 1);
+  const state = walkGrid(1);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const run = (price: number, minHash: string): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      price,
+      minArray,
+      maxArray,
+      1,
+      data,
+      state,
+      1,
+      worker,
+      0,
+      weeks,
+      full,
+      "model",
+      minHash,
+      "max",
+    );
+
+  await run(spot, "min");
+  await run(spot, "min");
+  expect(writes).toBe(1);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks);
+
+  await run(spot + 1, "min");
+  expect(writes).toBe(2);
+  expect(data.getCoveredWeeks(gridKey())).toBe(0);
+  expect(data.getCoveredWeeks(gridKey(0, spot + 1))).toBe(weeks);
+  expect(state.getCoveredWeeks(gridKey(0, spot + 1))).toBe(weeks);
+
+  await run(spot + 1, "other");
+  expect(writes).toBe(3);
+  expect(data.getCoveredWeeks(gridKey(0, spot + 1))).toBe(0);
+  expect(data.getCoveredWeeks(gridKey(0, spot + 1, "other"))).toBe(weeks);
+});
+
+test("a year past the covered weeks clears only the next column", async () => {
+  let startEpoch: number | undefined;
+  const worker: WorkerContextType = {
+    addTasks: (tasks) => {
+      for (const task of tasks) {
+        if (task.type !== "RUN_PRICE_SIMULATION") throw new Error("unexpected task");
+        startEpoch = task.payload.task.startEpoch;
+        handleSimulation(task.payload, { aborted: false });
+      }
+      return Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "completed" })));
+    },
+    count: 1,
+  };
+  const data = new GrowableSharedArray(2, 1, weeks);
+  const state = walkGrid(2);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const run = (epochCount: number, dataLength: number): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      spot,
+      bounds(weeks * 2, minPrice),
+      bounds(weeks * 2, maxPrice),
+      epochCount,
+      data,
+      state,
+      1,
+      worker,
+      0,
+      dataLength,
+      full,
+      "model",
+      "min",
+      "max",
+    );
+
+  await run(1, 100);
+  const first = data.get(0, 0);
+  if (first === undefined) throw new Error("missing first column");
+  const kept = first[0];
+  startEpoch = undefined;
+  await run(2, weeks + 1);
+
+  expect(startEpoch).toBe(1);
+  const again = data.get(0, 0);
+  if (again === undefined) throw new Error("missing kept column");
+  expect(again[0]).toBe(kept);
+  expect(data.get(1, 0) === undefined).toBe(false);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks * 2);
+  expect(state.getCoveredWeeks(gridKey())).toBe(weeks * 2);
 });
 
 test("a priced epoch without a cycle is a broken cache", () => {
@@ -412,9 +545,204 @@ test("an aborted simulation wave does not mark the price grid valid", async () =
     weeks,
     full,
     "model",
+    "min",
+    "max",
   );
 
   expect(outcome).toBe(`failed:model11${weeks}`);
-  expect(data.getValidity("model:0")).toEqual([0, 0]);
-  expect(state.getValidity("model:0")).toEqual([0, 0]);
+  expect(data.getValidity(gridKey())).toEqual([0, 0]);
+  expect(state.getValidity(gridKey())).toEqual([0, 0]);
+  expect(data.getCoveredWeeks(gridKey())).toBe(0);
+  expect(state.getCoveredWeeks(gridKey())).toBe(0);
+});
+
+test("an aborted extension does not raise the covered weeks", async () => {
+  let abort = false;
+  const worker: WorkerContextType = {
+    addTasks: (tasks) =>
+      Promise.resolve(
+        tasks.map((): TaskResult => ({ id: "task", status: abort ? "aborted" : "completed" })),
+      ),
+    count: 1,
+  };
+  const data = new GrowableSharedArray(2, 1, weeks);
+  const state = walkGrid(2);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const run = (epochCount: number, dataLength: number): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      spot,
+      bounds(weeks * 2, minPrice),
+      bounds(weeks * 2, maxPrice),
+      epochCount,
+      data,
+      state,
+      1,
+      worker,
+      0,
+      dataLength,
+      full,
+      "model",
+      "min",
+      "max",
+    );
+
+  await run(1, weeks);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks);
+  abort = true;
+  const outcome = await run(2, weeks + 1);
+  expect(outcome.startsWith("failed:")).toBe(true);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks);
+  expect(state.getCoveredWeeks(gridKey())).toBe(weeks);
+  expect(data.getValidity(gridKey())).toEqual([1, 1]);
+});
+
+test("samples added during a short year fill the trusted columns", async () => {
+  const posted: { epochCount: number; start: number }[] = [];
+  let startEpochSeen = false;
+  const worker: WorkerContextType = {
+    addTasks: (tasks) => {
+      for (const task of tasks) {
+        if (task.type !== "RUN_PRICE_SIMULATION") throw new Error("unexpected task");
+        posted.push({ epochCount: task.payload.epochCount, start: task.payload.task.startIndex });
+        if (task.payload.task.startEpoch !== undefined) startEpochSeen = true;
+        handleSimulation(task.payload, { aborted: false });
+      }
+      return Promise.resolve(tasks.map((): TaskResult => ({ id: "task", status: "completed" })));
+    },
+    count: 1,
+  };
+  const data = new GrowableSharedArray(2, 2, weeks);
+  const state = walkGrid(2, 2);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const run = (epochCount: number, samples: number, dataLength: number): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      spot,
+      bounds(weeks * 2, minPrice),
+      bounds(weeks * 2, maxPrice),
+      epochCount,
+      data,
+      state,
+      samples,
+      worker,
+      0,
+      dataLength,
+      full,
+      "model",
+      "min",
+      "max",
+    );
+
+  await run(2, 1, weeks + 1);
+  const first = data.get(0, 0);
+  if (first === undefined) throw new Error("missing first column");
+  const kept = first[0];
+  posted.length = 0;
+  startEpochSeen = false;
+
+  const shrunk = await run(1, 1, 100);
+  expect(shrunk.startsWith("no tasks:")).toBe(true);
+  expect(posted).toEqual([]);
+
+  const caughtUp = await run(1, 2, 100);
+  expect(caughtUp.startsWith("success:")).toBe(true);
+  expect(posted).toEqual([{ epochCount: 2, start: 1 }]);
+  expect(startEpochSeen).toBe(false);
+  expect(data.exportState().activeWidth).toBe(1);
+  expect(state.exportState().activeWidth).toBe(1);
+  expect(data.getValidity(gridKey())).toEqual([2, 2]);
+  expect(state.getValidity(gridKey())).toEqual([2, 2]);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks * 2);
+  expect(state.getCoveredWeeks(gridKey())).toBe(weeks * 2);
+
+  posted.length = 0;
+  const restored = await run(2, 2, weeks + 1);
+  expect(restored.startsWith("no tasks:")).toBe(true);
+  expect(posted).toEqual([]);
+  const again = data.get(0, 0);
+  if (again === undefined) throw new Error("missing kept column");
+  expect(again[0]).toBe(kept);
+  const added = data.get(1, 1);
+  if (added === undefined) throw new Error("missing added column");
+  expect(added[0]).toBe(spot);
+  expect(state.get(1, 1) === undefined).toBe(false);
+});
+
+test("an aborted sample catch-up leaves the requested price width", async () => {
+  let abort = false;
+  const worker: WorkerContextType = {
+    addTasks: (tasks) =>
+      Promise.resolve(
+        tasks.map((): TaskResult => ({ id: "task", status: abort ? "aborted" : "completed" })),
+      ),
+    count: 1,
+  };
+  const data = new GrowableSharedArray(2, 2, weeks);
+  const state = walkGrid(2, 2);
+  const full = {
+    clampBottom: false,
+    clampTop: false,
+    minMaxMultiple: 1,
+    model: "CAGR",
+    seed: 1,
+    variable: 1,
+    volatility: 0,
+    walk: "Random" as const,
+  };
+  const signal = new AbortController().signal;
+  const run = (epochCount: number, samples: number, dataLength: number): Promise<string> =>
+    scheduleSimulation(
+      signal,
+      "node",
+      spot,
+      bounds(weeks * 2, minPrice),
+      bounds(weeks * 2, maxPrice),
+      epochCount,
+      data,
+      state,
+      samples,
+      worker,
+      0,
+      dataLength,
+      full,
+      "model",
+      "min",
+      "max",
+    );
+
+  await run(2, 1, weeks + 1);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks * 2);
+  await run(1, 1, 100);
+  abort = true;
+  const outcome = await run(1, 2, 100);
+  expect(outcome.startsWith("failed:")).toBe(true);
+  expect(data.exportState().activeWidth).toBe(1);
+  expect(state.exportState().activeWidth).toBe(1);
+  expect(data.getCoveredWeeks(gridKey())).toBe(weeks * 2);
+  expect(state.getCoveredWeeks(gridKey())).toBe(weeks * 2);
+  expect(data.getValidity(gridKey())).toEqual([2, 1]);
+  expect(state.getValidity(gridKey())).toEqual([2, 1]);
 });

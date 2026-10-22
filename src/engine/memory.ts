@@ -4,6 +4,38 @@ import { type VariableDrawdownFinal } from "../classes/variable-drawdown-final";
 import { DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH } from "../constants";
 import { WALK_STATE_LENGTH } from "../data/walks/prng";
 
+export interface BoundSlot {
+  key: string;
+  logs: Float64Array;
+  points: Float64Array;
+  seriesHash: string;
+  weeks: number;
+}
+
+export interface CashflowSlot {
+  bitcoin: Float64Array;
+  fiat: Float64Array;
+  key: string;
+  seriesHash: string;
+  weeks: number;
+}
+
+const emptyBound = (): BoundSlot => ({
+  key: "",
+  logs: new Float64Array(0),
+  points: new Float64Array(0),
+  seriesHash: "",
+  weeks: 0,
+});
+
+const emptyCashflow = (): CashflowSlot => ({
+  bitcoin: new Float64Array(0),
+  fiat: new Float64Array(0),
+  key: "",
+  seriesHash: "",
+  weeks: 0,
+});
+
 export class EngineMemory {
   readonly drawdownData = new GrowableSharedArray(
     DEFAULT_EPOCH_COUNT,
@@ -22,6 +54,10 @@ export class EngineMemory {
     DEFAULT_SIMULATION_COUNT,
     WALK_STATE_LENGTH,
   );
+  // One series each. A module slot would leak across golden cases in one process.
+  readonly minSeries: BoundSlot = emptyBound();
+  readonly maxSeries: BoundSlot = emptyBound();
+  readonly cashflowSeries: CashflowSlot = emptyCashflow();
 }
 
 interface Waiter {
@@ -47,6 +83,7 @@ interface Loan {
 interface YSlot {
   key: string;
   values: Float64Array | null;
+  weeks: number;
 }
 
 export type BandCharacter = "drawdown" | "price";
@@ -59,7 +96,7 @@ const emptySlot = (): BufferSlot => ({
   waiter: null,
 });
 
-const emptyY = (): YSlot => ({ key: "", values: null });
+const emptyY = (): YSlot => ({ key: "", values: null, weeks: 0 });
 
 // One high-water buffer per chart per role, and one spare while it is checked
 // out. A third wave waits. A held sample spinner must not allocate a buffer
@@ -70,7 +107,8 @@ export const bufferSlots: Record<BandCharacter, { grouped: BufferSlot; values: B
 };
 
 // Last y-values only. Quantile and normal each keep a slot, so toggling back
-// does not rerun workers. A new source hash overwrites that slot.
+// does not rerun workers. The key is the series, weeksSince, samples, and kind.
+// `weeks` is how many chart weeks are stored. A shorter year reads the front.
 export const ySlots: Record<BandCharacter, Record<BandKind, YSlot>> = {
   drawdown: { quantile: emptyY(), sd: emptyY() },
   price: { quantile: emptyY(), sd: emptyY() },

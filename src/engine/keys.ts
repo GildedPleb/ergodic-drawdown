@@ -134,6 +134,22 @@ export const deriveKeys = (config: EngineConfig, weeksSince: number): DerivedKey
   };
 };
 
+// The spot and the bound series name a walked price. The year length does not.
+export const walkedPriceIdentity = (
+  fullHash: string,
+  currentPrice: number,
+  minSeriesHash: string,
+  maxSeriesHash: string,
+): string => `${fullHash}:${currentPrice}:${minSeriesHash}:${maxSeriesHash}`;
+
+// Drawdown bands follow the weekly amounts and the walked prices. The clock is not in the id.
+export const drawdownBandIdentity = (
+  volumeCacheHash: string,
+  spend: string,
+  seriesHash: string,
+  priceIdentity: string,
+): string => `${volumeCacheHash}:${spend}:${seriesHash}:${priceIdentity}`;
+
 const sameList = (left: readonly unknown[], right: readonly unknown[]): boolean => {
   if (left.length !== right.length) return false;
   for (let index = 0; index < left.length; index++) {

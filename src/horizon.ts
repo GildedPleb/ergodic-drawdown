@@ -14,9 +14,27 @@ export const legacySpan = (epochs: number, weeksSince: number): number =>
 export const allocatedEpochs = (weeksSince: number, visible: number): number =>
   Math.min(MAX_EPOCH_COUNT, Math.max(1, Math.ceil((weeksSince + visible) / WEEKS_PER_EPOCH)));
 
-// Epochs whose last week is inside the horizon. The last partial column is not covered.
-export const coveredEpochs = (weeksSince: number, visible: number): number =>
-  Math.floor((weeksSince + visible) / WEEKS_PER_EPOCH);
+// Chart weeks in the walked columns, including the tail past the visible year.
+export const chartWeeksCovered = (weeksSince: number, epochs: number): number =>
+  epochs * WEEKS_PER_EPOCH - weeksSince;
+
+// The column that contains this chart week. A column is one walk.
+export const columnOfChartWeek = (weeksSince: number, chartWeek: number): number =>
+  Math.floor((weeksSince + chartWeek) / WEEKS_PER_EPOCH);
+
+// A new row has never been walked. The watermark is the whole grid, so the row has to
+// reach every trusted column even when the requested year is shorter.
+export const epochsForNewSamples = (
+  weeksSince: number,
+  coveredWeeks: number,
+  epochCount: number,
+  samples: number,
+  validHeight: number,
+): number => {
+  if (validHeight === 0 || samples <= validHeight || coveredWeeks === 0) return epochCount;
+  const walked = columnOfChartWeek(weeksSince, coveredWeeks);
+  return walked > epochCount ? walked : epochCount;
+};
 
 export const maxYears = (weeksSince: number): number => {
   const room = MAX_EPOCH_COUNT * WEEKS_PER_EPOCH - weeksSince;

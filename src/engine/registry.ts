@@ -31,8 +31,13 @@ import { calculateBalanceAndZero } from "../contexts/computed/zero-count";
 import { type WorkerContextType } from "../contexts/workers/types";
 import { type Dataset, type DatasetList } from "../types";
 import { type GraphNode } from "./graph-scheduler";
-import { type DerivedKeys, type EngineConfig } from "./keys";
-import { type EngineMemory } from "./memory";
+import {
+  drawdownBandIdentity,
+  walkedPriceIdentity,
+  type DerivedKeys,
+  type EngineConfig,
+} from "./keys";
+import { ySlots, type EngineMemory } from "./memory";
 
 export interface NodeSlots {
   "Chart Options": ChartOptions<"line"> | null;
@@ -62,7 +67,6 @@ export interface NodeSlots {
 export interface ComputeEnv {
   config: EngineConfig;
   derived: DerivedKeys;
-  hashOf: (name: string) => string;
   memory: EngineMemory;
   slots: NodeSlots;
   worker: WorkerContextType;
@@ -98,6 +102,71 @@ const present = <T>(value: T | null, name: string): T => {
   return value;
 };
 
+type SeriesPart = "cashflow" | "max" | "min";
+
+interface SeriesHashes {
+  cashflow: string;
+  max: string;
+  min: string;
+}
+
+// Max, then min, then the weekly amounts. Each one files the walked columns under the id
+// simulation and volume are about to read. A from-scratch rebuild does not come through here.
+const retargetExtendedSeries = (
+  memory: EngineMemory,
+  derived: DerivedKeys,
+  currentPrice: number,
+  weeksSince: number,
+  part: SeriesPart,
+  previousHash: string,
+  nextHash: string,
+): void => {
+  const after: SeriesHashes = {
+    cashflow: memory.cashflowSeries.seriesHash,
+    max: memory.maxSeries.seriesHash,
+    min: memory.minSeries.seriesHash,
+  };
+  if (previousHash === "" || previousHash === nextHash || after[part] !== nextHash) return;
+  const before: SeriesHashes = { ...after, [part]: previousHash };
+  const oldPrice = walkedPriceIdentity(derived.fullHash, currentPrice, before.min, before.max);
+  const newPrice = walkedPriceIdentity(derived.fullHash, currentPrice, after.min, after.max);
+  memory.simulationData.adoptSeries(`${oldPrice}:${weeksSince}`, `${newPrice}:${weeksSince}`);
+  memory.walkState.adoptSeries(`${oldPrice}:${weeksSince}`, `${newPrice}:${weeksSince}`);
+  const priceMarker = `${oldPrice}:`;
+  if (oldPrice !== newPrice) {
+    for (const kind of ["quantile", "sd"] as const) {
+      const slot = ySlots.price[kind];
+      if (slot.key.startsWith(priceMarker)) {
+        slot.key = `${newPrice}${slot.key.slice(oldPrice.length)}`;
+      }
+    }
+  }
+
+  const oldBase = `${derived.volumeCacheHash}:${weeksSince}:${before.cashflow}:${oldPrice}`;
+  const newBase = `${derived.volumeCacheHash}:${weeksSince}:${after.cashflow}:${newPrice}`;
+  memory.drawdownData.adoptSeries(oldBase, newBase);
+
+  // The new length's spend is published after this series grows. The band still wears the previous one.
+  const published = memory.finalVariableCache.get(derived.variableCacheHash);
+  let spend = "missing";
+  if (published !== undefined) spend = published.spendHash();
+  else if (memory.finalVariableCache.size === 1) {
+    const previous = memory.finalVariableCache.values().next().value;
+    if (previous !== undefined) spend = previous.spendHash();
+  }
+  const oldBand = drawdownBandIdentity(derived.volumeCacheHash, spend, before.cashflow, oldPrice);
+  const newBand = drawdownBandIdentity(derived.volumeCacheHash, spend, after.cashflow, newPrice);
+  const bandMarker = `${oldBand}:`;
+  if (oldBand !== newBand) {
+    for (const kind of ["quantile", "sd"] as const) {
+      const slot = ySlots.drawdown[kind];
+      if (slot.key.startsWith(bandMarker)) {
+        slot.key = `${newBand}${slot.key.slice(oldBand.length)}`;
+      }
+    }
+  }
+};
+
 const writeSlot = (slots: NodeSlots, name: keyof NodeSlots, value: unknown): void => {
   Object.assign(slots, { [name]: value });
 };
@@ -127,6 +196,23 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
 
   const scenario = (): EngineConfig["scenario"] => env.config.scenario;
   const render = (): EngineConfig["render"] => env.config.render;
+  const priceIdentity = (): string =>
+    walkedPriceIdentity(
+      env.derived.fullHash,
+      env.config.currentPrice,
+      memory.minSeries.seriesHash,
+      memory.maxSeries.seriesHash,
+    );
+  const drawdownSeriesKey = (): string => {
+    const final = memory.finalVariableCache.get(env.derived.variableCacheHash);
+    const spend = final === undefined ? "missing" : final.spendHash();
+    return drawdownBandIdentity(
+      env.derived.volumeCacheHash,
+      spend,
+      memory.cashflowSeries.seriesHash,
+      priceIdentity(),
+    );
+  };
 
   return [
     spec(
@@ -171,6 +257,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         env.config.currentPrice,
         env.config.now,
         env.derived.dataLength,
+        env.derived.weeksSince,
       ],
       (signal, hash) =>
         handleMaxArray(
@@ -183,13 +270,26 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           env.config.currentPrice,
           env.config.now,
           env.derived.dataLength,
+          env.derived.weeksSince,
+          memory.maxSeries,
+          (previousHash, nextHash) => {
+            retargetExtendedSeries(
+              memory,
+              env.derived,
+              env.config.currentPrice,
+              env.derived.weeksSince,
+              "max",
+              previousHash,
+              nextHash,
+            );
+          },
         ),
     ),
     spec(
       "Max Dataset",
       ["Max Array"],
       true,
-      () => [render().renderModelMax, slots["Max Array"], env.config.now],
+      () => [render().renderModelMax, slots["Max Array"], env.config.now, env.derived.dataLength],
       (signal, hash) =>
         handleMaxModel(
           signal,
@@ -197,6 +297,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           render().renderModelMax,
           present(slots["Max Array"], "Max Array"),
           env.config.now,
+          env.derived.dataLength,
         ),
     ),
     spec(
@@ -211,6 +312,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         env.config.currentPrice,
         env.config.now,
         env.derived.dataLength,
+        env.derived.weeksSince,
       ],
       (signal, hash) =>
         handleMinArray(
@@ -223,13 +325,26 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           env.config.currentPrice,
           env.config.now,
           env.derived.dataLength,
+          env.derived.weeksSince,
+          memory.minSeries,
+          (previousHash, nextHash) => {
+            retargetExtendedSeries(
+              memory,
+              env.derived,
+              env.config.currentPrice,
+              env.derived.weeksSince,
+              "min",
+              previousHash,
+              nextHash,
+            );
+          },
         ),
     ),
     spec(
       "Min Dataset",
       ["Min Array"],
       true,
-      () => [render().renderModelMin, slots["Min Array"], env.config.now],
+      () => [render().renderModelMin, slots["Min Array"], env.config.now, env.derived.dataLength],
       (signal, hash) =>
         handleMinModel(
           signal,
@@ -237,6 +352,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           render().renderModelMin,
           present(slots["Min Array"], "Min Array"),
           env.config.now,
+          env.derived.dataLength,
         ),
     ),
     spec(
@@ -250,6 +366,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         scenario().reoccurringItems,
         slots["Inflation Factors"],
         env.derived.weeklyInflationRate,
+        env.derived.weeksSince,
       ],
       (signal, hash) =>
         handleDrawdownStatic(
@@ -261,6 +378,19 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           scenario().reoccurringItems,
           present(slots["Inflation Factors"], "Inflation Factors"),
           env.derived.weeklyInflationRate,
+          env.derived.weeksSince,
+          memory.cashflowSeries,
+          (previousHash, nextHash) => {
+            retargetExtendedSeries(
+              memory,
+              env.derived,
+              env.config.currentPrice,
+              env.derived.weeksSince,
+              "cashflow",
+              previousHash,
+              nextHash,
+            );
+          },
         ),
     ),
     spec(
@@ -280,6 +410,8 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         env.derived.dataLength,
         env.derived.full,
         env.derived.fullHash,
+        memory.minSeries.seriesHash,
+        memory.maxSeries.seriesHash,
       ],
       (signal, hash) =>
         handleSimulation(
@@ -297,6 +429,8 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           env.derived.dataLength,
           env.derived.full,
           env.derived.fullHash,
+          memory.minSeries.seriesHash,
+          memory.maxSeries.seriesHash,
         ),
     ),
     spec(
@@ -409,6 +543,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         memory.drawdownData,
         env.derived.volumeCacheHash,
         env.derived.variableCacheHash,
+        priceIdentity(),
         env.derived.weeksSince,
         env.derived.dataLength,
         env.worker,
@@ -427,6 +562,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           memory.drawdownData,
           env.derived.volumeCacheHash,
           env.derived.variableCacheHash,
+          priceIdentity(),
           env.derived.weeksSince,
           env.derived.dataLength,
           env.worker,
@@ -480,7 +616,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         render().renderPriceDistribution,
         "price",
         false,
-        env.hashOf("Simulation"),
+        priceIdentity(),
       ],
       (signal, hash) =>
         handleDistribution(
@@ -495,7 +631,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           render().renderPriceDistribution,
           "price",
           false,
-          env.hashOf("Simulation"),
+          priceIdentity(),
         ),
     ),
     spec(
@@ -536,7 +672,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
         render().renderDrawdownDistribution,
         "drawdown",
         scenario().showModel,
-        env.hashOf("Volume"),
+        drawdownSeriesKey(),
       ],
       (signal, hash) =>
         handleDistribution(
@@ -551,7 +687,7 @@ export const buildNodes = (env: ComputeEnv): GraphNode[] => {
           render().renderDrawdownDistribution,
           "drawdown",
           scenario().showModel,
-          env.hashOf("Volume"),
+          drawdownSeriesKey(),
         ),
     ),
     spec(

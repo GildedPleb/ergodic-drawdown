@@ -1,4 +1,5 @@
 import { MS_PER_WEEK } from "../../constants";
+import { numberAt } from "../../number-at";
 import { type DatasetList } from "../../types";
 
 export const handleMaxModel = (
@@ -7,18 +8,18 @@ export const handleMaxModel = (
   renderModelMax: boolean,
   maxArray: Float64Array[],
   now: number,
+  dataLength: number,
 ): DatasetList => {
   if (!renderModelMax) return [];
   const series = maxArray[0];
   if (series === undefined) throw new Error("missing max series");
+  const count = Math.min(dataLength, series.length);
   const maxPoints = [];
-  let index = 0;
-  for (const price of series) {
+  for (let index = 0; index < count; index += 1) {
     maxPoints.push({
       x: now + index * MS_PER_WEEK,
-      y: price,
+      y: numberAt(series, index),
     });
-    index++;
   }
   return [
     {
