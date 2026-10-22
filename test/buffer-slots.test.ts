@@ -68,3 +68,27 @@ test("one pooled spare serves every wave that overlaps the checked-out buffer", 
   expect(next?.view.length).toBe(200);
   expect(next?.buffer === held.buffer).toBe(false);
 });
+
+test("headroom stops at the largest possible request", () => {
+  // Every sample over every week: no band request is larger, so 1.5x past it is never read.
+  // Record the requested length instead of reserving half a gigabyte per case.
+  const largest = BYTES * 30 * 208 * 10_000;
+  const requested: number[] = [];
+  const Real = globalThis.SharedArrayBuffer;
+  globalThis.SharedArrayBuffer = class extends Real {
+    constructor(length?: number) {
+      requested.push(length ?? 0);
+      super(0);
+    }
+  };
+  try {
+    for (const bytes of [largest * 0.8, largest, largest + BYTES]) {
+      // The zero-length stand-in cannot back the view, so the loan itself throws.
+      expect(() => acquire(slot(), bytes)).toThrow();
+    }
+  } finally {
+    globalThis.SharedArrayBuffer = Real;
+  }
+  // Past the cap the request is still served exactly.
+  expect(requested).toEqual([largest, largest, largest + BYTES]);
+});

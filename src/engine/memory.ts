@@ -1,7 +1,13 @@
 import GrowableSharedArray from "../classes/growable-shared-array";
 import VariableDrawdownCache from "../classes/variable-drawdown-cache";
 import { type VariableDrawdownFinal } from "../classes/variable-drawdown-final";
-import { DEFAULT_EPOCH_COUNT, DEFAULT_SIMULATION_COUNT, WEEKS_PER_EPOCH } from "../constants";
+import {
+  DEFAULT_EPOCH_COUNT,
+  DEFAULT_SIMULATION_COUNT,
+  MAX_SAMPLE_COUNT,
+  MAX_WEEKS,
+  WEEKS_PER_EPOCH,
+} from "../constants";
 import { WALK_STATE_LENGTH } from "../data/walks/prng";
 
 export interface BoundSlot {
@@ -106,9 +112,19 @@ const emptySlot = (): BufferSlot => ({
 // O(log n) times instead of once per tick.
 const BUFFER_GROWTH = 1.5;
 
+// No band request is larger than every sample over every week. Headroom past that is never
+// read, and at the top settings it is 250 MB per buffer that the allocation must still find.
+const LARGEST_REQUEST = MAX_WEEKS * MAX_SAMPLE_COUNT * Float64Array.BYTES_PER_ELEMENT;
+
 const capacityFor = (bytes: number): number =>
-  Math.ceil((bytes * BUFFER_GROWTH) / Float64Array.BYTES_PER_ELEMENT) *
-  Float64Array.BYTES_PER_ELEMENT;
+  Math.max(
+    bytes,
+    Math.min(
+      LARGEST_REQUEST,
+      Math.ceil((bytes * BUFFER_GROWTH) / Float64Array.BYTES_PER_ELEMENT) *
+        Float64Array.BYTES_PER_ELEMENT,
+    ),
+  );
 
 const emptyY = (): YSlot => ({ key: "", values: null, weeks: 0 });
 
