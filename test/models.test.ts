@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 
-import { modelMap } from "../src/data/models";
-import { type MinMaxOptions } from "../src/types";
+import { declaredSettings, modelMap, savedKnobs } from "../src/data/models";
 import { installFrozenClock } from "./freeze-clock";
 
 const now = 1_713_571_767_000;
@@ -9,7 +8,6 @@ const now = 1_713_571_767_000;
 const frozenOptions = {
   currentBlock: 840_000,
   currentPrice: 60_000,
-  minMaxMultiple: 2,
   now,
   week: 52,
 } as const;
@@ -52,17 +50,75 @@ afterAll(() => {
   restoreClock();
 });
 
+const knobLabels = (name: string): readonly string[] | undefined => {
+  if (name === "CAGR") return ["R (%)", "+/-"];
+  if (name === "Historic") return ["Previous Halvings"];
+  return undefined;
+};
+
+const variableDefault = (params: (typeof modelMap)[keyof typeof modelMap]["params"]): number => {
+  const setting = params.find((param) => param.kind === "number" && param.key === "variable");
+  return setting?.kind === "number" ? setting.default : 0;
+};
+
 for (const model of Object.values(modelMap)) {
-  test(`${model.modelType} prices stay fixed for one week and one now`, () => {
-    const expected = expectedPrices[model.modelType];
-    const options: MinMaxOptions = { ...frozenOptions, variable: model.default };
+  test(`${model.name} prices stay fixed for one week and one now`, () => {
+    const expected = expectedPrices[model.name];
+    const options = {
+      ...frozenOptions,
+      settings: declaredSettings(model.name, {
+        minMaxMultiple: 2,
+        variable: variableDefault(model.params),
+      }),
+    };
 
     expect(model.minPrice(options)).toBe(expected.min);
     expect(model.maxPrice(options)).toBe(expected.max);
   });
+
+  test(`${model.name} carries a one-line summary, a longer description, and its own settings`, () => {
+    expect(model.summary).toBe(model.summary.trim());
+    expect(model.summary.includes("\n")).toBe(false);
+    expect(model.summary.endsWith(".")).toBe(true);
+    expect(model.description.length).toBeGreaterThanOrEqual(model.summary.length + 1);
+    const labels = knobLabels(model.name);
+    expect(model.params.map((param) => param.label)).toEqual(
+      labels === undefined ? [] : [...labels],
+    );
+  });
 }
 
+test("declared settings keep only the keys that model lists", () => {
+  expect(declaredSettings("CAGR", { extra: 1, minMaxMultiple: 2, variable: 20 })).toEqual({
+    minMaxMultiple: 2,
+    variable: 20,
+  });
+  expect(declaredSettings("CAGR", { minMaxMultiple: 2, variable: "no" })).toEqual({
+    minMaxMultiple: 2,
+    variable: 20,
+  });
+  expect(declaredSettings("Historic", { minMaxMultiple: 2, variable: 2 })).toEqual({
+    variable: 2,
+  });
+  expect(declaredSettings("Historic")).toEqual({ variable: 2 });
+  expect(declaredSettings("Power Law Regression Median", { variable: 9 })).toEqual({});
+});
+
+test("a version-1 file keeps the two old keys and fills a missing one", () => {
+  expect(savedKnobs({ minMaxMultiple: 4, variable: 7 })).toEqual({
+    minMaxMultiple: 4,
+    variable: 7,
+  });
+  expect(savedKnobs({})).toEqual({ minMaxMultiple: 3, variable: 0 });
+  expect(savedKnobs({ minMaxMultiple: "no", variable: "no" })).toEqual({
+    minMaxMultiple: 3,
+    variable: 0,
+  });
+});
+
 test("CAGR rate defaults to 20 percent and is capped at 1000 percent", () => {
-  expect(modelMap.CAGR.default).toBe(20);
-  expect(modelMap.CAGR.rangeMax).toBe(1000);
+  const rate = modelMap.CAGR.params.find((param) => param.key === "variable");
+  if (rate?.kind !== "number") throw new Error("CAGR rate");
+  expect(rate.default).toBe(20);
+  expect(rate.max).toBe(1000);
 });

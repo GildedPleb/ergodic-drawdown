@@ -8,24 +8,51 @@ export interface ProviderProperties {
   children: React.ReactNode;
 }
 
-export interface MinMaxOptions {
+export type ModelSettings = { readonly [key: string]: number | string };
+
+/** One chart week plus the settings of the model pricing it. */
+export interface PriceWeek {
   currentBlock: number;
   currentPrice: number;
-  minMaxMultiple: number;
   now: number;
-  variable: number;
+  settings: ModelSettings;
   week: number;
 }
 
-export interface PriceModel<T extends string = string> {
+/** One allowed value of a choice. `value` is what the model reads. */
+interface ModelChoiceOption {
+  label: string;
+  value: string;
+}
+
+interface ModelNumberParam {
   default: number;
-  maxPrice: (options: MinMaxOptions) => number;
-  minPrice: (options: MinMaxOptions) => number;
-  modelType: T;
-  rangeMax: number;
-  rangeMin: number;
-  varInput: string;
-  varRange: boolean;
+  key: string;
+  kind: "number";
+  label: string;
+  max: number;
+  min: number;
+  step: number;
+}
+
+interface ModelChoiceParam {
+  default: string;
+  key: string;
+  kind: "choice";
+  label: string;
+  options: readonly ModelChoiceOption[];
+}
+
+/** A declared setting. Another kind of control is another member of this union. */
+export type ModelParam = ModelChoiceParam | ModelNumberParam;
+
+export interface PriceModel<T extends string = string> {
+  description: string;
+  maxPrice: (week: PriceWeek) => number;
+  minPrice: (week: PriceWeek) => number;
+  name: T;
+  params: readonly ModelParam[];
+  summary: string;
 }
 
 export type HalvingData = Record<string, number>;
@@ -42,10 +69,9 @@ export type DatasetList = Dataset[];
 export interface Full {
   clampBottom: boolean;
   clampTop: boolean;
-  minMaxMultiple: number;
   model: string;
   seed: number;
-  variable: number;
+  settings: ModelSettings;
   volatility: number;
   walk: WalkTypes;
 }

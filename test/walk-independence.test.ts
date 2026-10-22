@@ -56,10 +56,9 @@ const run = (job: Job, tasks: SupplementedTask[], existing?: Grids): Grids => {
   const full: Full = {
     clampBottom: job.clampBottom,
     clampTop: job.clampTop,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: job.seed,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: job.volatility,
     walk: job.walk,
   };

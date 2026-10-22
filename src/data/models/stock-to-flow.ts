@@ -1,7 +1,7 @@
 import memoize from "memoizee";
 
 import { BLOCKS_PER_WEEK, BLOCKS_PER_YEAR, HALVING_INTERVAL } from "../../constants";
-import { type PriceModel } from "../../types";
+import { defineModel } from "./define";
 
 const getRewardForHalving = memoize((halvingIndex: number): number => {
   return 50 / 2 ** halvingIndex;
@@ -22,8 +22,9 @@ const calculateOneYearFlow = memoize((blockNumber: number): number => {
   return calculateTotalStock(blockNumber) - calculateTotalStock(startBlock);
 });
 
-const stockToFlowModel = {
-  default: 0,
+const stockToFlowModel = defineModel({
+  description:
+    "Stock is the coins issued through the block this week lands on, and flow is the coins issued over the prior year of blocks. The coefficients and the 65% band are fixed. This model has no setting.",
   maxPrice: ({ currentBlock, week }): number => {
     const blockToFind = currentBlock + week * BLOCKS_PER_WEEK;
     const stock = calculateTotalStock(blockToFind);
@@ -42,11 +43,10 @@ const stockToFlowModel = {
     const confidence = (65 / 100) * basePrice;
     return basePrice - confidence;
   },
-  modelType: "Stock-To-Flow" as const,
-  rangeMax: Infinity,
-  rangeMin: 0,
-  varInput: "",
-  varRange: false,
-} satisfies PriceModel;
+  name: "Stock-To-Flow" as const,
+  params: [],
+  summary:
+    "Price is exp(−1.02) × (stock / one-year flow)^3.08, with the floor and the ceiling 65% below and above that line.",
+});
 
 export default stockToFlowModel;

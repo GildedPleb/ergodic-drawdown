@@ -9,6 +9,7 @@ import { SecureFileOperationsModal } from "../components/file-operations-modal";
 import BitcoinInput from "../components/input/bitcoin";
 import InflationInput from "../components/input/inflation";
 import { isMobile, WEEKS_PER_YEAR } from "../constants";
+import { savedKnobs } from "../data/models";
 import { loadHalvings, weeksSinceLastHalving } from "../halvings";
 import { savedHorizon } from "../helpers";
 import { legacySpan } from "../horizon";
@@ -241,11 +242,13 @@ const Drawdown = (): JSX.Element => {
         modelState.setYears(state.years);
       }
       modelState.setLoadingPriceData(state.loadingPriceData);
-      modelState.setMinMaxMultiple(state.minMaxMultiple);
       modelState.setModel(state.model);
+      modelState.setModelSettings(state.model, {
+        minMaxMultiple: state.minMaxMultiple,
+        variable: state.variable,
+      });
       modelState.setSamples(state.samples);
       modelState.setShowModel(state.showModel);
-      modelState.setVariable(state.variable);
       modelState.setVolatility(state.volatility);
       modelState.setWalk(state.walk);
       renderState.setHideResults(state.hideResults);
@@ -264,6 +267,7 @@ const Drawdown = (): JSX.Element => {
   );
 
   const appState = useMemo((): SavedAppState => {
+    const knobs = savedKnobs(modelState.settings);
     const weeksSince = weeksSinceLastHalving(loadHalvings());
     const { epochCount, ...horizon } = savedHorizon(
       weeksSince,
@@ -279,7 +283,7 @@ const Drawdown = (): JSX.Element => {
       inflation: drawdownState.inflation,
       loadingPriceData: modelState.loadingPriceData,
       loadingVolumeData: drawdownState.loadingVolumeData,
-      minMaxMultiple: modelState.minMaxMultiple,
+      minMaxMultiple: knobs.minMaxMultiple,
       model: modelState.model,
       oneOffFiatVariables: drawdownState.oneOffFiatVariables,
       oneOffItems: drawdownState.oneOffItems,
@@ -297,7 +301,7 @@ const Drawdown = (): JSX.Element => {
       showModel: modelState.showModel,
       showRender: renderState.showRender,
       showResults: renderState.showResults,
-      variable: modelState.variable,
+      variable: knobs.variable,
       version: 1,
       volatility: modelState.volatility,
       walk: modelState.walk,

@@ -36,10 +36,9 @@ const sample = (currentPrice: number, weeksSince: number): Float64Array => {
       full: {
         clampBottom: false,
         clampTop: false,
-        minMaxMultiple: 1,
         model: "CAGR",
         seed: 1,
-        variable: 1,
+        settings: { minMaxMultiple: 1, variable: 1 },
         volatility: 0,
         walk: "Random",
       },
@@ -118,10 +117,9 @@ const risingRow = (multiple: number, epochs: number): Float64Array => {
       full: {
         clampBottom: false,
         clampTop: false,
-        minMaxMultiple: multiple,
         model: "CAGR",
         seed: 1,
-        variable: 20,
+        settings: { minMaxMultiple: multiple, variable: 20 },
         volatility: 0.1,
         walk: "Bubble",
       },
@@ -209,10 +207,9 @@ const runEpochs = (
       full: {
         clampBottom: false,
         clampTop: false,
-        minMaxMultiple: 1,
         model: "CAGR",
         seed: 1,
-        variable: 1,
+        settings: { minMaxMultiple: 1, variable: 1 },
         volatility: 0,
         walk: "Random",
       },
@@ -262,10 +259,9 @@ test("a cached epoch that ends in NaN does not replace the spot price", () => {
       full: {
         clampBottom: false,
         clampTop: false,
-        minMaxMultiple: 1,
         model: "CAGR",
         seed: 1,
-        variable: 1,
+        settings: { minMaxMultiple: 1, variable: 1 },
         volatility: 0,
         walk: "Random",
       },
@@ -307,10 +303,9 @@ test("a new weeksSince rebuilds a finished price grid", async () => {
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -366,10 +361,9 @@ test("a shorter year inside a walked column does not walk again", async () => {
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -426,10 +420,9 @@ test("a new spot or bound series clears the walked prices", async () => {
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -489,10 +482,9 @@ test("a year past the covered weeks clears only the next column", async () => {
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -547,10 +539,9 @@ test("a priced epoch without a cycle is a broken cache", () => {
         full: {
           clampBottom: false,
           clampTop: false,
-          minMaxMultiple: 1,
           model: "CAGR",
           seed: 1,
-          variable: 1,
+          settings: { minMaxMultiple: 1, variable: 1 },
           volatility: 0,
           walk: "Random",
         },
@@ -589,10 +580,9 @@ test("a cancel flag stops the simulation on the next epoch", () => {
       full: {
         clampBottom: false,
         clampTop: false,
-        minMaxMultiple: 1,
         model: "CAGR",
         seed: 1,
-        variable: 1,
+        settings: { minMaxMultiple: 1, variable: 1 },
         volatility: 0,
         walk: "Random",
       },
@@ -624,10 +614,9 @@ test("an aborted simulation wave does not mark the price grid valid", async () =
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -672,10 +661,9 @@ test("an aborted extension does not raise the covered weeks", async () => {
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -730,10 +718,9 @@ test("samples added during a short year fill the trusted columns", async () => {
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };
@@ -807,10 +794,9 @@ test("an aborted sample catch-up leaves the requested price width", async () => 
   const full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 1,
     model: "CAGR",
     seed: 1,
-    variable: 1,
+    settings: { minMaxMultiple: 1, variable: 1 },
     volatility: 0,
     walk: "Random" as const,
   };

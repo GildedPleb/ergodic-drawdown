@@ -132,12 +132,11 @@ flowchart LR
     clampBottom
     clampTop
     epochCount
-    minMaxMultiple
     model
     samples
+    settings
     showModel
     simulationData
-    variable
     volatility
     walk
 
@@ -205,9 +204,8 @@ flowchart LR
     currentNotZero --> halvingAnnotations
 
     currentBlock --> maxArray
-    minMaxMultiple --> maxArray
+    settings --> maxArray
     model --> maxArray
-    variable --> maxArray
     currentPrice --> maxArray
     now --> maxArray
     currentNotZero --> maxArray
@@ -217,9 +215,8 @@ flowchart LR
     now --> maxDataset
 
     currentBlock --> minArray
-    minMaxMultiple --> minArray
+    settings --> minArray
     model --> minArray
-    variable --> minArray
     currentPrice --> minArray
     now --> minArray
     currentNotZero --> minArray
