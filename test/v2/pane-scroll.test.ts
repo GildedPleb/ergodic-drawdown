@@ -237,7 +237,10 @@ test("Probe 1MP M1: keyboard focus under the asset's pinned header scrolls up cl
   };
   const control = (top: number, visible = true) => ({
     matches: () => visible,
-    closest: () => ({ querySelector: () => header }),
+    closest: () => ({
+      querySelector: () => header,
+      getBoundingClientRect: () => header.getBoundingClientRect(),
+    }),
     contains: () => false,
     getBoundingClientRect: () => ({ top, bottom: top + 20, height: 20 }),
   });
@@ -513,4 +516,63 @@ test("Form 9c: Tab scrolls by the minimum from where the pane was, never to the 
   const inside = at(zone.scrollTop + 300);
   const before = zone.scrollTop;
   expect(tab(inside, before)).toBe(before);
+});
+
+const rect = (top: number, h: number) => ({ top, bottom: top + h, height: h });
+
+test("R6 F1b: Shift+Tab to the open header clears its ring of the top fade from its own place, not where it is pinned", () => {
+  // 1440: zone 115.5–832, fade 24; the head is 50.44 tall, the toggle 4px into it, the ring 4px.
+  const Z = 115.5;
+  const heard = new Map<string, (e: { target: unknown }) => void>();
+  let st = 0;
+  const zone = {
+    get scrollTop() {
+      return st;
+    },
+    set scrollTop(v: number) {
+      st = Math.max(0, v); // the browser clamps at the top
+    },
+    getBoundingClientRect: () => ({ top: Z, bottom: 832 }),
+    addEventListener: (type: string, fn: (e: { target: unknown }) => void) => heard.set(type, fn),
+    removeEventListener: (type: string) => heard.delete(type),
+  };
+  let assetAt = 0; // the asset's top in content px
+  const headTop = (): number => Math.max(Z + assetAt - st, Z); // sticky at the zone's top
+  const asset = {
+    querySelector: () => head,
+    getBoundingClientRect: () => rect(Z + assetAt - st, 900),
+  };
+  const head = {
+    matches: () => true,
+    closest: () => asset,
+    contains: (el: unknown) => el === toggle,
+    getBoundingClientRect: () => rect(headTop(), 50.44),
+  };
+  const toggle = {
+    ...head,
+    contains: () => false,
+    getBoundingClientRect: () => rect(headTop() + 4, 46.44),
+  };
+  const queued: (() => void)[] = [];
+  keepFocusClear(
+    zone,
+    () => 24,
+    { request: (fn) => queued.push(fn), cancel: () => undefined },
+    () => 4,
+  );
+  const back = (from: number, browser: number): number => {
+    st = from;
+    heard.get("scroll")?.({ target: zone }); // rests at `from`
+    st = browser; // the browser's own focus scroll (Chromium/WebKit: to 0; Firefox: none)
+    heard.get("focusin")?.({ target: toggle });
+    for (const run of queued.splice(0)) run();
+    return st;
+  };
+  // Bitcoin, pinned at 15 (its ring's foot 4px into the fade at 50.44): back to the top, no fade.
+  expect([back(15, 0), back(15, 15)]).toEqual([0, 0]);
+  // A lower asset pinned deep: it comes to rest just under the top fade, unpinned (the minimum).
+  assetAt = 300;
+  expect(back(400, 300)).toBe(300 - 24);
+  expect(back(290, 290)).toBe(300 - 24); // not stuck, its ring 10px down: in the fade, out by 14
+  expect(back(250, 250)).toBe(250); // not stuck, its ring 50px down: clear, no move
 });

@@ -138,7 +138,9 @@ export const ringOf = (el: unknown): number => {
 };
 type Focused = {
   matches: (sel: string) => boolean;
-  closest: (sel: string) => { querySelector: (sel: string) => Focused | null } | null;
+  closest: (
+    sel: string,
+  ) => { querySelector: (sel: string) => Focused | null; getBoundingClientRect: () => Box } | null;
   contains: (el: Focused) => boolean;
   getBoundingClientRect: () => Box & { height: number };
   querySelector?: (sel: string) => Focused | null;
@@ -175,8 +177,10 @@ export const revealShift = (list: Box, focused: Box | null, clear: Box): number 
 
 /**
  * Keyboard focus lands clear of the pinned header and both fades. The header that can cover a
- * control is its own asset's (sticky only inside that asset), measured live; the header itself has
- * the band from the zone's top (the mask is opaque under it). `fade` is the fade height in px. An
+ * control is its own asset's (sticky only inside that asset), measured live. The header itself is
+ * measured at its own place in the asset (pinned, no shift moves it, and its ring's foot reaches
+ * into the top fade that starts at its foot: R6 F1b), against the band below the top fade. `fade`
+ * is the fade height in px. An
  * opened list (REVEAL) is shown whole the same way; it supersedes its option's focus correction.
  * Form 9c: the browser centres a focused control ("if needed"), before focusin (Chromium, Firefox)
  * or just after (WebKit), so the correction starts from the zone's resting scrollTop (its last
@@ -198,15 +202,20 @@ export const keepFocusClear = (
     frames.cancel(frame);
     frame = frames.request(() => {
       if (from !== undefined && zone.scrollTop !== from) zone.scrollTop = from;
-      const head = el.closest("[data-asset]")?.querySelector(PIN) ?? null;
+      const asset = el.closest("[data-asset]");
+      const head = asset?.querySelector(PIN) ?? null;
       const own = head?.contains(el) === true;
       const z = zone.getBoundingClientRect();
       const f = fade();
-      const hh = own ? 0 : (head?.getBoundingClientRect().height ?? 0);
-      const shift = shiftOf(el.getBoundingClientRect(), {
-        top: z.top + (own ? 0 : hh + f),
-        bottom: z.bottom - f,
-      });
+      const pin = head?.getBoundingClientRect();
+      const hh = own ? 0 : (pin?.height ?? 0);
+      const stuck =
+        own && pin && asset ? Math.max(0, pin.top - asset.getBoundingClientRect().top) : 0;
+      const b = el.getBoundingClientRect();
+      const shift = shiftOf(
+        { top: b.top - stuck, bottom: b.bottom - stuck },
+        { top: z.top + hh + f, bottom: z.bottom - f },
+      );
       if (shift !== 0) zone.scrollTop += shift;
       rest = zone.scrollTop;
     });
