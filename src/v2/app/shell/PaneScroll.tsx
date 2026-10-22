@@ -22,7 +22,9 @@ type PaneScrollProps = { id: Pane; children: ReactNode };
  * scrolls. No edge lines: the content fades out over 1.5rem at the top only while scrolled (from
  * the pinned header's foot down), and at the foot only while more is below. The 2px scrollbar is
  * drawn here, beside the masked zone (B2-r: the native bar is hidden in every engine); aria-hidden,
- * as the zone itself stays focusable and scrollable. On touch it shows while scrolling.
+ * as the zone itself stays scrollable. The zone is never a Tab stop (R6 M2: Firefox makes every
+ * scroller one; its ring would sit outside its own mask); a click still focuses it for the keys.
+ * On touch the bar shows while scrolling.
  */
 export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
   const zone = useRef<HTMLDivElement>(null);
@@ -54,7 +56,13 @@ export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
   const grip = styles["thumb"] ?? "pane-thumb";
   return (
     <div className={root}>
-      <div ref={zone} className={zoneCls} data-pane={id} style={{ "--dyn-hh": "0px" }}>
+      <div
+        ref={zone}
+        className={zoneCls}
+        data-pane={id}
+        tabIndex={-1}
+        style={{ "--dyn-hh": "0px" }}
+      >
         <div className={content}>{children}</div>
       </div>
       <div

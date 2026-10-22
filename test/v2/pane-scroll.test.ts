@@ -176,6 +176,11 @@ test("1MP 11 / B2-r: the zone, then its drawn bar (aria-hidden, hidden until it 
   expect((html.match(/<div/g) ?? []).length).toBe(5); // root, zone, content, bar, thumb
 });
 
+test("R6 M2: the zone is never a Tab stop (Firefox makes every scroller one), still click-focusable", () => {
+  const html = renderToStaticMarkup(createElement(PaneScroll, { id: "models", children: "x" }));
+  expect(/<div[^>]*data-pane="models"[^>]*tabindex="-1"/.test(html)).toBe(true);
+});
+
 test("1MP 11–12 / B2-r: one linear mask layer over the full width (no bar column), no edge lines", async () => {
   const pane = await file(`${v2}/app/shell/PaneScroll.module.css`).text();
   expect(/\.rule|\.foot|border/.test(pane)).toBe(false);
