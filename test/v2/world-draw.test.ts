@@ -15,12 +15,13 @@ import {
   endLabelAt,
   LABEL_LINE,
   LEADER_INSET,
+  MEDIAN_CLEAR,
   type Paint,
   plateFloor,
   TODAY_CLEAR,
   paintFrom,
 } from "../../src/v2/app/world/draw";
-import { axisTicks, coverTop, fitDomain, ly, plotBox } from "../../src/v2/app/world/geometry";
+import { axisTicks, coverTop, fitDomain, lx, ly, plotBox } from "../../src/v2/app/world/geometry";
 
 /** The engine's dataset label for a fixture band (no min/max given: the edge is p1–p99). */
 const bandLabel = (q: string): string =>
@@ -252,7 +253,7 @@ test("two lines below the band: both lines fit inside the plot, near the end, of
   }
 });
 
-test("never mid-chart: when above and below are both far from the end, it goes top-right with a leader", () => {
+test("never mid-chart: when above and below are both far from the end, it goes on a plate by the end, with a leader", () => {
   const box = plotBox(358, 400);
   const domain = fitDomain(50_000, 1e8);
   const p95 = flat(100, 4e7);
@@ -264,8 +265,13 @@ test("never mid-chart: when above and below are both far from the end, it goes t
   expect(at.x).toBe(box.R - 12);
   expect(at.y >= box.T + 36).toBe(true);
   expect(at.leader?.x2).toBe(box.R - LEADER_INSET);
-  expect(at.leader?.y2).toBe(ly(3.5e7, box, domain));
-  expect((at.leader?.y1 ?? 0) > at.y + LABEL_LINE).toBe(true);
+  const endY = ly(3.5e7, box, domain);
+  expect(at.leader?.y2).toBe(endY);
+  // Form 2d: the plate is off the end point, and the leader leaves the edge that faces it.
+  const top = at.y - 10;
+  const bottom = at.y + LABEL_LINE + 4;
+  expect(endY <= top - MEDIAN_CLEAR || endY >= bottom + MEDIAN_CLEAR).toBe(true);
+  expect(at.leader?.y1).toBe(endY < top ? top : bottom);
 });
 
 const OUT = "Prices here run past what the chart can draw.";
@@ -1293,8 +1299,9 @@ test("F3/F4 (R5): the end label is always inside the plot, and off a plate it ne
 test("Form ruling 3: at 320 the corner plate keeps 8px from the Today caption, else drops below its line", () => {
   const box = plotBox(320, 300);
   const domain = fitDomain(50_000, 2e9);
-  // The fan fills the plot, so the label goes to the top-right corner (a plate).
-  const band = { p5: flat(100, domain.lo), p95: flat(100, domain.hi), end: 1e6, horizon: 99 };
+  // The fan fills the plot, so the label goes on a plate; the median ends at the very top, so
+  // the plate goes below it (2d) and the caption floor is what holds it down (2c).
+  const band = { p5: flat(100, domain.lo), p95: flat(100, domain.hi), end: domain.hi, horizon: 99 };
   const pad = 3;
   const cap = (x0: number) => ({ x0, y0: box.T + 14, x1: x0 + 96, y1: box.T + 28 });
   let crowded = 0;
@@ -1323,4 +1330,94 @@ test("Form ruling 3: at 320 the corner plate keeps 8px from the Today caption, e
   expect(endLabelAt(box, domain, band, one, false, cap(box.L + 5))).toEqual(
     endLabelAt(box, domain, band, one),
   );
+});
+
+test("Form 2d: a plate never sits on the median; it goes above or below the line's end, on the roomier side", () => {
+  let plates = 0;
+  let ups = 0;
+  for (const [w, h] of [
+    [320, 300],
+    [320, 470],
+    [390, 420],
+    [390, 693],
+    [1392, 703],
+  ] as const) {
+    const box = plotBox(w, h);
+    for (const domain of [fitDomain(5e4, 1.5e8), fitDomain(0.05, 2e9)]) {
+      for (const [lo, hi] of [
+        [2e5, 1.1e8],
+        [1e8, 6e4],
+        [3e6, 3e6],
+      ] as const) {
+        for (const wobble of [0, 0.15, 0.4]) {
+          for (const lines of [1, 2, 3]) {
+            const p50 = jagged(100, lo, hi, wobble);
+            // The fan fills the plot: no room above or below it, so the label is plated.
+            const band = {
+              p5: flat(100, domain.lo),
+              p95: flat(100, domain.hi),
+              end: p50[99] ?? 1,
+              horizon: 99,
+              p50,
+            };
+            const width = 100;
+            const pad = 13 * 0.25;
+            const at = endLabelAt(box, domain, band, { width, lines, pad });
+            expect(at.mode).toBe("corner");
+            plates++;
+            const plate = {
+              x0: at.x - width - 2 * pad,
+              x1: at.x + 2 * pad,
+              y0: at.y - 10 - pad,
+              y1: at.y + (lines - 1) * LABEL_LINE + 4 + pad,
+            };
+            expect(plate.y0 >= box.T && plate.y1 <= box.Bt).toBe(true);
+            // The median, segment by segment, never crosses the plate (MEDIAN_CLEAR off it).
+            const ys: number[] = [];
+            for (let i = 0; i < 99; i++) {
+              const [xa, xb] = [lx(i, box, 99), lx(i + 1, box, 99)];
+              if (xb < plate.x0 || xa > plate.x1) continue;
+              const [ya, yb] = [ly(p50[i] ?? 1, box, domain), ly(p50[i + 1] ?? 1, box, domain)];
+              for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+                const xt = xa + (xb - xa) * t;
+                if (xt >= plate.x0 && xt <= plate.x1) ys.push(ya + (yb - ya) * t);
+              }
+            }
+            expect(ys.length > 0).toBe(true);
+            const above = ys.every((y) => y >= plate.y1 + MEDIAN_CLEAR - 0.01);
+            const below = ys.every((y) => y <= plate.y0 - MEDIAN_CLEAR + 0.01);
+            expect(above || below).toBe(true);
+            if (above) ups++;
+          }
+        }
+      }
+    }
+  }
+  expect(plates).toBe(270);
+  // Both sides are used across the sweep.
+  expect(ups > 0 && ups < plates).toBe(true);
+  // The roomier side wins: a median ending low puts the plate above it, one ending high below.
+  const box = plotBox(390, 693);
+  const domain = fitDomain(5e4, 1.5e8);
+  const fan = { p5: flat(100, domain.lo), p95: flat(100, domain.hi), horizon: 99 };
+  const label = { width: 100, lines: 2, pad: 3 };
+  const low = endLabelAt(box, domain, { ...fan, end: 1e5, p50: flat(100, 1e5) }, label);
+  expect(low.y + LABEL_LINE + 4 + 3 <= ly(1e5, box, domain) - MEDIAN_CLEAR).toBe(true);
+  const high = endLabelAt(box, domain, { ...fan, end: 1e8, p50: flat(100, 1e8) }, label);
+  expect(high.y - 10 - 3 >= ly(1e8, box, domain) + MEDIAN_CLEAR).toBe(true);
+});
+
+test("Form 2d: drawn, the plate leaves the median's last point visible (the plate rect misses the line)", () => {
+  const { ctx, ops } = recorder();
+  const domain = fitDomain(50_000, 1e8);
+  const mid = [...flat(100, 3.5e7)];
+  const b = pack([...flat(100, domain.lo)], mid, [...flat(100, domain.hi)]);
+  drawWorld(ctx, PAINT, { width: 390, height: 420, dpr: 1, now: NOW, horizon: b.weeks }, b);
+  const plate = ops.find((o) => o.op === "fillRect" && o.style === PAINT.ground);
+  if (plate === undefined) throw new Error("no plate");
+  const box = plotBox(390, 420);
+  const y = ly(3.5e7, box, fittedDomain(b));
+  expect(
+    y < plate.y - MEDIAN_CLEAR + 0.01 || y > plate.y + (plate.h ?? 0) + MEDIAN_CLEAR - 0.01,
+  ).toBe(true);
 });

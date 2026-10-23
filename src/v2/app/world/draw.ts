@@ -221,13 +221,15 @@ const TICK_ROW = 8;
 export const TODAY_CLEAR = 8;
 /** One end-label line, baseline to baseline. */
 export const LABEL_LINE = CAP + DESCENT + 2;
+/** Form 2d: the plate keeps this far off the median line (its stroke and casing stay visible). */
+export const MEDIAN_CLEAR = 6;
 
 export type LabelPlace = {
   /** Right edge (text is right-aligned) and the first line's baseline. */
   x: number;
   y: number;
   mode: "above" | "below" | "corner";
-  /** Corner only: a short leader from the label to the end of the median line. */
+  /** Corner (plate) only: a short leader from the label to the end of the median line. */
   leader: { x1: number; y1: number; x2: number; y2: number } | null;
 };
 
@@ -239,7 +241,9 @@ export type LabelPlace = {
  * Either only counts if the label stays near the point it names: its nearest edge within
  * NEAR of the median's end (a sixth of the plot height, at least two label lines), so it
  * never floats mid-chart.
- * 3. Else top-right inside the plot, with a short leader line to the end of the line.
+ * 3. Else on a plate at the right edge, offset above or below the median's end, whichever side
+ *    has more clear space (Form 2d: never on the median, which stays visible to its last point;
+ *    the plate may cover the fan's fills), with a short leader line to the end of the line.
  * Every line is nudged off any gridline it would strike through.
  */
 /**
@@ -266,7 +270,14 @@ export const plateFloor = (
 export const endLabelAt = (
   box: PlotBox,
   domain: LogDomain,
-  band: { p5: Float64Array; p95: Float64Array; end: number; horizon: number },
+  band: {
+    p5: Float64Array;
+    p95: Float64Array;
+    end: number;
+    horizon: number;
+    /** Form 2d: the median line the plate must keep off (unset: only its end point). */
+    p50?: Float64Array;
+  },
   label: { width: number; lines: number; pad?: number },
   short = false,
   today: Rect | null = null,
@@ -311,21 +322,51 @@ export const endLabelAt = (
   if (below + span + DESCENT <= box.Bt && below - CAP - endY <= near) {
     return { x, y: below, mode: "below", leader: null };
   }
-  // §2A r2 (Form): the corner plate (text plus its pad) keeps TICK_ROW clear of the $ gridlines,
-  // stepping down past one in the way while it still fits the plot; where the gridlines are too
-  // dense for that, the $ label on its rows is dropped instead (endLayout's keepOut).
+  // Form 2d: the plate sits above or below the median over its own columns, MEDIAN_CLEAR off
+  // the line, on the side with more clear space (above: down from the caption floor, Form ruling
+  // 3 / 2c; below: up from the plot's floor). It may cover the fan's fills, never the median.
   const pad = label.pad ?? 0;
   const floor = plateFloor(box, { width: label.width, pad }, today, short);
-  let corner = floor;
+  const fromPlate = Math.max(
+    0,
+    Math.floor(((x - label.width - 2 * pad - box.L) / (box.R - box.L)) * band.horizon),
+  );
+  let medTop = endY;
+  let medBottom = endY;
+  const median = band.p50 ?? new Float64Array(0);
+  for (let i = fromPlate; i < median.length; i++) {
+    const v = median[i] ?? Number.NaN;
+    // As trace() draws it: past a double at the top edge, never above it.
+    const y = Number.isFinite(v)
+      ? Math.max(box.T, ly(Math.max(v, domain.lo / 10), box, domain))
+      : box.T;
+    medTop = Math.min(medTop, y);
+    medBottom = Math.max(medBottom, y);
+  }
+  const lift = span + DESCENT + pad; // baseline to the plate's bottom edge
+  const drop = CAP + pad; // the plate's top edge to its baseline
+  const up = medTop - MEDIAN_CLEAR - lift;
+  const down = Math.max(floor, medBottom + MEDIAN_CLEAR + drop);
+  const fitsUp = up >= floor;
+  const fitsDown = down + lift <= box.Bt;
+  const roomUp = medTop - (floor - drop);
+  const roomDown = box.Bt - medBottom;
+  const goUp =
+    fitsUp && fitsDown ? roomUp >= roomDown : fitsUp || (!fitsDown && roomUp >= roomDown);
+  // Neither side fits (a plot too short for the plate): the roomier side, kept inside the plot.
+  let corner = goUp ? Math.max(floor, up) : Math.min(down, box.Bt - lift);
+  // §2A r2 (Form): the plate keeps TICK_ROW clear of the $ gridlines, stepping away from the
+  // median past one in the way while it still fits; where they're too dense, the $ label on its
+  // rows is dropped instead (endLayout's keepOut).
+  const placed = corner;
   for (let n = 0; n < ticks.length; n++) {
-    const plateTop = corner - CAP - pad;
-    const plateBottom = corner + span + DESCENT + pad;
+    const plateTop = corner - drop;
+    const plateBottom = corner + lift;
     const g = ticks.find((t) => t > plateTop - TICK_ROW && t < plateBottom + TICK_ROW);
     if (g === undefined) break;
-    corner = g + TICK_ROW + CAP + pad + 0.01;
+    corner = goUp ? g - TICK_ROW - lift - 0.01 : g + TICK_ROW + drop + 0.01;
   }
-  // The plate drops the $ rows it covers (keepOut), so the fallback needs no climb off them.
-  if (corner + span + DESCENT + pad > box.Bt || corner - floor > near) corner = floor;
+  if (corner < floor || corner + lift > box.Bt) corner = placed;
   const blockTop = corner - CAP - pad;
   const blockBottom = corner + span + DESCENT + pad;
   // The leader leaves the plate's edge that faces the end of the line and aims at it, its whole
@@ -452,8 +493,9 @@ const endLayout = (
     ? endLabelAt(
         box,
         domain,
-        // The label clears the whole drawn fan (the outer band), not only p5–p95.
-        { p5: bands.min, p95: bands.max, end: mid, horizon },
+        // The label clears the whole drawn fan (the outer band), not only p5–p95; a plate clears
+        // the median (Form 2d).
+        { p5: bands.min, p95: bands.max, end: mid, horizon, p50: bands.p50 },
         { width: textWidth, lines: all.length, pad: p.serifPx * 0.25 },
         short,
         today,
