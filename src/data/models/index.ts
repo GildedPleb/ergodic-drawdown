@@ -2,13 +2,13 @@ import { type ModelNames, type ModelSettings } from "../../types";
 import cagrModel from "./cagr";
 import historic from "./historic";
 import powerLawModel from "./power-law";
-import rainbowChartModel from "./rainbow";
+import rainbowModel from "./rainbow";
 import stockToFlowModel from "./stock-to-flow";
 import stockToFlowModelNew from "./stock-to-flow-2024-refit";
 
 export const models = [
   powerLawModel,
-  rainbowChartModel,
+  rainbowModel,
   cagrModel,
   stockToFlowModelNew,
   stockToFlowModel,
@@ -19,7 +19,7 @@ export const modelMap = {
   [cagrModel.name]: cagrModel,
   [historic.name]: historic,
   [powerLawModel.name]: powerLawModel,
-  [rainbowChartModel.name]: rainbowChartModel,
+  [rainbowModel.name]: rainbowModel,
   [stockToFlowModel.name]: stockToFlowModel,
   [stockToFlowModelNew.name]: stockToFlowModelNew,
 } as const;
@@ -27,7 +27,7 @@ export const modelMap = {
 export const isModelName = (value: string): value is keyof typeof modelMap =>
   Object.prototype.hasOwnProperty.call(modelMap, value);
 
-/** One model's settings, in param order. A value of the param's kind wins; otherwise the default. */
+/** One model's settings, in param order. A listed value of the param's kind wins; otherwise the default. */
 export const declaredSettings = (name: ModelNames, values?: ModelSettings): ModelSettings => {
   const settings: { [key: string]: number | string } = {};
   for (const param of modelMap[name].params) {
@@ -37,7 +37,10 @@ export const declaredSettings = (name: ModelNames, values?: ModelSettings): Mode
         settings[param.key] = typeof value === "number" ? value : param.default;
         break;
       case "choice":
-        settings[param.key] = typeof value === "string" ? value : param.default;
+        settings[param.key] =
+          typeof value === "string" && param.options.some((option) => option.value === value)
+            ? value
+            : param.default;
         break;
       default: {
         const unreachable: never = param;

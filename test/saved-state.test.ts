@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import { WEEKS_PER_EPOCH } from "../src/constants";
+import { declaredSettings } from "../src/data/models";
 import { readSavedAppState, savedHorizon } from "../src/helpers";
 import { legacySpan, resolveHorizon } from "../src/horizon";
 
@@ -84,6 +85,26 @@ test("an old power-law name opens as Power Law, and the support name does not op
   expect(() => readSavedAppState(saved({ model: "Power Law Support Line" }))).toThrow(
     "saved state is not valid",
   );
+});
+
+test("an old rainbow name opens as Rainbow, and a saved refit reloads", () => {
+  const opened = readSavedAppState(saved({ model: "Rainbow Chart" }));
+  expect(opened.model).toBe("Rainbow");
+  expect(opened.settings).toBeUndefined();
+  expect(
+    declaredSettings(opened.model, {
+      minMaxMultiple: opened.minMaxMultiple,
+      variable: opened.variable,
+      ...opened.settings,
+    }),
+  ).toEqual({ refit: "2022" });
+  const kept = readSavedAppState(saved({ model: "Rainbow", settings: { refit: "2014" } }));
+  expect(kept.model).toBe("Rainbow");
+  expect(kept.settings).toEqual({ refit: "2014" });
+  expect(declaredSettings(kept.model, { ...kept.settings })).toEqual({ refit: "2014" });
+  const bad = readSavedAppState(saved({ model: "Rainbow", settings: { refit: "2019" } }));
+  expect(bad.settings).toEqual({ refit: "2019" });
+  expect(declaredSettings(bad.model, { ...bad.settings })).toEqual({ refit: "2022" });
 });
 
 test("a saved shift reloads, and a settings value that is not a number or a string is rejected", () => {

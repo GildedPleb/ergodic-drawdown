@@ -302,6 +302,7 @@ const readBoolean = (record: Record<string, unknown>, field: string): boolean =>
 const readModel = (record: Record<string, unknown>): SavedAppState["model"] => {
   const value = record["model"];
   if (value === "Power Law Regression Median") return "Power Law";
+  if (value === "Rainbow Chart") return "Rainbow";
   if (typeof value !== "string" || !isModelName(value)) throw invalidSavedState();
   return value;
 };

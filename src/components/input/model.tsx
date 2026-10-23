@@ -20,6 +20,11 @@ const Select = styled.select`
   font-size: inherit;
 `;
 
+const Choice = styled.select`
+  flex-shrink: 0;
+  font-size: inherit;
+`;
+
 const Input = styled.input`
   max-width: 75px;
   font-size: inherit;
@@ -72,6 +77,18 @@ const ModelInput = (): JSX.Element => {
     [model, setLoading, setSetting],
   );
 
+  const handleChoice: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
+    (event) => {
+      const setting = modelMap[model].params.find((param) => param.key === event.target.name);
+      if (setting === undefined || setting.kind !== "choice") return;
+      const value = event.target.value;
+      if (!setting.options.some((option) => option.value === value)) return;
+      setSetting(model, setting.key, value);
+      setLoading();
+    },
+    [model, setLoading, setSetting],
+  );
+
   return (
     <Container>
       <Select id="modelInput" onChange={handleModel} onKeyDown={handleEnterKey} value={model}>
@@ -83,7 +100,28 @@ const ModelInput = (): JSX.Element => {
       </Select>
       <Options>
         {modelMap[model].params.map((param) => {
-          if (param.kind !== "number") return null;
+          if (param.kind === "choice") {
+            const stored = settings[param.key];
+            if (typeof stored !== "string") return null;
+            return (
+              <React.Fragment key={param.key}>
+                <label htmlFor={param.key}>{param.label}</label>
+                <Choice
+                  id={param.key}
+                  name={param.key}
+                  onChange={handleChoice}
+                  onKeyDown={handleEnterKey}
+                  value={stored}
+                >
+                  {param.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Choice>
+              </React.Fragment>
+            );
+          }
           const stored = settings[param.key];
           if (typeof stored !== "number") return null;
           const inputId = param.key === "variable" ? "modelVariable" : param.key;
