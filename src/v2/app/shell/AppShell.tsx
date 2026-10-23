@@ -242,6 +242,17 @@ export const AppShell = (): JSX.Element => {
         <span ref={railProbe} className={railProbeCls} aria-hidden="true" />
         {/* Landscape: the panel is grabbed from its bevelled left edge (44px strip). */}
         <span className={edge} data-grab="edge" aria-hidden="true" />
+        {/* Outside the sheet's bevel clip, across its top hairline (z above it). Form 9d: before the
+            sheet in the DOM, so Close is the phone sheet's first Tab stop and Tab moves down. */}
+        <div className={grab} data-grab="logo">
+          <GrabPoint
+            label={open ? strings.dock.grab.close : strings.dock.grab.open}
+            expanded={open}
+            controls={SHEET_ID}
+            onToggle={tap}
+            onKey={key}
+          />
+        </div>
         <section ref={sheet} id={SHEET_ID} className={sheetCls} aria-label={strings.dock.models}>
           <Bevel className={bevel} side={side} />
           <div className={beat} data-grab="strip">
@@ -292,16 +303,6 @@ export const AppShell = (): JSX.Element => {
             </div>
           </div>
         </section>
-        {/* After the sheet, outside its bevel clip: the point sits across the top hairline. */}
-        <div className={grab} data-grab="logo">
-          <GrabPoint
-            label={open ? strings.dock.grab.close : strings.dock.grab.open}
-            expanded={open}
-            controls={SHEET_ID}
-            onToggle={tap}
-            onKey={key}
-          />
-        </div>
         <p role="status">
           <VisuallyHidden>{said}</VisuallyHidden>
         </p>

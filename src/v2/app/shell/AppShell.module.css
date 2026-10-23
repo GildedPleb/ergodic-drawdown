@@ -143,9 +143,10 @@
     pointer-events: none;
   }
 
-  /* The grab point sits centred across the top hairline; it never moves or scales. */
+  /* Grab point: centred on the top hairline; never moves or scales. */
   .grab {
     position: absolute;
+    z-index: var(--z-chart);
     inset-block-start: 0;
     inset-inline: 0;
     display: flex;

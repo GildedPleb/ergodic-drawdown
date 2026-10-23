@@ -76,3 +76,18 @@ test("1L.6: the sheet is edge to edge; only its content is inset, plus the safe 
     );
   }
 });
+
+test("Form 9d: Close is the phone Models sheet's first Tab stop (before the sheet), painted over it", async () => {
+  const grab = html.indexOf('data-grab="logo"');
+  const sheet = html.indexOf('id="models-sheet"');
+  expect(grab > 0 && sheet > 0 && grab < sheet).toBe(true);
+  // Nothing focusable between the grab point and the sheet; the dock tabs come next.
+  const between = html.slice(html.indexOf("</button>", grab), sheet);
+  expect(/<(button|input|a|select|textarea)\b|tabindex="0"/.test(between)).toBe(false);
+  // The grab point's one button carries the sheet toggle (Close once open); none in the sheet.
+  expect(html.slice(grab, sheet).includes(`aria-controls="models-sheet"`)).toBe(true);
+  const { file } = await import("bun");
+  const css = await file(`${import.meta.dir}/../../src/v2/app/shell/AppShell.module.css`).text();
+  const rule = /\n {2}\.grab \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(rule.includes("z-index: var(--z-chart);")).toBe(true);
+});
