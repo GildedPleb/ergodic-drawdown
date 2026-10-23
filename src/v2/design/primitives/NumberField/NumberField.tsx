@@ -293,7 +293,7 @@ export const NumberField = ({
           id={controlId}
           type="text"
           role="spinbutton"
-          inputMode={parse === "int" ? "numeric" : "decimal"}
+          inputMode={parse === "int" || whole ? "numeric" : "decimal"}
           autoComplete="off"
           spellCheck={false}
           aria-label={labelHidden ? label : undefined}

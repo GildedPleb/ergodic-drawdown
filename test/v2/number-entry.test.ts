@@ -694,3 +694,14 @@ test("Form 4h: an outside value change clears the clamp note; the field's own co
     true,
   );
 });
+
+const keypad = (props: Record<string, unknown>) =>
+  renderToStaticMarkup(
+    createElement(NumberField, { id: "k", label: "K", value: 2, ...props }),
+  ).match(/inputmode="(\w+)"/i)?.[1];
+
+test("F8-1: whole-number fields (int parse or whole count) ask for the numeric keypad; decimals for decimal", () => {
+  expect(keypad({ whole: true })).toBe("numeric");
+  expect(keypad({ parse: "int" })).toBe("numeric");
+  expect(keypad({})).toBe("decimal");
+});
