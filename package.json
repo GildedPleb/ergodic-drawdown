@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun scripts/update-weekly-prices.ts && tsc -b && vite build",
+    "build": "bun scripts/update-weekly-prices.ts && bun --bun x tsc -b && bun --bun x vite build",
     "dev": "bun scripts/update-weekly-prices.ts && vite",
     "lint": "oxlint -D correctness -D suspicious -D typescript/no-misused-promises -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts",
     "format": "oxfmt --check",
@@ -18,7 +18,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.104.4",
+    "@tanstack/react-query": "^5.104.5",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
     "chartjs-plugin-annotation": "^3.1.0",
@@ -26,7 +26,6 @@
     "date-fns": "^4.4.0",
     "hash-sum": "^2.0.0",
     "memoizee": "^0.4.17",
-    "quickselect": "^3.0.0",
     "react": "^19.3.1",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.3.1",
@@ -41,20 +40,20 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "knip": "^6.41.0",
+    "knip": "^6.42.1",
     "lefthook": "2.2.2",
-    "oxfmt": "*",
-    "oxlint": "*",
-    "oxlint-tsgolint": "*",
-    "typescript": ">=7.0.0",
-    "vite": "^8.3.4"
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "typescript": "7.0.2",
+    "vite": "^8.3.5"
   },
   "browserslist": [
     "defaults and supports es6-module",
     "node >= 18"
   ],
   "engines": {
-    "bun": "1.3.13"
+    "bun": "1.4.3"
   },
-  "packageManager": "bun@1.3.13"
+  "packageManager": "bun@1.4.3"
 }

@@ -32,7 +32,7 @@ const Slide1: FC = () => (
 export const slide1 = {
   component: Slide1,
   requirements: {
-    model: "Power Law Regression Median",
+    model: "Power Law",
     renderDrawdownDistribution: "Quantile",
     renderModelMax: true,
     renderModelMin: true,

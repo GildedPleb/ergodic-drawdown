@@ -16,12 +16,12 @@ const Slide4: FC = () => (
       >
         Bitcoin Rainbow Chart
       </a>{" "}
-      (approximation shown) became famous for plotting the bitcoin price in a Rainbow Range. And
-      rightly so, for it takes the 'price predicting' out of the equation. Now that we have a range
-      (Green marking the lower bound of the range, and Red the upper bound) we can think of these
-      lines as containing most (but not all) future price movements for any model. Let's explore
-      different models (tap "Model ▼", Select "Rainbow Chart", and choose something else). Notice
-      the shape, scale, tapering and options they have.
+      became famous for plotting the bitcoin price in a Rainbow Range. And rightly so, for it takes
+      the 'price predicting' out of the equation. Now that we have a range (Green marking the lower
+      bound of the range, and Red the upper bound) we can think of these lines as containing most
+      (but not all) future price movements for any model. Let's explore different models (tap "Model
+      ▼", Select "Rainbow", and choose something else). Notice the shape, scale, tapering and
+      options they have.
     </p>
     <p>
       Simply having a range is not enough, however. If Bitcoin were to mostly trade at the top of
@@ -40,7 +40,7 @@ export const slide4 = {
   component: Slide4,
   requirements: {
     years: 40,
-    model: "Rainbow Chart",
+    model: "Rainbow",
     renderModelMax: true,
     samplesToRender: 0,
     showModel: false,

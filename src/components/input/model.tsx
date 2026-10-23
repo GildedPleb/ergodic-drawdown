@@ -20,6 +20,11 @@ const Select = styled.select`
   font-size: inherit;
 `;
 
+const Choice = styled.select`
+  flex-shrink: 0;
+  font-size: inherit;
+`;
+
 const Input = styled.input`
   max-width: 75px;
   font-size: inherit;
@@ -37,15 +42,7 @@ const Options = styled.div`
 
 const ModelInput = (): JSX.Element => {
   const { setLoadingVolumeData } = useDrawdown();
-  const {
-    minMaxMultiple,
-    model,
-    setMinMaxMultiple,
-    setModel,
-    setVariable,
-    setLoadingPriceData,
-    variable,
-  } = useModel();
+  const { model, setLoadingPriceData, setModel, setSetting, settings } = useModel();
 
   const setLoading = useCallback(() => {
     setLoadingPriceData(true);
@@ -58,79 +55,94 @@ const ModelInput = (): JSX.Element => {
       if (!isModelName(value) || model === value) return;
       setLoading();
       setModel(value);
-
-      if (modelMap[value].varInput !== "") {
-        setVariable(modelMap[value].default);
-      }
     },
-    [model, setLoading, setModel, setVariable],
+    [model, setLoading, setModel],
   );
 
-  const handleVariable: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+  const handleParam: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
+      const setting = modelMap[model].params.find((param) => param.key === event.target.name);
+      if (setting === undefined || setting.kind !== "number") return;
       const value = Number.parseFloat(event.target.value);
-      if (value <= modelMap[model].rangeMax && value >= modelMap[model].rangeMin) {
-        setVariable(value);
-        setLoading();
+      let next: number;
+      if (Number.isFinite(setting.max)) {
+        if (!(value <= setting.max && value >= setting.min)) return;
+        next = value;
+      } else {
+        next = value < setting.min ? setting.min : value;
       }
-    },
-    [setLoading, setVariable],
-  );
-
-  const handleMinMaxMultiple: React.ChangeEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      const value = Number.parseFloat(event.target.value);
-      if (value < 1.01) setMinMaxMultiple(1.01);
-      else setMinMaxMultiple(value);
+      setSetting(model, setting.key, next);
       setLoading();
     },
-    [setLoading, setVariable],
+    [model, setLoading, setSetting],
   );
 
-  const hasInput = modelMap[model].varInput !== "";
-  const hasRange = modelMap[model].varRange;
+  const handleChoice: React.ChangeEventHandler<HTMLSelectElement> = useCallback(
+    (event) => {
+      const setting = modelMap[model].params.find((param) => param.key === event.target.name);
+      if (setting === undefined || setting.kind !== "choice") return;
+      const value = event.target.value;
+      if (!setting.options.some((option) => option.value === value)) return;
+      setSetting(model, setting.key, value);
+      setLoading();
+    },
+    [model, setLoading, setSetting],
+  );
 
   return (
     <Container>
       <Select id="modelInput" onChange={handleModel} onKeyDown={handleEnterKey} value={model}>
         {models.map((item) => (
-          <option key={item.modelType} value={item.modelType}>
-            {item.modelType}
+          <option key={item.name} value={item.name}>
+            {item.name}
           </option>
         ))}
       </Select>
       <Options>
-        {hasInput && (
-          <>
-            <label htmlFor="modelVariable">{modelMap[model].varInput}</label>
-            <Input
-              autoComplete="off"
-              id="modelVariable"
-              onChange={handleVariable}
-              onKeyDown={handleEnterKey}
-              step="1"
-              type="number"
-              value={variable}
-              min={modelMap[model].rangeMin}
-              max={modelMap[model].rangeMax}
-            />
-          </>
-        )}
-        {hasRange && (
-          <>
-            <label htmlFor="minMaxMultiple">{`+/-`}</label>
-            <Input
-              autoComplete="off"
-              id="minMaxMultiple"
-              onChange={handleMinMaxMultiple}
-              onKeyDown={handleEnterKey}
-              step=".1"
-              min="1.01"
-              type="number"
-              value={minMaxMultiple}
-            />
-          </>
-        )}
+        {modelMap[model].params.map((param) => {
+          if (param.kind === "choice") {
+            const stored = settings[param.key];
+            if (typeof stored !== "string") return null;
+            return (
+              <React.Fragment key={param.key}>
+                <label htmlFor={param.key}>{param.label}</label>
+                <Choice
+                  id={param.key}
+                  name={param.key}
+                  onChange={handleChoice}
+                  onKeyDown={handleEnterKey}
+                  value={stored}
+                >
+                  {param.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Choice>
+              </React.Fragment>
+            );
+          }
+          const stored = settings[param.key];
+          if (typeof stored !== "number") return null;
+          const inputId = param.key === "variable" ? "modelVariable" : param.key;
+          return (
+            <React.Fragment key={param.key}>
+              <label htmlFor={inputId}>{param.label}</label>
+              <Input
+                autoComplete="off"
+                id={inputId}
+                max={Number.isFinite(param.max) ? param.max : undefined}
+                min={param.min}
+                name={param.key}
+                onChange={handleParam}
+                onKeyDown={handleEnterKey}
+                step={param.step}
+                type="number"
+                value={stored}
+              />
+            </React.Fragment>
+          );
+        })}
       </Options>
     </Container>
   );

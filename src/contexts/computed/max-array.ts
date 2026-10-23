@@ -3,15 +3,14 @@ import hashSum from "hash-sum";
 import { modelMap } from "../../data/models";
 import { type BoundSlot } from "../../engine/memory";
 import { allocatedEpochs, chartWeeksCovered } from "../../horizon";
-import { type ModelNames } from "../../types";
+import { type ModelNames, type ModelSettings } from "../../types";
 
 export const handleMaxArray = (
   _signal: AbortSignal,
   _hash: string,
   currentBlock: number,
-  minMaxMultiple: number,
+  settings: ModelSettings,
   model: ModelNames,
-  variable: number,
   currentPrice: number,
   now: number,
   dataLength: number,
@@ -19,13 +18,13 @@ export const handleMaxArray = (
   slot: BoundSlot,
   onExtend?: (previousHash: string, nextHash: string) => void,
 ): Float64Array[] => {
+  const priceModel = modelMap[model];
   const key = hashSum({
     block: currentBlock,
     model,
-    multiple: minMaxMultiple,
     now,
     price: currentPrice,
-    variable,
+    settings,
   });
   const needed = chartWeeksCovered(weeksSince, allocatedEpochs(weeksSince, dataLength));
   if (slot.key === key && slot.weeks >= needed) return [slot.points, slot.logs];
@@ -40,12 +39,11 @@ export const handleMaxArray = (
     logMaxArray.set(slot.logs.subarray(0, filled));
   }
   for (let week = filled; week < span; week++) {
-    const price = modelMap[model].maxPrice({
+    const price = priceModel.maxPrice({
       currentBlock,
       currentPrice,
-      minMaxMultiple,
       now,
-      variable,
+      settings,
       week,
     });
     maxPoints[week] = price;

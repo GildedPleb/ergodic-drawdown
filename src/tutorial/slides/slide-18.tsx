@@ -50,7 +50,7 @@ export const slide18 = {
     clampTop: true,
     years: 70,
     inflation: 3,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     oneOffFiatVariables: [],
     oneOffItems: [],
     renderDrawdownDistribution: "Quantile",

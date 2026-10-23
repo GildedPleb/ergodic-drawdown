@@ -10,12 +10,13 @@ import { handleMinModel } from "../src/contexts/computed/min-dataset";
 import { type BoundSlot, type CashflowSlot } from "../src/engine/memory";
 import { allocatedEpochs, chartWeeksCovered } from "../src/horizon";
 import { numberAt } from "../src/number-at";
-import { type OneOffItem, type ReoccurringItem } from "../src/types";
+import { type ModelSettings, type OneOffItem, type ReoccurringItem } from "../src/types";
 
 const signal = new AbortController().signal;
 const now = 1_700_000_000_000;
 const block = 840_000;
 const price = 64_000;
+const cagrSettings: ModelSettings = { minMaxMultiple: 2, variable: 20 };
 
 const boundSlot = (): BoundSlot => ({
   key: "",
@@ -50,10 +51,10 @@ test("a shorter bound request keeps the long series", () => {
 
   for (const [handler, dataset] of handlers) {
     const slot = boundSlot();
-    const first = handler(signal, "series", block, 2, "CAGR", 20, price, now, 40, 0, slot);
+    const first = handler(signal, "series", block, cagrSettings, "CAGR", price, now, 40, 0, slot);
     expect(first[0]?.length).toBe(needed(0, 40));
     const keptHash = slot.seriesHash;
-    const shorter = handler(signal, "series", block, 2, "CAGR", 20, price, now, 10, 0, slot);
+    const shorter = handler(signal, "series", block, cagrSettings, "CAGR", price, now, 10, 0, slot);
     expect(shorter[0]).toBe(first[0]);
     expect(shorter[1]).toBe(first[1]);
     expect(slot.seriesHash).toBe(keptHash);
@@ -62,7 +63,18 @@ test("a shorter bound request keeps the long series", () => {
     expect(points[0]?.data[9]?.y).toBe(seriesAt(shorter, 9));
 
     const grownSlot = boundSlot();
-    const partial = handler(signal, "series", block, 2, "CAGR", 20, price, now, 40, 0, grownSlot);
+    const partial = handler(
+      signal,
+      "series",
+      block,
+      cagrSettings,
+      "CAGR",
+      price,
+      now,
+      40,
+      0,
+      grownSlot,
+    );
     const partialHash = grownSlot.seriesHash;
     const extensions: { next: string; previous: string }[] = [];
     const onExtend = (previous: string, next: string): void => {
@@ -72,9 +84,8 @@ test("a shorter bound request keeps the long series", () => {
       signal,
       "series",
       block,
-      2,
+      cagrSettings,
       "CAGR",
-      20,
       price,
       now,
       300,
@@ -88,9 +99,8 @@ test("a shorter bound request keeps the long series", () => {
       signal,
       "series",
       block,
-      2,
+      cagrSettings,
       "CAGR",
-      20,
       price,
       now,
       300,
@@ -110,9 +120,8 @@ test("a shorter bound request keeps the long series", () => {
       signal,
       "series",
       block + 1,
-      2,
+      cagrSettings,
       "CAGR",
-      20,
       price,
       now,
       40,
@@ -128,9 +137,8 @@ test("a shorter bound request keeps the long series", () => {
       signal,
       "series",
       block,
-      2,
+      cagrSettings,
       "CAGR",
-      20,
       price + 1,
       now,
       10,
@@ -143,9 +151,8 @@ test("a shorter bound request keeps the long series", () => {
       signal,
       "series",
       block,
-      2,
+      cagrSettings,
       "CAGR",
-      20,
       price + 1,
       now,
       300,

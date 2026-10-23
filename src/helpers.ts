@@ -13,6 +13,7 @@ import {
   type OneOffItem,
   type Pallet,
   type RGBA,
+  type ModelSettings,
   type ReoccurringItem,
   type SavedAppState,
 } from "./types";
@@ -300,8 +301,32 @@ const readBoolean = (record: Record<string, unknown>, field: string): boolean =>
 
 const readModel = (record: Record<string, unknown>): SavedAppState["model"] => {
   const value = record["model"];
+  if (value === "Power Law Regression Median") return "Power Law";
+  if (value === "Rainbow Chart") return "Rainbow";
+  if (value === "Stock-To-Flow" || value === "Stock-To-Flow 2024 Refit") return "Stock-to-Flow";
   if (typeof value !== "string" || !isModelName(value)) throw invalidSavedState();
   return value;
+};
+
+const stockToFlowFormula = (
+  record: Record<string, unknown>,
+  settings: ModelSettings | undefined,
+): ModelSettings | undefined => {
+  if (record["model"] !== "Stock-To-Flow 2024 Refit") return settings;
+  if (typeof settings?.["formula"] === "string") return settings;
+  return { ...settings, formula: "2024" };
+};
+
+const readSettings = (record: Record<string, unknown>): ModelSettings | undefined => {
+  const value = record["settings"];
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) throw invalidSavedState();
+  const settings: { [key: string]: number | string } = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item !== "number" && typeof item !== "string") throw invalidSavedState();
+    settings[key] = item;
+  }
+  return settings;
 };
 
 const readWalk = (record: Record<string, unknown>): SavedAppState["walk"] => {
@@ -407,6 +432,7 @@ export const savedHorizon = (
 export const readSavedAppState = (value: unknown): SavedAppState => {
   if (!isRecord(value) || value["version"] !== 1) throw invalidSavedState();
   const pinnedWeeks = readPinnedWeeks(value);
+  const settings = stockToFlowFormula(value, readSettings(value));
   const years = readYears(value);
   return {
     bitcoin: readNumber(value, "bitcoin"),
@@ -431,6 +457,7 @@ export const readSavedAppState = (value: unknown): SavedAppState => {
     reoccurringItems: readItems(value, "reoccurringItems", isReoccurringItem),
     samples: readNumber(value, "samples"),
     samplesToRender: readSamplesToRender(value),
+    ...(settings === undefined ? {} : { settings }),
     showDrawdown: readBoolean(value, "showDrawdown"),
     showHistoric: readBoolean(value, "showHistoric"),
     showModel: readBoolean(value, "showModel"),

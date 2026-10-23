@@ -29,7 +29,7 @@ export const slide3 = {
   component: Slide3,
   requirements: {
     years: 20,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     renderModelMax: false,
     renderModelMin: true,
     samples: 0,

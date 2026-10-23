@@ -46,8 +46,7 @@ export const engineConfig = (
   scenario: {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 3,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     oneOffFiatVariables: [],
     oneOffItems: [],
     reoccurringItems:
@@ -65,8 +64,8 @@ export const engineConfig = (
               name: "Live off Bitcoin",
             },
           ],
+    settings: { yearOffset: 6 },
     showModel: patch.showModel ?? false,
-    variable: 0,
     volatility: 0.1,
     walk: "Bubble",
   },

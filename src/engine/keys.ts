@@ -9,6 +9,7 @@ import {
   type Full,
   type HalvingData,
   type ModelNames,
+  type ModelSettings,
   type NarrowedOneOffFiat,
   type OneOffFiatVariable,
   type OneOffItem,
@@ -18,13 +19,12 @@ import {
 interface EngineScenario {
   clampBottom: boolean;
   clampTop: boolean;
-  minMaxMultiple: number;
   model: ModelNames;
   oneOffFiatVariables: OneOffFiatVariable[];
   oneOffItems: OneOffItem[];
   reoccurringItems: ReoccurringItem[];
+  settings: ModelSettings;
   showModel: boolean;
-  variable: number;
   volatility: number;
   walk: WalkTypes;
 }
@@ -78,10 +78,9 @@ export const deriveKeys = (config: EngineConfig, weeksSince: number): DerivedKey
   const full: Full = {
     clampBottom: scenario.clampBottom,
     clampTop: scenario.clampTop,
-    minMaxMultiple: scenario.minMaxMultiple,
     model: scenario.model,
     seed: config.seed,
-    variable: scenario.variable,
+    settings: scenario.settings,
     volatility: scenario.volatility,
     walk: scenario.walk,
   };
@@ -173,10 +172,9 @@ export const sameConfig = (left: EngineConfig, right: EngineConfig): boolean =>
   left.stack.bitcoin === right.stack.bitcoin &&
   left.scenario.clampBottom === right.scenario.clampBottom &&
   left.scenario.clampTop === right.scenario.clampTop &&
-  left.scenario.minMaxMultiple === right.scenario.minMaxMultiple &&
   left.scenario.model === right.scenario.model &&
+  left.scenario.settings === right.scenario.settings &&
   left.scenario.showModel === right.scenario.showModel &&
-  left.scenario.variable === right.scenario.variable &&
   left.scenario.volatility === right.scenario.volatility &&
   left.scenario.walk === right.scenario.walk &&
   sameList(left.scenario.oneOffFiatVariables, right.scenario.oneOffFiatVariables) &&

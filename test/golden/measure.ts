@@ -10,7 +10,13 @@ import { type WalkTypes } from "../../src/data/walks";
 import { WALK_STATE_LENGTH } from "../../src/data/walks/prng";
 import { type BoundSlot } from "../../src/engine/memory";
 import { numberAt } from "../../src/number-at";
-import { type Full, type ModelNames, type OneOffItem, type ReoccurringItem } from "../../src/types";
+import {
+  type Full,
+  type ModelNames,
+  type ModelSettings,
+  type OneOffItem,
+  type ReoccurringItem,
+} from "../../src/types";
 
 const SAMPLES = 1000;
 const EPOCHS = 10;
@@ -66,11 +72,33 @@ const boundSlot = (): BoundSlot => ({
 
 const bounds = (): { maxArray: Float64Array[]; minArray: Float64Array[] } => {
   const signal = new AbortController().signal;
-  const model: ModelNames = "Power Law Regression Median";
-  const shared = [CURRENT_BLOCK, 3, model, 0, CURRENT_PRICE, NOW, WEEKS] as const;
+  const model: ModelNames = "Power Law";
+  const settings: ModelSettings = { yearOffset: 6 };
   return {
-    maxArray: handleMaxArray(signal, "bench", ...shared, 0, boundSlot()),
-    minArray: handleMinArray(signal, "bench", ...shared, 0, boundSlot()),
+    maxArray: handleMaxArray(
+      signal,
+      "bench",
+      CURRENT_BLOCK,
+      settings,
+      model,
+      CURRENT_PRICE,
+      NOW,
+      WEEKS,
+      0,
+      boundSlot(),
+    ),
+    minArray: handleMinArray(
+      signal,
+      "bench",
+      CURRENT_BLOCK,
+      settings,
+      model,
+      CURRENT_PRICE,
+      NOW,
+      WEEKS,
+      0,
+      boundSlot(),
+    ),
   };
 };
 
@@ -91,10 +119,9 @@ const timeWalk = (
   const full: Full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 3,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     seed: 1,
-    variable: 0,
+    settings: { yearOffset: 6 },
     volatility: 0.1,
     walk,
   };
@@ -133,10 +160,9 @@ const timeQuantile = (
   const full: Full = {
     clampBottom: false,
     clampTop: false,
-    minMaxMultiple: 3,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     seed: 1,
-    variable: 0,
+    settings: { yearOffset: 6 },
     volatility: 0.1,
     walk: "Bubble",
   };

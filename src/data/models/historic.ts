@@ -2,7 +2,7 @@ import memoize from "memoizee";
 
 import { MS_PER_WEEK, WEEKS_PER_EPOCH } from "../../constants";
 import { calculateHalvings, loadHalvings, weeksSinceLastHalving } from "../../halvings";
-import { type MinMaxOptions, type PriceModel } from "../../types";
+import { defineModel } from "./define";
 import marketData from "../datasets/bitcoin_weekly_prices_transformed_2.json";
 
 const getPriceAtHalving = memoize((blockHeight: number): number => {
@@ -63,16 +63,21 @@ const getCyclePercentageRanges = memoize((previousHalvings: number) => {
   return ranges;
 });
 
-const calculatePrice = (options: MinMaxOptions, useMax: boolean): number => {
-  const halvings = calculateHalvings(options.currentBlock);
+const calculatePrice = (
+  currentBlock: number,
+  week: number,
+  previousHalvings: number,
+  useMax: boolean,
+): number => {
+  const halvings = calculateHalvings(currentBlock);
   const lastHalving = halvings.at(-1) ?? 0;
   const priceAtLastHalving = getPriceAtHalving(lastHalving);
 
   if (priceAtLastHalving === 0) return 0;
 
   const weeksSinceHalving = weeksSinceLastHalving(loadHalvings());
-  const targetWeek = weeksSinceHalving + options.week;
-  const cycleRanges = getCyclePercentageRanges(options.variable);
+  const targetWeek = weeksSinceHalving + week;
+  const cycleRanges = getCyclePercentageRanges(previousHalvings);
 
   const cycleIndex = Math.floor(targetWeek / WEEKS_PER_EPOCH);
   const weekInCycle = targetWeek % WEEKS_PER_EPOCH;
@@ -92,15 +97,27 @@ const calculatePrice = (options: MinMaxOptions, useMax: boolean): number => {
   return price;
 };
 
-const historic = {
-  default: 2,
-  maxPrice: (options: MinMaxOptions): number => calculatePrice(options, true),
-  minPrice: (options: MinMaxOptions): number => calculatePrice(options, false),
-  modelType: "Historic" as const,
-  rangeMax: 3,
-  rangeMin: 2,
-  varInput: "Previous Halvings",
-  varRange: false,
-} satisfies PriceModel;
+const historic = defineModel({
+  description:
+    "Previous Halvings chooses 2 or 3 and defaults to 2. Each week of a cycle takes the min and max percent change across those cycles and compounds them forward from the last halving's price. The early cycles contain very large yearly multiples, and those weeks set the band.",
+  maxPrice: ({ currentBlock, settings, week }): number =>
+    calculatePrice(currentBlock, week, settings.variable, true),
+  minPrice: ({ currentBlock, settings, week }): number =>
+    calculatePrice(currentBlock, week, settings.variable, false),
+  name: "Historic" as const,
+  params: [
+    {
+      default: 2,
+      key: "variable",
+      kind: "number",
+      label: "Previous Halvings",
+      max: 3,
+      min: 2,
+      step: 1,
+    },
+  ],
+  summary:
+    "The floor and the ceiling compound the smallest and largest weekly percent changes from the last 2 or 3 halvings, starting at the last halving's price.",
+});
 
 export default historic;

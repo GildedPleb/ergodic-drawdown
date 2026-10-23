@@ -2,7 +2,7 @@ import GrowableSharedArray from "../../classes/growable-shared-array";
 import { WEEKS_PER_EPOCH } from "../../constants";
 import { walks } from "../../data/walks";
 import { epochSeed, nextMulberry, WALK_STATE_LENGTH, walkKey } from "../../data/walks/prng";
-import { lastFinite, numberAt } from "../../number-at";
+import { numberAt } from "../../number-at";
 import { type RunSimulationEvent, type SignalState } from "./types";
 
 const base = 10;
@@ -48,6 +48,8 @@ export const handleSimulation = (
     const adjustedEpoch = Math.max((startEpoch ?? 1) - 1, 0);
     let sampleLength = adjustedEpoch * WEEKS_PER_EPOCH;
     let lastPrice = currentPrice;
+    // -1 until a bound week paints a dollar price. The spot is placed against the first such week.
+    let anchorWeek = -1;
     state.fill(0);
 
     for (let epoch = adjustedEpoch; epoch < epochCount; epoch++) {
@@ -56,9 +58,17 @@ export const handleSimulation = (
       }
       const segment = data.get(epoch, sample);
       if (segment !== undefined) {
+        const epochStart = sampleLength - weeksSince;
         sampleLength += segment.length;
-        const carried = lastFinite(segment);
-        if (carried !== undefined) lastPrice = carried;
+        let carried: number | undefined;
+        for (let week = segment.length - 1; week >= 0; week--) {
+          const value = segment[week];
+          if (value === undefined || Number.isNaN(value)) continue;
+          carried = value;
+          lastPrice = value;
+          anchorWeek = epochStart + week;
+          break;
+        }
         const saved = walkState.get(epoch, sample);
         if (saved === undefined) {
           // A blank epoch never ran the walk. A priced epoch without a cycle is a broken cache.
@@ -84,20 +94,13 @@ export const handleSimulation = (
       }
 
       const currentStart = epochStart < 0 ? 0 : epochStart;
-      let innerStartingPrice;
-      const startingMin = numberAt(minSeries, currentStart);
-      const startingMax = numberAt(maxSeries, currentStart);
-      const logStartingMin = numberAt(logMinSeries, currentStart);
-      const logStartingMax = numberAt(logMaxSeries, currentStart);
-      const logLastPrice = Math.log10(lastPrice);
-
-      if (lastPrice <= startingMin) {
-        innerStartingPrice = logLastPrice - logStartingMin;
-      } else if (lastPrice < startingMax) {
-        innerStartingPrice = (logLastPrice - logStartingMin) / (logStartingMax - logStartingMin);
-      } else {
-        innerStartingPrice = logLastPrice - logStartingMax + 1;
-      }
+      // Invert the carried price with the week that painted it.
+      const boundWeek = anchorWeek >= 0 ? anchorWeek : currentStart;
+      const logBoundMin = numberAt(logMinSeries, boundWeek);
+      const logBoundMax = numberAt(logMaxSeries, boundWeek);
+      const boundSpan = logBoundMax - logBoundMin;
+      const innerStartingPrice =
+        boundSpan === 0 ? 0 : (Math.log10(lastPrice) - logBoundMin) / boundSpan;
 
       rngState[0] = epochSeed(seed, key, sample, epoch);
       const rawWalk = walking({
@@ -130,23 +133,17 @@ export const handleSimulation = (
           continue;
         }
 
-        let price: number;
-        if (normalizedPrice <= 0) {
-          price = min * base ** normalizedPrice;
-        } else if (normalizedPrice < 1) {
-          price = base ** (normalizedPrice * (logMax - logMin) + logMin);
-        } else {
-          price = max * base ** (normalizedPrice - 1);
-        }
+        const span = logMax - logMin;
+        let price = base ** (normalizedPrice * span + logMin);
         if (price < 0.01) price = 0.01;
         rawWalk[week] = price;
+        lastPrice = price;
+        anchorWeek = indexOffset;
       }
 
       data.set(epoch, sample, rawWalk);
       state[2] = 1;
       walkState.set(epoch, sample, state);
-      const carried = lastFinite(rawWalk);
-      if (carried !== undefined) lastPrice = carried;
       sampleLength += rawWalk.length;
     }
   }

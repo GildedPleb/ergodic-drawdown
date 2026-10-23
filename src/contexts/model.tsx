@@ -1,10 +1,10 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 import { DEFAULT_SIMULATION_COUNT } from "../constants";
-import { DEFAULT_YEAR_COUNT } from "../horizon";
-import { models } from "../data/models";
+import { declaredSettings, isModelName, modelMap, models } from "../data/models";
 import { type WalkTypes } from "../data/walks";
-import { type ModelNames, type ProviderProperties } from "../types";
+import { DEFAULT_YEAR_COUNT } from "../horizon";
+import { type ModelNames, type ModelSettings, type ProviderProperties } from "../types";
 
 // Fixed until the redesign. The model panel does not edit this.
 export const simulationSeed = 1;
@@ -12,11 +12,19 @@ export const simulationSeed = 1;
 const initialModel = models[0];
 if (initialModel === undefined) throw new Error("missing price model");
 
+const freshSettings = (): { [key: string]: ModelSettings } => {
+  const settings: { [key: string]: ModelSettings } = {};
+  for (const key of Object.keys(modelMap)) {
+    if (!isModelName(key)) throw new Error(`unknown model: ${key}`);
+    settings[key] = declaredSettings(key);
+  }
+  return settings;
+};
+
 export interface ModelContextType {
   clampBottom: boolean;
   clampTop: boolean;
   loadingPriceData: boolean;
-  minMaxMultiple: number;
   model: ModelNames;
   pinnedWeeks: number | null;
   samples: number;
@@ -24,16 +32,16 @@ export interface ModelContextType {
   setClampBottom: React.Dispatch<React.SetStateAction<boolean>>;
   setClampTop: React.Dispatch<React.SetStateAction<boolean>>;
   setLoadingPriceData: React.Dispatch<React.SetStateAction<boolean>>;
-  setMinMaxMultiple: React.Dispatch<React.SetStateAction<number>>;
   setModel: React.Dispatch<React.SetStateAction<ModelNames>>;
+  setModelSettings: (name: ModelNames, values: ModelSettings) => void;
   setSamples: React.Dispatch<React.SetStateAction<number>>;
+  setSetting: (name: ModelNames, key: string, value: number | string) => void;
   setShowModel: React.Dispatch<React.SetStateAction<boolean>>;
   setYears: React.Dispatch<React.SetStateAction<number>>;
-  setVariable: React.Dispatch<React.SetStateAction<number>>;
   setVolatility: React.Dispatch<React.SetStateAction<number>>;
   setWalk: React.Dispatch<React.SetStateAction<WalkTypes>>;
+  settings: ModelSettings;
   showModel: boolean;
-  variable: number;
   volatility: number;
   walk: WalkTypes;
   years: number;
@@ -44,9 +52,19 @@ const ModelContext = createContext<ModelContextType | null>(null);
 export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
   const [showModel, setShowModel] = useState<boolean>(false);
   const [loadingPriceData, setLoadingPriceData] = useState<boolean>(true);
-  const [model, setModel] = useState<ModelNames>(initialModel.modelType);
-  const [variable, setVariable] = useState<number>(0);
-  const [minMaxMultiple, setMinMaxMultiple] = useState<number>(3);
+  const [model, setModel] = useState<ModelNames>(initialModel.name);
+  const [settingsByModel, setSettingsByModel] = useState(freshSettings);
+  const setSetting = useCallback((name: ModelNames, key: string, value: number | string) => {
+    setSettingsByModel((current) => {
+      const previous = current[name];
+      if (previous === undefined) throw new Error(`missing settings for ${name}`);
+      if (previous[key] === value) return current;
+      return { ...current, [name]: { ...previous, [key]: value } };
+    });
+  }, []);
+  const setModelSettings = useCallback((name: ModelNames, values: ModelSettings) => {
+    setSettingsByModel((current) => ({ ...current, [name]: declaredSettings(name, values) }));
+  }, []);
   const [walk, setWalk] = useState<WalkTypes>("Bubble");
   const [clampTop, setClampTop] = useState<boolean>(false);
   const [clampBottom, setClampBottom] = useState<boolean>(false);
@@ -63,49 +81,47 @@ export const ModelProvider: React.FC<ProviderProperties> = ({ children }) => {
     setYearsState(displayYears);
   }, []);
 
-  const value = useMemo(
-    () =>
-      ({
-        clampBottom,
-        clampTop,
-        loadingPriceData,
-        minMaxMultiple,
-        model,
-        pinSpan,
-        pinnedWeeks,
-        samples,
-        setClampBottom,
-        setClampTop,
-        setLoadingPriceData,
-        setMinMaxMultiple,
-        setModel,
-        setSamples,
-        setShowModel,
-        setVariable,
-        setVolatility,
-        setWalk,
-        setYears,
-        showModel,
-        variable,
-        volatility,
-        walk,
-        years: yearsState,
-      }) satisfies ModelContextType,
-    [
-      showModel,
+  const settings = settingsByModel[model];
+  const value = useMemo(() => {
+    if (settings === undefined) throw new Error(`missing settings for ${model}`);
+    return {
       clampBottom,
       clampTop,
       loadingPriceData,
-      minMaxMultiple,
       model,
+      pinSpan,
       pinnedWeeks,
       samples,
-      variable,
+      setClampBottom,
+      setClampTop,
+      setLoadingPriceData,
+      setModel,
+      setModelSettings,
+      setSamples,
+      setSetting,
+      setShowModel,
+      setVolatility,
+      setWalk,
+      setYears,
+      settings,
+      showModel,
       volatility,
       walk,
-      yearsState,
-    ],
-  );
+      years: yearsState,
+    } satisfies ModelContextType;
+  }, [
+    showModel,
+    clampBottom,
+    clampTop,
+    loadingPriceData,
+    model,
+    pinnedWeeks,
+    samples,
+    settings,
+    volatility,
+    walk,
+    yearsState,
+  ]);
 
   return <ModelContext.Provider value={value}>{children}</ModelContext.Provider>;
 };

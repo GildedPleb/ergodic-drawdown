@@ -1,8 +1,8 @@
 # Stack Math: The Bitcoin Modeling Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Bun](https://img.shields.io/badge/bun-1.3.13-black)](https://bun.sh/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-%5E5.2.2-blue)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/bun-1.4.3-black)](https://bun.sh/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue)](https://www.typescriptlang.org/)
 
 Stack Math is an open-source Monte Carlo framework that combines ergodic walk strategies with traditional Bitcoin pricing models to generate probabilistic financial planning scenarios. It bridges the gap between theoretical Bitcoin models and practical financial decision-making needs.
 
@@ -46,7 +46,7 @@ bun run build
 
 ## System Requirements
 
-- Bun 1.3.13
+- Bun 1.4.3
 - Modern browser with ES6 module support
 
 ## Development
@@ -132,12 +132,11 @@ flowchart LR
     clampBottom
     clampTop
     epochCount
-    minMaxMultiple
     model
     samples
+    settings
     showModel
     simulationData
-    variable
     volatility
     walk
 
@@ -205,9 +204,8 @@ flowchart LR
     currentNotZero --> halvingAnnotations
 
     currentBlock --> maxArray
-    minMaxMultiple --> maxArray
+    settings --> maxArray
     model --> maxArray
-    variable --> maxArray
     currentPrice --> maxArray
     now --> maxArray
     currentNotZero --> maxArray
@@ -217,9 +215,8 @@ flowchart LR
     now --> maxDataset
 
     currentBlock --> minArray
-    minMaxMultiple --> minArray
+    settings --> minArray
     model --> minArray
-    variable --> minArray
     currentPrice --> minArray
     now --> minArray
     currentNotZero --> minArray
