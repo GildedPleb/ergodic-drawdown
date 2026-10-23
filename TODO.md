@@ -53,7 +53,6 @@ IMPROVE MODELING
 
 - INvestigate a custom models: "what if bitcoin is above this price by this year"
 - add Saylor Models
-- Add a +/- tab to a power law regression
 
 ADD SLIDER
 

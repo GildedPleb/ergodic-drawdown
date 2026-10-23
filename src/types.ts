@@ -213,6 +213,7 @@ export interface SavedAppState {
   reoccurringItems: ReoccurringItem[];
   samples: number;
   samplesToRender: number | undefined;
+  settings?: ModelSettings;
   showDrawdown: boolean;
   showHistoric: boolean;
   showModel: boolean;

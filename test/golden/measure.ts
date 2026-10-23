@@ -72,8 +72,8 @@ const boundSlot = (): BoundSlot => ({
 
 const bounds = (): { maxArray: Float64Array[]; minArray: Float64Array[] } => {
   const signal = new AbortController().signal;
-  const model: ModelNames = "Power Law Regression Median";
-  const settings: ModelSettings = {};
+  const model: ModelNames = "Power Law";
+  const settings: ModelSettings = { yearOffset: 6 };
   return {
     maxArray: handleMaxArray(
       signal,
@@ -119,9 +119,9 @@ const timeWalk = (
   const full: Full = {
     clampBottom: false,
     clampTop: false,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     seed: 1,
-    settings: {},
+    settings: { yearOffset: 6 },
     volatility: 0.1,
     walk,
   };
@@ -160,9 +160,9 @@ const timeQuantile = (
   const full: Full = {
     clampBottom: false,
     clampTop: false,
-    model: "Power Law Regression Median",
+    model: "Power Law",
     seed: 1,
-    settings: {},
+    settings: { yearOffset: 6 },
     volatility: 0.1,
     walk: "Bubble",
   };

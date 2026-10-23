@@ -77,6 +77,27 @@ test("a pinned week count outside 1 through 6240 is rejected", () => {
   expect(() => readSavedAppState(saved({ pinnedWeeks: 1.5 }))).toThrow("saved state is not valid");
 });
 
+test("an old power-law name opens as Power Law, and the support name does not open", () => {
+  expect(readSavedAppState(saved()).model).toBe("Power Law");
+  expect(readSavedAppState(saved()).settings).toBeUndefined();
+  expect(readSavedAppState(saved({ model: "Power Law" })).model).toBe("Power Law");
+  expect(() => readSavedAppState(saved({ model: "Power Law Support Line" }))).toThrow(
+    "saved state is not valid",
+  );
+});
+
+test("a saved shift reloads, and a settings value that is not a number or a string is rejected", () => {
+  const state = readSavedAppState(saved({ model: "Power Law", settings: { yearOffset: 7 } }));
+  expect(state.model).toBe("Power Law");
+  expect(state.settings).toEqual({ yearOffset: 7 });
+  expect(() => readSavedAppState(saved({ settings: { yearOffset: true } }))).toThrow(
+    "saved state is not valid",
+  );
+  expect(() => readSavedAppState(saved({ settings: ["yearOffset"] }))).toThrow(
+    "saved state is not valid",
+  );
+});
+
 test("years outside 1 through 120 are rejected", () => {
   expect(() => readSavedAppState(saved({ years: 0 }))).toThrow("saved state is not valid");
   expect(() => readSavedAppState(saved({ years: 121 }))).toThrow("saved state is not valid");

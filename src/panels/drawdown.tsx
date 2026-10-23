@@ -246,6 +246,7 @@ const Drawdown = (): JSX.Element => {
       modelState.setModelSettings(state.model, {
         minMaxMultiple: state.minMaxMultiple,
         variable: state.variable,
+        ...state.settings,
       });
       modelState.setSamples(state.samples);
       modelState.setShowModel(state.showModel);
@@ -296,6 +297,7 @@ const Drawdown = (): JSX.Element => {
       reoccurringItems: drawdownState.reoccurringItems,
       samples: modelState.samples,
       samplesToRender: renderState.samplesToRender,
+      settings: modelState.settings,
       showDrawdown: drawdownState.showDrawdown,
       showHistoric: renderState.showHistoric,
       showModel: modelState.showModel,

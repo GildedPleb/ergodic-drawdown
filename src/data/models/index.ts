@@ -2,14 +2,12 @@ import { type ModelNames, type ModelSettings } from "../../types";
 import cagrModel from "./cagr";
 import historic from "./historic";
 import powerLawModel from "./power-law";
-import log10PriceModelConfig from "./power-law-support";
 import rainbowChartModel from "./rainbow";
 import stockToFlowModel from "./stock-to-flow";
 import stockToFlowModelNew from "./stock-to-flow-2024-refit";
 
 export const models = [
   powerLawModel,
-  log10PriceModelConfig,
   rainbowChartModel,
   cagrModel,
   stockToFlowModelNew,
@@ -20,7 +18,6 @@ export const models = [
 export const modelMap = {
   [cagrModel.name]: cagrModel,
   [historic.name]: historic,
-  [log10PriceModelConfig.name]: log10PriceModelConfig,
   [powerLawModel.name]: powerLawModel,
   [rainbowChartModel.name]: rainbowChartModel,
   [stockToFlowModel.name]: stockToFlowModel,

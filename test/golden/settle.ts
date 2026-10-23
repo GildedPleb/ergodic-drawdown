@@ -43,7 +43,7 @@ import { installFrozenClock } from "../freeze-clock";
 import { type CaseInput } from "./cases";
 import { inProcessWorker } from "./in-process";
 
-const MODEL: ModelNames = "Power Law Regression Median";
+const MODEL: ModelNames = "Power Law";
 const SMALL_GRID = 7 * 3;
 
 export const goldenPins = {
@@ -389,7 +389,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
     clampTop: input.clampTop,
     model: goldenPins.model,
     seed: goldenPins.seed,
-    settings: {},
+    settings: { yearOffset: 6 },
     volatility: goldenPins.volatility,
     walk: input.walk,
   };
@@ -460,7 +460,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       signal,
       hash,
       goldenPins.block,
-      {},
+      { yearOffset: 6 },
       goldenPins.model,
       goldenPins.price,
       now,
@@ -477,7 +477,7 @@ const settleAt = async (input: CaseInput, memory: SettledMemory): Promise<CaseSn
       signal,
       hash,
       goldenPins.block,
-      {},
+      { yearOffset: 6 },
       goldenPins.model,
       goldenPins.price,
       now,
