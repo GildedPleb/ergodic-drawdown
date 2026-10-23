@@ -1421,3 +1421,39 @@ test("Form 2d: drawn, the plate leaves the median's last point visible (the plat
     y < plate.y - MEDIAN_CLEAR + 0.01 || y > plate.y + (plate.h ?? 0) + MEDIAN_CLEAR - 0.01,
   ).toBe(true);
 });
+
+test("Form 2d fallback: when neither side clears the median, the plate takes the roomier side, inside the plot", () => {
+  // A plot too short for a 5-line plate either side of the line's end (never hit at 320×300+).
+  const box = plotBox(320, 200);
+  const domain = fitDomain(5e4, 1.5e8);
+  const fan = { p5: flat(100, domain.lo), p95: flat(100, domain.hi), horizon: 99 };
+  const lines = 5;
+  const pad = 3;
+  const fallbacks: { med: number; y0: number; y1: number }[] = [];
+  for (let e = 4.8; e <= 8.1; e += 0.05) {
+    const end = 10 ** e;
+    const at = endLabelAt(
+      box,
+      domain,
+      { ...fan, end, p50: flat(100, end) },
+      { width: 100, lines, pad },
+    );
+    const y0 = at.y - 10 - pad;
+    const y1 = at.y + (lines - 1) * LABEL_LINE + 4 + pad;
+    const med = ly(end, box, domain);
+    const clears = y1 + MEDIAN_CLEAR <= med + 0.01 || y0 - MEDIAN_CLEAR >= med - 0.01;
+    if (!clears) fallbacks.push({ med, y0, y1 });
+  }
+  expect(fallbacks.length > 0).toBe(true);
+  // The plate's space runs from the caption floor (its highest top) to the plot's floor.
+  const ceiling = Math.min(...fallbacks.map((f) => f.y0));
+  expect(ceiling >= box.T).toBe(true);
+  const sides = new Set<string>();
+  for (const { med, y0, y1 } of fallbacks) {
+    expect(y0 >= ceiling - 0.01 && y1 <= box.Bt + 0.01).toBe(true);
+    const roomierUp = med - ceiling >= box.Bt - med;
+    expect(roomierUp ? y0 === ceiling : y1 >= box.Bt - 0.01).toBe(true);
+    sides.add(roomierUp ? "up" : "down");
+  }
+  expect(sides.size).toBe(2);
+});
