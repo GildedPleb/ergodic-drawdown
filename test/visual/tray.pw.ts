@@ -98,7 +98,7 @@ for (const theme of FIELD_THEMES) {
     await page.keyboard.type("-5");
     await page.keyboard.press("Enter");
     const msg = page.locator("#v2-variable-message");
-    await expect(msg).toHaveText("R (%) goes from 0 up. We used 0.");
+    await expect(msg).toHaveText("Min is 0");
     const m = await box(msg);
     const t = await box(page.locator("#v2-model-tray"));
     expect(m.y >= t.y && m.y + m.h <= t.y + t.h + 0.5).toBe(true);

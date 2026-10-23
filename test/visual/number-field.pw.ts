@@ -44,12 +44,12 @@ test("the wheel does nothing unless the field is focused, then commits once it s
 });
 
 for (const [id, typed, used, message] of [
-  ["#v2-samples", "1000000000", "10,000", "We used 10,000."],
-  ["#v2-samples", "-1", "1", "We used 1."],
-  ["#v2-vol", "1e9", "1", "We used 1."],
-  ["#v2-vol", "-1", "0", "We used 0."],
-  ["#v2-years", "1e9", "120", "We used 120."],
-  ["#v2-years", "-4", "1", "We used 1."],
+  ["#v2-samples", "1000000000", "10000", "Max is 10,000"],
+  ["#v2-samples", "-1", "1", "Min is 1"],
+  ["#v2-vol", "1e9", "1", "Max is 1"],
+  ["#v2-vol", "-1", "0", "Min is 0"],
+  ["#v2-years", "1e9", "120", "Max is 120"],
+  ["#v2-years", "-4", "1", "Min is 1"],
 ] as const) {
   test(`${id} "${typed}" clamps to ${used} with a visible message`, async ({ page }) => {
     await gotoStory(page, "models-sheet/default");
