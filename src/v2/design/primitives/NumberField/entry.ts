@@ -63,10 +63,10 @@ const strayComma = (text: string): boolean => {
 };
 
 /**
- * What committing `text` does. `emptyValue` is the value an empty field commits (or null). A
- * `whole` field (Form 2a: a count, e.g. Previous Halvings) rounds to the nearest integer first.
+ * What committing `text` does. `emptyValue` is the value an empty field commits (or null).
  * Form 2g: in every field a comma is only thousands grouping; any other comma is invalid (never
- * read as 25 or 2.5). An int field's fraction ("1.5") is invalid too, as "whole".
+ * read as 25 or 2.5). A whole-number field's fraction ("1.5") is invalid too, as "whole": an int
+ * parse, or a `whole` count such as Previous Halvings (Form 2h: never rounded, 2g over 2a).
  */
 export const resolveEntry = (
   text: string,
@@ -82,10 +82,9 @@ export const resolveEntry = (
   if (strayComma(text)) return { kind: "invalid", reason: counted ? "whole" : "dot" };
   const parsed = parseNumber(text, "float");
   if (Number.isNaN(parsed)) return { kind: "invalid" };
-  if (parse === "int" && !Number.isInteger(parsed)) return { kind: "invalid", reason: "whole" };
-  const typed = whole ? Math.round(parsed) : parsed;
-  const value = clampTo(typed, bounds);
-  return value === typed ? { kind: "ok", value } : { kind: "clamped", value, typed };
+  if (counted && !Number.isInteger(parsed)) return { kind: "invalid", reason: "whole" };
+  const value = clampTo(parsed, bounds);
+  return value === parsed ? { kind: "ok", value } : { kind: "clamped", value, typed: parsed };
 };
 
 const decimalsOf = (n: number): number => {

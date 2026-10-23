@@ -22,6 +22,14 @@ export const statusOf = (result: EntryResult, bound: boolean): Status => {
 export const afterEdit = (status: Status): Status =>
   status.kind === "clamped" ? { kind: "ok" } : status;
 
+/**
+ * Form 4h: when `value` arrives, a clamp note stays only if it is this field's own commit
+ * (`sent`, the value it last handed to onCommit); any other change (a model switch) clears it,
+ * so a note never describes a value that is no longer shown.
+ */
+export const afterValue = (status: Status, value: number, sent: number | null): Status =>
+  sent === value ? status : afterEdit(status);
+
 export type Copy = {
   /** Form 4d/4e/4f: "Max is 10,000" / "Min is 1.01", whether from Enter or from blur. */
   limitNote?: ((used: number, bounds: Bounds) => string) | undefined;

@@ -43,7 +43,7 @@ export const SAMPLE_BOUNDS = {
 /** The samples label names the range the field really takes (from SAMPLE_BOUNDS, not a literal). */
 export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMPLE_BOUNDS.max);
 
-/** Form 2a: count fields take whole numbers; the percent and decimal fields (R, +/-) rest at 2. */
+/** Form 2a/2h: count fields take whole numbers only ("1.5" is rejected, never rounded); R, +/- rest at 2. */
 export const COUNT_FIELDS: readonly string[] = ["Previous Halvings"];
 /** Form 2f: Volatility rests at 2 decimals too (0.123456789 → "0.12"), in full while focused. */
 const DECIMAL_FIELDS: readonly string[] = ["R (%)", "+/-", controls.volatility.label];
@@ -62,7 +62,7 @@ type EditorProps = {
   parse: "float" | "int";
   step: number;
   emptyValue: number | null;
-  /** Form 2a: a count (whole numbers), or a decimal field resting at `places`. */
+  /** A count (whole numbers only, Form 2h), or a decimal field resting at `places` (2a). */
   whole?: boolean;
   places?: number | undefined;
   who: { name: string; plural: boolean };

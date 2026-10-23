@@ -466,18 +466,10 @@ test("Probe R2 m3 / ruling 4: the spoken value is the shown one, the ×10 form i
   expect(big.includes(`1\u00A0×\u00A010³⁰⁰`) && !big.includes("000,000")).toBe(true);
 });
 
-test("Form 2a / 4c: counts round on commit; R and +/- rest at 2 decimals (×10 at 3 figures); a focused field keeps what was typed", async () => {
+test("Form 2a / 4c: R and +/- rest at 2 decimals (×10 at 3 figures); a focused field keeps what was typed", async () => {
   const { keptText, shownAt, speakNumber } =
     await import("../../src/v2/design/primitives/NumberField/entry");
   const HALVINGS = { min: 2, max: 3 };
-  // 2a: a count rounds to the nearest whole number, then the range applies.
-  expect(resolveEntry("2.5", "float", HALVINGS, null, true)).toEqual({ kind: "ok", value: 3 });
-  expect(resolveEntry("2.4", "float", HALVINGS, null, true)).toEqual({ kind: "ok", value: 2 });
-  expect(resolveEntry("3.7", "float", HALVINGS, null, true)).toEqual({
-    kind: "clamped",
-    value: 3,
-    typed: 4,
-  });
   expect(resolveEntry("2.5", "float", HALVINGS, null)).toEqual({ kind: "ok", value: 2.5 }); // R
   // 2a: at rest, 2 decimals for an ordinary value (trailing zeros dropped), 3 figures in ×10 form.
   const X = "\u00A0×\u00A010";
@@ -495,7 +487,7 @@ test("Form 2a / 4c: counts round on commit; R and +/- rest at 2 decimals (×10 a
   expect(shownAt()(123.456789)).toBe("123.456789"); // other fields are unchanged
   expect(speakNumber(123.456789, 2)).toBe("123.46"); // spoken as shown
   // 4c: after Enter the focused field keeps the typed digits when they are the value used;
-  // otherwise (rounded, clamped, emptied) it shows the value used.
+  // otherwise (clamped, emptied) it shows the value used.
   expect(keptText("1234567890123", "float", 1_234_567_890_123)).toBe("1234567890123");
   expect(keptText("123.456789", "float", 123.456789)).toBe("123.456789");
   expect(keptText("2.5", "float", 3)).toBe("3");
@@ -581,7 +573,7 @@ test("Form 2e/2g: in every numeric field a comma is only thousands grouping", as
   expect(resolveEntry("1,000", "int", SAMPLES, null)).toEqual({ kind: "ok", value: 1000 });
   for (const text of ["2,5", "1,00", ",5", "1,0000", "12,34,567", "2,"]) {
     expect(resolveEntry(text, "int", SAMPLES, null)).toEqual({ kind: "invalid", reason: "whole" });
-    // A count field (float parse, rounded) too.
+    // A count field (float parse, whole) too.
     expect(resolveEntry(text, "float", HALVINGS, null, true)).toEqual({
       kind: "invalid",
       reason: "whole",
@@ -640,4 +632,65 @@ test("Form 4g: from 1e9 up the focused ×10 form is the full stored precision; e
     kind: "ok",
     value: at,
   });
+});
+
+test("Form 2h: Previous Halvings rejects '1.5' with 'Whole numbers only'; a count is never rounded", async () => {
+  const { messageOf, statusOf } = await import("../../src/v2/design/primitives/NumberField/status");
+  const HALVINGS = { min: 2, max: 3 };
+  for (const text of ["1.5", "2.5", "2.4", "3.7", "2.0001", "2.5e0"]) {
+    expect(resolveEntry(text, "float", HALVINGS, null, true)).toEqual({
+      kind: "invalid",
+      reason: "whole",
+    });
+  }
+  const copy = { invalidMessage: () => "long", wholeMessage: strings.fields.wholeOnly };
+  const status = statusOf(resolveEntry("1.5", "float", HALVINGS, null, true), false);
+  expect(messageOf(status, 2, HALVINGS, copy)).toBe("Whole numbers only");
+  // Whole text still commits, and still clamps.
+  expect(resolveEntry("3", "float", HALVINGS, null, true)).toEqual({ kind: "ok", value: 3 });
+  expect(resolveEntry("2.0", "float", HALVINGS, null, true)).toEqual({ kind: "ok", value: 2 });
+  expect(resolveEntry("4", "float", HALVINGS, null, true)).toEqual({
+    kind: "clamped",
+    value: 3,
+    typed: 4,
+  });
+  const src = await (
+    await import("bun")
+  )
+    .file(`${import.meta.dir}/../../src/v2/design/primitives/NumberField/entry.ts`)
+    .text();
+  expect(src.includes("Math.round(parsed)")).toBe(false);
+});
+
+test("Form 4h: an outside value change clears the clamp note; the field's own commit keeps it", async () => {
+  const { afterValue, messageOf, statusOf } =
+    await import("../../src/v2/design/primitives/NumberField/status");
+  const R = { min: 0, max: 1000 };
+  const noted = statusOf(resolveEntry("5000", "float", R, null), false);
+  const copy = {
+    limitNote: (used: number, b: { min: number; max: number }) =>
+      strings.fields.limit(used === b.max, used),
+  };
+  expect(messageOf(noted, 1000, R, copy)).toBe("Max is 1,000");
+  // Its own commit lands (value === the value it sent): the note stays.
+  expect(afterValue(noted, 1000, 1000)).toBe(noted);
+  // A model switch (nothing sent, or another value): cleared, never describing a stale value.
+  expect(afterValue(noted, 20, null)).toEqual({ kind: "ok" });
+  expect(afterValue(noted, 20, 1000)).toEqual({ kind: "ok" });
+  expect(afterValue(noted, 1000, null)).toEqual({ kind: "ok" });
+  // Other states are left alone (the invalid message reads the value in use live).
+  const bad = statusOf({ kind: "invalid", reason: "whole" }, false);
+  expect(afterValue(bad, 20, null)).toBe(bad);
+  // Wired in the value effect, before the focus check, so a focused field clears too.
+  const src = await (
+    await import("bun")
+  )
+    .file(`${import.meta.dir}/../../src/v2/design/primitives/NumberField/NumberField.tsx`)
+    .text();
+  const effect = src.slice(src.indexOf("Form 4h"), src.indexOf("}, [value]);"));
+  const clear = effect.indexOf("setStatus((was) => afterValue(was, value, own))");
+  expect(clear > 0 && clear < effect.indexOf("document.activeElement")).toBe(true);
+  expect(effect.indexOf("const own = sent.current") < effect.indexOf("sent.current = null")).toBe(
+    true,
+  );
 });

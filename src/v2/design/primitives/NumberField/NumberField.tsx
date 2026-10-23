@@ -17,7 +17,7 @@ import {
 } from "./entry";
 import styles from "./NumberField.module.css";
 import { createSettle, type Settle } from "./settle";
-import { afterEdit, messageOf, type Status, statusOf } from "./status";
+import { afterEdit, afterValue, messageOf, type Status, statusOf } from "./status";
 import { createThrottle, type Throttle } from "./throttle";
 
 /** R7: variant keys and values. */
@@ -40,7 +40,7 @@ export type NumberFieldProps = {
   bounds?: Bounds;
   /** What an empty field commits; null: empty is invalid. */
   emptyValue?: number | null;
-  /** Form 2a: a count (e.g. Previous Halvings): a typed number rounds to a whole one on commit. */
+  /** A count (e.g. Previous Halvings): whole numbers only, never rounded (Form 2g/2h). */
   whole?: boolean;
   /** Form 2a: at rest, an ordinary value shows rounded to this many decimals (R, +/-: 2). */
   places?: number | undefined;
@@ -179,8 +179,11 @@ export const NumberField = ({
 
   // The engine value changed elsewhere (a model switch resets the variable): show it unless the
   // person is mid-edit in this field.
+  // Form 4h: a value from anywhere else clears a clamp note; this field's own commit keeps it.
   useEffect(() => {
+    const own = sent.current;
     sent.current = null;
+    setStatus((was) => afterValue(was, value, own));
     if (document.activeElement === input.current) return;
     clean.current = editNumber(value);
     setDraft(clean.current);
