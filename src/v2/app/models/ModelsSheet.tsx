@@ -103,9 +103,9 @@ const Editor = (p: EditorProps): JSX.Element => {
           emptyValue={p.emptyValue}
           whole={p.whole === true}
           places={p.places}
-          clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used, p.places)}
-          limitNote={(used, b) => strings.fields.limit(used === b.max, used)}
+          limitNote={(used, b) => strings.fields.limit(used === b.max, used, p.places)}
           wholeMessage={strings.fields.wholeOnly}
+          dotMessage={strings.fields.dotOnly}
           invalidMessage={(current) =>
             strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current, p.places)
           }

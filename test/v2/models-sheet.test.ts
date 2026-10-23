@@ -43,7 +43,7 @@ test("§1MP 7: Volatility and samples edit in place, each with its plain slider 
   expect(editor("samples").includes('aria-valuemax="10000"')).toBe(true);
 });
 
-test("m2 (Gap 10): samples clamp to 1..10,000 with the standard clamp message; 0 is never used", () => {
+test("m2 (Gap 10): samples clamp to 1..10,000 with the limit note (Form 4e); 0 is never used", () => {
   expect(SAMPLE_BOUNDS).toEqual({ min: 1, max: 10_000 });
   expect(editor("samples").includes('aria-valuemin="1"')).toBe(true);
   expect(resolveEntry("0", "int", SAMPLE_BOUNDS, 1000)).toEqual({
@@ -56,9 +56,8 @@ test("m2 (Gap 10): samples clamp to 1..10,000 with the standard clamp message; 0
     value: 1,
     typed: -1,
   });
-  expect(strings.fields.clamped(strings.fields.nouns.samples, 1, 10_000, 1)).toBe(
-    "Samples go from 1 to 10,000. We used 1.",
-  );
+  expect(strings.fields.limit(false, 1)).toBe("Min is 1");
+  expect(strings.fields.limit(true, 10_000)).toBe("Max is 10,000");
 });
 
 test("Models sheet: Years is main's years input, 1 to the live cap (120 before halvings load)", () => {
@@ -213,8 +212,9 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   }
   const f = strings.fields;
   for (const who of Object.values(f.nouns)) {
-    out.push(f.clamped(who, 0, 10_000, 1000), f.invalid(who, "int", 1, Infinity, 0.1));
+    out.push(f.invalid(who, "int", 1, Infinity, 0.1));
   }
+  out.push(f.limit(true, 10_000), f.limit(false, 1.01), f.wholeOnly, f.dotOnly);
   out.push(
     strings.headline.sentence(
       { kind: "ninety", median: 1_200_000, low: 400_000, high: 3_100_000 },
@@ -253,9 +253,7 @@ test("Form §1MP ruling 2: R (%) is the engine's 0–1000 and clamps to the near
     typed: 5000,
   });
   expect(resolveEntry("-5", "float", bounds, 20)).toEqual({ kind: "clamped", value: 0, typed: -5 });
-  expect(strings.fields.clamped({ name: "R (%)", plural: false }, 0, 1000, 1000)).toBe(
-    "R (%) goes from 0 to 1,000. We used 1,000.",
-  );
+  expect(strings.fields.limit(true, 1000)).toBe("Max is 1,000");
   // The focus marks: ticks at 0, 10, 25, 50; only 50 is labelled.
   expect((field.match(/>50</g) ?? []).length).toBe(1);
   // A 5000 kept from before the ruling reads as the 1000 the back end gets: thumb at the end.
@@ -309,9 +307,7 @@ test("Probe 1MP M3: Previous Halvings is 2–3 with a slider; R (%) is 0–1000 
     value: 3,
     typed: 1000,
   });
-  expect(strings.fields.clamped({ name: "Previous Halvings", plural: true }, 2, 3, 3)).toBe(
-    "Previous Halvings go from 2 to 3. We used 3.",
-  );
+  expect(strings.fields.limit(true, 3)).toBe("Max is 3");
   const v = { ...defaultModelsValues(), model: "Historic" as const, variable: 1000 };
   // A count stored before the clamp reads as what the back end uses (3), formatted like the field.
   expect(usedVariable(v)).toBe(3);
@@ -388,7 +384,7 @@ test("Form ruling (summaries): every line outside a focused field uses the field
   // The R slider's spoken value and the clamp / invalid messages: the same rest text.
   expect(strings.fields.focus["R (%)"]?.spoken(123.456789)).toBe("123.46 percent");
   const noun = { name: "R (%)", plural: false };
-  expect(strings.fields.clamped(noun, 0, 1000, 12.3456, 2).endsWith("We used 12.35.")).toBe(true);
+  expect(strings.fields.limit(true, 12.3456, 2)).toBe("Max is 12.35");
   expect(
     strings.fields.invalid(noun, "float", 0, 1000, 12.3456, 2).includes("Your last value, 12.35,"),
   ).toBe(true);
@@ -413,11 +409,13 @@ test("Form 2f: Volatility rests at 2 decimals, trailing zeros dropped; the full 
   expect(src.includes("places={placesOf(controls.volatility.label)}")).toBe(true);
 });
 
-test("Form 4d / 2e: every sheet field gets the short limit note and the whole-number note", async () => {
+test("Form 4d-4f / 2e / 2g: every sheet field gets the grouped limit note and both short notes", async () => {
   const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
-  expect(src.includes("limitNote={(used, b) => strings.fields.limit(used === b.max, used)}")).toBe(
-    true,
-  );
+  expect(
+    src.includes("limitNote={(used, b) => strings.fields.limit(used === b.max, used, p.places)}"),
+  ).toBe(true);
+  expect(src.includes("clampMessage") || src.includes("fields.clamped")).toBe(false);
   expect(src.includes("wholeMessage={strings.fields.wholeOnly}")).toBe(true);
+  expect(src.includes("dotMessage={strings.fields.dotOnly}")).toBe(true);
   expect(strings.fields.wholeOnly).toBe("Whole numbers only");
 });

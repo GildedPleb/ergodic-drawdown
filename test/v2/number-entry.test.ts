@@ -46,11 +46,11 @@ test("an Infinity bound never clamps; only the finite side does", () => {
 });
 
 test("unparseable text is invalid and commits nothing (never NaN)", () => {
-  for (const text of ["abc", "1e", "12abc", "--1", "Infinity", "1.5"]) {
-    expect(resolveEntry(text, text === "1.5" ? "int" : "float", VOL, null)).toEqual({
-      kind: "invalid",
-    });
+  for (const text of ["abc", "1e", "12abc", "--1", "Infinity"]) {
+    expect(resolveEntry(text, "float", VOL, null)).toEqual({ kind: "invalid" });
   }
+  // Form 2g: a fraction in a whole-number field is invalid with its own short note.
+  expect(resolveEntry("1.5", "int", VOL, null)).toEqual({ kind: "invalid", reason: "whole" });
 });
 
 test("empty commits the field's emptyValue, or is invalid without one", () => {
@@ -510,12 +510,12 @@ test("Form 2a / 4c: counts round on commit; R and +/- rest at 2 decimals (×10 a
   expect(html.includes('aria-valuenow="123.456789"')).toBe(true);
 });
 
-test("Form 4d: after a clamp on Enter the field shows raw digits and the short note until it changes or blurs", async () => {
+test("Form 4d/4e: a clamp on Enter or on blur shows the short note, kept until the next edit", async () => {
   const { keptText, rawNumber } = await import("../../src/v2/design/primitives/NumberField/entry");
   const { afterEdit, messageOf, statusOf } =
     await import("../../src/v2/design/primitives/NumberField/status");
   const R = { min: 0, max: 1000 };
-  // Typing 5000 in R commits 1000 and shows "1000": not "1,000", not "5000".
+  // Typing 5000 in R commits 1000 and the focused field shows "1000": not "1,000", not "5000".
   const result = resolveEntry("5000", "float", R, null);
   expect(result).toEqual({ kind: "clamped", value: 1000, typed: 5000 });
   expect(keptText("5000", "float", 1000)).toBe("1000");
@@ -526,63 +526,118 @@ test("Form 4d: after a clamp on Enter the field shows raw digits and the short n
     "-12000",
     "0.001",
   ]);
-  // The note: "Max is 1000" / "Min is …", raw digits.
-  expect(strings.fields.limit(true, 1000)).toBe("Max is 1000");
-  expect(strings.fields.limit(false, 1.01)).toBe("Min is 1.01");
-  expect(strings.fields.limit(true, 10_000)).toBe("Max is 10000");
   const copy = {
-    clampMessage: () => "long",
+    invalidMessage: () => "long",
     limitNote: (used: number, b: { min: number; max: number }) =>
       strings.fields.limit(used === b.max, used),
   };
-  // With focus (Enter): the note; on blur (no focus): the §1g clamp message.
-  const noted = statusOf(result, false, true);
-  expect(messageOf(noted, 1000, R, copy)).toBe("Max is 1000");
-  expect(messageOf(statusOf(result, false, false), 1000, R, copy)).toBe("long");
-  expect(messageOf(statusOf(resolveEntry("-3", "float", R, null), false, true), 0, R, copy)).toBe(
+  // 4e: Enter and blur commit alike; there is no focus argument and no long clamp message.
+  const noted = statusOf(result, false);
+  expect(messageOf(noted, 1000, R, copy)).toBe("Max is 1,000");
+  expect(messageOf(statusOf(resolveEntry("-3", "float", R, null), false), 0, R, copy)).toBe(
     "Min is 0",
   );
+  expect("clamped" in strings.fields).toBe(false); // "R goes from 0 to 1000. We used 1000." retired
   // A held step that stops on a bound is a clamp too (m6).
-  const stepped = statusOf({ kind: "ok", value: 1000 }, true, true);
-  expect(messageOf(stepped, 1000, R, copy)).toBe("Max is 1000");
-  // The note lasts until the field changes or loses focus (afterEdit); other states stay.
+  const stepped = statusOf({ kind: "ok", value: 1000 }, true);
+  expect(messageOf(stepped, 1000, R, copy)).toBe("Max is 1,000");
+  // The note lasts until the next edit (afterEdit); other states stay.
   expect(afterEdit(noted)).toEqual({ kind: "ok" });
-  const long = statusOf(result, false, false);
-  expect(afterEdit(long)).toBe(long);
-  const bad = statusOf({ kind: "invalid" }, false, true);
+  const bad = statusOf({ kind: "invalid" }, false);
   expect(afterEdit(bad)).toBe(bad);
-  // The field wires both: setStatus(afterEdit) on change and on blur.
+  // The field clears it on change only: blur keeps it, so a blur clamp is still seen.
   const src = await (
     await import("bun")
   )
     .file(`${import.meta.dir}/../../src/v2/design/primitives/NumberField/NumberField.tsx`)
     .text();
-  expect(src.split("setStatus(afterEdit)").length - 1).toBe(2);
-  expect(src.includes("statusOf(result, stepped && atBound.current, inside.current)")).toBe(true);
+  expect(src.split("setStatus(afterEdit)").length - 1).toBe(1);
+  const blur = src.slice(src.indexOf("onBlur="), src.indexOf("onFocus="));
+  expect(blur.includes("afterEdit")).toBe(false);
+  expect(src.includes("clampMessage")).toBe(false);
+  expect(src.includes("statusOf(result, stepped && atBound.current)")).toBe(true);
 });
 
-test("Form 2e: in a whole-number field a comma is only thousands grouping; '2,5' is invalid, never 25 or 2.5", async () => {
+test("Form 4f: numbers in the limit note are grouped like other at-rest text", () => {
+  expect(strings.fields.limit(true, 10_000)).toBe("Max is 10,000");
+  expect(strings.fields.limit(true, 1000)).toBe("Max is 1,000");
+  expect(strings.fields.limit(false, 1.01)).toBe("Min is 1.01");
+  expect(strings.fields.limit(false, -12_000)).toBe("Min is -12,000");
+  expect(strings.fields.limit(true, 12.3456, 2)).toBe("Max is 12.35"); // the field's rest places
+  expect(strings.fields.limit(true, 1e300)).toBe("Max is 1\u00A0×\u00A010³⁰⁰");
+});
+
+test("Form 2e/2g: in every numeric field a comma is only thousands grouping", async () => {
   const { messageOf, statusOf } = await import("../../src/v2/design/primitives/NumberField/status");
   const SAMPLES = { min: 1, max: 10_000 };
   const HALVINGS = { min: 2, max: 3 };
+  const R = { min: 0, max: 1000 };
+  const WIDE = { min: -1e7, max: 1e7 };
   for (const text of ["1,000", "10,000", " 1,000 ", "\u22121,000", "1,000,000"]) {
-    expect(resolveEntry(text, "int", { min: -1e7, max: 1e7 }, null).kind).toBe("ok");
+    expect(resolveEntry(text, "int", WIDE, null).kind).toBe("ok");
+    expect(resolveEntry(text, "float", WIDE, null).kind).toBe("ok");
   }
+  expect(resolveEntry("1,000.5", "float", WIDE, null)).toEqual({ kind: "ok", value: 1000.5 });
   expect(resolveEntry("1,000", "int", SAMPLES, null)).toEqual({ kind: "ok", value: 1000 });
   for (const text of ["2,5", "1,00", ",5", "1,0000", "12,34,567", "2,"]) {
-    expect(resolveEntry(text, "int", SAMPLES, null)).toEqual({ kind: "invalid", whole: true });
+    expect(resolveEntry(text, "int", SAMPLES, null)).toEqual({ kind: "invalid", reason: "whole" });
     // A count field (float parse, rounded) too.
     expect(resolveEntry(text, "float", HALVINGS, null, true)).toEqual({
       kind: "invalid",
-      whole: true,
+      reason: "whole",
     });
+    // 2g: a decimal field too, never read as 25 or 2.5.
+    expect(resolveEntry(text, "float", R, null)).toEqual({ kind: "invalid", reason: "dot" });
   }
-  // Without a comma nothing changes; decimal fields are not whole-number fields.
+  // 2g: a fraction in a whole-number field is "whole", not the long invalid message.
+  for (const text of ["1.5", "0.1", "2.50", "1.5e0"]) {
+    expect(resolveEntry(text, "int", SAMPLES, null)).toEqual({ kind: "invalid", reason: "whole" });
+  }
+  expect(resolveEntry("2.0", "int", SAMPLES, null)).toEqual({ kind: "ok", value: 2 });
   expect(resolveEntry("abc", "int", SAMPLES, null)).toEqual({ kind: "invalid" });
-  expect(resolveEntry("2,5", "float", { min: 0, max: 1000 }, null).kind).toBe("ok");
-  // The field keeps its last value and shows "Whole numbers only".
-  const status = statusOf(resolveEntry("2,5", "int", SAMPLES, null), false, true);
-  const copy = { invalidMessage: () => "long", wholeMessage: strings.fields.wholeOnly };
-  expect(messageOf(status, 500, SAMPLES, copy)).toBe("Whole numbers only");
-  expect(messageOf(statusOf({ kind: "invalid" }, false, true), 500, SAMPLES, copy)).toBe("long");
+  expect(resolveEntry("abc", "float", R, null)).toEqual({ kind: "invalid" });
+  // The field keeps its last value and shows the short note.
+  const copy = {
+    invalidMessage: () => "long",
+    wholeMessage: strings.fields.wholeOnly,
+    dotMessage: strings.fields.dotOnly,
+  };
+  const say = (text: string, parse: "int" | "float", b: { min: number; max: number }) =>
+    messageOf(statusOf(resolveEntry(text, parse, b, null), false), 500, b, copy);
+  expect(say("2,5", "int", SAMPLES)).toBe("Whole numbers only");
+  expect(say("1.5", "int", SAMPLES)).toBe("Whole numbers only");
+  expect(say("2,5", "float", R)).toBe("Use a dot for decimals");
+  expect(say("abc", "float", R)).toBe("long");
+  expect(strings.fields.dotOnly).toBe("Use a dot for decimals");
+});
+
+test("Form 4g: from 1e9 up the focused ×10 form is the full stored precision; e and ^ forms parse", () => {
+  // Focused (editNumber) vs at rest (showNumber, 3 figures).
+  expect(editNumber(1_234_567_890_123.456)).toBe("1.234567890123456\u00A0×\u00A010¹²");
+  expect(showNumber(1_234_567_890_123.456)).toBe("1.23\u00A0×\u00A010¹²");
+  for (const n of [1e9, 1_234_567_890, 9.87654321e20, 1.7976931348623157e308, -4.56789e15]) {
+    expect(parseNumber(editNumber(n), "float")).toBe(n); // the draft round-trips exactly
+  }
+  const at = 1.5e9;
+  for (const text of [
+    "1.5e9",
+    "1.5E9",
+    "1.5e+9",
+    "1.5 × 10^9",
+    "1.5×10^9",
+    "1.5 x 10^9",
+    "1.5*10^9",
+    "1.5\u00A0×\u00A010⁹",
+    "1,500,000,000",
+  ]) {
+    expect(parseNumber(text, "float")).toBe(at);
+  }
+  expect(parseNumber("2.5 × 10^-3", "float")).toBe(0.0025);
+  expect(parseNumber("\u22121.5 × 10^9", "float")).toBe(-at);
+  expect(Number.isNaN(parseNumber("1.5 × 10^", "float"))).toBe(true);
+  expect(Number.isNaN(parseNumber("1.5 × 10^9.5", "float"))).toBe(true);
+  expect(resolveEntry("1.5 × 10^9", "float", { min: 0, max: Infinity }, null)).toEqual({
+    kind: "ok",
+    value: at,
+  });
 });

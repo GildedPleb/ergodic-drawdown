@@ -23,17 +23,13 @@ test("chart end label uses the $ range format", () => {
   );
 });
 
-test("clamp and invalid messages name the range and the value in use", () => {
+test("the clamp note names the limit used; the invalid message names the range and the value in use", () => {
   const { nouns } = strings.fields;
-  expect(strings.fields.clamped(nouns.volatility, 0, 1, 1)).toBe(
-    "Volatility goes from 0 to 1. We used 1.",
-  );
+  expect(strings.fields.limit(true, 1)).toBe("Max is 1");
   expect(strings.fields.invalid(nouns.years, "int", 1, 117, 10)).toBe(
     "Years take a whole number from 1 to 117. Your last value, 10, is still in use.",
   );
-  expect(strings.fields.clamped(nouns.minMaxMultiple, 1.01, Infinity, 1.01)).toBe(
-    "The +/- multiple goes from 1.01 up. We used 1.01.",
-  );
+  expect(strings.fields.limit(false, 1.01)).toBe("Min is 1.01");
 });
 
 test("the drawn walk is spoken as runs: 3 up, 1 down", () => {

@@ -6,7 +6,8 @@
  *   reports it, so the field can say so. An Infinity bound never clamps (only the finite side).
  * - Invalid: text that does not parse (empty with no emptyValue, "1e", "abc") commits nothing;
  *   the last valid value stays in effect. NaN is never committed.
- * - Postel-liberal text (m7): commas, spaces, NBSP, narrow/thin spaces and U+2212 normalise first.
+ * - Postel-liberal text (m7): commas, spaces, NBSP, narrow/thin spaces and U+2212 normalise first;
+ *   "1.5e9" and "1.5 × 10^9" read as 1.5e9 (Form 4g). A comma is only thousands grouping (2g).
  */
 
 /** Superscript digits, for the ×10ⁿ form. */
@@ -17,6 +18,8 @@ export const normalizeNumberText = (text: string): string =>
   text
     .replace(/[\s,\u00A0\u202F\u2009]/g, "")
     .replace(/\u2212/g, "-")
+    // Form 4g (Postel): "1.5 × 10^9" / "1.5x10^-3" / "1.5*10^9" → "1.5e9" / "1.5e-3".
+    .replace(/[×xX*]10\^(-?\d+)$/, "e$1")
     // "1 × 10³⁰⁰" / "2.5 × 10⁻²⁴" (showNumber's large and tiny forms, spaces already gone) → "1e300" / "2.5e-24".
     .replace(
       /[×x]10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/,
@@ -46,8 +49,11 @@ const clampTo = (n: number, bounds: Bounds): number =>
 export type EntryResult =
   | { kind: "ok"; value: number }
   | { kind: "clamped"; value: number; typed: number }
-  /** `whole`: Form 2e, a comma that is not thousands grouping in a whole-number field ("2,5"). */
-  | { kind: "invalid"; whole?: true };
+  /**
+   * Form 2g: `whole`, a whole-number field got a fraction or a stray comma ("1.5", "2,5"); `dot`,
+   * a decimal field got a comma that is not thousands grouping ("2,5").
+   */
+  | { kind: "invalid"; reason?: "whole" | "dot" };
 
 /** Form 2e: "1,000" and "-12,345,678" group thousands; "2,5", "1,00" and ",5" do not. */
 const GROUPED = /^-?\d{1,3}(,\d{3})+(\.\d*)?$/;
@@ -59,8 +65,8 @@ const strayComma = (text: string): boolean => {
 /**
  * What committing `text` does. `emptyValue` is the value an empty field commits (or null). A
  * `whole` field (Form 2a: a count, e.g. Previous Halvings) rounds to the nearest integer first.
- * Form 2e: in a whole-number field (`whole`, or an int parse) a comma is only thousands grouping;
- * any other comma is invalid (never read as 25 or 2.5).
+ * Form 2g: in every field a comma is only thousands grouping; any other comma is invalid (never
+ * read as 25 or 2.5). An int field's fraction ("1.5") is invalid too, as "whole".
  */
 export const resolveEntry = (
   text: string,
@@ -72,9 +78,11 @@ export const resolveEntry = (
   if (normalizeNumberText(text) === "") {
     return emptyValue === null ? { kind: "invalid" } : { kind: "ok", value: emptyValue };
   }
-  if ((whole || parse === "int") && strayComma(text)) return { kind: "invalid", whole: true };
-  const parsed = parseNumber(text, parse);
+  const counted = whole || parse === "int";
+  if (strayComma(text)) return { kind: "invalid", reason: counted ? "whole" : "dot" };
+  const parsed = parseNumber(text, "float");
   if (Number.isNaN(parsed)) return { kind: "invalid" };
+  if (parse === "int" && !Number.isInteger(parsed)) return { kind: "invalid", reason: "whole" };
   const typed = whole ? Math.round(parsed) : parsed;
   const value = clampTo(typed, bounds);
   return value === typed ? { kind: "ok", value } : { kind: "clamped", value, typed };
@@ -163,7 +171,10 @@ export const shownAt =
   (places?: number) =>
   (n: number): string =>
     formNumber(n, SHOWN_DECIMALS, places);
-/** A focused field's text: the full value, so editing never loses digits ("1.23456789 × 10⁹"). */
+/**
+ * A focused field's text: the full value, so editing never loses digits ("1.23456789 × 10⁹");
+ * Form 4g: from 1e9 up the ×10 form keeps the full stored precision (shortest round trip).
+ */
 export const editNumber = (n: number): string => formNumber(n);
 
 /** Form 4d: the full value as raw digits, no grouping ("1000", "-12345.5"); ×10 stays as editNumber. */
