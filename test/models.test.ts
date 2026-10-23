@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 
 import { MS_PER_DAY } from "../src/constants";
-import { declaredSettings, modelMap, savedKnobs } from "../src/data/models";
+import { declaredSettings, modelMap, models, savedKnobs } from "../src/data/models";
 import { readSavedAppState } from "../src/helpers";
 import { installFrozenClock } from "./freeze-clock";
 
@@ -25,6 +25,12 @@ const rainbowWeek = (refit: string, week: number) => ({
   week,
 });
 
+const quantileWeek = (source: number | string, week: number) => ({
+  ...frozenOptions,
+  settings: { source },
+  week,
+});
+
 const band2014 = (unixTimeMs: number, slope: number, daysAdded: number): number => {
   const days = (unixTimeMs - Date.UTC(2012, 0, 1)) / MS_PER_DAY + daysAdded;
   return 10 ** (slope * Math.log(days) - 19.493);
@@ -34,6 +40,7 @@ const expectedPrices = {
   CAGR: { max: 143_928.088_361_338_04, min: 35_982.022_090_334_51 },
   Historic: { max: 341_547.976_727_618_66, min: 85_074.99 },
   "Power Law": { max: 315_458.563_801_796_64, min: 50_750.076_679_694_284 },
+  Quantile: { max: 220_987.905_642_758_73, min: 41_237.141_569_780_03 },
   Rainbow: { max: 771_304.345_178_012_2, min: 65_706.921_686_572_95 },
   "Stock-to-Flow": { max: 1_556_333.260_312_350_5, min: 296_444.430_535_685_74 },
 } as const;
@@ -70,6 +77,7 @@ const knobLabels = (name: string): readonly string[] | undefined => {
   if (name === "CAGR") return ["R (%)", "+/-", "Offset"];
   if (name === "Historic") return ["Previous Halvings"];
   if (name === "Power Law") return ["Shift (years)"];
+  if (name === "Quantile") return ["Source"];
   if (name === "Rainbow") return ["Refit"];
   if (name === "Stock-to-Flow") return ["Formula", "Band"];
   return undefined;
@@ -130,6 +138,11 @@ test("declared settings keep only the keys that model lists", () => {
   expect(declaredSettings("Rainbow", { refit: "2022-violet" })).toEqual({ refit: "2022-violet" });
   expect(declaredSettings("Rainbow", { refit: "2019" })).toEqual({ refit: "2022" });
   expect(declaredSettings("Rainbow", { refit: 2022 })).toEqual({ refit: "2022" });
+  expect(declaredSettings("Quantile")).toEqual({ source: "sminston" });
+  expect(declaredSettings("Quantile", { source: "santostasi" })).toEqual({ source: "santostasi" });
+  expect(declaredSettings("Quantile", { source: "plan-c" })).toEqual({ source: "plan-c" });
+  expect(declaredSettings("Quantile", { source: "nope" })).toEqual({ source: "sminston" });
+  expect(declaredSettings("Quantile", { source: 1 })).toEqual({ source: "sminston" });
   expect(declaredSettings("Stock-to-Flow")).toEqual({ band: 0.68, formula: "original" });
   expect(declaredSettings("Stock-to-Flow", { formula: "2024" })).toEqual({
     band: 0.68,
@@ -388,4 +401,111 @@ test("CAGR offset slides today's price inside a band of the same log width", () 
       ...kept.settings,
     }),
   ).toEqual({ minMaxMultiple: 3, offset: 0, variable: 20 });
+});
+
+test("the model list places Quantile after Power Law and before Rainbow", () => {
+  expect(models.map((model) => model.name)).toEqual([
+    "Power Law",
+    "Quantile",
+    "Rainbow",
+    "CAGR",
+    "Stock-to-Flow",
+    "Historic",
+  ]);
+});
+
+test("Quantile description links each author", () => {
+  const { description, summary } = modelMap.Quantile;
+  expect(description.includes("\n")).toBe(false);
+  expect(summary.includes("\n")).toBe(false);
+  expect(description.includes("https://www.sminstonwith.com/chart/power-law-quantiles")).toBe(true);
+  expect(
+    description.includes(
+      "https://researchbitcoin.net/bitcoin-power-law-price-prediction-using-quantile-regression/",
+    ),
+  ).toBe(true);
+  expect(description.includes("https://x.com/TheRealPlanC/status/1978449114179236198")).toBe(true);
+  expect(description.includes("65,895")).toBe(true);
+  expect(description.includes("284,536")).toBe(true);
+  expect(description.includes("248K")).toBe(true);
+  expect(summary.endsWith(".")).toBe(true);
+});
+
+test("Quantile source lists Sminston, Santostasi, and Plan C, and defaults to Sminston", () => {
+  const source = modelMap.Quantile.params.find((param) => param.key === "source");
+  if (source?.kind !== "choice") throw new Error("Quantile source");
+  expect(source.label).toBe("Source");
+  expect(source.default).toBe("sminston");
+  expect(source.options).toEqual([
+    { label: "Sminston", value: "sminston" },
+    { label: "Santostasi", value: "santostasi" },
+    { label: "Plan C", value: "plan-c" },
+  ]);
+});
+
+test("Quantile week 52 follows the chosen source, and an unknown source is Sminston", () => {
+  const model = modelMap.Quantile;
+  const floor = (source: number | string): number => model.minPrice(quantileWeek(source, 52));
+  const ceiling = (source: number | string): number => model.maxPrice(quantileWeek(source, 52));
+  expect(floor("sminston")).toBe(41_237.141_569_780_03);
+  expect(ceiling("sminston")).toBe(220_987.905_642_758_73);
+  expect(floor("santostasi")).toBe(47_959.582_012_634_87);
+  expect(ceiling("santostasi")).toBe(193_559.231_425_523_38);
+  expect(floor("plan-c")).toBe(41_237.141_569_780_03);
+  expect(ceiling("plan-c")).toBe(211_514.669_822_033_1);
+  expect(floor("nope")).toBe(floor("sminston"));
+  expect(ceiling("nope")).toBe(ceiling("sminston"));
+  expect(floor(1)).toBe(floor("sminston"));
+  expect(ceiling(1)).toBe(ceiling("sminston"));
+  expect(floor("sminston") < ceiling("sminston")).toBe(true);
+  expect(floor("santostasi") < ceiling("santostasi")).toBe(true);
+  expect(floor("plan-c") < ceiling("plan-c")).toBe(true);
+});
+
+test("Quantile keeps both Sminston edges after they cross, and that ceiling grows more slowly", () => {
+  const model = modelMap.Quantile;
+  const floor = (week: number): number => model.minPrice(quantileWeek("sminston", week));
+  const ceiling = (week: number): number => model.maxPrice(quantileWeek("sminston", week));
+  const edges = (week: number): { max: number; min: number } => {
+    const min = floor(week);
+    const max = ceiling(week);
+    expect(Number.isFinite(min)).toBe(true);
+    expect(Number.isFinite(max)).toBe(true);
+    expect(min > 0).toBe(true);
+    expect(max > 0).toBe(true);
+    return { max, min };
+  };
+
+  const before = edges(2242);
+  expect(before.min < before.max).toBe(true);
+  const crossed = edges(2243);
+  expect(crossed.min > crossed.max).toBe(true);
+  const early = edges(52);
+  expect(crossed.max / early.max < crossed.min / early.min).toBe(true);
+});
+
+test("Santostasi fits the 5% and 95% lines on their own, and keeps both prices after they cross", () => {
+  const model = modelMap.Quantile;
+  const floor = (week: number): number => model.minPrice(quantileWeek("santostasi", week));
+  const ceiling = (week: number): number => model.maxPrice(quantileWeek("santostasi", week));
+  expect(floor(52) < ceiling(52)).toBe(true);
+  expect(floor(2080) < ceiling(2080)).toBe(true);
+  expect(ceiling(2080) / ceiling(52) < floor(2080) / floor(52)).toBe(true);
+  expect(floor(3163) < ceiling(3163)).toBe(true);
+  expect(floor(3164) > ceiling(3164)).toBe(true);
+  expect(Number.isFinite(floor(3164))).toBe(true);
+  expect(ceiling(3164) > 0).toBe(true);
+});
+
+test("Plan C keeps narrowing across the forecast, and the ceiling grows slower than the floor", () => {
+  const model = modelMap.Quantile;
+  const floor = (week: number): number => model.minPrice(quantileWeek("plan-c", week));
+  const ceiling = (week: number): number => model.maxPrice(quantileWeek("plan-c", week));
+  const gap = (week: number): number => Math.log(ceiling(week) / floor(week));
+  expect(floor(52) < ceiling(52)).toBe(true);
+  expect(gap(520) < gap(52)).toBe(true);
+  expect(gap(2080) < gap(520)).toBe(true);
+  expect(gap(520) - gap(2080) > 0.2).toBe(true);
+  expect(ceiling(2080) / ceiling(52) < floor(2080) / floor(52)).toBe(true);
+  expect(floor(6000) < ceiling(6000)).toBe(true);
 });

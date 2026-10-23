@@ -2,15 +2,24 @@ import { type ModelNames, type ModelSettings } from "../../types";
 import cagrModel from "./cagr";
 import historic from "./historic";
 import powerLawModel from "./power-law";
+import quantileModel from "./quantile";
 import rainbowModel from "./rainbow";
 import stockToFlowModel from "./stock-to-flow";
 
-export const models = [powerLawModel, rainbowModel, cagrModel, stockToFlowModel, historic];
+export const models = [
+  powerLawModel,
+  quantileModel,
+  rainbowModel,
+  cagrModel,
+  stockToFlowModel,
+  historic,
+];
 
 export const modelMap = {
   [cagrModel.name]: cagrModel,
   [historic.name]: historic,
   [powerLawModel.name]: powerLawModel,
+  [quantileModel.name]: quantileModel,
   [rainbowModel.name]: rainbowModel,
   [stockToFlowModel.name]: stockToFlowModel,
 } as const;

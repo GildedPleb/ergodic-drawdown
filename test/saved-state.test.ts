@@ -170,6 +170,22 @@ test("a saved shift reloads, and a settings value that is not a number or a stri
   );
 });
 
+test("a saved Quantile opens as Quantile, and a stored source is kept", () => {
+  const opened = readSavedAppState(saved({ model: "Quantile" }));
+  expect(opened.model).toBe("Quantile");
+  expect(opened.settings).toBeUndefined();
+  expect(declaredSettings(opened.model, { ...opened.settings })).toEqual({ source: "sminston" });
+
+  const kept = readSavedAppState(saved({ model: "Quantile", settings: { source: "santostasi" } }));
+  expect(kept.model).toBe("Quantile");
+  expect(kept.settings).toEqual({ source: "santostasi" });
+  expect(declaredSettings(kept.model, { ...kept.settings })).toEqual({ source: "santostasi" });
+
+  const bad = readSavedAppState(saved({ model: "Quantile", settings: { source: "nope" } }));
+  expect(bad.settings).toEqual({ source: "nope" });
+  expect(declaredSettings(bad.model, { ...bad.settings })).toEqual({ source: "sminston" });
+});
+
 test("years outside 1 through 120 are rejected", () => {
   expect(() => readSavedAppState(saved({ years: 0 }))).toThrow("saved state is not valid");
   expect(() => readSavedAppState(saved({ years: 121 }))).toThrow("saved state is not valid");
