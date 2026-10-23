@@ -17,6 +17,7 @@ import {
 } from "./entry";
 import styles from "./NumberField.module.css";
 import { createSettle, type Settle } from "./settle";
+import { afterEdit, messageOf, type Status, statusOf } from "./status";
 import { createThrottle, type Throttle } from "./throttle";
 
 /** R7: variant keys and values. */
@@ -47,8 +48,15 @@ export type NumberFieldProps = {
   step?: number;
   /** Message after a clamp, e.g. "Volatility goes from 0 to 1. We used 1." */
   clampMessage?: (used: number, bounds: Bounds) => string;
+  /**
+   * Form 4d: the short note after a clamp committed with focus (Enter, a held key, the wheel), e.g.
+   * "Max is 1000"; shown until the field changes or loses focus. Unset: clampMessage instead.
+   */
+  limitNote?: (used: number, bounds: Bounds) => string;
   /** Message for unparseable text: cause → what to enter → reassurance (gets the value in use). */
   invalidMessage?: (current: number) => string;
+  /** Form 2e: the note for a comma that isn't thousands grouping in a whole-number field. */
+  wholeMessage?: string | undefined;
   /** Caption under the field (e.g. "(~40 years)"). */
   hint?: string | undefined;
   id?: string | undefined;
@@ -60,8 +68,6 @@ export type NumberFieldProps = {
 const STEP_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown"]);
 const ANY: Bounds = { min: Number.NEGATIVE_INFINITY, max: Number.POSITIVE_INFINITY };
 const finite = (n: number): number | undefined => (Number.isFinite(n) ? n : undefined);
-
-type Status = { kind: "ok" } | { kind: "clamped"; used: number } | { kind: "invalid" };
 
 /**
  * A number field that passes Probe's M3 / FL-001 gate (V32-BUILD §1g): typing edits a draft and
@@ -95,7 +101,9 @@ export const NumberField = ({
   places,
   step,
   clampMessage,
+  limitNote,
   invalidMessage,
+  wholeMessage,
   hint,
   id,
   disabled = false,
@@ -115,6 +123,8 @@ export const NumberField = ({
   // +/- at 2 decimals).
   const clean = useRef(draft);
   const [focused, setFocused] = useState(false);
+  // Form 4d: true while focused; a commit then (not on blur) gets the short limit note.
+  const inside = useRef(false);
   const display = focused || draft !== clean.current ? draft : shownAt(places)(value);
   const [status, setStatus] = useState<Status>({ kind: "ok" });
   const live = useRef({ bounds, draft, emptyValue, onCommit, parse, step, value, whole });
@@ -129,10 +139,9 @@ export const NumberField = ({
   const commit = (text: string, stepped = false): void => {
     const now = live.current;
     const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue, now.whole);
-    if (result.kind === "invalid") {
-      setStatus({ kind: "invalid" });
-      return;
-    }
+    // Form 4d: a commit with focus (Enter, a held key, the wheel) gets the short limit note.
+    setStatus(statusOf(result, stepped && atBound.current, inside.current));
+    if (result.kind === "invalid") return;
     if (result.value !== (sent.current ?? now.value)) {
       sent.current = result.value;
       now.onCommit?.(result.value);
@@ -140,8 +149,6 @@ export const NumberField = ({
     const kept = keptText(text, now.parse, result.value);
     clean.current = kept;
     setDraft(kept);
-    const clamped = result.kind === "clamped" || (stepped && atBound.current);
-    setStatus(clamped ? { kind: "clamped", used: result.value } : { kind: "ok" });
   };
   const commitRef = useRef(commit);
   commitRef.current = commit;
@@ -245,9 +252,12 @@ export const NumberField = ({
   };
 
   const invalid = status.kind === "invalid";
-  let message = "";
-  if (status.kind === "invalid") message = invalidMessage?.(value) ?? "";
-  if (status.kind === "clamped") message = clampMessage?.(status.used, bounds) ?? "";
+  const message = messageOf(status, value, bounds, {
+    clampMessage,
+    limitNote,
+    invalidMessage,
+    wholeMessage,
+  });
   const describedBy = [hint === undefined ? "" : hintId, message === "" ? "" : messageId]
     .filter(Boolean)
     .join(" ");
@@ -297,9 +307,12 @@ export const NumberField = ({
           aria-describedby={describedBy === "" ? undefined : describedBy}
           onChange={(event) => {
             setDraft(event.target.value);
+            setStatus(afterEdit);
           }}
           onBlur={() => {
             setFocused(false);
+            inside.current = false;
+            setStatus(afterEdit);
             if (held.current) {
               held.current = false;
               wheel.cancel();
@@ -311,6 +324,7 @@ export const NumberField = ({
           }}
           onFocus={(event) => {
             setFocused(true);
+            inside.current = true;
             event.currentTarget.value = draft; // before select(), so React's re-render keeps it
             event.currentTarget.select();
           }}

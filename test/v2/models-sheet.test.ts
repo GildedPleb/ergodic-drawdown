@@ -353,11 +353,9 @@ test("Form 2a: Previous Halvings is a count; R (%) and +/- rest at 2 decimals", 
   const { COUNT_FIELDS, placesOf } = await import("../../src/v2/app/models/ModelsSheet");
   expect(COUNT_FIELDS).toEqual([metaOf("Historic")?.varInput]);
   expect(COUNT_FIELDS.includes(metaOf("CAGR")?.varInput ?? "")).toBe(false);
-  expect([placesOf("R (%)"), placesOf("+/-")]).toEqual([2, 2]);
-  expect([placesOf("Previous Halvings"), placesOf("Volatility (0-1):")]).toEqual([
-    undefined,
-    undefined,
-  ]);
+  // Form 2f: Volatility rests at 2 decimals too.
+  expect([placesOf("R (%)"), placesOf("+/-"), placesOf("Volatility (0-1):")]).toEqual([2, 2, 2]);
+  expect(placesOf("Previous Halvings")).toBe(undefined);
   const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
   expect(src.includes("whole={COUNT_FIELDS.includes(meta.varInput)}")).toBe(true);
   expect(src.includes("places={placesOf(meta.varInput)}")).toBe(true);
@@ -394,9 +392,32 @@ test("Form ruling (summaries): every line outside a focused field uses the field
   expect(
     strings.fields.invalid(noun, "float", 0, 1000, 12.3456, 2).includes("Your last value, 12.35,"),
   ).toBe(true);
-  // Other fields keep their own (full) rest text: volatility 0.105 and 2 halvings.
-  expect(summaryOf({ ...r, volatility: 0.105 }).endsWith("volatility 0.105")).toBe(true);
+  // Form 2f: volatility rests at 2 decimals as well; halvings keep their own (full) rest text.
+  expect(summaryOf({ ...r, volatility: 0.123456789 }).endsWith("volatility 0.12")).toBe(true);
   expect(summaryOf({ ...r, model: "Historic", variable: 2 }).startsWith("Replays 2 past")).toBe(
     true,
   );
+});
+
+test("Form 2f: Volatility rests at 2 decimals, trailing zeros dropped; the full value while focused", async () => {
+  const { restOf } = await import("../../src/v2/app/models/ModelsSheet");
+  const rest = restOf(modelsPaneSchema.controls.volatility.label);
+  expect([0.123456789, 0.1, 0.5, 1, 0.005].map(rest)).toEqual(["0.12", "0.1", "0.5", "1", "0.01"]);
+  const html = render({ volatility: 0.123456789 });
+  const row = html.slice(html.indexOf('id="row-volatility"'));
+  const field = row.slice(row.indexOf('id="v2-vol"') - 200, row.indexOf('id="v2-vol"') + 400);
+  expect(field.includes('value="0.12"')).toBe(true);
+  expect(field.includes('aria-valuenow="0.123456789"')).toBe(true);
+  // Focused it edits the full value (the draft is editNumber, unchanged for decimal fields).
+  const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
+  expect(src.includes("places={placesOf(controls.volatility.label)}")).toBe(true);
+});
+
+test("Form 4d / 2e: every sheet field gets the short limit note and the whole-number note", async () => {
+  const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
+  expect(src.includes("limitNote={(used, b) => strings.fields.limit(used === b.max, used)}")).toBe(
+    true,
+  );
+  expect(src.includes("wholeMessage={strings.fields.wholeOnly}")).toBe(true);
+  expect(strings.fields.wholeOnly).toBe("Whole numbers only");
 });

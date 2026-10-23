@@ -7,6 +7,7 @@
 import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
 import {
   DECIMAL_PLACES,
+  rawNumber,
   showNumber,
   shownAt,
   speakNumber,
@@ -230,6 +231,11 @@ export const strings = {
     /** Clamp (Gap 11): the value used is shown, not silently swapped. */
     clamped: (noun: Noun, min: number, max: number, used: number, places?: number): string =>
       `${noun.name} ${noun.plural ? "go" : "goes"} ${range(min, max)}. We used ${shownAt(places)(used)}.`,
+    /** Form 4d: the short note under a focused field after a clamp, in raw digits ("Max is 1000"). */
+    limit: (atMax: boolean, used: number): string =>
+      `${atMax ? "Max" : "Min"} is ${rawNumber(used)}`,
+    /** Form 2e: a comma that isn't thousands grouping, in a whole-number field ("2,5"). */
+    wholeOnly: "Whole numbers only",
     /** Invalid text: cause, next step, reassurance (Probe M2). */
     invalid: (
       noun: Noun,

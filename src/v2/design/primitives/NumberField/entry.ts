@@ -46,11 +46,21 @@ const clampTo = (n: number, bounds: Bounds): number =>
 export type EntryResult =
   | { kind: "ok"; value: number }
   | { kind: "clamped"; value: number; typed: number }
-  | { kind: "invalid" };
+  /** `whole`: Form 2e, a comma that is not thousands grouping in a whole-number field ("2,5"). */
+  | { kind: "invalid"; whole?: true };
+
+/** Form 2e: "1,000" and "-12,345,678" group thousands; "2,5", "1,00" and ",5" do not. */
+const GROUPED = /^-?\d{1,3}(,\d{3})+(\.\d*)?$/;
+const strayComma = (text: string): boolean => {
+  const bare = text.replace(/[\s\u00A0\u202F\u2009]/g, "").replace(/\u2212/g, "-");
+  return bare.includes(",") && !GROUPED.test(bare);
+};
 
 /**
  * What committing `text` does. `emptyValue` is the value an empty field commits (or null). A
  * `whole` field (Form 2a: a count, e.g. Previous Halvings) rounds to the nearest integer first.
+ * Form 2e: in a whole-number field (`whole`, or an int parse) a comma is only thousands grouping;
+ * any other comma is invalid (never read as 25 or 2.5).
  */
 export const resolveEntry = (
   text: string,
@@ -62,6 +72,7 @@ export const resolveEntry = (
   if (normalizeNumberText(text) === "") {
     return emptyValue === null ? { kind: "invalid" } : { kind: "ok", value: emptyValue };
   }
+  if ((whole || parse === "int") && strayComma(text)) return { kind: "invalid", whole: true };
   const parsed = parseNumber(text, parse);
   if (Number.isNaN(parsed)) return { kind: "invalid" };
   const typed = whole ? Math.round(parsed) : parsed;
@@ -155,9 +166,15 @@ export const shownAt =
 /** A focused field's text: the full value, so editing never loses digits ("1.23456789 × 10⁹"). */
 export const editNumber = (n: number): string => formNumber(n);
 
-/** Form 4c: a focused field's text after a commit: the typed text while it is exactly the value used. */
+/** Form 4d: the full value as raw digits, no grouping ("1000", "-12345.5"); ×10 stays as editNumber. */
+export const rawNumber = (n: number): string => editNumber(n).replace(/,/g, "");
+
+/**
+ * Form 4c/4d: a focused field's text after a commit: the typed text while it is exactly the value
+ * used; after a clamp or rounding, the value used as raw digits ("1000", not "1,000" or "5000").
+ */
 export const keptText = (text: string, parse: NumberParse, used: number): string =>
-  parseNumber(text, parse) === used ? text : editNumber(used);
+  parseNumber(text, parse) === used ? text : rawNumber(used);
 
 /**
  * What a screen reader hears for a field value (Probe R2 m3, Form ruling 4): the shown digits, the

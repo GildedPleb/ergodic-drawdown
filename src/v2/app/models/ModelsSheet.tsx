@@ -45,7 +45,8 @@ export const SAMPLES_LABEL = strings.fields.samplesLabel(SAMPLE_BOUNDS.min, SAMP
 
 /** Form 2a: count fields take whole numbers; the percent and decimal fields (R, +/-) rest at 2. */
 export const COUNT_FIELDS: readonly string[] = ["Previous Halvings"];
-const DECIMAL_FIELDS: readonly string[] = ["R (%)", "+/-"];
+/** Form 2f: Volatility rests at 2 decimals too (0.123456789 → "0.12"), in full while focused. */
+const DECIMAL_FIELDS: readonly string[] = ["R (%)", "+/-", controls.volatility.label];
 /** A field's resting decimals, and (Form ruling) its one rest format wherever it's shown or spoken. */
 export const placesOf = (label: string): number | undefined =>
   DECIMAL_FIELDS.includes(label) ? DECIMAL_PLACES : undefined;
@@ -103,6 +104,8 @@ const Editor = (p: EditorProps): JSX.Element => {
           whole={p.whole === true}
           places={p.places}
           clampMessage={(used, b) => strings.fields.clamped(p.who, b.min, b.max, used, p.places)}
+          limitNote={(used, b) => strings.fields.limit(used === b.max, used)}
+          wholeMessage={strings.fields.wholeOnly}
           invalidMessage={(current) =>
             strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current, p.places)
           }
@@ -360,6 +363,7 @@ export const ModelsSheet = ({
           step={volStep}
           emptyValue={controls.volatility.emptyValue}
           who={strings.fields.nouns.volatility}
+          places={placesOf(controls.volatility.label)}
           slider
           description={copy.settingDesc[controls.volatility.label]}
           onCommit={(volatility) => {
