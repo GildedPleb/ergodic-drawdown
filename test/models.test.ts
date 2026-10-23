@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 
 import { MS_PER_DAY } from "../src/constants";
 import { declaredSettings, modelMap, savedKnobs } from "../src/data/models";
+import { readSavedAppState } from "../src/helpers";
 import { installFrozenClock } from "./freeze-clock";
 
 const now = 1_713_571_767_000;
@@ -67,7 +68,7 @@ afterAll(() => {
 });
 
 const knobLabels = (name: string): readonly string[] | undefined => {
-  if (name === "CAGR") return ["R (%)", "+/-"];
+  if (name === "CAGR") return ["R (%)", "+/-", "Offset"];
   if (name === "Historic") return ["Previous Halvings"];
   if (name === "Power Law") return ["Shift (years)"];
   if (name === "Rainbow") return ["Refit"];
@@ -109,10 +110,12 @@ for (const model of Object.values(modelMap)) {
 test("declared settings keep only the keys that model lists", () => {
   expect(declaredSettings("CAGR", { extra: 1, minMaxMultiple: 2, variable: 20 })).toEqual({
     minMaxMultiple: 2,
+    offset: 0.5,
     variable: 20,
   });
   expect(declaredSettings("CAGR", { minMaxMultiple: 2, variable: "no" })).toEqual({
     minMaxMultiple: 2,
+    offset: 0.5,
     variable: 20,
   });
   expect(declaredSettings("Historic", { minMaxMultiple: 2, variable: 2 })).toEqual({
@@ -218,4 +221,105 @@ test("CAGR rate defaults to 20 percent and is capped at 1000 percent", () => {
   if (rate?.kind !== "number") throw new Error("CAGR rate");
   expect(rate.default).toBe(20);
   expect(rate.max).toBe(1000);
+});
+
+const cagrFile = (patch: Record<string, unknown>): Record<string, unknown> => ({
+  bitcoin: 1,
+  clampBottom: false,
+  clampTop: false,
+  epochCount: 10,
+  hideResults: false,
+  inflation: 0,
+  loadingPriceData: false,
+  loadingVolumeData: false,
+  minMaxMultiple: 3,
+  model: "CAGR",
+  oneOffFiatVariables: [],
+  oneOffItems: [],
+  renderDrawdownDistribution: "Quantile",
+  renderDrawdownWalks: false,
+  renderModelMax: true,
+  renderModelMin: true,
+  renderPriceDistribution: "Quantile",
+  renderPriceWalks: false,
+  reoccurringItems: [],
+  samples: 1,
+  showDrawdown: true,
+  showHistoric: true,
+  showModel: false,
+  showRender: true,
+  showResults: true,
+  variable: 20,
+  version: 1,
+  volatility: 0.1,
+  walk: "Bubble",
+  ...patch,
+});
+
+test("CAGR offset slides today's price inside a band of the same log width", () => {
+  const model = modelMap.CAGR;
+  const price = frozenOptions.currentPrice;
+  const offset = model.params.find((param) => param.key === "offset");
+  if (offset?.kind !== "number") throw new Error("CAGR offset");
+  expect(offset.label).toBe("Offset");
+  expect(offset.default).toBe(0.5);
+  expect(offset.min).toBe(0);
+  expect(offset.max).toBe(1);
+  expect(offset.step).toBe(0.1);
+
+  const band = (placed: number, multiple: number, week: number) => ({
+    ...frozenOptions,
+    settings: declaredSettings("CAGR", { minMaxMultiple: multiple, offset: placed, variable: 20 }),
+    week,
+  });
+  const floor = (placed: number, multiple: number, week: number): number =>
+    model.minPrice(band(placed, multiple, week));
+  const ceiling = (placed: number, multiple: number, week: number): number =>
+    model.maxPrice(band(placed, multiple, week));
+
+  expect(floor(0, 3, 0)).toBe(price);
+  expect(ceiling(0, 3, 0)).toBe(price * 3 ** 2);
+  expect(ceiling(1, 3, 0)).toBe(price);
+  expect(floor(1, 3, 0)).toBe(price / 3 ** 2);
+  expect(floor(0.5, 2, 52)).toBe(expectedPrices.CAGR.min);
+  expect(ceiling(0.5, 2, 52)).toBe(expectedPrices.CAGR.max);
+  expect(floor(0, 4, 0)).toBe(price);
+  expect(ceiling(1, 4, 0)).toBe(price);
+  expect(floor(0.5, 3, 0) * 3).toBe(price);
+  expect(ceiling(0.5, 3, 0) / 3).toBe(price);
+  expect(floor(0.5, 4, 0) * 4).toBe(price);
+  expect(ceiling(0.5, 4, 0) / 4).toBe(price);
+  expect(ceiling(0, 3, 52) / floor(0, 3, 52)).toBe(9);
+  expect(ceiling(0.5, 4, 52) / floor(0.5, 4, 52)).toBe(16);
+  expect(ceiling(1, 3, 0) / floor(1, 3, 0)).toBe(9);
+  expect(ceiling(1, 4, 52) / floor(1, 4, 52)).toBe(16);
+
+  const unnamed = {
+    ...frozenOptions,
+    settings: { minMaxMultiple: 2, variable: 20 },
+  };
+  expect(model.minPrice(unnamed)).toBe(expectedPrices.CAGR.min);
+  expect(model.maxPrice(unnamed)).toBe(expectedPrices.CAGR.max);
+
+  const opened = readSavedAppState(cagrFile({ minMaxMultiple: 2 }));
+  expect(opened.settings).toBeUndefined();
+  const restored = declaredSettings(opened.model, {
+    minMaxMultiple: opened.minMaxMultiple,
+    variable: opened.variable,
+    ...opened.settings,
+  });
+  expect(restored).toEqual({ minMaxMultiple: 2, offset: 0.5, variable: 20 });
+  expect(model.minPrice({ ...frozenOptions, settings: restored })).toBe(expectedPrices.CAGR.min);
+  expect(model.maxPrice({ ...frozenOptions, settings: restored })).toBe(expectedPrices.CAGR.max);
+
+  const kept = readSavedAppState(
+    cagrFile({ settings: { minMaxMultiple: 3, offset: 0, variable: 20 } }),
+  );
+  expect(
+    declaredSettings(kept.model, {
+      minMaxMultiple: kept.minMaxMultiple,
+      variable: kept.variable,
+      ...kept.settings,
+    }),
+  ).toEqual({ minMaxMultiple: 3, offset: 0, variable: 20 });
 });
