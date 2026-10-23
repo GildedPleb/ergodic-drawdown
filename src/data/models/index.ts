@@ -4,16 +4,8 @@ import historic from "./historic";
 import powerLawModel from "./power-law";
 import rainbowModel from "./rainbow";
 import stockToFlowModel from "./stock-to-flow";
-import stockToFlowModelNew from "./stock-to-flow-2024-refit";
 
-export const models = [
-  powerLawModel,
-  rainbowModel,
-  cagrModel,
-  stockToFlowModelNew,
-  stockToFlowModel,
-  historic,
-];
+export const models = [powerLawModel, rainbowModel, cagrModel, stockToFlowModel, historic];
 
 export const modelMap = {
   [cagrModel.name]: cagrModel,
@@ -21,7 +13,6 @@ export const modelMap = {
   [powerLawModel.name]: powerLawModel,
   [rainbowModel.name]: rainbowModel,
   [stockToFlowModel.name]: stockToFlowModel,
-  [stockToFlowModelNew.name]: stockToFlowModelNew,
 } as const;
 
 export const isModelName = (value: string): value is keyof typeof modelMap =>

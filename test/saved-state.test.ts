@@ -107,6 +107,57 @@ test("an old rainbow name opens as Rainbow, and a saved refit reloads", () => {
   expect(declaredSettings(bad.model, { ...bad.settings })).toEqual({ refit: "2022" });
 });
 
+test("an old stock-to-flow name opens on Original, and the 2024 name opens on that refit", () => {
+  const original = readSavedAppState(saved({ model: "Stock-To-Flow" }));
+  expect(original.model).toBe("Stock-to-Flow");
+  expect(original.settings).toBeUndefined();
+  expect(
+    declaredSettings(original.model, {
+      minMaxMultiple: original.minMaxMultiple,
+      variable: original.variable,
+      ...original.settings,
+    }),
+  ).toEqual({ band: 0.68, formula: "original" });
+
+  const renamed = readSavedAppState(saved({ model: "Stock-to-Flow" }));
+  expect(renamed.model).toBe("Stock-to-Flow");
+  expect(renamed.settings).toBeUndefined();
+  expect(declaredSettings(renamed.model, { ...renamed.settings })).toEqual({
+    band: 0.68,
+    formula: "original",
+  });
+
+  const refit = readSavedAppState(saved({ model: "Stock-To-Flow 2024 Refit" }));
+  expect(refit.model).toBe("Stock-to-Flow");
+  expect(refit.settings).toEqual({ formula: "2024" });
+  expect(
+    declaredSettings(refit.model, {
+      minMaxMultiple: refit.minMaxMultiple,
+      variable: refit.variable,
+      ...refit.settings,
+    }),
+  ).toEqual({ band: 0.68, formula: "2024" });
+
+  const kept = readSavedAppState(
+    saved({ model: "Stock-To-Flow 2024 Refit", settings: { band: 0.2, formula: "s2fx" } }),
+  );
+  expect(kept.model).toBe("Stock-to-Flow");
+  expect(kept.settings).toEqual({ band: 0.2, formula: "s2fx" });
+  expect(declaredSettings(kept.model, { ...kept.settings })).toEqual({
+    band: 0.2,
+    formula: "s2fx",
+  });
+
+  const stored = readSavedAppState(
+    saved({ model: "Stock-to-Flow", settings: { formula: "2024" } }),
+  );
+  expect(stored.settings).toEqual({ formula: "2024" });
+  expect(declaredSettings(stored.model, { ...stored.settings })).toEqual({
+    band: 0.68,
+    formula: "2024",
+  });
+});
+
 test("a saved shift reloads, and a settings value that is not a number or a string is rejected", () => {
   const state = readSavedAppState(saved({ model: "Power Law", settings: { yearOffset: 7 } }));
   expect(state.model).toBe("Power Law");

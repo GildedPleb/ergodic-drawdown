@@ -303,8 +303,18 @@ const readModel = (record: Record<string, unknown>): SavedAppState["model"] => {
   const value = record["model"];
   if (value === "Power Law Regression Median") return "Power Law";
   if (value === "Rainbow Chart") return "Rainbow";
+  if (value === "Stock-To-Flow" || value === "Stock-To-Flow 2024 Refit") return "Stock-to-Flow";
   if (typeof value !== "string" || !isModelName(value)) throw invalidSavedState();
   return value;
+};
+
+const stockToFlowFormula = (
+  record: Record<string, unknown>,
+  settings: ModelSettings | undefined,
+): ModelSettings | undefined => {
+  if (record["model"] !== "Stock-To-Flow 2024 Refit") return settings;
+  if (typeof settings?.["formula"] === "string") return settings;
+  return { ...settings, formula: "2024" };
 };
 
 const readSettings = (record: Record<string, unknown>): ModelSettings | undefined => {
@@ -422,7 +432,7 @@ export const savedHorizon = (
 export const readSavedAppState = (value: unknown): SavedAppState => {
   if (!isRecord(value) || value["version"] !== 1) throw invalidSavedState();
   const pinnedWeeks = readPinnedWeeks(value);
-  const settings = readSettings(value);
+  const settings = stockToFlowFormula(value, readSettings(value));
   const years = readYears(value);
   return {
     bitcoin: readNumber(value, "bitcoin"),

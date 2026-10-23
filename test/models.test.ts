@@ -35,8 +35,7 @@ const expectedPrices = {
   Historic: { max: 341_547.976_727_618_66, min: 85_074.99 },
   "Power Law": { max: 315_458.563_801_796_64, min: 50_750.076_679_694_284 },
   Rainbow: { max: 771_304.345_178_012_2, min: 65_706.921_686_572_95 },
-  "Stock-To-Flow": { max: 1_528_541.594_949_629_9, min: 324_236.095_898_406_35 },
-  "Stock-To-Flow 2024 Refit": { max: 735_419.854_861_576_8, min: 140_079.972_354_586 },
+  "Stock-to-Flow": { max: 1_556_333.260_312_350_5, min: 296_444.430_535_685_74 },
 } as const;
 
 let restoreClock = (): void => undefined;
@@ -72,6 +71,7 @@ const knobLabels = (name: string): readonly string[] | undefined => {
   if (name === "Historic") return ["Previous Halvings"];
   if (name === "Power Law") return ["Shift (years)"];
   if (name === "Rainbow") return ["Refit"];
+  if (name === "Stock-to-Flow") return ["Formula", "Band"];
   return undefined;
 };
 
@@ -130,6 +130,23 @@ test("declared settings keep only the keys that model lists", () => {
   expect(declaredSettings("Rainbow", { refit: "2022-violet" })).toEqual({ refit: "2022-violet" });
   expect(declaredSettings("Rainbow", { refit: "2019" })).toEqual({ refit: "2022" });
   expect(declaredSettings("Rainbow", { refit: 2022 })).toEqual({ refit: "2022" });
+  expect(declaredSettings("Stock-to-Flow")).toEqual({ band: 0.68, formula: "original" });
+  expect(declaredSettings("Stock-to-Flow", { formula: "2024" })).toEqual({
+    band: 0.68,
+    formula: "2024",
+  });
+  expect(declaredSettings("Stock-to-Flow", { band: 0.5, formula: "s2fx" })).toEqual({
+    band: 0.5,
+    formula: "s2fx",
+  });
+  expect(declaredSettings("Stock-to-Flow", { band: "no", formula: "nope" })).toEqual({
+    band: 0.68,
+    formula: "original",
+  });
+  expect(declaredSettings("Stock-to-Flow", { minMaxMultiple: 2, variable: 9 })).toEqual({
+    band: 0.68,
+    formula: "original",
+  });
 });
 
 test("a version-1 file keeps the two old keys and fills a missing one", () => {
@@ -202,6 +219,55 @@ test("Rainbow 2014 is the lower band, and 2022 violet lowers only the floor", ()
   expect(floor("2022-violet", 0) < floor("2022", 0)).toBe(true);
   expect(floor("no", 0)).toBe(floor("2022", 0));
   expect(ceiling("no", 520)).toBe(ceiling("2022", 520));
+});
+
+const stockToFlowWeek = (formula: string, band: number) => ({
+  ...frozenOptions,
+  settings: { band, formula },
+});
+
+test("Stock-to-Flow uses one band on all three formulas, and a width outside 0 through 0.99 is 0.68", () => {
+  const model = modelMap["Stock-to-Flow"];
+  const edge = (formula: string, band: number, ceiling: boolean): number => {
+    const week = stockToFlowWeek(formula, band);
+    return ceiling ? model.maxPrice(week) : model.minPrice(week);
+  };
+  expect(edge("original", 0.68, false)).toBe(296_444.430_535_685_74);
+  expect(edge("original", 0.68, true)).toBe(1_556_333.260_312_350_5);
+  expect(edge("2024", 0.68, false)).toBe(140_079.972_354_586);
+  expect(edge("2024", 0.68, true)).toBe(735_419.854_861_576_8);
+  expect(edge("s2fx", 0.68, false)).toBe(2_070_699.112_979_654_2);
+  expect(edge("s2fx", 0.68, true)).toBe(10_871_170.343_143_187);
+  expect((Math.exp(12.7598) * 56 ** 4.1167) / 19_000_000).toBe(288_086.415_554_244);
+
+  for (const formula of ["original", "2024", "s2fx"]) {
+    const center = edge(formula, 0, false);
+    expect(edge(formula, 0, true)).toBe(center);
+    expect(edge(formula, 0.5, false)).toBe(center - center * 0.5);
+    expect(edge(formula, 0.5, true)).toBe(center + center * 0.5);
+    expect(edge(formula, 2, false)).toBe(edge(formula, 0.68, false));
+    expect(edge(formula, -0.1, true)).toBe(edge(formula, 0.68, true));
+  }
+  expect(edge("no", 0.68, false)).toBe(edge("original", 0.68, false));
+  expect(edge("no", 0.5, true)).toBe(edge("original", 0.5, true));
+});
+
+test("Stock-to-Flow formula defaults to Original, and Band runs from 0 through 0.99", () => {
+  const formula = modelMap["Stock-to-Flow"].params.find((param) => param.key === "formula");
+  const band = modelMap["Stock-to-Flow"].params.find((param) => param.key === "band");
+  if (formula?.kind !== "choice" || band?.kind !== "number") throw new Error("Stock-to-Flow");
+  expect(formula.label).toBe("Formula");
+  expect(formula.default).toBe("original");
+  expect(formula.options).toEqual([
+    { label: "Original", value: "original" },
+    { label: "2024 refit", value: "2024" },
+    { label: "S2FX", value: "s2fx" },
+  ]);
+  expect(band.label).toBe("Band");
+  expect(band.default).toBe(0.68);
+  expect(band.min).toBe(0);
+  expect(band.max).toBe(0.99);
+  expect(band.step).toBe(0.01);
 });
 
 test("Rainbow refit lists 2014, 2022, and 2022 violet, and defaults to 2022", () => {
