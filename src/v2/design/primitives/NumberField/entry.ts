@@ -4,11 +4,12 @@
  *
  * - Clamp: a parsed value outside the back end's accepted range commits the nearest bound and
  *   reports it, so the field can say so. An Infinity bound never clamps (only the finite side).
- * - Invalid: text that does not parse (empty with no emptyValue, "1e", "abc", "2x", "-") commits
- *   nothing; the last valid value stays in effect. NaN is never committed.
- * - Overflow (Form 2j): a numeral past the double range ("1e309", "-1e309") is out of range, not
+ * - Invalid: text that does not parse ("1e", "abc", "2x", "-") commits nothing; the last valid
+ *   value stays in effect. NaN is never committed. Empty (or only spaces) with no emptyValue is
+ *   invalid as "empty" (Form 2l).
+ * - Overflow (Form 2j/2k): a numeral past the double range ("1e309", "-1e309") is out of range, not
  *   invalid: it clamps to the finite bound on its side. With no finite bound there (an Infinity
- *   max), there is no value to use, so it stays invalid. Infinity is never committed.
+ *   max), there is no value to use: invalid as "large", nothing commits. Infinity never commits.
  * - Postel-liberal text (m7): commas, spaces, NBSP, narrow/thin spaces and U+2212 normalise first;
  *   "1.5e9" and "1.5 × 10^9" read as 1.5e9 (Form 4g). A comma is only thousands grouping (2g).
  */
@@ -65,9 +66,14 @@ export type EntryResult =
   | { kind: "clamped"; value: number; typed: number }
   /**
    * Form 2g: `whole`, a whole-number field got a fraction or a stray comma ("1.5", "2,5"); `dot`,
-   * a decimal field got a comma that is not thousands grouping ("2,5").
+   * a decimal field got a comma that is not thousands grouping ("2,5"); `large` (2k), overflow past
+   * a side with no finite bound ("1e309", no max); `empty` (2l), nothing typed where empty isn't
+   * allowed.
    */
-  | { kind: "invalid"; reason?: "whole" | "dot" };
+  | { kind: "invalid"; reason?: InvalidReason };
+
+/** Why an entry is invalid; no reason: text that isn't a number (Form 2j). */
+export type InvalidReason = "whole" | "dot" | "large" | "empty";
 
 /** Form 2e: "1,000" and "-12,345,678" group thousands; "2,5", "1,00" and ",5" do not. */
 const GROUPED = /^-?\d{1,3}(,\d{3})+(\.\d*)?$/;
@@ -90,17 +96,21 @@ export const resolveEntry = (
   whole = false,
 ): EntryResult => {
   if (normalizeNumberText(text) === "") {
-    return emptyValue === null ? { kind: "invalid" } : { kind: "ok", value: emptyValue };
+    return emptyValue === null
+      ? { kind: "invalid", reason: "empty" }
+      : { kind: "ok", value: emptyValue };
   }
   const counted = whole || parse === "int";
   if (strayComma(text)) return { kind: "invalid", reason: counted ? "whole" : "dot" };
   const huge = overflowOf(text);
   if (huge !== undefined) {
-    // Form 2j: overflow clamps to the bound on its side, when that bound is finite.
+    // Form 2j: overflow clamps to the bound on its side, when that bound is finite; 2k: else
+    // "large" ("Too large"), nothing commits. Every sheet field has a finite min, so "-1e309"
+    // always clamps there; only a bare primitive with no min says "Too large" for it.
     const bound = huge > 0 ? bounds.max : bounds.min;
     return Number.isFinite(bound)
       ? { kind: "clamped", value: bound, typed: huge }
-      : { kind: "invalid" };
+      : { kind: "invalid", reason: "large" };
   }
   const parsed = parseNumber(text, "float");
   if (Number.isNaN(parsed)) return { kind: "invalid" };

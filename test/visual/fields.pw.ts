@@ -52,7 +52,7 @@ for (const id of FIELD_STORIES) {
         const message = page.locator(`[id="${describedBy.split(" ").at(-1) ?? ""}"]`);
         await expect(message).toBeVisible();
         await expect(message.locator("svg")).toHaveCount(1); // the ⚠ icon
-        await expect(message).toContainText(/\. (Enter|Pick)/); // cause, then the next step
+        await expect(message).toHaveText("Numbers only"); // Form 2j: the short note
       }
       if (id.endsWith("/disabled")) await expect(control).toBeDisabled();
       if (id === "number-field/emoji-label") {

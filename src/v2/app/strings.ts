@@ -224,11 +224,12 @@ export const strings = {
     wholeOnly: "Whole numbers only",
     /** Form 2g: a comma that isn't thousands grouping in a decimal field ("2,5"). */
     dotOnly: "Use a dot for decimals",
-    /**
-     * Form 2j: text that isn't a number ("abc", "2x", "-"); it replaces the retired long message
-     * ("… takes a number from … Your last value, …, is still in use.").
-     */
+    /** Form 2j: text that isn't a number ("abc", "2x", "-"); it retires the long generic message. */
     numbersOnly: "Numbers only",
+    /** Form 2k: overflow in a field with no maximum ("1e309"); it is a number, so not 2j's note. */
+    tooLarge: "Too large",
+    /** Form 2l: an empty field where empty isn't allowed. */
+    enterNumber: "Enter a number",
     /** §1MP: the Years row's front-end label (main's own reads "Years (1-N):"). */
     yearsLabel: "Years",
     /** The samples row's label, its range from the G12-mirrored bounds: 1 to 10,000 reads "1-10k". */

@@ -72,6 +72,7 @@ test("text that isn't a number is the defined invalid state; the last value stay
   await field.press("Enter");
   await expect(field).toHaveAttribute("aria-invalid", "true");
   await expect(page.locator("#v2-vol-message")).toHaveText("Numbers only"); // Form 2j
+  await expect(field).toHaveValue("abc"); // Form 2m: Enter keeps the typed text to fix
   await field.blur();
   // Form 2i: the field shows the last committed value again; the note stays.
   await expect(field).toHaveValue("0.1");
@@ -82,6 +83,19 @@ test("text that isn't a number is the defined invalid state; the last value stay
   await field.fill("0.2");
   await field.press("Enter");
   await expect(field).not.toHaveAttribute("aria-invalid", "true");
+});
+
+test("Form 2l: empty says 'Enter a number' and blur reverts to the value in use", async ({
+  page,
+}) => {
+  await gotoStory(page, "models-sheet/default");
+  const vol = page.locator("#v2-vol");
+  await vol.fill("   ");
+  await vol.press("Enter");
+  await expect(page.locator("#v2-vol-message")).toHaveText("Enter a number");
+  await vol.blur();
+  await expect(vol).toHaveValue("0.1");
+  await expect(page.locator("#v2-vol-message")).toHaveText("Enter a number");
 });
 
 test("Form N1: the variable follows each model's own range across Historic → CAGR → Historic", async ({

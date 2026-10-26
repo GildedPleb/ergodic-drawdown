@@ -2,13 +2,16 @@
  * NumberField's message state (V32-BUILD §1g; Form 4d/4e, 2e/2g). Pure, so the rules are testable
  * without a DOM: the component keeps a Status and renders messageOf it.
  */
-import type { Bounds, EntryResult } from "./entry";
+import type { Bounds, EntryResult, InvalidReason } from "./entry";
 
-/** `reason`: a fraction or stray comma in a count ("whole"), a decimal comma ("dot"), Form 2g. */
+/**
+ * `reason`: a fraction or stray comma in a count ("whole"), a decimal comma ("dot"), Form 2g;
+ * overflow with no bound on that side ("large", 2k); empty where empty isn't allowed ("empty", 2l).
+ */
 export type Status =
   | { kind: "ok" }
   | { kind: "clamped"; used: number }
-  | { kind: "invalid"; reason: "whole" | "dot" | undefined };
+  | { kind: "invalid"; reason: InvalidReason | undefined };
 
 /** The status after a commit (Enter, blur, a held key, the wheel); `bound`: a step stopped on one. */
 export const statusOf = (result: EntryResult, bound: boolean): Status => {
@@ -42,12 +45,21 @@ export type Copy = {
   /** Form 2g: "Whole numbers only" and "Use a dot for decimals". */
   wholeMessage?: string | undefined;
   dotMessage?: string | undefined;
+  /** Form 2k: overflow in a field with no maximum ("1e309"): "Too large". */
+  largeMessage?: string | undefined;
+  /** Form 2l: empty where empty isn't allowed: "Enter a number". */
+  emptyMessage?: string | undefined;
 };
 
-/** The text under the field: the limit note, the 2g note, or the invalid message. */
+/** The text under the field: the limit note, the 2g/2k/2l note, or the invalid message. */
 export const messageOf = (status: Status, value: number, bounds: Bounds, copy: Copy): string => {
   if (status.kind === "ok") return "";
   if (status.kind === "clamped") return copy.limitNote?.(status.used, bounds) ?? "";
-  const note = { whole: copy.wholeMessage, dot: copy.dotMessage }[status.reason ?? "whole"];
+  const note = {
+    whole: copy.wholeMessage,
+    dot: copy.dotMessage,
+    large: copy.largeMessage,
+    empty: copy.emptyMessage,
+  }[status.reason ?? "whole"];
   return (status.reason === undefined ? undefined : note) ?? copy.invalidMessage?.(value) ?? "";
 };

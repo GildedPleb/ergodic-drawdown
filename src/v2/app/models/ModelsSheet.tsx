@@ -101,6 +101,8 @@ const Editor = (p: EditorProps): JSX.Element => {
           wholeMessage={strings.fields.wholeOnly}
           dotMessage={strings.fields.dotOnly}
           invalidMessage={() => strings.fields.numbersOnly}
+          largeMessage={strings.fields.tooLarge}
+          emptyMessage={strings.fields.enterNumber}
           onCommit={p.onCommit}
         />
       }

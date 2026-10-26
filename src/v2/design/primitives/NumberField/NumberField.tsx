@@ -58,6 +58,10 @@ export type NumberFieldProps = {
   wholeMessage?: string | undefined;
   /** Form 2g: the note for a comma that isn't thousands grouping in a decimal field ("2,5"). */
   dotMessage?: string | undefined;
+  /** Form 2k: the note for overflow in a field with no maximum ("1e309"): "Too large". */
+  largeMessage?: string | undefined;
+  /** Form 2l: the note for an empty field where empty isn't allowed: "Enter a number". */
+  emptyMessage?: string | undefined;
   /** Caption under the field (e.g. "(~40 years)"). */
   hint?: string | undefined;
   id?: string | undefined;
@@ -105,6 +109,8 @@ export const NumberField = ({
   invalidMessage,
   wholeMessage,
   dotMessage,
+  largeMessage,
+  emptyMessage,
   hint,
   id,
   disabled = false,
@@ -265,6 +271,8 @@ export const NumberField = ({
     invalidMessage,
     wholeMessage,
     dotMessage,
+    largeMessage,
+    emptyMessage,
   });
   const describedBy = [hint === undefined ? "" : hintId, message === "" ? "" : messageId]
     .filter(Boolean)

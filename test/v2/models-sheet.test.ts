@@ -212,6 +212,7 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   }
   const f = strings.fields;
   out.push(f.limit(true, 10_000), f.limit(false, 1.01), f.wholeOnly, f.dotOnly, f.numbersOnly);
+  out.push(f.tooLarge, f.enterNumber);
   out.push(
     strings.headline.sentence(
       { kind: "ninety", median: 1_200_000, low: 400_000, high: 3_100_000 },
@@ -414,5 +415,7 @@ test("Form 4d-4f / 2e / 2g: every sheet field gets the grouped limit note and bo
   // Form 2j: every sheet field's note for text that isn't a number is "Numbers only".
   expect(src.includes("invalidMessage={() => strings.fields.numbersOnly}")).toBe(true);
   expect(src.split("<NumberField").length - 1).toBe(1); // one field component: LedgerField
-  expect(src.includes("is still in use") || src.includes("fields.invalid")).toBe(false);
+  expect(src.includes(["is still", "in use"].join(" ")) || src.includes("fields.invalid")).toBe(
+    false,
+  );
 });

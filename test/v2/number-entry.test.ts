@@ -58,7 +58,7 @@ test("empty commits the field's emptyValue, or is invalid without one", () => {
     kind: "ok",
     value: 1000,
   });
-  expect(resolveEntry("  ", "float", VOL, null)).toEqual({ kind: "invalid" });
+  expect(resolveEntry("  ", "float", VOL, null)).toEqual({ kind: "invalid", reason: "empty" });
 });
 
 test("Postel text: separators and U+2212 normalise before the strict parse", () => {
@@ -717,8 +717,8 @@ test("Form 2j: text that isn't a number shows 'Numbers only'; overflow clamps wi
     const result = resolveEntry(text, parse, b, null);
     return [result, messageOf(statusOf(result, false), 500, b, copy)] as const;
   };
-  // Non-numeric text, the empty field (no emptyValue) and a lone sign: invalid, "Numbers only".
-  for (const text of ["abc", "2x", "-", "", "  ", "+", ".", "1e", "Infinity", "-Infinity", "NaN"]) {
+  // Non-numeric text and a lone sign: invalid, "Numbers only" (empty is 2l, below).
+  for (const text of ["abc", "2x", "-", "+", ".", "1e", "Infinity", "-Infinity", "NaN"]) {
     for (const [parse, b] of [
       ["float", R],
       ["int", SAMPLES],
@@ -754,7 +754,7 @@ test("Form 2j: text that isn't a number shows 'Numbers only'; overflow clamps wi
     undefined,
   ]);
   // An Infinity bound on that side has no value to use: nothing commits (never Infinity or NaN).
-  expect(resolveEntry("1e309", "float", FLOOR, null)).toEqual({ kind: "invalid" });
+  expect(resolveEntry("1e309", "float", FLOOR, null)).toEqual({ kind: "invalid", reason: "large" });
   expect(resolveEntry("-1e309", "float", FLOOR, null)).toEqual({
     kind: "clamped",
     value: 1.01,
@@ -777,7 +777,7 @@ test("Form 2i: focus leaving after an invalid entry shows the last committed val
   const R = { min: 0, max: 1000 };
   const copy = { invalidMessage: () => strings.fields.numbersOnly };
   // Blur commits the draft: invalid, the note shows; blur itself never clears it (no afterEdit).
-  for (const text of ["abc", "2x", "-", ""]) {
+  for (const text of ["abc", "2x", "-"]) {
     const status = statusOf(resolveEntry(text, "float", R, null), false);
     expect(messageOf(status, 12.5, R, copy)).toBe("Numbers only");
     // 4h: cleared by the next edit, or by a value from anywhere else (a model switch).
@@ -811,4 +811,126 @@ test("Form 2i: focus leaving after an invalid entry shows the last committed val
     createElement(NumberField, { id: "r", label: "R (%)", value: 12.5, places: 2 }),
   );
   expect(html.includes('value="12.5"')).toBe(true);
+});
+
+test("Form 2k: '1e309' with no maximum says 'Too large', commits nothing; '-1e309' still clamps to the min", async () => {
+  const { messageOf, statusOf } = await import("../../src/v2/design/primitives/NumberField/status");
+  const copy = {
+    limitNote: (used: number, b: { min: number; max: number }) =>
+      strings.fields.limit(used === b.max, used),
+    invalidMessage: () => strings.fields.numbersOnly,
+    largeMessage: strings.fields.tooLarge,
+    emptyMessage: strings.fields.enterNumber,
+  };
+  // +/- (min 1.01, no max) and a model variable ("Infinity" rangeMax, min 0).
+  for (const b of [FLOOR, { min: 0, max: Number.POSITIVE_INFINITY }]) {
+    for (const text of [
+      "1e309",
+      "1E309",
+      "+1e309",
+      "1 × 10^400",
+      "1\u00A0×\u00A010⁴⁰⁰",
+      " 1e309 ",
+    ]) {
+      const result = resolveEntry(text, "float", b, null);
+      expect(result).toEqual({ kind: "invalid", reason: "large" });
+      const status = statusOf(result, false);
+      expect(messageOf(status, 2, b, copy)).toBe("Too large");
+      expect(messageOf(status, 2, b, copy) === "Numbers only").toBe(false); // it is a number
+    }
+    // '-1e309' clamps to the min, as built.
+    const low = resolveEntry("-1e309", "float", b, null);
+    expect(low).toEqual({ kind: "clamped", value: b.min, typed: -Infinity });
+    expect(messageOf(statusOf(low, false), 2, b, copy)).toBe(`Min is ${String(b.min)}`);
+  }
+  // Just under the double range is an ordinary huge value, kept as typed.
+  expect(resolveEntry("1e308", "float", FLOOR, null)).toEqual({ kind: "ok", value: 1e308 });
+  // With a finite max, overflow still clamps (2j), never "Too large".
+  expect(resolveEntry("1e309", "float", { min: 0, max: 1000 }, null)).toEqual({
+    kind: "clamped",
+    value: 1000,
+    typed: Infinity,
+  });
+  // Without the 2k copy the note falls back to the field's invalid message, never blank.
+  const bare = statusOf(resolveEntry("1e309", "float", FLOOR, null), false);
+  expect(messageOf(bare, 2, FLOOR, { invalidMessage: () => "Numbers only" })).toBe("Numbers only");
+  expect(strings.fields.tooLarge).toBe("Too large");
+});
+
+test("Form 2l: an empty field (or only spaces) where empty isn't allowed says 'Enter a number'; blur reverts", async () => {
+  const { afterEdit, afterValue, messageOf, statusOf } =
+    await import("../../src/v2/design/primitives/NumberField/status");
+  const R = { min: 0, max: 1000 };
+  const copy = {
+    invalidMessage: () => strings.fields.numbersOnly,
+    largeMessage: strings.fields.tooLarge,
+    emptyMessage: strings.fields.enterNumber,
+  };
+  for (const text of ["", " ", "   ", "\t", "\u00A0", "\u202F\u2009", ",", " , "]) {
+    for (const parse of ["float", "int"] as const) {
+      const result = resolveEntry(text, parse, R, null);
+      if (text.includes(",")) {
+        // A lone comma isn't thousands grouping (2g): its own note, not 2l's.
+        expect(result.kind).toBe("invalid");
+        continue;
+      }
+      expect(result).toEqual({ kind: "invalid", reason: "empty" });
+      const status = statusOf(result, false);
+      expect(messageOf(status, 12.5, R, copy)).toBe("Enter a number");
+      // The note clears like every other (4h/4i).
+      expect(afterEdit(status)).toEqual({ kind: "ok" });
+      expect(afterValue(status, 20, null)).toEqual({ kind: "ok" });
+    }
+  }
+  // Where empty is allowed, it commits the field's emptyValue: no note at all.
+  expect(resolveEntry("  ", "int", R, 1000)).toEqual({ kind: "ok", value: 1000 });
+  // A lone sign is not empty: "Numbers only".
+  expect(messageOf(statusOf(resolveEntry("-", "float", R, null), false), 1, R, copy)).toBe(
+    "Numbers only",
+  );
+  expect(strings.fields.enterNumber).toBe("Enter a number");
+  // Blur after empty: the draft "" differs from the committed text, so blur commits it, gets
+  // "invalid" and reverts to the value in use (2i); the note stays.
+  const src = await (
+    await import("bun")
+  )
+    .file(`${import.meta.dir}/../../src/v2/design/primitives/NumberField/NumberField.tsx`)
+    .text();
+  const blur = src.slice(src.indexOf("onBlur="), src.indexOf("onFocus="));
+  expect(blur.includes('draft !== clean.current || status.kind === "invalid"')).toBe(true);
+  expect(blur.includes('if (commit(draft) === "invalid") revert();')).toBe(true);
+  // The Models sheet hands the field all three notes.
+  const sheet = await (
+    await import("bun")
+  )
+    .file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`)
+    .text();
+  expect(sheet.includes("largeMessage={strings.fields.tooLarge}")).toBe(true);
+  expect(sheet.includes("emptyMessage={strings.fields.enterNumber}")).toBe(true);
+});
+
+test("Form 2m: Enter on invalid text keeps the typed text while focused; only blur reverts it", async () => {
+  const src = await (
+    await import("bun")
+  )
+    .file(`${import.meta.dir}/../../src/v2/design/primitives/NumberField/NumberField.tsx`)
+    .text();
+  // Enter commits the draft and stops: no revert, no draft reset.
+  const keyDown = src.slice(
+    src.indexOf("const onKeyDown = "),
+    src.indexOf('if (event.key === "Escape")'),
+  );
+  const enter = keyDown.slice(keyDown.indexOf('if (event.key === "Enter")'));
+  expect(enter.includes("commit(live.current.draft, stepped);")).toBe(true);
+  expect(enter.includes("revert") || enter.includes("setDraft")).toBe(false);
+  // An invalid commit returns before it touches the draft, so the typed text stays to fix.
+  const commit = src.slice(src.indexOf("const commit = "), src.indexOf("const revert = "));
+  const bail = commit.indexOf('if (result.kind === "invalid") return result.kind;');
+  expect(bail > 0 && bail < commit.indexOf("setDraft(")).toBe(true);
+  // While focused, the field shows the draft (the typed text).
+  expect(src.includes("const display = focused || draft !== clean.current ? draft :")).toBe(true);
+  // revert is called from blur only.
+  expect(src.split("revert()").length - 1).toBe(1);
+  const blur = src.slice(src.indexOf("onBlur="), src.indexOf("onFocus="));
+  expect(blur.includes("revert()")).toBe(true);
 });

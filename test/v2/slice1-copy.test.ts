@@ -28,6 +28,32 @@ test("the clamp note names the limit used; text that isn't a number says so in t
   expect(strings.fields.numbersOnly).toBe("Numbers only");
   expect("invalid" in strings.fields).toBe(false); // the long generic message is retired
   expect(strings.fields.limit(false, 1.01)).toBe("Min is 1.01");
+  expect(strings.fields.tooLarge).toBe("Too large"); // Form 2k
+  expect(strings.fields.enterNumber).toBe("Enter a number"); // Form 2l
+});
+
+test("Form Storybook / 2j: no retired long invalid message anywhere in the front end, stories included", async () => {
+  const { file, Glob } = await import("bun");
+  // Built from parts so this file never carries the retired copy itself.
+  const retired = [
+    ["is still", "in use"],
+    ["Your last", "value"],
+    ["takes a", "number from"],
+    ["takes a whole", "number"],
+  ].map((parts) => parts.join(" "));
+  const root = `${import.meta.dir}/../..`;
+  const paths = [...new Glob("**/*.{ts,tsx,css,md,mdx}").scanSync({ cwd: `${root}/src/v2` })];
+  expect(paths.length > 100).toBe(true);
+  const hits: string[] = [];
+  for (const path of paths) {
+    const text = await file(`${root}/src/v2/${path}`).text();
+    for (const phrase of retired) if (text.includes(phrase)) hits.push(`${path}: ${phrase}`);
+  }
+  expect(hits).toEqual([]);
+  const story = await file(
+    `${root}/src/v2/design/primitives/NumberField/NumberField.stories.tsx`,
+  ).text();
+  expect(story.includes('"Numbers only"')).toBe(true);
 });
 
 test("the drawn walk is spoken as runs: 3 up, 1 down", () => {
