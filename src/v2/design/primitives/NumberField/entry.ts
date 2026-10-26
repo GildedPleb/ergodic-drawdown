@@ -4,8 +4,11 @@
  *
  * - Clamp: a parsed value outside the back end's accepted range commits the nearest bound and
  *   reports it, so the field can say so. An Infinity bound never clamps (only the finite side).
- * - Invalid: text that does not parse (empty with no emptyValue, "1e", "abc") commits nothing;
- *   the last valid value stays in effect. NaN is never committed.
+ * - Invalid: text that does not parse (empty with no emptyValue, "1e", "abc", "2x", "-") commits
+ *   nothing; the last valid value stays in effect. NaN is never committed.
+ * - Overflow (Form 2j): a numeral past the double range ("1e309", "-1e309") is out of range, not
+ *   invalid: it clamps to the finite bound on its side. With no finite bound there (an Infinity
+ *   max), there is no value to use, so it stays invalid. Infinity is never committed.
  * - Postel-liberal text (m7): commas, spaces, NBSP, narrow/thin spaces and U+2212 normalise first;
  *   "1.5e9" and "1.5 × 10^9" read as 1.5e9 (Form 4g). A comma is only thousands grouping (2g).
  */
@@ -42,6 +45,17 @@ export const parseNumber = (text: string, parse: NumberParse): number => {
 
 /** The back end's accepted range; either side may be ±Infinity. */
 export type Bounds = { min: number; max: number };
+
+/** A plain decimal numeral, exponent allowed ("1e309", "-.5", "2."); never "Infinity" or "0x10". */
+const NUMERAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+/** Form 2j: a numeral too big for a double ("1e309" → +Infinity), or undefined. */
+export const overflowOf = (text: string): number | undefined => {
+  const clean = normalizeNumberText(text);
+  if (!NUMERAL.test(clean)) return undefined;
+  const n = Number(clean);
+  return n === Number.POSITIVE_INFINITY || n === Number.NEGATIVE_INFINITY ? n : undefined;
+};
 
 const clampTo = (n: number, bounds: Bounds): number =>
   Math.min(bounds.max, Math.max(bounds.min, n));
@@ -80,6 +94,14 @@ export const resolveEntry = (
   }
   const counted = whole || parse === "int";
   if (strayComma(text)) return { kind: "invalid", reason: counted ? "whole" : "dot" };
+  const huge = overflowOf(text);
+  if (huge !== undefined) {
+    // Form 2j: overflow clamps to the bound on its side, when that bound is finite.
+    const bound = huge > 0 ? bounds.max : bounds.min;
+    return Number.isFinite(bound)
+      ? { kind: "clamped", value: bound, typed: huge }
+      : { kind: "invalid" };
+  }
   const parsed = parseNumber(text, "float");
   if (Number.isNaN(parsed)) return { kind: "invalid" };
   if (counted && !Number.isInteger(parsed)) return { kind: "invalid", reason: "whole" };

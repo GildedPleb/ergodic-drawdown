@@ -455,14 +455,8 @@ test("Probe R2 m3 / ruling 4: the spoken value is the shown one, the ×10 form i
   expect(speakNumber(1e-7)).toBe("0.0000001");
   expect(speakNumber(123.456789)).toBe("123.456789");
   expect(speakNumber(-3)).toBe("minus 3");
-  // The clamp and invalid messages use the shown form: never a long digit string.
-  const big = strings.fields.invalid(
-    { name: "+/-", plural: false },
-    "float",
-    1.01,
-    Infinity,
-    1e300,
-  );
+  // The clamp note uses the shown form: never a long digit string.
+  const big = strings.fields.limit(true, 1e300);
   expect(big.includes(`1\u00A0×\u00A010³⁰⁰`) && !big.includes("000,000")).toBe(true);
 });
 
@@ -533,10 +527,11 @@ test("Form 4d/4e: a clamp on Enter or on blur shows the short note, kept until t
   // A held step that stops on a bound is a clamp too (m6).
   const stepped = statusOf({ kind: "ok", value: 1000 }, true);
   expect(messageOf(stepped, 1000, R, copy)).toBe("Max is 1,000");
-  // The note lasts until the next edit (afterEdit); other states stay.
+  // The note lasts until the next edit (afterEdit); Form 2i: an invalid entry's note too.
   expect(afterEdit(noted)).toEqual({ kind: "ok" });
-  const bad = statusOf({ kind: "invalid" }, false);
-  expect(afterEdit(bad)).toBe(bad);
+  expect(afterEdit(statusOf({ kind: "invalid" }, false))).toEqual({ kind: "ok" });
+  const fine = { kind: "ok" } as const;
+  expect(afterEdit(fine)).toBe(fine);
   // The field clears it on change only: blur keeps it, so a blur clamp is still seen.
   const src = await (
     await import("bun")
@@ -599,7 +594,7 @@ test("Form 2e/2g: in every numeric field a comma is only thousands grouping", as
   expect(say("2,5", "int", SAMPLES)).toBe("Whole numbers only");
   expect(say("1.5", "int", SAMPLES)).toBe("Whole numbers only");
   expect(say("2,5", "float", R)).toBe("Use a dot for decimals");
-  expect(say("abc", "float", R)).toBe("long");
+  expect(say("abc", "float", R)).toBe("long"); // the field's own copy (the sheet: "Numbers only")
   expect(strings.fields.dotOnly).toBe("Use a dot for decimals");
 });
 
@@ -678,9 +673,9 @@ test("Form 4h: an outside value change clears the clamp note; the field's own co
   expect(afterValue(noted, 20, null)).toEqual({ kind: "ok" });
   expect(afterValue(noted, 20, 1000)).toEqual({ kind: "ok" });
   expect(afterValue(noted, 1000, null)).toEqual({ kind: "ok" });
-  // Other states are left alone (the invalid message reads the value in use live).
+  // Form 2i: an invalid entry's note clears per 4h too (it sent nothing, so any value is outside).
   const bad = statusOf({ kind: "invalid", reason: "whole" }, false);
-  expect(afterValue(bad, 20, null)).toBe(bad);
+  expect(afterValue(bad, 20, null)).toEqual({ kind: "ok" });
   // Wired in the value effect, before the focus check, so a focused field clears too.
   const src = await (
     await import("bun")
@@ -704,4 +699,116 @@ test("F8-1: whole-number fields (int parse or whole count) ask for the numeric k
   expect(keypad({ whole: true })).toBe("numeric");
   expect(keypad({ parse: "int" })).toBe("numeric");
   expect(keypad({})).toBe("decimal");
+});
+
+test("Form 2j: text that isn't a number shows 'Numbers only'; overflow clamps with 'Max is …' / 'Min is …'", async () => {
+  const { messageOf, statusOf } = await import("../../src/v2/design/primitives/NumberField/status");
+  const { overflowOf } = await import("../../src/v2/design/primitives/NumberField/entry");
+  const SAMPLES = { min: 1, max: 10_000 };
+  const R = { min: 0, max: 1000 };
+  const copy = {
+    limitNote: (used: number, b: { min: number; max: number }) =>
+      strings.fields.limit(used === b.max, used),
+    invalidMessage: () => strings.fields.numbersOnly,
+    wholeMessage: strings.fields.wholeOnly,
+    dotMessage: strings.fields.dotOnly,
+  };
+  const say = (text: string, parse: "int" | "float", b: { min: number; max: number }) => {
+    const result = resolveEntry(text, parse, b, null);
+    return [result, messageOf(statusOf(result, false), 500, b, copy)] as const;
+  };
+  // Non-numeric text, the empty field (no emptyValue) and a lone sign: invalid, "Numbers only".
+  for (const text of ["abc", "2x", "-", "", "  ", "+", ".", "1e", "Infinity", "-Infinity", "NaN"]) {
+    for (const [parse, b] of [
+      ["float", R],
+      ["int", SAMPLES],
+    ] as const) {
+      const [result, note] = say(text, parse, b);
+      expect(result).toEqual({ kind: "invalid" });
+      expect(note).toBe("Numbers only");
+    }
+  }
+  // Overflow is out of range, not invalid: it clamps to that field's real max (or min).
+  expect(say("1e309", "float", R)).toEqual([
+    { kind: "clamped", value: 1000, typed: Infinity },
+    "Max is 1,000",
+  ]);
+  expect(say("1e309", "int", SAMPLES)).toEqual([
+    { kind: "clamped", value: 10_000, typed: Infinity },
+    "Max is 10,000",
+  ]);
+  expect(say("-1e309", "float", R)).toEqual([
+    { kind: "clamped", value: 0, typed: -Infinity },
+    "Min is 0",
+  ]);
+  expect(say("1 × 10^400", "float", R)[1]).toBe("Max is 1,000");
+  // Only a numeral overflows: never "Infinity", hex or junk.
+  expect([overflowOf("1e309"), overflowOf("-1e309"), overflowOf("1e308")]).toEqual([
+    Infinity,
+    -Infinity,
+    undefined,
+  ]);
+  expect([overflowOf("Infinity"), overflowOf("1e309x"), overflowOf("0x1")]).toEqual([
+    undefined,
+    undefined,
+    undefined,
+  ]);
+  // An Infinity bound on that side has no value to use: nothing commits (never Infinity or NaN).
+  expect(resolveEntry("1e309", "float", FLOOR, null)).toEqual({ kind: "invalid" });
+  expect(resolveEntry("-1e309", "float", FLOOR, null)).toEqual({
+    kind: "clamped",
+    value: 1.01,
+    typed: -Infinity,
+  });
+  // FL-001 still holds: no silent 1e9 → 1 (it clamps, and says so), underflow is just 0.
+  expect(say("1e9", "float", { min: 0, max: 1 })).toEqual([
+    { kind: "clamped", value: 1, typed: 1e9 },
+    "Max is 1",
+  ]);
+  expect(resolveEntry("1e-400", "float", R, null)).toEqual({ kind: "ok", value: 0 });
+  // The short notes of 2g are unchanged.
+  expect(say("2,5", "float", R)[1]).toBe("Use a dot for decimals");
+  expect(say("1.5", "int", SAMPLES)[1]).toBe("Whole numbers only");
+});
+
+test("Form 2i: focus leaving after an invalid entry shows the last committed value; the note stays until 4h clears it", async () => {
+  const { afterEdit, afterValue, messageOf, statusOf } =
+    await import("../../src/v2/design/primitives/NumberField/status");
+  const R = { min: 0, max: 1000 };
+  const copy = { invalidMessage: () => strings.fields.numbersOnly };
+  // Blur commits the draft: invalid, the note shows; blur itself never clears it (no afterEdit).
+  for (const text of ["abc", "2x", "-", ""]) {
+    const status = statusOf(resolveEntry(text, "float", R, null), false);
+    expect(messageOf(status, 12.5, R, copy)).toBe("Numbers only");
+    // 4h: cleared by the next edit, or by a value from anywhere else (a model switch).
+    expect(afterEdit(status)).toEqual({ kind: "ok" });
+    expect(afterValue(status, 20, null)).toEqual({ kind: "ok" });
+  }
+  // The field: blur after an invalid commit puts the value in use back in the draft, whose
+  // unfocused display is the resting text of that value (never the rejected text).
+  const src = await (
+    await import("bun")
+  )
+    .file(`${import.meta.dir}/../../src/v2/design/primitives/NumberField/NumberField.tsx`)
+    .text();
+  const blur = src.slice(src.indexOf("onBlur="), src.indexOf("onFocus="));
+  expect(blur.includes('if (commit(draft) === "invalid") revert();')).toBe(true);
+  expect(blur.includes("afterEdit") || blur.includes("setStatus")).toBe(false); // the note stays
+  const revert = src.slice(src.indexOf("const revert = "), src.indexOf("const commitRef"));
+  expect(revert.includes("clean.current = editNumber(live.current.value);")).toBe(true);
+  expect(revert.includes("setDraft(clean.current);")).toBe(true);
+  expect(
+    src.includes(
+      "const display = focused || draft !== clean.current ? draft : shownAt(places)(value);",
+    ),
+  ).toBe(true);
+  // An invalid commit returns before touching the value or the draft (nothing sent, never NaN).
+  const commit = src.slice(src.indexOf("const commit = "), src.indexOf("const revert = "));
+  const bail = commit.indexOf('if (result.kind === "invalid") return result.kind;');
+  expect(bail > 0 && bail < commit.indexOf("onCommit?.(")).toBe(true);
+  // SSR at rest shows the committed value's resting text.
+  const html = renderToStaticMarkup(
+    createElement(NumberField, { id: "r", label: "R (%)", value: 12.5, places: 2 }),
+  );
+  expect(html.includes('value="12.5"')).toBe(true);
 });

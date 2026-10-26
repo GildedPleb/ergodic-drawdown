@@ -267,6 +267,19 @@ export const plateFloor = (
   return today.y1 + TODAY_CLEAR + CAP + label.pad + 0.01;
 };
 
+/**
+ * Form 2d: which side of the median's end the corner plate takes. Where both sides fit, the one
+ * with more clear space: above whenever there is less room below than above (a median ending in
+ * the lower part of the plot); equal room goes above. Where only one fits, that one. Where neither
+ * fits (2d fallback), the roomier side, equal room again above; the caller keeps it inside the plot.
+ */
+export const plateGoesUp = (side: {
+  fitsUp: boolean;
+  fitsDown: boolean;
+  roomUp: number;
+  roomDown: number;
+}): boolean => (side.fitsUp === side.fitsDown ? side.roomUp >= side.roomDown : side.fitsUp);
+
 export const endLabelAt = (
   box: PlotBox,
   domain: LogDomain,
@@ -351,8 +364,7 @@ export const endLabelAt = (
   const fitsDown = down + lift <= box.Bt;
   const roomUp = medTop - (floor - drop);
   const roomDown = box.Bt - medBottom;
-  const goUp =
-    fitsUp && fitsDown ? roomUp >= roomDown : fitsUp || (!fitsDown && roomUp >= roomDown);
+  const goUp = plateGoesUp({ fitsUp, fitsDown, roomUp, roomDown });
   // Neither side fits (a plot too short for the plate): the roomier side, kept inside the plot.
   let corner = goUp ? Math.max(floor, up) : Math.min(down, box.Bt - lift);
   // §2A r2 (Form): the plate keeps TICK_ROW clear of the $ gridlines, stepping away from the

@@ -5,6 +5,7 @@ import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
 import {
   type Bounds,
+  type EntryResult,
   type NumberParse,
   onBound,
   parseNumber,
@@ -51,7 +52,7 @@ export type NumberFieldProps = {
    * "Max is 1,000"; shown until the field is next edited.
    */
   limitNote?: (used: number, bounds: Bounds) => string;
-  /** Message for unparseable text: cause → what to enter → reassurance (gets the value in use). */
+  /** Form 2j: the short note for text that isn't a number ("Numbers only"; gets the value in use). */
   invalidMessage?: (current: number) => string;
   /** Form 2g: the note for a fraction or stray comma in a whole-number field ("1.5", "2,5"). */
   wholeMessage?: string | undefined;
@@ -73,7 +74,7 @@ const finite = (n: number): number | undefined => (Number.isFinite(n) ? n : unde
  * A number field that passes Probe's M3 / FL-001 gate (V32-BUILD §1g): typing edits a draft and
  * never commits; Enter or blur commits once; out-of-range values clamp to the nearest bound with a
  * visible, politely announced message; unparseable text shows the invalid state (no orange or red)
- * and keeps the last valid value. A held step key, or the wheel (only with focus), renders live: it
+ * and keeps the last valid value, and on blur the field shows that value again (Form 2i). A held step key, or the wheel (only with focus), renders live: it
  * commits at most every HELD_COMMIT_MS while held (throttle.ts), then exactly once more on release
  * or when the wheel settles (settle.ts). A step that lands on a bound shows the same clamp message
  * on commit (Probe m6).
@@ -134,11 +135,12 @@ export const NumberField = ({
   // faster than `value` catches up, so a repeat of the same value is never sent twice.
   const sent = useRef<number | null>(null);
 
-  const commit = (text: string, stepped = false): void => {
+  /** Commit `text`; returns the result's kind, so blur can put back the value in use (2i). */
+  const commit = (text: string, stepped = false): EntryResult["kind"] => {
     const now = live.current;
     const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue, now.whole);
     setStatus(statusOf(result, stepped && atBound.current));
-    if (result.kind === "invalid") return;
+    if (result.kind === "invalid") return result.kind;
     if (result.value !== (sent.current ?? now.value)) {
       sent.current = result.value;
       now.onCommit?.(result.value);
@@ -146,6 +148,12 @@ export const NumberField = ({
     const kept = keptText(text, now.parse, result.value);
     clean.current = kept;
     setDraft(kept);
+    return result.kind;
+  };
+  /** Form 2i: the draft becomes the value in use again (its resting form once unfocused). */
+  const revert = (): void => {
+    clean.current = editNumber(live.current.value);
+    setDraft(clean.current);
   };
   const commitRef = useRef(commit);
   commitRef.current = commit;
@@ -318,7 +326,11 @@ export const NumberField = ({
               return;
             }
             if (wheel.flush()) return;
-            if (draft !== clean.current || status.kind === "invalid") commit(draft);
+            if (draft !== clean.current || status.kind === "invalid") {
+              // Form 2i: focus leaving after an invalid entry shows the last committed value again
+              // (the field never shows text that isn't the value in use); the note stays (4h).
+              if (commit(draft) === "invalid") revert();
+            }
           }}
           onFocus={(event) => {
             setFocused(true);

@@ -24,11 +24,6 @@ const { controls } = modelsPaneSchema;
 const copy = strings.models;
 const count = (n: number): string => n.toLocaleString("en-US");
 /** "Previous Halvings" → plural, "R (%)" → singular (for "goes" / "go"). */
-const noun = (name: string): { name: string; plural: boolean } => ({
-  name,
-  plural: name.endsWith("s"),
-});
-
 /**
  * Gap 10 (Form, m2): samples clamp to a minimum of 1 (zero futures draws nothing, so it is never a
  * valid result). 1 is main's own samples input `min` (G12 snapshot); the max is its accept max.
@@ -65,7 +60,6 @@ type EditorProps = {
   /** A count (whole numbers only, Form 2h), or a decimal field resting at `places` (2a). */
   whole?: boolean;
   places?: number | undefined;
-  who: { name: string; plural: boolean };
   slider: boolean;
   description?: string | undefined;
   /** §1Q: the soft top for a field in the focus-range table (the model's rangeMax). */
@@ -106,9 +100,7 @@ const Editor = (p: EditorProps): JSX.Element => {
           limitNote={(used, b) => strings.fields.limit(used === b.max, used, p.places)}
           wholeMessage={strings.fields.wholeOnly}
           dotMessage={strings.fields.dotOnly}
-          invalidMessage={(current) =>
-            strings.fields.invalid(p.who, p.parse, p.bounds.min, p.bounds.max, current, p.places)
-          }
+          invalidMessage={() => strings.fields.numbersOnly}
           onCommit={p.onCommit}
         />
       }
@@ -257,7 +249,6 @@ export const ModelsSheet = ({
           emptyValue={null}
           whole={COUNT_FIELDS.includes(meta.varInput)}
           places={placesOf(meta.varInput)}
-          who={noun(meta.varInput)}
           softTop={softTop}
           slider
           description={copy.settingDesc[meta.varInput]}
@@ -276,7 +267,6 @@ export const ModelsSheet = ({
           step={controls.minMaxMultiple.step}
           emptyValue={null}
           places={placesOf("+/-")}
-          who={strings.fields.nouns.minMaxMultiple}
           slider={false}
           description={copy.settingDesc["+/-"]}
           onCommit={(minMaxMultiple) => {
@@ -362,7 +352,6 @@ export const ModelsSheet = ({
           parse={controls.volatility.parse}
           step={volStep}
           emptyValue={controls.volatility.emptyValue}
-          who={strings.fields.nouns.volatility}
           places={placesOf(controls.volatility.label)}
           slider
           description={copy.settingDesc[controls.volatility.label]}
@@ -379,7 +368,6 @@ export const ModelsSheet = ({
           parse={controls.samples.parse}
           step={1}
           emptyValue={controls.samples.emptyValue}
-          who={strings.fields.nouns.samples}
           slider
           description={copy.settingDesc["samples"]}
           onCommit={(samples) => {
@@ -460,7 +448,6 @@ export const ModelsSheet = ({
             parse={controls.years.parse}
             step={1}
             emptyValue={controls.years.emptyValue}
-            who={strings.fields.nouns.years}
             slider
             description={copy.settingDesc["years"]}
             onCommit={(years) => {

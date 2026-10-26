@@ -211,10 +211,7 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
     for (const m of html.matchAll(/aria-label="([^"]*)"/g)) out.push(decode(m[1] ?? ""));
   }
   const f = strings.fields;
-  for (const who of Object.values(f.nouns)) {
-    out.push(f.invalid(who, "int", 1, Infinity, 0.1));
-  }
-  out.push(f.limit(true, 10_000), f.limit(false, 1.01), f.wholeOnly, f.dotOnly);
+  out.push(f.limit(true, 10_000), f.limit(false, 1.01), f.wholeOnly, f.dotOnly, f.numbersOnly);
   out.push(
     strings.headline.sentence(
       { kind: "ninety", median: 1_200_000, low: 400_000, high: 3_100_000 },
@@ -381,13 +378,9 @@ test("Form ruling (summaries): every line outside a focused field uses the field
   expect(
     open.includes('aria-valuetext="123.46"') && open.includes('aria-valuetext="123.46 percent"'),
   ).toBe(true);
-  // The R slider's spoken value and the clamp / invalid messages: the same rest text.
+  // The R slider's spoken value and the clamp note: the same rest text.
   expect(strings.fields.focus["R (%)"]?.spoken(123.456789)).toBe("123.46 percent");
-  const noun = { name: "R (%)", plural: false };
   expect(strings.fields.limit(true, 12.3456, 2)).toBe("Max is 12.35");
-  expect(
-    strings.fields.invalid(noun, "float", 0, 1000, 12.3456, 2).includes("Your last value, 12.35,"),
-  ).toBe(true);
   // Form 2f: volatility rests at 2 decimals as well; halvings keep their own (full) rest text.
   expect(summaryOf({ ...r, volatility: 0.123456789 }).endsWith("volatility 0.12")).toBe(true);
   expect(summaryOf({ ...r, model: "Historic", variable: 2 }).startsWith("Replays 2 past")).toBe(
@@ -418,4 +411,8 @@ test("Form 4d-4f / 2e / 2g: every sheet field gets the grouped limit note and bo
   expect(src.includes("wholeMessage={strings.fields.wholeOnly}")).toBe(true);
   expect(src.includes("dotMessage={strings.fields.dotOnly}")).toBe(true);
   expect(strings.fields.wholeOnly).toBe("Whole numbers only");
+  // Form 2j: every sheet field's note for text that isn't a number is "Numbers only".
+  expect(src.includes("invalidMessage={() => strings.fields.numbersOnly}")).toBe(true);
+  expect(src.split("<NumberField").length - 1).toBe(1); // one field component: LedgerField
+  expect(src.includes("is still in use") || src.includes("fields.invalid")).toBe(false);
 });

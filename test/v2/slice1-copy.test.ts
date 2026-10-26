@@ -23,12 +23,10 @@ test("chart end label uses the $ range format", () => {
   );
 });
 
-test("the clamp note names the limit used; the invalid message names the range and the value in use", () => {
-  const { nouns } = strings.fields;
+test("the clamp note names the limit used; text that isn't a number says so in two words (Form 2j)", () => {
   expect(strings.fields.limit(true, 1)).toBe("Max is 1");
-  expect(strings.fields.invalid(nouns.years, "int", 1, 117, 10)).toBe(
-    "Years take a whole number from 1 to 117. Your last value, 10, is still in use.",
-  );
+  expect(strings.fields.numbersOnly).toBe("Numbers only");
+  expect("invalid" in strings.fields).toBe(false); // the long generic message is retired
   expect(strings.fields.limit(false, 1.01)).toBe("Min is 1.01");
 });
 

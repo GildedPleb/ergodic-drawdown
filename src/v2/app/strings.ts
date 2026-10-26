@@ -5,23 +5,10 @@
  * Numbers always go through money.ts.
  */
 import { fmtUSD, fmtUSDRange, nameUSD } from "../design/format/money";
-import {
-  DECIMAL_PLACES,
-  showNumber,
-  shownAt,
-  speakNumber,
-} from "../design/primitives/NumberField/entry";
+import { DECIMAL_PLACES, shownAt, speakNumber } from "../design/primitives/NumberField/entry";
 import type { Spread } from "./world/spread";
 
 const count = (n: number): string => n.toLocaleString("en-US");
-
-/** "goes" / "go", "takes" / "take" for singular and plural nouns. */
-type Noun = { name: string; plural: boolean };
-
-const range = (min: number, max: number): string =>
-  Number.isFinite(max)
-    ? `from ${showNumber(min)} to ${showNumber(max)}`
-    : `from ${showNumber(min)} up`;
 
 /** 10000 → "10k"; anything not a whole thousand stays as written. */
 const kilo = (n: number): string =>
@@ -237,27 +224,16 @@ export const strings = {
     wholeOnly: "Whole numbers only",
     /** Form 2g: a comma that isn't thousands grouping in a decimal field ("2,5"). */
     dotOnly: "Use a dot for decimals",
-    /** Invalid text: cause, next step, reassurance (Probe M2). */
-    invalid: (
-      noun: Noun,
-      kind: "int" | "float",
-      min: number,
-      max: number,
-      current: number,
-      places?: number,
-    ) =>
-      `${noun.name} ${noun.plural ? "take" : "takes"} ${kind === "int" ? "a whole number" : "a number"} ${range(min, max)}. Your last value, ${shownAt(places)(current)}, is still in use.`,
+    /**
+     * Form 2j: text that isn't a number ("abc", "2x", "-"); it replaces the retired long message
+     * ("… takes a number from … Your last value, …, is still in use.").
+     */
+    numbersOnly: "Numbers only",
     /** §1MP: the Years row's front-end label (main's own reads "Years (1-N):"). */
     yearsLabel: "Years",
     /** The samples row's label, its range from the G12-mirrored bounds: 1 to 10,000 reads "1-10k". */
     samplesLabel: (min: number, max: number): string =>
       `Statistical Sample Count (${kilo(min)}-${kilo(max)}):`,
-    nouns: {
-      volatility: { name: "Volatility", plural: false },
-      years: { name: "Years", plural: true },
-      samples: { name: "Samples", plural: true },
-      minMaxMultiple: { name: "The +/- multiple", plural: false },
-    },
   },
 } as const;
 

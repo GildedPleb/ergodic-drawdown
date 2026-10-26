@@ -18,6 +18,7 @@ import {
   MEDIAN_CLEAR,
   type Paint,
   plateFloor,
+  plateGoesUp,
   TODAY_CLEAR,
   paintFrom,
 } from "../../src/v2/app/world/draw";
@@ -1456,4 +1457,50 @@ test("Form 2d fallback: when neither side clears the median, the plate takes the
     sides.add(roomierUp ? "up" : "down");
   }
   expect(sides.size).toBe(2);
+});
+
+test("Form 2d: the plate goes above the line when there is less room below its end point, below when less above", () => {
+  const box = plotBox(358, 400);
+  const domain = fitDomain(50_000, 1e8);
+  // The fan fills the plot (above and below both miss), so the label takes the corner plate.
+  const p95 = flat(100, domain.hi);
+  const p5 = flat(100, domain.lo);
+  const placed = (end: number) => {
+    const at = endLabelAt(box, domain, { p5, p95, end, horizon: 99, p50: flat(100, end) }, LINES2);
+    const endY = ly(end, box, domain);
+    return { at, endY, top: at.y - 10, bottom: at.y + LABEL_LINE + 4 };
+  };
+  // The median ends in the lower part of the plot: less room below, so the plate sits above.
+  const low = placed(60_000);
+  expect(low.at.mode).toBe("corner");
+  expect(box.Bt - low.endY < low.endY - box.T).toBe(true);
+  expect(low.bottom <= low.endY - MEDIAN_CLEAR).toBe(true);
+  expect(low.at.leader?.y1).toBe(low.bottom); // the leader leaves the edge facing the end
+  // The median ends high: less room above, so the plate sits below.
+  const high = placed(3.5e7);
+  expect(high.at.mode).toBe("corner");
+  expect(high.endY - box.T < box.Bt - high.endY).toBe(true);
+  expect(high.top >= high.endY + MEDIAN_CLEAR).toBe(true);
+  expect(high.at.leader?.y1).toBe(high.top);
+  // Both inside the plot, never on the line.
+  for (const { top, bottom } of [low, high]) {
+    expect(top >= box.T && bottom <= box.Bt).toBe(true);
+  }
+});
+
+test("Form 2d: the placement rule: the roomier side; equal room goes above; one side fitting wins; neither, the roomier", () => {
+  const both = { fitsUp: true, fitsDown: true };
+  expect(plateGoesUp({ ...both, roomUp: 200, roomDown: 40 })).toBe(true); // less room below
+  expect(plateGoesUp({ ...both, roomUp: 40, roomDown: 200 })).toBe(false); // less room above
+  expect(plateGoesUp({ ...both, roomUp: 120, roomDown: 120 })).toBe(true); // tie: above
+  expect(plateGoesUp({ ...both, roomUp: 120, roomDown: 120.01 })).toBe(false); // just past it
+  expect(plateGoesUp({ ...both, roomUp: 0, roomDown: 0 })).toBe(true);
+  // Only one side fits: that side, whatever the room says.
+  expect(plateGoesUp({ fitsUp: true, fitsDown: false, roomUp: 10, roomDown: 300 })).toBe(true);
+  expect(plateGoesUp({ fitsUp: false, fitsDown: true, roomUp: 300, roomDown: 10 })).toBe(false);
+  // 2d fallback: neither fits, the roomier side (tie above); endLabelAt keeps it in the plot.
+  const neither = { fitsUp: false, fitsDown: false };
+  expect(plateGoesUp({ ...neither, roomUp: 30, roomDown: 20 })).toBe(true);
+  expect(plateGoesUp({ ...neither, roomUp: 20, roomDown: 30 })).toBe(false);
+  expect(plateGoesUp({ ...neither, roomUp: 25, roomDown: 25 })).toBe(true);
 });

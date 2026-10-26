@@ -18,14 +18,18 @@ export const statusOf = (result: EntryResult, bound: boolean): Status => {
     : { kind: "ok" };
 };
 
-/** Form 4e: the limit note stays (blur included) until the field is next edited. */
+/**
+ * Form 4e / 2i: a short note (a limit note, or an invalid entry's note) stays, blur included,
+ * until the field is next edited.
+ */
 export const afterEdit = (status: Status): Status =>
-  status.kind === "clamped" ? { kind: "ok" } : status;
+  status.kind === "ok" ? status : { kind: "ok" };
 
 /**
- * Form 4h: when `value` arrives, a clamp note stays only if it is this field's own commit
+ * Form 4h / 2i: when `value` arrives, a note stays only if it is this field's own commit
  * (`sent`, the value it last handed to onCommit); any other change (a model switch) clears it,
- * so a note never describes a value that is no longer shown.
+ * so a note never describes a value that is no longer shown. An invalid entry sends nothing, so
+ * an outside change always clears its note.
  */
 export const afterValue = (status: Status, value: number, sent: number | null): Status =>
   sent === value ? status : afterEdit(status);
@@ -33,6 +37,7 @@ export const afterValue = (status: Status, value: number, sent: number | null): 
 export type Copy = {
   /** Form 4d/4e/4f: "Max is 10,000" / "Min is 1.01", whether from Enter or from blur. */
   limitNote?: ((used: number, bounds: Bounds) => string) | undefined;
+  /** Form 2j: the short note for text that isn't a number ("abc", "2x"): "Numbers only". */
   invalidMessage?: ((current: number) => string) | undefined;
   /** Form 2g: "Whole numbers only" and "Use a dot for decimals". */
   wholeMessage?: string | undefined;

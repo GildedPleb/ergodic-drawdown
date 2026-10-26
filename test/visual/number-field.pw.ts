@@ -50,6 +50,7 @@ for (const [id, typed, used, message] of [
   ["#v2-vol", "-1", "0", "Min is 0"],
   ["#v2-years", "1e9", "120", "Max is 120"],
   ["#v2-years", "-4", "1", "Min is 1"],
+  ["#v2-samples", "1e309", "10000", "Max is 10,000"], // Form 2j: overflow clamps too
 ] as const) {
   test(`${id} "${typed}" clamps to ${used} with a visible message`, async ({ page }) => {
     await gotoStory(page, "models-sheet/default");
@@ -70,9 +71,12 @@ test("text that isn't a number is the defined invalid state; the last value stay
   await field.fill("abc");
   await field.press("Enter");
   await expect(field).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#v2-vol-message")).toContainText("0.1, is still in use");
+  await expect(page.locator("#v2-vol-message")).toHaveText("Numbers only"); // Form 2j
   await field.blur();
+  // Form 2i: the field shows the last committed value again; the note stays.
+  await expect(field).toHaveValue("0.1");
   await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#v2-vol-message")).toHaveText("Numbers only");
   await expect(page.locator("[data-pane], body").first()).not.toContainText("NaN");
   // Fixing the text clears it.
   await field.fill("0.2");
