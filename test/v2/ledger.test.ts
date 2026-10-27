@@ -129,9 +129,10 @@ test("1V: settings survive a reload through the one store; bad or missing data r
   expect(pageStore()).toBe(undefined);
 });
 
-test("1MP 5: Bitcoin OFF keeps its square (outline only) and dims its header", () => {
+test("1MP 5 / C1a: Bitcoin OFF keeps its square (outline only); its name is not muted", async () => {
   const row = rowOf(render([], false), "bitcoin");
-  expect(row.includes('data-on="false"')).toBe(true);
+  const css = await file(`${PRIMITIVES}/AssetRow/AssetRow.module.css`).text();
+  expect(/data-on|\.name\s*\{[^}]*color/.test(css)).toBe(false);
   expect(row.includes('aria-pressed="false"')).toBe(true);
   expect(row.includes("OFF")).toBe(false);
 });

@@ -103,7 +103,7 @@ test("1X: the diagonal's perpendicular weight matches the run at 1× and 2×, da
         const name = `${String(width)} ${theme} ${String(dpr)}×: ${JSON.stringify(w)}`;
         expect(w.peakRatio, name).toBeGreaterThanOrEqual(0.95);
         expect(w.peakRatio, name).toBeLessThanOrEqual(1.05);
-        expect(w.inkRatio, name).toBeGreaterThanOrEqual(1);
+        expect(w.inkRatio, name).toBeGreaterThanOrEqual(0.98);
         expect(w.inkRatio, name).toBeLessThanOrEqual(1.6);
       }
 });

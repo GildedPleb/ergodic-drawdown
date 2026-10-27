@@ -12,7 +12,7 @@
     padding-block-start: var(--s-1);
   }
 
-  /* §1MP 10: the open header pins on the surface, covering the side padding, no line under it. */
+  /* §1MP 10: the open header pins on the surface, no line under it. */
   .root[data-state="open"] > .head {
     position: sticky;
     inset-block-start: 0;
@@ -26,8 +26,7 @@
     background: var(--surface);
   }
 
-  /* §1MP 5: an 11px square: 1px outline, 2px gap, 5px core (ON); the outline alone (OFF). Its
-     44×44 target is centred on the name's first line and has no visible change. */
+  /* §1MP 5: 11px square, 1px outline, 5px core when ON; an invisible 44×44 target on line 1. */
   .key {
     --_key: 0.6875rem;
     --_key-y: calc(var(--s-2) + var(--t-pane) * 0.575 - var(--hit) / 2);
@@ -112,10 +111,5 @@
   .summary {
     color: var(--text-muted);
     font: italic var(--t-caption)/1.3 var(--f-text);
-  }
-
-  /* Off mutes the name (C1) */
-  .root[data-on="false"] .name {
-    color: var(--text-muted);
   }
 }

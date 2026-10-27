@@ -1,11 +1,12 @@
-import { mkdirSync } from "node:fs";
-
 import { expect, type Page, test } from "@playwright/test";
 
-// V32-BUILD §1U: the open Select list lives in the top layer, flush to its field, every row shown.
+// V32-BUILD §1MP item 6 / Form ruling 5: in the Models pane a Select opens in place, in the pane's
+// flow (no top layer, no sheet lock). The pane scrolls just enough to show the whole list in the
+// band clear of the pinned header and both fades; a list taller than that band keeps its pick in
+// view. Esc closes with no change; picking a row closes it; focus always returns to the pick.
 const SIZES = ["390x844", "1440x900"] as const;
-const SHOTS = "/workspace/forge-slice1/1P";
 const LOGO = '[aria-controls="models-sheet"]:not([role="tab"])';
+const ZONE = '[data-pane="models"]';
 
 test.beforeEach(({ browserName }, info) => {
   test.skip(
@@ -17,14 +18,12 @@ test.beforeEach(({ browserName }, info) => {
 const stop = async (page: Page): Promise<string> =>
   page.evaluate(() => document.querySelector<HTMLElement>("[data-sheet]")?.dataset["sheet"] ?? "");
 
-/** Opens the sheet to `to` with the grab point (§1R: closed → half → full). */
+/** Opens the sheet to `to` with the grab point (§1R: closed → half → full), Bitcoin open. */
 const openSheet = async (page: Page, to: "half" | "full"): Promise<void> => {
   await page.goto("/");
-  const logo = page.locator(LOGO);
-  await logo.focus();
+  await page.locator(LOGO).focus();
   await page.keyboard.press(to === "full" ? "Home" : "ArrowUp");
   await expect.poll(async () => stop(page)).toBe(to);
-  // §1M: the ledger lands closed; the Selects live in the open Bitcoin row.
   if ((await page.locator("#asset-bitcoin").getAttribute("aria-expanded")) !== "true") {
     await page.locator("#asset-bitcoin").click();
   }
@@ -32,56 +31,59 @@ const openSheet = async (page: Page, to: "half" | "full"): Promise<void> => {
   await page.waitForTimeout(350);
 };
 
-type Geometry = {
-  open: boolean;
-  inViewport: boolean;
-  innerScroll: boolean;
-  rows: number;
-  visibleRows: number;
-  flush: number;
-  up: boolean;
-  scrollbars: number;
+const opts = (page: Page, id: string) => page.locator(`#${id} [role="option"]`);
+
+/** Opens the list by pressing its pick and waits for the reveal scroll to settle. */
+const openList = async (page: Page, id: string): Promise<void> => {
+  await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+  await opts(page, id).first().click();
+  await expect.poll(async () => opts(page, id).count()).toBeGreaterThan(1);
+  await page.waitForTimeout(200);
 };
 
-/** The open list's geometry: every row hit-tested at its top and bottom edge (nothing clips it). */
+type Geometry = {
+  inZone: boolean;
+  topLayer: boolean;
+  rows: number;
+  fits: boolean;
+  shown: boolean;
+  pickShown: boolean;
+  pickFocused: boolean;
+};
+
+/** The open list against the zone's clear band (below the pinned header + top fade, above the
+ *  bottom fade), as pane-cues measures it. */
 const geometry = async (page: Page, id: string): Promise<Geometry> =>
-  page.evaluate((sel) => {
-    const list = document.getElementById(`${sel}-list`);
-    const field = document.getElementById(sel);
-    if (list === null || field === null) throw new Error("no select");
-    const l = list.getBoundingClientRect();
-    const f = field.getBoundingClientRect();
-    const up = l.bottom <= f.top + 1;
-    const opts = [...list.querySelectorAll("li")];
-    const seen = (li: Element): boolean => {
-      const r = li.getBoundingClientRect();
-      const x = r.left + r.width / 2;
-      return [r.top + 2, r.bottom - 2].every((y) => {
-        const hit = document.elementFromPoint(x, y);
-        return hit !== null && li.contains(hit);
-      });
-    };
-    const scrollbars = [...document.querySelectorAll("*")].filter((el) => {
-      const s = getComputedStyle(el);
-      const scrolls = s.overflowY === "auto" || s.overflowY === "scroll";
-      const r = el.getBoundingClientRect();
-      return scrolls && el.scrollHeight > el.clientHeight + 1 && r.height > 0 && r.width > 0;
-    }).length;
-    return {
-      open: list.matches(":popover-open"),
-      inViewport:
-        l.top >= -0.5 &&
-        l.left >= -0.5 &&
-        l.bottom <= window.innerHeight + 0.5 &&
-        l.right <= window.innerWidth + 0.5,
-      innerScroll: list.scrollHeight > list.clientHeight + 1,
-      rows: opts.length,
-      visibleRows: opts.filter(seen).length,
-      flush: up ? Math.abs(l.bottom - f.top) : Math.abs(l.top - f.bottom),
-      up,
-      scrollbars,
-    };
-  }, id);
+  page.evaluate(
+    ({ sel, zoneSel }) => {
+      const list = document.getElementById(sel);
+      const zone = document.querySelector(zoneSel);
+      if (list === null || zone === null) throw new Error("no list");
+      const fade = 1.5 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const head = list.closest("[data-asset]")?.querySelector("[data-pin]");
+      const z = zone.getBoundingClientRect();
+      const top = z.top + (head?.getBoundingClientRect().height ?? 0) + fade;
+      const bottom = z.bottom - fade;
+      const l = list.getBoundingClientRect();
+      const pick = list.querySelector('[aria-selected="true"]');
+      const p = pick?.getBoundingClientRect();
+      const fits = l.height <= bottom - top;
+      return {
+        inZone: zone.contains(list),
+        topLayer: list.matches(":popover-open") || list.closest("[popover], dialog") !== null,
+        rows: list.querySelectorAll('[role="option"]').length,
+        fits,
+        shown: l.top >= top - 1 && l.bottom <= bottom + 1,
+        // A pick taller than the band shows its top at the band's top (9a).
+        pickShown:
+          p !== undefined &&
+          p.top >= top - 1 &&
+          (p.bottom <= bottom + 1 || p.height > bottom - top),
+        pickFocused: pick !== null && pick === document.activeElement,
+      };
+    },
+    { sel: id, zoneSel: ZONE },
+  );
 
 const cases = [
   ["390x844", "half"],
@@ -91,88 +93,67 @@ const cases = [
 
 for (const [size, at] of cases) {
   for (const id of ["v2-model", "v2-walk"]) {
-    test(`§1U ${id} at ${size} (${at} sheet): every row shown, in the viewport, flush, no inner scroll`, async ({
+    test(`§1MP 6 ${id} at ${size} (${at} sheet): opens in place; the pane shows it whole or keeps the pick`, async ({
       page,
     }, info) => {
       test.skip(!info.project.name.endsWith(size), size);
       await openSheet(page, at);
-      const combo = page.locator(`#${id}`);
-      await combo.scrollIntoViewIfNeeded();
-      await combo.click();
-      await expect(combo).toHaveAttribute("aria-expanded", "true");
-      await expect(combo).toBeFocused();
+      const closed = await opts(page, id).count();
+      expect(closed).toBe(1);
+      await openList(page, id);
       const g = await geometry(page, id);
-      expect(g.open).toBe(true);
-      expect(g.inViewport).toBe(true);
-      expect(g.rows).toBeLessThanOrEqual(9);
-      if (g.rows <= 8) expect(g.innerScroll).toBe(false);
-      if (!g.innerScroll) expect(g.visibleRows).toBe(g.rows);
-      expect(g.flush).toBeLessThanOrEqual(1);
-      expect(g.scrollbars).toBeLessThanOrEqual(1);
-      if (info.project.name.startsWith("chromium")) {
-        mkdirSync(SHOTS, { recursive: true });
-        await page.screenshot({ path: `${SHOTS}/select-${id}-${size}-${at}.png` });
-      }
+      expect(g.inZone).toBe(true);
+      expect(g.topLayer).toBe(false);
+      expect(g.rows).toBeGreaterThan(1);
+      expect(g.pickFocused).toBe(true);
+      if (g.fits) expect(g.shown).toBe(true);
+      else expect(g.pickShown).toBe(true);
     });
   }
 }
 
-test("§1U: the sheet doesn't scroll while the list is open; a wheel outside closes it, no change", async ({
+test("§1MP 6: Esc closes with no change and focus returns to the pick", async ({ page }) => {
+  await openSheet(page, "half");
+  const before = await opts(page, "v2-model").first().textContent();
+  await openList(page, "v2-model");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Escape");
+  await expect(opts(page, "v2-model")).toHaveCount(1);
+  expect(await opts(page, "v2-model").first().textContent()).toBe(before);
+  await expect(opts(page, "v2-model").first()).toBeFocused();
+  // Esc closed only the list: the asset and the sheet stay open.
+  await expect(page.locator("#asset-bitcoin")).toHaveAttribute("aria-expanded", "true");
+  expect(await stop(page)).toBe("half");
+});
+
+test("§1MP 6: pressing another row picks it, closes the list and focuses the new pick", async ({
+  page,
+}) => {
+  await openSheet(page, "full");
+  await openList(page, "v2-walk");
+  const other = page.locator('#v2-walk [role="option"][aria-selected="false"]').first();
+  const name = (await other.locator("span").first().textContent()) ?? "";
+  await other.click();
+  await expect(opts(page, "v2-walk")).toHaveCount(1);
+  const pick = opts(page, "v2-walk").first();
+  await expect(pick).toHaveAttribute("aria-selected", "true");
+  expect(await pick.locator("span").first().textContent()).toBe(name);
+  await expect(pick).toBeFocused();
+});
+
+test("§1MP ruling 5: nothing is locked while a list is open; the pane still scrolls", async ({
   page,
 }) => {
   await openSheet(page, "half");
-  const combo = page.locator("#v2-model");
-  const before = await combo.textContent();
-  await combo.click();
-  const col = page.locator('[data-pane="models"]');
-  const top = await col.evaluate((el) => el.scrollTop);
-  const b = await col.boundingBox();
-  if (b === null) throw new Error("no column");
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height - 10);
-  await page.mouse.wheel(0, 200);
-  await expect(combo).toHaveAttribute("aria-expanded", "false");
-  expect(await col.evaluate((el) => el.scrollTop)).toBe(top);
-  expect(await combo.textContent()).toBe(before);
-});
-
-test("§1U: a resize closes the list", async ({ page }, info) => {
-  await openSheet(page, "half");
-  const combo = page.locator("#v2-model");
-  await combo.click();
-  await expect(combo).toHaveAttribute("aria-expanded", "true");
-  const [w, h] = info.project.name.endsWith("390x844") ? [400, 844] : [1400, 900];
-  await page.setViewportSize({ width: w, height: h });
-  await expect(combo).toHaveAttribute("aria-expanded", "false");
-});
-
-test("§1U: moving the sheet closes the list", async ({ page }, info) => {
-  // At 390 the half sheet's grab strips sit under the list (it opens up over them); use the full
-  // sheet there, where the logo stays clear of it.
-  const phone = info.project.name.endsWith("390x844");
-  await openSheet(page, phone ? "full" : "half");
-  const combo = page.locator(phone ? "#v2-walk" : "#v2-model");
-  await combo.click();
-  await expect(combo).toHaveAttribute("aria-expanded", "true");
-  const logo = await page.locator(LOGO).boundingBox();
-  if (logo === null) throw new Error("no logo");
-  const x = logo.x + logo.width / 2;
-  const y = logo.y + logo.height / 2;
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  await page.mouse.move(x, y + 40, { steps: 4 });
-  await expect(combo).toHaveAttribute("aria-expanded", "false");
-  await page.mouse.up();
-});
-
-test("§1U: a Select near the bottom edge opens above, flush, every row shown", async ({ page }) => {
-  // The half sheet puts How Prices Move near the bottom edge: no room below for its rows.
-  await openSheet(page, "half");
-  const combo = page.locator("#v2-walk");
-  await combo.click();
-  const g = await geometry(page, "v2-walk");
-  expect(g.up).toBe(true);
-  expect(g.inViewport).toBe(true);
-  expect(g.flush).toBeLessThanOrEqual(1);
-  expect(g.innerScroll).toBe(false);
-  expect(g.visibleRows).toBe(g.rows);
+  await openList(page, "v2-model");
+  const zone = page.locator(ZONE);
+  const before = await zone.evaluate((el) => el.scrollTop);
+  const b = await zone.boundingBox();
+  if (b === null) throw new Error("no zone");
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.wheel(0, before > 0 ? -200 : 200);
+  await expect.poll(async () => zone.evaluate((el) => el.scrollTop)).not.toBe(before);
+  // Scrolling the pane leaves the list open, in its place in the flow.
+  expect(await opts(page, "v2-model").count()).toBeGreaterThan(1);
+  expect(await stop(page)).toBe("half");
 });

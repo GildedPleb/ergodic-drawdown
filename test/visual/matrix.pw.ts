@@ -61,16 +61,9 @@ for (const id of ZOOM_STORIES) {
     await gotoStory(page, id);
     await expectNoOverflow(page);
     // Stacked: each label is as wide as its field, so no label is a one-letter column.
-    for (const sel of ["#v2-vol", "#v2-epochs", "#v2-samples", "#v2-walk"]) {
-      const label = page.locator(`label[for="${sel.slice(1)}"]`);
-      const box = await label.boundingBox();
-      expect((box?.width ?? 0) >= 100).toBe(true);
+    for (const id of ["v2-vol", "v2-samples", "v2-years"]) {
+      const box = await page.locator(`label[for="${id}"]`).boundingBox();
+      expect(box?.width ?? 0, id).toBeGreaterThanOrEqual(100);
     }
-    const lines = await page.locator('label[for="v2-walk"]').evaluate((el) => {
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      return range.getClientRects().length;
-    });
-    expect(lines <= 2).toBe(true); // "Walk Strategy:" on at most 2 lines
   });
 }

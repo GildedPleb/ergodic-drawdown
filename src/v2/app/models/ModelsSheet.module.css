@@ -1,8 +1,6 @@
 @layer app {
   /* §1MP 1–2: the ledger, then Simulation; no lines but the section rules. */
-  /* One track that may shrink below its rows' min-content (an `auto` track may not): at 320px the
-     Clamp row (label + Min + Max) widened the column ~7px past the pane, Max and the outer chips
-     with it (Probe N3). */
+  /* One track that may shrink below min-content (Probe N3: Clamp overflowed at 320px). */
   .root,
   .assets,
   .list {

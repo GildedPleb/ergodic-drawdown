@@ -39,7 +39,7 @@
     background: var(--accent);
   }
 
-  /* The previous-value tick; §1Q focus-range marks and the heavier rule at the 80% break. */
+  /* Previous-value tick; §1Q focus-range marks; the heavier 80% rule. */
   .tick,
   .mark,
   .brk {
@@ -68,7 +68,7 @@
     font: var(--t-chart) var(--f-sans);
   }
 
-  /* 5×18 square thumb; the 2px --surface halo is a border in the surface colour (no shadow, R4). */
+  /* 5×18 square thumb; its 2px --surface halo is a border (R4). */
   .thumb {
     cursor: var(--cursor-grab);
     position: absolute;

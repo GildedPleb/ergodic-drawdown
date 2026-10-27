@@ -54,7 +54,7 @@
     text-align: end;
   }
 
-  /* §1g: invalid is never a colour signal: --invalid text, a 3px rule in --invalid, ⚠ + message. */
+  /* §1g: invalid is never colour alone: a 3px rule, ⚠ + message. */
   .root[data-invalid="true"] .control {
     border: var(--rule-strong) solid var(--invalid);
     color: var(--invalid);
@@ -64,7 +64,7 @@
     border-color: var(--control-line);
   }
 
-  /* M4: disabled has a shape cue (dashed single rule), not colour alone. */
+  /* M4: disabled is dashed, not colour alone. */
   .root[data-disabled="true"] .control {
     border-style: dashed;
     color: var(--text-muted);
@@ -88,9 +88,7 @@
     display: none;
   }
 
-  /* §1MP 7, in a setting row: the field is the row's value cell (the row shows the label; the
-     input carries it as its name): Jost --t-value, right-aligned, no frame; the focus ring shows
-     it's live. The hint and message fall to the row's next lines. FL-001 rules unchanged. */
+  /* §1MP 7: the row's value cell, no frame. H1: its --hit target overhangs the line. */
   .root[data-label="hidden"],
   .root[data-label="hidden"] .field {
     display: contents;
@@ -98,8 +96,11 @@
 
   .root[data-label="hidden"] .control {
     --_value-w: 4.5rem;
+    --_h: max(var(--hit), 100%);
 
     inline-size: var(--_value-w);
+    min-block-size: 0;
+    block-size: var(--_h);
     padding: 0;
     border: 0;
     background: transparent;
@@ -115,7 +116,7 @@
     flex: none;
   }
 
-  /* Form N2 / §1i: below 16rem of pane width the label stacks above the field. */
+  /* Form N2 / §1i: under 16rem the label stacks above the field. */
   @container (max-width: 16rem) {
     .root {
       grid-template-columns: minmax(0, 1fr);

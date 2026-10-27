@@ -29,8 +29,10 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...cluster.align, ...cluster.justify].length).toBe(7);
   expect([...numberField.invalid]).toEqual(["true", "false"]);
   expect([...numberField.disabled]).toEqual(["true", "false"]);
-  // §1MP: SectionLabel has one look (no levels); AssetRow is open or not, its square on or off.
-  expect([...assetRow.state, ...assetRow.on]).toEqual(["open", "false"]);
+  // §1MP: SectionLabel has one look (no levels); AssetRow is open or not (C1a: OFF has no look of
+  // its own on the name; aria-pressed carries it).
+  expect([...assetRow.state]).toEqual(["open"]);
+  expect(Object.keys(assetRow)).toEqual(["state"]);
   expect([...pane.top, ...pane.more, ...pane.scrolling]).toEqual(["true", "true", "true"]);
   expect([...dock.orientation, ...dock.shown, ...dock.selected]).toEqual([
     "row",

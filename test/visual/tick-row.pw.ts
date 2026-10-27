@@ -20,7 +20,6 @@ test("click, Space and Enter each toggle the switch", async ({ page }) => {
   await expect(sw).toHaveAttribute("aria-checked", "false");
   await sw.press("Enter");
   await expect(sw).toHaveAttribute("aria-checked", "true");
-  await expect(sw).toContainText("ON");
 });
 
 test("FL-001: a held Enter (auto-repeat) toggles once", async ({ page }) => {

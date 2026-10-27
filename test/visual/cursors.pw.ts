@@ -44,13 +44,14 @@ test("1O at 1440: every target's computed cursor, and grabbing on <html> only wh
     ["dock tabs", '[role="tab"]', "pointer"],
     [
       "ledger headers (Bitcoin, S&P, Inflation)",
-      '[role="listitem"] button[aria-controls]',
+      '[role="listitem"] button[aria-expanded]',
       "pointer",
     ],
     ["ON/OFF box", '[role="switch"]', "pointer"],
-    ["Select field", '[role="combobox"]', "pointer"],
+    ["Select pick (closed list)", '[role="listbox"] [role="option"]', "pointer"],
     ["NumberField value cells", '[role="spinbutton"]', "text"],
-    ["headline and captions", "h1, h2, figcaption", "auto"],
+    // A visually hidden heading (.sr-only, 1px clip) is no pointer target; it inherits its pane's cursor.
+    ["headline and captions", "h1, h2:not(.sr-only), figcaption", "auto"],
     ["page background", "body", "auto"],
   ];
   for (const [name, selector, want] of rows) {
@@ -58,7 +59,8 @@ test("1O at 1440: every target's computed cursor, and grabbing on <html> only wh
     expect(got.length, `${name}: none visible`).toBeGreaterThan(0);
     expect(new Set(got), name).toEqual(new Set([want]));
   }
-  expect((await cursorOf(page, '[role="listitem"] button[aria-controls]')).length).toBe(3);
+  // aria-controls is only set while a body is open; aria-expanded is on all three headers.
+  expect((await cursorOf(page, '[role="listitem"] button[aria-expanded]')).length).toBe(3);
 
   // Slider tracks: the row around the thumb.
   const track = await page.evaluate(() => {
@@ -68,8 +70,10 @@ test("1O at 1440: every target's computed cursor, and grabbing on <html> only wh
   expect(track).toBe("pointer");
 
   // Select options while the list is open.
-  await page.locator('[role="combobox"]').first().click();
-  expect(new Set(await cursorOf(page, '[role="option"]'))).toEqual(new Set(["pointer"]));
+  await page.locator('[role="listbox"] [role="option"]').first().click();
+  expect(new Set(await cursorOf(page, '[role="listbox"] [role="option"]'))).toEqual(
+    new Set(["pointer"]),
+  );
   await page.keyboard.press("Escape");
 
   // Mid-drag: <html> grabbing, no selection, logo stroke --accent-strong; release removes all.
@@ -136,7 +140,7 @@ test("1O at 390 touch: a tap leaves no hover style behind", async ({
   await page.locator(LOGO).tap(); // closed → half → full (§1R)
   const bitcoin = page.locator("#asset-bitcoin");
   if ((await bitcoin.getAttribute("aria-expanded")) !== "true") await bitcoin.tap();
-  const field = page.locator('[role="combobox"]').first();
+  const field = page.locator('[role="listbox"] [role="option"]').first();
   await field.scrollIntoViewIfNeeded();
   const bg = async (): Promise<string> =>
     field.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -144,7 +148,7 @@ test("1O at 390 touch: a tap leaves no hover style behind", async ({
   await field.tap();
   await page.waitForTimeout(400); // past the pressed flash
   expect(await bg()).toBe(before); // the tapped field shows no hover fill
-  const option = page.locator('[role="option"]').nth(1);
+  const option = page.locator('[role="listbox"] [role="option"]').nth(1);
   await option.tap();
   await page.waitForTimeout(400);
   expect(await bg()).toBe(before);

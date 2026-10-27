@@ -8,8 +8,6 @@ import styles from "./AssetRow.module.css";
 export const variants = {
   /** Absent while closed: header only. */
   state: ["open"] as const,
-  /** The colour square's switch: on (outline + core) or off (outline; the header dims). */
-  on: ["false"] as const,
 };
 
 type AssetKey = {
@@ -118,7 +116,6 @@ export const AssetRow = ({
       role="listitem"
       data-asset={asset}
       data-state={state}
-      data-on={on ? undefined : "false"}
       style={{ "--dyn-asset": colour }}
       onKeyDown={onKey}
     >

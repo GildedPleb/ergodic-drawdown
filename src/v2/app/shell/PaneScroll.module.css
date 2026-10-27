@@ -13,9 +13,9 @@
     --_fb: 0px;
 
     min-block-size: 0;
-    overflow-x: clip; /* a stray spill never makes a (hidden, 15px) horizontal bar */
+    overflow-x: clip; /* no stray horizontal bar */
     overflow-y: auto;
-    cursor: var(--cursor-rest); /* §1O: the arrow over static text; controls set their own */
+    cursor: var(--cursor-rest); /* §1O: the arrow; controls set their own */
     overscroll-behavior: contain;
     scroll-padding-block-start: var(--hit);
     scrollbar-width: none;

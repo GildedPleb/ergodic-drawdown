@@ -48,7 +48,7 @@
     font-size: var(--s-2);
   }
 
-  /* ▾: a 0.5rem muted triangle (drawn here; the shared icon set is not this pane's). */
+  /* ▾: a 0.5rem muted triangle, drawn here. */
   .end {
     inline-size: var(--s-2);
     block-size: var(--s-2);

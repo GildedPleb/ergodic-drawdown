@@ -633,7 +633,7 @@ The open S&P or Inflation body is one line: "{Asset} isn't modelled yet. When it
 - **Targets:** every interactive row or control has at least a `--hit` (44px) target.
 
 ### 3 · Section titles
-- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Simulation". Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line. The tracking after the last letter is trimmed, so the text is optically centred.
+- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Simulation". Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. The tracking after the last letter is trimmed, so the text is optically centred.
 - Each title has a rule on either side. The rules are 2px tall in `--accent` at 70% opacity, at least `--s-5` long, and equal in length. They taper to a point and fade to transparent at their outer ends. This is the only fade in the pane apart from the scroll fades.
 - The title and its two rules span exactly the text column (from `--col` to the right content edge) and centre within it. They're within 1px in the v54 audits.
 - Each title has `--s-5` above it, `--s-1` below it, and a minimum height of 1.5rem.
@@ -810,6 +810,10 @@ These rulings amend the items above. Where one conflicts with an earlier item or
 - **Storybook:** the invalid story shows the real short note, "Numbers only". Rebaseline the 8 number-field--invalid PNGs. No retired copy stays in stories.
 - **C1 (asset summary contrast, 2026-10-27):** the collapsed-row summary line uses `--text-muted` at full opacity in every state and theme, the same token as Bitcoin's summary, so it is at least 4.5:1 against its surface. The OFF state is shown only by the hollow square; never dim the text with opacity or a faded colour. Info that stays readable must keep text contrast.
 - **A1 (emoji labels' accessible name):** emoji in labels are decorative and wrapped `aria-hidden="true"`, with a plain-words text alternative. The accessible name is "3 up, 1 down, volatility:", not the emoji string. The same applies to every emoji in labels, select options and help text.
+- **C1a (OFF row name):** the OFF row's name stays in `--text`, like an ON row. The hollow square is the only OFF cue (C1).
+- **T1 (tick-row focus ring):** the ring has equal inner padding on both sides, at least `--s-2` after the last letter. The ring must never touch the text.
+- **H1 (tap targets at any text size):** every row's target is at least `--hit` (44px), set in rem so it scales with text size. At 1×, value rows keep the §2 spacing (24px between rows). The 200% fix must not make 1× rows about 60px tall.
+- **Bevel test floor:** 0.98. A ratio of 0.9993 is antialiasing noise, not a visible failure.
 - **Median with 2 futures (R6 Q6), settled:** the engine (`quantile.ts:37`) takes the lower middle value for an even count, and that stays: it's back-end behaviour (Keel, 2026-10-23). The label stays "median". At the default of 1,000 futures the two middle values are neighbours and the gap can't be seen; at tiny counts like 2 the fan means little anyway. Don't compute a different median on the v2 side. This is not a defect.
 
 ---

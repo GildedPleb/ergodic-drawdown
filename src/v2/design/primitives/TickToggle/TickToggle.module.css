@@ -19,7 +19,7 @@
     cursor: var(--cursor-press);
   }
 
-  /* The --selected fill: --tk-pad-x before the box, out to the scrollbar (a pair: its target). */
+  /* --selected: --tk-pad-x before the box to the scrollbar (a pair: its target). */
   .root::before {
     position: absolute;
     inset: 0 var(--_bleed-end) 0 var(--tk-pad-x);
@@ -45,9 +45,25 @@
     cursor: var(--cursor-off);
   }
 
+  /* T1: a row's ring hugs box and words, --s-2 inside each side, within the fill's bleed. */
   .root:focus-visible {
+    outline: 0;
+  }
+
+  .root[data-size]:focus-visible {
     outline: var(--focus-w) solid var(--focus);
     outline-offset: var(--focus-offset-tight);
+  }
+
+  .root:not([data-size]):focus-visible .label::after {
+    --_r: calc(0px - var(--s-2) - var(--focus-w));
+    --_l: calc(var(--_r) - var(--tk-box) - var(--s-3));
+    --_v: min(0px - var(--s-2), 50% - var(--hit) / 2);
+
+    position: absolute;
+    inset: var(--_v) var(--_r) var(--_v) var(--_l);
+    content: "";
+    border: var(--focus-w) solid var(--focus);
   }
 
   /* Above the fill (positioned, later in tree order). */
@@ -73,7 +89,7 @@
     border-color: var(--accent);
   }
 
-  /* M4: disabled is a shape change, not colour alone: the rule dashed. */
+  /* M4: disabled is dashed, not colour alone. */
   .root[data-disabled="true"] .box {
     border-style: dashed;
   }
