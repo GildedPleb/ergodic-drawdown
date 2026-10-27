@@ -36,8 +36,8 @@ export type SelectProps = {
  * clipped). Closed, only the pick shows: its engine name in SM Cormorant, a quiet ▾ at the right,
  * its description below. Pressing it opens every choice in engine order, each with its
  * description; the pick's name turns --accent with a gold ✓. Pressing any row picks it and closes
- * the list; Esc closes it with no change. Focus always comes back to the pick. Option text goes
- * through LabelGlyphs, so the 🟢🔴 walk is SVG, never an emoji font.
+ * the list; Esc closes it with no change. Focus always comes back to the pick. Option text and
+ * its description go through LabelGlyphs, so the 🟢🔴 walk is SVG, never an emoji font (A1).
  */
 export const Select = ({
   id,
@@ -148,7 +148,9 @@ export const Select = ({
             ) : (
               <span className={end} aria-hidden="true" />
             )}
-            <span className={desc}>{describe(o)}</span>
+            <span className={desc}>
+              <LabelGlyphs text={describe(o)} />
+            </span>
           </button>
         );
       })}

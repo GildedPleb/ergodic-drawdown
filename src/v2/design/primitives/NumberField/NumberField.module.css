@@ -100,7 +100,6 @@
     --_value-w: 4.5rem;
 
     inline-size: var(--_value-w);
-    min-block-size: 0;
     padding: 0;
     border: 0;
     background: transparent;

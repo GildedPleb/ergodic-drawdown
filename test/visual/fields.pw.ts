@@ -57,7 +57,7 @@ for (const id of FIELD_STORIES) {
       if (id.endsWith("/disabled")) await expect(control).toBeDisabled();
       if (id === "number-field/emoji-label") {
         await expect(page.getByRole("img", { name: "3 up, 1 down, volatility:" })).toBeVisible();
-        await expect(control).toHaveAccessibleName("🟢🟢🟢🔴 volatility:");
+        await expect(control).toHaveAccessibleName("3 up, 1 down, volatility:");
       }
       if (id === "models-sheet/emoji-walk") {
         // B2: the engine's emoji walk selected; SVG circles, spoken name, no emoji text node.

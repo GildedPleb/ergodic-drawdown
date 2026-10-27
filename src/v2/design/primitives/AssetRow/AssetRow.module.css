@@ -114,12 +114,8 @@
     font: italic var(--t-caption)/1.3 var(--f-text);
   }
 
-  /* Off dims the header: the name muted, the summary faint. */
+  /* Off mutes the name (C1) */
   .root[data-on="false"] .name {
     color: var(--text-muted);
-  }
-
-  .root[data-on="false"] .summary {
-    color: var(--text-faint);
   }
 }

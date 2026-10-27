@@ -9,15 +9,14 @@
     color: var(--accent);
     font: 600 var(--t-section)/1 var(--f-sans);
     letter-spacing: var(--tr-section);
+    text-align: center;
     text-transform: uppercase;
-    white-space: nowrap;
   }
 
   /* The rules: 2px, tapering to a point and fading out at the outer end; the end one mirrored. */
   .root::before,
   .root::after {
-    flex: 1 1 0;
-    min-inline-size: var(--s-5);
+    flex: 1 1 var(--s-5);
     block-size: var(--s-0);
     content: "";
     background: currentColor;

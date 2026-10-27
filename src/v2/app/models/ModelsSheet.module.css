@@ -4,7 +4,8 @@
      Clamp row (label + Min + Max) widened the column ~7px past the pane, Max and the outer chips
      with it (Probe N3). */
   .root,
-  .assets {
+  .assets,
+  .list {
     --_col: calc(var(--s-5) + var(--s-3));
 
     display: grid;
@@ -17,8 +18,8 @@
   }
 
   .list {
-    display: grid;
     row-gap: var(--s-2);
+    container-type: inline-size;
   }
 
   /* Clamp: Min then Max, --s-1 apart; "Max" ends on the text column's right edge. */
@@ -26,6 +27,7 @@
     position: relative;
     inset-inline-start: var(--s-2);
     display: flex;
+    flex-wrap: wrap;
     gap: var(--s-1);
   }
 

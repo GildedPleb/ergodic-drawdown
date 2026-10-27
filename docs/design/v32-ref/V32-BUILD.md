@@ -808,6 +808,8 @@ These rulings amend the items above. Where one conflicts with an earlier item or
 - **2d equal room:** the plate goes above.
 - **4i:** invalid notes clear the same way clamp notes do (4h).
 - **Storybook:** the invalid story shows the real short note, "Numbers only". Rebaseline the 8 number-field--invalid PNGs. No retired copy stays in stories.
+- **C1 (asset summary contrast, 2026-10-27):** the collapsed-row summary line uses `--text-muted` at full opacity in every state and theme, the same token as Bitcoin's summary, so it is at least 4.5:1 against its surface. The OFF state is shown only by the hollow square; never dim the text with opacity or a faded colour. Info that stays readable must keep text contrast.
+- **A1 (emoji labels' accessible name):** emoji in labels are decorative and wrapped `aria-hidden="true"`, with a plain-words text alternative. The accessible name is "3 up, 1 down, volatility:", not the emoji string. The same applies to every emoji in labels, select options and help text.
 - **Median with 2 futures (R6 Q6), settled:** the engine (`quantile.ts:37`) takes the lower middle value for an even count, and that stays: it's back-end behaviour (Keel, 2026-10-23). The label stays "median". At the default of 1,000 futures the two middle values are neighbours and the gap can't be seen; at tiny counts like 2 the fan means little anyway. Don't compute a different median on the v2 side. This is not a defect.
 
 ---

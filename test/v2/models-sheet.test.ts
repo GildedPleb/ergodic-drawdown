@@ -337,7 +337,8 @@ test("Probe N3: the ledger's one column may shrink below its rows' min-content (
   const css = await file(
     `${import.meta.dir}/../../src/v2/app/models/ModelsSheet.module.css`,
   ).text();
-  const rule = /\.root,\s*\.assets \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  // .list too: at 195px (390 @ 200%) its implicit track widened every row to 179px in 131px.
+  const rule = /\.root,\s*\.assets,\s*\.list \{([^}]*)\}/.exec(css)?.[1] ?? "";
   // An implicit `auto` track grows to the Clamp row's min-content (275.3px in a 268px column).
   expect(rule.includes("grid-template-columns: minmax(0, 1fr);")).toBe(true);
   expect(rule.includes("min-inline-size: 0;")).toBe(true);
