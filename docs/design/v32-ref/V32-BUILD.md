@@ -201,6 +201,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
   - The slider has a 1px `--control-line` track, a 2px `--accent` fill and a `--thumb-w`×`--thumb-h` (5×18) square `--accent` thumb with a 2px `--surface` halo. A muted tick marks the previous value.
   - It saves on release. Tap the row again or press Esc to close it.
 - **TickToggle:**
+  > **SUPERSEDED by §1MP** (2026-10-27). Kept for history only. Tick boxes show no ON/OFF word; the box alone shows the state (§1MP).
   - `--tk-box` 16px; the row is `--tk-h` 44 with `--tk-pad-x` 14 on each side and `--tk-gap` 12.
   - **On:** a solid `--accent` square with ✓ (SVG) and "ON" in Jost caps `--accent`.
   - **Off:** an empty double-ruled square with "OFF" in `--text-muted`.
@@ -316,6 +317,7 @@ Rule 0 still holds. The engine's data stays exactly as it is, and these changes 
 3. **Selecting from a list: the new Certificate Select primitive.** It replaces the full radio lists for the price model and the walk.
    - **Closed:** one field row in the Certificate style: square corners, the fine double rule, and the current value in Jost, followed by a small ▾ at the right. It's the same height as a number-field row.
    - **Open:** a listbox anchored to the field and the same width as it. Square, with the double rule, on the sheet's surface colour. Each option is a row, and ■ marks the selected one. At most 7 rows are visible; past that the list scrolls. If there isn't room below, the list opens upward. It always stays inside the sheet or panel and never covers the dock.
+   > **SUPERSEDED by §1MP Ruling 5 and §13** (2026-10-27). Kept for history only. The list opens in place as a listbox (`[role=listbox] [role=option]`); keyboard behaviour below still applies where it fits a listbox.
    - **Behaviour:** this is the WAI-ARIA select-only combobox pattern. ↑ and ↓ move through the options, Home and End jump to the ends, typing jumps to a matching option, Enter or a click picks one, and Esc closes the list with no change; after either, focus returns to the field. A click outside closes it with no change and focus goes wherever the user clicked; it isn't pulled back. The list always shows at least 4 rows: if neither direction fits 4, it opens downward and the sheet scrolls to make room. A new pick triggers a recompute, with the same states as today.
    - **States:** default, hover, focus, open, and linen. No disabled state.
    - The options come from the engine's lists exactly as they are (Rule 0). Labels are the engine's, unchanged.
