@@ -47,7 +47,7 @@
     "oxlint": "*",
     "oxlint-tsgolint": "*",
     "typescript": ">=7.0.0",
-    "vite": "^8.3.4"
+    "vite": "^8.3.5"
   },
   "browserslist": [
     "defaults and supports es6-module",
