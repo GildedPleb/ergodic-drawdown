@@ -19,10 +19,6 @@ dark   usd              ground      5.52   5.52  4.5  ok
 dark   usd              surface     5.06   5.06  4.5  ok
 dark   usd              raised      4.54   4.54  4.5  ok
 dark   usd              selected    3.79   4.55  4.5  FIXED 
-dark   text-faint       ground      3.96   3.96    3  ok
-dark   text-faint       surface     3.63   3.63    3  ok
-dark   text-faint       raised      3.26   3.26    3  ok
-dark   text-faint       selected    2.72   3.26    3  FIXED 
 dark   focus            ground     13.02  13.02    3  ok
 dark   focus            surface    11.95  11.95    3  ok
 dark   focus            raised     10.72  10.72    3  ok
@@ -99,10 +95,6 @@ linen  usd              ground      7.68   7.68  4.5  ok
 linen  usd              surface     6.99   6.99  4.5  ok
 linen  usd              raised      6.14   6.14  4.5  ok
 linen  usd              selected    5.78   7.38  4.5  ok 
-linen  text-faint       ground      3.88   3.88    3  ok
-linen  text-faint       surface     3.53   3.53    3  ok
-linen  text-faint       raised      3.10   3.10    3  ok
-linen  text-faint       selected    2.92   3.73    3  FIXED 
 linen  focus            ground      7.41   7.41    3  ok
 linen  focus            surface     6.75   6.75    3  ok
 linen  focus            raised      5.93   5.93    3  ok

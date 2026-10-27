@@ -630,10 +630,10 @@ The open S&P or Inflation body is one line: "{Asset} isn't modelled yet. When it
 - **Gutter and text column:** colour squares hang in a 1rem gutter. Everything else starts on the text column at `--col` = 1rem + `--s-3` (1.75rem from the content edge). That covers names, labels, descriptions, selectors, tick boxes, section titles, sliders and the ergodic line. At 390 the text column runs from x=54 to x=364.
 - **Lines:** the section-title rules are the only lines in the pane. There's no hairline between rows, under the pinned header, at the top or bottom of the scroll region, or in open lists. Controls draw their own parts (slider rail, tick box, colour square).
 - **Space between rows:** inside a group, each row has `--s-2` of padding top and bottom plus a `--s-2` gap, so there's 24px from one row's last line to the next row's first. A name or label sits 1px (`0.0625rem`) above its own description. Asset headers are `--s-5` (16px) apart, and the Simulation group starts `--s-5` below the last asset.
-- **Targets:** every interactive row or control has at least a `--hit` (44px) target.
+- **Targets:** every interactive control has a hit target of at least `--hit` (44px), set in rem so it scales with text size. The target may overhang its row, centred on it; rows keep the spacing above (H1).
 
 ### 3 · Section titles
-- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Simulation". Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. The tracking after the last letter is trimmed, so the text is optically centred.
+- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Simulation". Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. Where the column is narrower than 12rem (for example 390 at 200% text), both rules hide and the title wraps alone, so nothing scrolls sideways (WCAG reflow beats the rule minimum). The tracking after the last letter is trimmed, so the text is optically centred.
 - Each title has a rule on either side. The rules are 2px tall in `--accent` at 70% opacity, at least `--s-5` long, and equal in length. They taper to a point and fade to transparent at their outer ends. This is the only fade in the pane apart from the scroll fades.
 - The title and its two rules span exactly the text column (from `--col` to the right content edge) and centre within it. They're within 1px in the v54 audits.
 - Each title has `--s-5` above it, `--s-1` below it, and a minimum height of 1.5rem.
@@ -652,7 +652,7 @@ The asset's colour square is its chart switch, like a chart-legend key. There's 
 - **Size:** the square is 11px (`0.6875rem`) outside. Its press target stays at least 44×44px, and the target has no visible change.
 - **ON:** a 1px outline in the asset colour, then a clear 2px gap, then a solid 5px square in the asset colour at the centre.
 - **OFF:** the 1px outline in the asset colour only.
-- **Off dims the header:** while an asset is off, its name turns `--text-muted` and its summary `--text-faint`. When it's on, the name is `--text` and the summary `--text-muted`.
+- **Off state:** only the hollow square shows that an asset is off. The name stays `--text` and the summary `--text-muted` in both states, and no text dims (C1, C1a).
 - **Hover (mouse only) and keyboard focus:** the square gets a 1px `--accent` outline 2px outside it. Touch has no hover state.
 - **Pressing:** the square toggles on and off, and never opens or closes the asset. Its target is 44×44px, centred on the square, which sits centred on the name's first line.
 - **Starting state:** Bitcoin starts ON.
@@ -745,7 +745,7 @@ The open asset's header row stays pinned to the top of the scroll region while y
 - **Focus:** the house focus ring (`--focus-w` 2px in `--focus`) shows on every focusable control except the colour square, whose focus is the 1px gold outline (item 5).
 - **Announcements:** the ergodic line is announced politely when it changes.
 - **Decorative parts:** chevrons, checks and section rules are hidden from assistive technology.
-- **Themes:** every colour above is a semantic token. Shots are dark theme; linen follows the tokens. Text meets its contrast floor in both. `--text-faint` is for the off state only (3.63:1 on `--surface`, dark theme).
+- **Themes:** every colour above is a semantic token. Shots are dark theme; linen follows the tokens. Text meets its contrast floor in both. `--text-faint` is retired (2026-10-27); nothing uses it.
 
 ### 14 · States to build and check
 Collapsed, open (one and several), asset ON, asset OFF, not yet modelled (inert square), hover (mouse) and focus on the square, model list open, walk list open, ergodic and not ergodic, Show historic price on and off, a Clamp toggle on, scrolled at the top, mid-scroll (both fades and the scrollbar) and at the bottom, phone 390 and desktop 1440, dark and linen.

@@ -24,7 +24,7 @@
 `contrast.py` exits 0.
 
 - Every pair **not** on `--selected` is unchanged from color.css (120 pairs).
-- Every pair on `--selected` now meets its floor: text ≥4.5, lines ≥3. `text-faint` is disabled text, which WCAG exempts, but it passes 3:1 anyway.
+- Every pair on `--selected` now meets its floor: text ≥4.5, lines ≥3. `text-faint` is disabled text, which WCAG exempts, but it passes 3:1 anyway. (`--text-faint` was retired on 2026-10-27, V32-BUILD §13; its 8 rows left the table.)
 - Still below floor and unchanged on purpose: linen `btc` on `--raised` is 3.98. The rule stays: no data text on linen raised.
 
 ### v2.1 · selected-row fix (palette-level only)
@@ -36,18 +36,18 @@ The old `--selected` was `color-mix(gold 14%, surface)`, which was too strong fo
 | Dark  | `#393122` (gold 14% into surface)                      | `--gold-wash-850` **#29241b** | gold 6% into surface                                                                         |
 | Linen | `#cfc0a7` (gold 14% into surface, darker than surface) | `--gold-wash-125` **#e3d9c6** | gold 3% into ground, so a hair **lighter** than surface; the lift is paper-light, not shadow |
 
-| On `--selected`       | Dark before → after    | Linen before → after  |
-| --------------------- | ---------------------- | --------------------- |
-| text                  | 10.53 → 12.65          | 7.51 → 9.60           |
-| text-muted            | 4.84 → 5.81            | 4.63 → 5.92           |
-| accent (gold)         | 6.79 → 8.16            | **4.25 → 5.43**       |
-| btc                   | 5.59 → 6.71            | **3.74 → 4.78**       |
-| usd                   | **3.79 → 4.55**        | 5.78 → 7.38           |
-| control-line          | **2.72 → 3.27**        | **2.98 → 3.81**       |
-| text-faint (disabled) | 2.72 → 3.26            | 2.92 → 3.73           |
-| path-inflation        | **2.95 → 3.54**        | 5.07 → 6.48           |
-| path-plan-1           | 6.06 → 7.28            | **2.94 → 3.75**       |
-| lowest other line     | 3.79 (path-usd) → 4.55 | 3.04 (path-sp) → 3.89 |
+| On `--selected`      | Dark before → after    | Linen before → after  |
+| -------------------- | ---------------------- | --------------------- |
+| text                 | 10.53 → 12.65          | 7.51 → 9.60           |
+| text-muted           | 4.84 → 5.81            | 4.63 → 5.92           |
+| accent (gold)        | 6.79 → 8.16            | **4.25 → 5.43**       |
+| btc                  | 5.59 → 6.71            | **3.74 → 4.78**       |
+| usd                  | **3.79 → 4.55**        | 5.78 → 7.38           |
+| control-line         | **2.72 → 3.27**        | **2.98 → 3.81**       |
+| text-faint (retired) | 2.72 → 3.26            | 2.92 → 3.73           |
+| path-inflation       | **2.95 → 3.54**        | 5.07 → 6.48           |
+| path-plan-1          | 6.06 → 7.28            | **2.94 → 3.75**       |
+| lowest other line    | 3.79 (path-usd) → 4.55 | 3.04 (path-sp) → 3.89 |
 
 - **Trade-off:** the wash itself is quieter. Against the surface it is now 1.11:1 in dark (was 1.34) and 1.06:1 in linen (was 1.21, and now lighter rather than darker). Per the brief, selection is carried by the ■ mark, the gold frame and weight, never by the tint alone.
 - Only `--selected` moved. `--hover` (gold-free: ink 5% into surface) and every other value are untouched. `--mix-14` stays in the palette but is now unused.
@@ -72,7 +72,7 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 - v2.1: palette families `gold-wash`, `leaf` and `red`; semantic `--walk-up` and `--walk-down`.
 - `--dur-fast` 180ms, `--dur-panel` 280ms (the dock spec named no number), `--ease-out`, the `--motion-transform` flag, and the full z-index scale values.
 - `--rule-strong` 3px and `--rule-double` (1px line, 2px gap, 1px line = 4px total; taken from the `.db` inset rule).
-- Names `--text-faint`, `--control-line`, `--today-line`, `--risk-line`, `--ghost`, `--hover`, `--fan-band-1..4`, `--path-usd`; the per-path `--fan-*-fill/-edge/-halo` (fill and edge are the path colour, halo is the surface).
+- Names `--text-faint` (retired 2026-10-27), `--control-line`, `--today-line`, `--risk-line`, `--ghost`, `--hover`, `--fan-band-1..4`, `--path-usd`; the per-path `--fan-*-fill/-edge/-halo` (fill and edge are the path colour, halo is the surface).
 - `--danger-floor` = the btc orange (as v32 draws "below ₿1 · danger"). It is distinct from `--risk-line` (ink), which marks risk windows.
 - The `--depth-back-*` set (opacity .07, scaleY .94, shift −6px, blur .6px), lifted from the depth build's CSS.
 
@@ -92,7 +92,7 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 | color.css | `--raised`               | `--raised`                                             | dark --ink-850 · linen --linen-200         |
 | color.css | `--ink`                  | `--text`                                               | dark --linen-75 · linen --umber-800        |
 | color.css | `--ink-muted`            | `--text-muted`                                         | dark --stone-350 · linen --umber-675       |
-| color.css | `--ink-faint`            | `--text-faint`                                         | dark --stone-525 · linen --umber-550       |
+| color.css | `--ink-faint`            | retired (was `--text-faint`, 2026-10-27)               | dark --stone-525 · linen --umber-550       |
 | color.css | `--gold`                 | `--accent`                                             | dark --gold-225 · linen --gold-650         |
 | color.css | `--gold-rule`            | `--rule`                                               | dark --gold-600 · linen --gold-325         |
 | color.css | `--hairline`             | `--hairline`                                           | dark --ink-775 · linen --linen-225         |

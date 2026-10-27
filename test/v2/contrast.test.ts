@@ -120,14 +120,13 @@ const table = async (): Promise<Row[]> => {
 /**
  * Below-floor pairs Form keeps on purpose (usage rules, not token misses):
  * - linen ₿ on raised (3.98): no data text on linen raised surfaces.
- * - text-faint on selected is disabled text, exempt from 4.5/3.
  */
 const USAGE_EXCEPTIONS = new Set(["linen btc raised"]);
 
 test("G1: every pair in Form's v2.1 contrast table matches the repo tokens (±0.005)", async () => {
   const env = await themes();
   const rows = await table();
-  expect(rows.length).toBe(168);
+  expect(rows.length).toBe(160); // 168 less the 8 retired text-faint rows (§13)
   const drift: string[] = [];
   for (const r of rows) {
     const got = ratio(
@@ -149,7 +148,7 @@ test("G1: every pair meets its floor except Form's listed usage exceptions", asy
       resolve(env[r.theme], `var(--${r.bg})`),
     );
     const key = `${r.theme} ${r.fg} ${r.bg}`;
-    const exempt = USAGE_EXCEPTIONS.has(key) || (r.fg === "text-faint" && r.bg === "selected");
+    const exempt = USAGE_EXCEPTIONS.has(key);
     if (got < r.floor && !exempt) below.push(`${key}: ${got.toFixed(2)} < ${r.floor}`);
   }
   expect(below).toEqual([]);

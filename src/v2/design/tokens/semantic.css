@@ -9,7 +9,6 @@
     --text: var(--linen-75);
     --invalid: var(--linen-75); /* = --text: invalid is full contrast, never a colour signal */
     --text-muted: var(--stone-350);
-    --text-faint: var(--stone-525);
     --hairline: var(--ink-775);
     --rule: var(--gold-600);
     --control-line: var(--gold-525);
@@ -49,7 +48,6 @@
     --text: var(--umber-800);
     --invalid: var(--umber-800); /* = --text: invalid is full contrast, never a colour signal */
     --text-muted: var(--umber-675);
-    --text-faint: var(--umber-550);
     --hairline: var(--linen-225);
     --rule: var(--gold-325);
     --control-line: var(--gold-550);
