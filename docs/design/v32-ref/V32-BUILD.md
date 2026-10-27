@@ -188,7 +188,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
 | How prices move | `walk`: "Walk Strategy:", 9 options, default "Bubble" | always | Radio list; "🟢🟢🟢🔴" is drawn with `LabelGlyphs` circles (`--walk-up`/`--walk-down`, ≥8px, aria-label "3 up, 1 down"), never emoji | one value |
 | How prices move | `volatility`: "Volatility (0-1):" | always | NumberField + slider | accept 0–1, float, step .005 (Bubble) / .001 (other walks), default .1, empty → none |
 | How prices move | `clampTop` / `clampBottom`: group "Clamp Price:", rows "Max", "Min" | always | Two `TickToggle` rows | default off / off |
-| Simulation | `samples`: "Statistical Sample Count (1-10k):" (user copy fix, 9:47 PM; front-end string) | always | NumberField | accept 1–10,000, int, default 1,000, empty → 1,000 (clamp message: "Samples go from 1 to 10,000. We used 1.") |
+| Simulation | `samples`: "Statistical Sample Count (1-10k):" (user copy fix, 9:47 PM; front-end string) | always | NumberField | accept 1–10,000, int, default 1,000, empty → 1,000 (clamp note: "Min is 1" / "Max is 10,000", 4e/4f) |
 | Simulation | `epochCount`: "Epoch Count (1-30):" | always | NumberField + slider | accept 1–30, int, default 10, empty → none (30 is the engine's real limit: its buffers fail above it, and it matches the label; Gap 10) |
 
 **Certificate control specs:**
@@ -211,7 +211,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
 ### 1g · NumberField gate (Probe M3 / FL-001): applies to EVERY number field above
 1. **Clamp with a visible message.**
    - On commit, a value outside the back end's accepted range is set to the nearest bound. The bounds are the `accept` range, or the current model's `rangeMin`/`rangeMax`, or the 1.01 floor; with an `Infinity` bound, only the finite side clamps.
-   - The field shows the clamped value and an inline message under it, for example "Volatility goes from 0 to 1. We used 1." The message is tied to the field with `aria-describedby` and announced politely.
+   - The field shows the clamped value and the short note under it, "Max is 1" or "Min is 0" (4d/4e; the long clamp message is retired). The note is tied to the field with `aria-describedby` and announced politely.
    - The message clears on the next valid commit. The engine only ever receives in-range values.
 2. **Commit once, when a held key is released.**
    - Holding ↑/↓, PgUp/PgDn, or the slider arrows steps the value and re-renders the chart live about every 100 ms while held (user ruling, as built); the final value commits on `keyup`.
@@ -219,7 +219,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
 3. **Wheel only when focused.** The wheel does nothing unless the field has focus. An unfocused field under the pointer must never change, and the page scrolls instead.
 4. **Defined invalid state.** This is for input that can't be parsed, such as an empty int field with no `emptyValue`, or "1e" or "abc".
    - The field shows `--invalid` text, a 3px (`--rule-strong`) border in the text colour (`--invalid`), a ⚠ SVG icon and a message.
-   - Message pattern: cause → what to enter → reassurance, for example "Epochs take a whole number from 1 to 30. Your last value, 10, is still in use."
+   - Message: the short note for the cause: "Numbers only" (2j), "Whole numbers only" / "Use a dot for decimals" (2g), "Too large" (2k), "Enter a number" (2l). The long generic message is retired (2j).
    - The last valid value stays in effect. `aria-invalid="true"`.
    - **Never orange or red.**
 
@@ -297,7 +297,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
 7. **Copy that needs the user's OK:** the headline and kicker (1c), the h1 "Bitcoin’s price", and the section headings "Price model / How prices move / Simulation". The first two headings come from story 189; "Simulation" is new.
 8. **Default pane:** the locked default is Plans, but this slice can only open on Models. **That's temporary.**
 9. **The bevelled left edge** of the right panel was never mocked: `dock/app.html` hides the bevel and draws a 1px rule. The polygon in 1e is derived.
-10. **Epoch and sample limits (ruled 2026-10-19):** epochs clamp to 1–30, the engine's real limit (its buffers fail above 30), which matches the label. Samples clamp to a minimum of 1 with the standard clamp message ("Samples go from 1 to 10,000. We used 1."). The invalid-entry message stays "Samples take a whole number of 1 or more. Your last value, N, is still in use." Zero futures draws nothing, so it is never a valid result; there is no zero-samples empty state.
+10. **Epoch and sample limits (ruled 2026-10-19):** epochs clamp to 1–30, the engine's real limit (its buffers fail above 30), which matches the label. Samples clamp to a minimum of 1 with the standard short clamp note ("Min is 1", 4e). Invalid entries show the short notes (2j/2g/2l); the long invalid-entry message is retired. Zero futures draws nothing, so it is never a valid result; there is no zero-samples empty state.
 11. **Clamping versus the old UI:** main ignored or kept out-of-range input. Probe's gate requires clamping with a message. **Clamping is front-end behaviour, so it's allowed;** the ranges themselves are unchanged.
 12. **"Certificate Direction A"** isn't named in any source. **I took it to be v37 `d0` Certificate, as locked in `v38/STYLE.md`.** The 3–5px focus offset there is superseded by 2px.
 13. **⚙ hit area:** it measures 19×23 in v32. That doesn't matter now, because it's hidden. Pad it to 44 when it ships.
@@ -799,6 +799,15 @@ These rulings amend the items above. Where one conflicts with an earlier item or
 - **4g (focused values of 1e9 or more):** keeping the × 10ⁿ form while focused is accepted, but at full stored precision, not 3 significant figures. The field also accepts typed "1.5e9" and "1.5 × 10^9" (Postel). This amends 4a and 4c for values of 1e9 or more only.
 - **2h (2g wins over 2a):** Previous Halvings behaves like every other whole-number field. "1.5" is rejected with "Whole numbers only" and is never rounded. Silently rounding is a guess.
 - **4h (amends 4e):** a clamp note clears when the field is next edited or when its value changes from anywhere else, such as switching models. A note must never describe a value that's no longer shown.
+- **2i (after an invalid entry, amends 2e/2g):** when focus leaves after an invalid entry, the field shows its last committed value again, and the short note stays (cleared per 4h). The field must never show text that isn't the value in use.
+- **2j (short notes for every invalid entry):** the long generic error is retired everywhere. Non-numeric text ("abc", "2x") shows "Numbers only". An out-of-range value, including overflow such as "1e309", clamps and shows "Max is …" or "Min is …" (4e).
+- **2d placement check:** the plate goes above the line whenever there is less room below its end point than above, for example when the median ends in the lower part of the plot. If no reachable state puts it there, a unit test of the placement rule is enough.
+- **2k (overflow with no max):** in a field with no maximum, "1e309" shows "Too large", commits nothing and keeps the last value. It is a number, so "Numbers only" is wrong here. "-1e309" clamps to the min, as built.
+- **2l (empty where empty isn't allowed):** shows "Enter a number"; on blur the field reverts to the last value (2i).
+- **2m (Enter on invalid text):** keep the typed text while focused so the user can fix it; revert only on blur.
+- **2d equal room:** the plate goes above.
+- **4i:** invalid notes clear the same way clamp notes do (4h).
+- **Storybook:** the invalid story shows the real short note, "Numbers only". Rebaseline the 8 number-field--invalid PNGs. No retired copy stays in stories.
 - **Median with 2 futures (R6 Q6), settled:** the engine (`quantile.ts:37`) takes the lower middle value for an even count, and that stays: it's back-end behaviour (Keel, 2026-10-23). The label stays "median". At the default of 1,000 futures the two middle values are neighbours and the gap can't be seen; at tiny counts like 2 the fan means little anyway. Don't compute a different median on the v2 side. This is not a defect.
 
 ---
