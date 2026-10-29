@@ -32,7 +32,7 @@
     outline: 0;
   }
 
-  /* K5: 3 + 2 + 3; 40px */
+  /* K5/K6 (V32-BUILD:887, :889): 8px = 3px gap + 2px hover ring + 3px gap (40px overall). */
   .chip:focus-visible .mark {
     --_ring: 8px;
 

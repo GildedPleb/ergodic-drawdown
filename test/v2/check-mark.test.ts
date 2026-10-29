@@ -148,14 +148,36 @@ test("K6: default 11/1/2/5 and large 20/2/3/10; hover and focus 2px at a 3px gap
   const l = geo(local(large, "--_mark"), local(large, "--_line"), local(large, "--_gap"));
   expect(d).toEqual({ mark: 11, line: 1, gap: 2, core: 5 });
   expect(l).toEqual({ mark: 20, line: 2, gap: 3, core: 10 });
-  // K5 amended (:864): Swatches focus sits one more gap past the hover ring, built from the mark's
-  // own stroke and gap (px at every text size), never a rem step: 3 + 2 + 3 = 8.
+});
+
+/** CheckMark large's own stroke and gap (K6), px. */
+const largeMark = async (): Promise<{ mark: number; line: number; gap: number }> => {
+  const large = ruleOf(
+    await file(`${PRIMITIVES}/CheckMark/CheckMark.module.css`).text(),
+    '.root[data-size="large"]',
+  );
+  return {
+    mark: local(large, "--_mark"),
+    line: local(large, "--_line"),
+    gap: local(large, "--_gap"),
+  };
+};
+
+test("K6: Large A's literal 8px focus offset is gap + hover stroke + gap, from CheckMark large", async () => {
+  // K5 amended (:887) and K6 (:889): Swatches focus sits one more gap past the hover ring. The
+  // Swatches literal must equal K6's own gap + stroke + gap at every root size; a drift on either
+  // side fails here.
+  const l = await largeMark();
+  expect([l.gap, l.line]).toEqual([3, 2]);
+  const tokens = await file(`${PRIMITIVES}/../tokens/space.css`).text();
+  const etc = await file(`${PRIMITIVES}/../tokens/motion-etc.css`).text();
   const sw = await file(`${PRIMITIVES}/Swatches/Swatches.module.css`).text();
   const focus = ruleOf(sw, ".chip:focus-visible .mark");
   expect(focus.includes("outline: var(--focus-w) solid var(--focus);")).toBe(true);
   const off = offsetOf(focus, tokens, etc);
-  expect([off(16), off(32)]).toEqual([2 * l.gap + l.line, 2 * l.gap + l.line]);
-  expect(off(16)).toBe(8);
+  const derived = l.gap + l.line + l.gap;
+  expect([off(16), off(32)]).toEqual([derived, derived]);
+  expect(derived).toBe(8);
   const focusW = px(/--focus-w: (\d+px)/.exec(etc)?.[1] ?? "");
   const hit = px(/--hit: ([\d.]+rem)/.exec(tokens)?.[1] ?? "");
   const overall = l.mark + 2 * (off(16) + focusW);
