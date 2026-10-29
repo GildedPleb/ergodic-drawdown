@@ -51,6 +51,7 @@ The old `--selected` was `color-mix(gold 14%, surface)`, which was too strong fo
 
 - **Trade-off:** the wash itself is quieter. Against the surface it is now 1.11:1 in dark (was 1.34) and 1.06:1 in linen (was 1.21, and now lighter rather than darker). Per the brief, selection is carried by the ■ mark, the gold frame and weight, never by the tint alone.
 - Only `--selected` moved. `--hover` (gold-free: ink 5% into surface) and every other value are untouched. `--mix-14` stays in the palette but is now unused.
+- **Retired 2026-10-29 (K1, V32-BUILD:859):** `--selected` and its palette steps `--gold-wash-125` / `--gold-wash-850` are deleted, and its 38 rows left `contrast.txt` (122 rows remain). The v2.1 notes above are history.
 
 ### v2.1 · walk label dots `--walk-up` / `--walk-down`
 
@@ -107,7 +108,7 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 | color.css | `--fan-2`                | `--fan-band-2`                                         |                                            |
 | color.css | `--fan-3`                | `--fan-band-3`                                         |                                            |
 | color.css | `--fan-4`                | `--fan-band-4`                                         |                                            |
-| color.css | `--selected`             | `--selected`                                           |                                            |
+| color.css | `--selected`             | deleted 2026-10-29 (K1, V32-BUILD:859)                 |                                            |
 | color.css | `--hover`                | `--hover`                                              |                                            |
 | color.css | `--disabled-ink`         | `--disabled`                                           |                                            |
 | color.css | `--bg`                   | `--ground (v39 alias; drop)`                           |                                            |
@@ -156,7 +157,7 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 | space.css | `--tk-h`                 | `--tk-h` (unchanged, tokens/space.css)                 |                                            |
 | space.css | `--tk-pad-x`             | `--tk-pad-x` (unchanged, tokens/space.css)             |                                            |
 | space.css | `--tk-gap`               | `--tk-gap` (unchanged, tokens/space.css)               |                                            |
-| space.css | `--tk-box`               | `--tk-box` (unchanged, tokens/space.css)               |                                            |
+| space.css | `--tk-box`               | deleted 2026-10-29 (unused after K1/K2)                |                                            |
 | space.css | `--tk-sel-bg`            | `--tk-sel-bg` (unchanged, tokens/space.css)            |                                            |
 | space.css | `--focus-w`              | `--focus-w` (moved to motion-etc.css)                  |                                            |
 | space.css | `--focus-off`            | `--focus-offset-tight` (motion-etc.css)                |                                            |
