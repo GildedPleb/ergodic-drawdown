@@ -82,6 +82,10 @@ test("1MP 10–11: the top fade starts at the foot of a header pinned over the z
   // A header still in the flow below the top, or one that has scrolled off: no offset.
   expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 180, bottom: 232 }])).hh).toBe(0);
   expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 20, bottom: 90 }])).hh).toBe(0);
+  // Form "Fade at a pinned header's exit": once its asset's foot pushes it out (top above the
+  // zone's, foot still inside), it is no longer pinned and takes the standard top fade.
+  expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 80, bottom: 130 }])).hh).toBe(0);
+  expect(cuesOf(fakeZone({ scrollTop: 50 }, [{ top: 99.5, bottom: 151.5 }])).hh).toBe(51.5);
   // Not scrolled: nothing is pinned yet.
   expect(cuesOf(fakeZone({}, [{ top: 100, bottom: 152 }])).hh).toBe(0);
 });

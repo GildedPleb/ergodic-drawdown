@@ -23,20 +23,19 @@
     place-items: center;
     block-size: var(--hit);
     padding: 0;
+    color: var(--dyn-c);
     background: none;
     border: 0;
     cursor: var(--cursor-press);
   }
 
-  .face {
-    --_chip: 1.25rem;
+  /* K2: the ring sits around the mark, not the 44px target. */
+  .chip:focus-visible {
+    outline: 0;
+  }
 
-    display: grid;
-    place-items: center;
-    inline-size: var(--_chip);
-    block-size: var(--_chip);
-    color: var(--ground);
-    font-size: var(--s-4);
-    background: var(--dyn-c);
+  .chip:focus-visible .mark {
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--s-1);
   }
 }

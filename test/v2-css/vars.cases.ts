@@ -34,7 +34,7 @@ test("R4: seeded violations fail", () => {
     {
       name: "deleted-but-used token",
       path: SEMANTIC,
-      edit: (c) => c.replace(/--selected:[^;]+;/g, ""),
+      edit: (c) => c.replace(/--disabled:[^;]+;/g, ""),
     },
   ];
   expect(greenSeeds(seeds, checkVars, "R4")).toEqual([]);

@@ -1,0 +1,39 @@
+@layer primitives {
+  /* K1/K2: a square in currentColor (its parent sets it): an outline when off, plus a core when on. */
+  .root {
+    --_mark: 0.6875rem;
+    --_line: 1px;
+
+    display: block;
+    inline-size: var(--_mark);
+    block-size: var(--_mark);
+    padding: var(--s-0);
+    border: var(--_line) solid currentColor;
+    background-clip: content-box;
+    outline-offset: var(--s-0);
+  }
+
+  /* K2 large (Swatches): 1.25rem, a 2px outline, the core inset --s-1 (0.5rem at 1×). */
+  .root[data-size="large"] {
+    --_mark: 1.25rem;
+    --_line: 2px;
+
+    padding: var(--s-1);
+  }
+
+  .root[data-state="on"] {
+    background-color: currentColor;
+  }
+
+  /* M4: disabled is dashed, not colour alone. */
+  .root[data-disabled="true"] {
+    border-style: dashed;
+  }
+
+  /* Hover (fine pointer) on an enabled parent: 1px --accent at --s-0, the same on both sizes. */
+  @media (hover: hover) and (pointer: fine) {
+    :where(:enabled:not([aria-disabled]):hover) .root {
+      outline: 1px solid var(--accent);
+    }
+  }
+}
