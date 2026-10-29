@@ -65,6 +65,13 @@
     gap: 0 var(--dock-tabs-gap);
   }
 
+  /* RF1.5: hidden slots never make a row. */
+  .root[data-orientation="row"] .tab[data-shown="false"] {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    max-inline-size: var(--dock-slot-max);
+  }
+
   /* Rail: the tab column grows (content at its top) so ⚙ lands at the bottom without margin. */
   .root[data-orientation="rail"] .tabs {
     flex: 1 0 auto;
