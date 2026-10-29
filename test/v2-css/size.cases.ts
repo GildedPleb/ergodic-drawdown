@@ -12,14 +12,14 @@ test("R11: v2 CSS source bytes stay within the +5% ratchet in css-budget.json", 
 
 // Slice 1 final (Keel): after the dead-style audit both limits are the measured size + 2%
 // (7,749 B gzip → 7,903; 54,041 B source → 55,121). See TOKENS.md, "Dead-style audit".
-// U1 (Keel, 2026-10-29): the gzip limit alone goes to 8,020 (measured 8,016 + 4). See TOKENS.md, "U1 Undo chip".
-test("R11: post-audit limits + 2% (Keel, Slice 1); U1 raises gzip alone to 8,020 (Keel)", () => {
+// U1's scoped gzip raise to 8,020 is reverted with the chip (TOKENS.md, "U1 Undo chip").
+test("R11 Slice 1: limits are the post-audit measured size + 2% (Keel, final for Slice 1)", () => {
   const raw: unknown = JSON.parse(
     readFileSync(new URL("../../src/v2/design/css-budget.json", import.meta.url), "utf8"),
   );
   const pick = (k: string): unknown =>
     typeof raw === "object" && raw !== null && k in raw ? Reflect.get(raw, k) : undefined;
-  expect([pick("builtGzipBytes"), pick("builtGzipCeiling")]).toEqual([7749, 8020]);
+  expect([pick("builtGzipBytes"), pick("builtGzipCeiling")]).toEqual([7749, 7903]);
   expect([budget.sourceBytes, budget.sourceCeiling]).toEqual([54041, 55121]);
   expect(Math.floor(7749 * 1.02)).toBe(7903);
   expect(Math.floor(54041 * 1.02)).toBe(55121);

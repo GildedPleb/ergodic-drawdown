@@ -440,3 +440,4 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   `.root[data-sheet=closed] .undo` selector 5, `--rule-double` 4, reduced-motion
   `--dur-undo: 0s` 3 (`tween.ts` reads it). No single cut closes the 113 B; the motion is
   Form's call, and a lazy chunk would cost a request and a first-show flash.
+  Chip removed 2026-10-29 at product owner's request; scoped raise reverted to 7903.
