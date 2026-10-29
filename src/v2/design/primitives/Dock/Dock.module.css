@@ -5,7 +5,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s-2);
-    block-size: var(--dock-row);
+    /* RF1: min, so wrapped tabs grow it. */
+    min-block-size: var(--dock-row);
     padding-block-end: var(--dock-row-pad-end);
   }
 
@@ -55,11 +56,13 @@
     justify-self: end;
   }
 
+  /* RF1: tabs that don't fit wrap, in order; ⚙ (flex: none) stays at the end. */
   .tabs {
     display: flex;
     flex: 1;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: var(--dock-tabs-gap);
+    gap: 0 var(--dock-tabs-gap);
   }
 
   /* Rail: the tab column grows (content at its top) so ⚙ lands at the bottom without margin. */

@@ -6,7 +6,8 @@
     flex-direction: column;
     block-size: var(--shell-h);
     padding: var(--shell-safe);
-    overflow: hidden;
+    /* RF1: clip; hidden is scrollable by script and focus. */
+    overflow: clip;
     background: var(--ground);
     color: var(--text);
   }
@@ -23,7 +24,9 @@
     padding-inline: var(--shell-gutter);
   }
 
+  /* RF1: the logo's cqi fit. */
   .headerRow {
+    container-type: inline-size;
     display: flex;
     align-items: center;
     justify-content: space-between;
