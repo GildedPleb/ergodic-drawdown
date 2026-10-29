@@ -13,10 +13,6 @@
     cursor: var(--cursor-off);
   }
 
-  .root[data-disabled="false"] {
-    cursor: var(--cursor-press);
-  }
-
   /* §1O: grabbing for the whole drag, on and off the thumb. */
   .root[data-dragging="true"],
   .root[data-dragging="true"] .thumb {
@@ -85,10 +81,5 @@
 
   .root[data-disabled="true"] .thumb {
     background: var(--disabled);
-  }
-
-  .thumb:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
   }
 }

@@ -19,7 +19,7 @@ import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
 import { PaneScroll } from "./PaneScroll";
-import { dockLayout, paneOf, returnFocus, undoKeyOf, type Pane } from "./panes";
+import { dockLayout, focusAfter, paneOf, returnFocus, undoKeyOf, type Pane } from "./panes";
 import { Bevel } from "./Bevel";
 import { attachPressFlash } from "./press";
 import { useSheet } from "./useSheetDrag";
@@ -112,7 +112,6 @@ export const AppShell = (): JSX.Element => {
     });
   };
   const chip = useRef<HTMLButtonElement>(null);
-  const [turn, setTurn] = useState(0);
   const moving = useRef(false);
   const had = useRef(false);
   useEffect(() => {
@@ -121,21 +120,24 @@ export const AppShell = (): JSX.Element => {
     had.current = has;
     moving.current = false;
   }, [history.past.length]);
-  // Undo / redo one step: the live region names it; focus stays on the chip, or goes to the
-  // restored field once the chip leaves (else the sheet's grab button or Models tab).
+  // Undo / redo one step: the live region names it and the restored field tweens to it. Focus
+  // moves only when the history empties under a focused chip (focusAfter).
+  const [restored, setRestored] = useState<{ focus: string; turn: number }>();
   const move = (way: "undo" | "redo"): boolean => {
     const s = latest.current;
     const r = undoOps[way](s.history, s.values);
     const step = stepOf(s.values, r.value);
     if (r.history === s.history || step === null) return false;
-    const onChip = document.activeElement === chip.current;
     moving.current = true;
     setSession({ values: r.value, history: r.history });
-    setTurn((t) => t + 1);
+    setRestored((was) => ({ focus: step.focus, turn: (was?.turn ?? 0) + 1 }));
     setSaid(strings.undo.back(step.field, spokenLabel(step.value)));
-    if (onChip && r.history.past.length === 0)
+    const onChip = chip.current !== null && document.activeElement === chip.current;
+    if (focusAfter(onChip, r.history.past.length === 0) === "field")
       requestAnimationFrame(() => {
-        const field = document.querySelector<HTMLElement>(step.focus);
+        const at = document.querySelector<HTMLElement>(step.focus);
+        // A listbox (model, walk) takes no focus itself; its roving option, the restored one, does.
+        const field = at?.querySelector<HTMLElement>('[tabindex="0"]') ?? at;
         (field ?? returnFocus(document.getElementById("tab-models"), grabButtonOf()))?.focus();
       });
     return true;
@@ -332,7 +334,6 @@ export const AppShell = (): JSX.Element => {
             step={undoStep}
             label={strings.undo.label}
             name={strings.undo.name}
-            turn={turn}
             onUndo={() => {
               move("undo");
             }}
@@ -379,6 +380,7 @@ export const AppShell = (): JSX.Element => {
                   yearsMax={world.yearsMax}
                   values={values}
                   onChange={change}
+                  restored={restored}
                 />
               </PaneScroll>
               <div className={reserved} data-pane="plans" aria-hidden="true" />

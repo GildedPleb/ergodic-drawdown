@@ -1,5 +1,6 @@
 @layer app {
-  /* Phone is the base; dock mode and phone landscape are the @media blocks below. */
+  /* Phone (one column, bottom sheet) is the base; dock mode (NC ≥ 2, W ≥ 636px) and the
+     phone-landscape right panel are the two @media blocks below (viewport media live only here). */
   .root {
     display: flex;
     flex-direction: column;
@@ -391,7 +392,6 @@
     }
 
     .undo {
-      inset-block-start: 0;
       max-inline-size: var(--undo-w-panel);
     }
 

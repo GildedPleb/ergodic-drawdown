@@ -4,6 +4,7 @@
     gap: var(--s-1);
     align-items: center;
     max-inline-size: 100%;
+    min-inline-size: var(--hit);
     min-block-size: var(--hit);
     padding: 0 var(--s-2);
     border: var(--rule-double) double var(--accent);
@@ -11,13 +12,12 @@
     color: var(--accent);
     font-family: var(--f-text);
     font-size: var(--t-row);
-    white-space: pre;
+    white-space: nowrap;
+    overflow: hidden;
     cursor: var(--cursor-press);
   }
 
   .text {
-    display: flex;
-    min-inline-size: 0;
     color: var(--text);
   }
 
@@ -26,18 +26,15 @@
     text-decoration: underline;
   }
 
-  .field {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .value {
-    flex: none;
+  /* :861 (a): pieces drop whole (UndoChip.tsx measures): the field, the value, then the word. */
+  .root[data-fit="value"] .field,
+  .root[data-fit="word"] .tail,
+  .root[data-fit="glyph"] .text {
+    display: none;
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .root[data-state="in"],
-    .text {
+    .root[data-state="in"] {
       animation: in var(--dur-undo);
     }
 

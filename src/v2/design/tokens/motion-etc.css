@@ -1,5 +1,6 @@
 @layer tokens {
-  /* StackMath · motion, layering, linework, shape (raw: no theme variation) */
+  /* StackMath · non-colour primitives that components may use directly: motion, layering, linework, shape.
+   Raw values here are deliberate (no theme variation). Sources: depth/DEPTH.md (v43/v44), dock/DOCK.md (v45), COLOR.md fans, STYLE.md v41. */
   :root {
     /* durations · all ≤400ms */
     --dur-fast: 180ms; /* INVENTED: hover/tint, tick-box check, chip appear */
@@ -18,7 +19,7 @@
     --cursor-rest: default; /* static text in a pane (Probe 1MP m2) */
     /* z-index scale */
     --z-chart: 2;
-    --z-sticky: 3; /* §1Y: a sticky open-row header */
+    --z-sticky: 3; /* §1Y */
     --z-dock: 10;
     --z-panel: 20;
     --z-overlay: 30;
@@ -30,7 +31,7 @@
     --rule-hair: 1px;
     --rule-strong: 3px;
     --rule-double: 4px; /* 1px, 2px gap, 1px */
-    --bevel-comp: 1.2; /* §1X: the bevel's 45° stroke is this × --rule-hair (Form: 1.2) */
+    --bevel-comp: 1.2; /* §1X */
     --focus-w: 2px;
     --focus-offset: 2px;
     --focus-offset-tight: 0;
@@ -41,7 +42,8 @@
     --thumb-w: 1px;
     --thumb-h: 0.875rem; /* 14px at 100%; rem so it scales with text */
   }
-  /* Probe m4: a nested theme recomputes its own shadow */
+  /* Probe m4: recompute the sheet shadow inside every themed subtree, so a nested
+     [data-theme="linen"] uses its own --shadow-ink instead of inheriting the dark value. */
   [data-theme] {
     --shadow-sheet: 0 -18px 40px var(--shadow-ink);
   }

@@ -1,11 +1,15 @@
 @layer tokens {
-  /* StackMath P3 · v40 type tokens (LOCKED 2026-10-18; rem since v41). Source: book/BOOK.md */
+  /* StackMath P3 · v40 type tokens (LOCKED 2026-10-18). Import after palette tokens. Source of truth: book/BOOK.md */
+  /* v41: all size tokens in rem (16px root) so OS text size and 200% zoom scale them; px comments are the 100% values. */
 
   :root {
     --f-serif: "SM Cormorant", "SM Cormorant Fallback", Georgia, serif; /* display cut, ≥21px */
     --f-text: "SM EB Garamond", "SM EB Garamond Fallback", Georgia, serif; /* text cut, ≤17px */
     --f-sans: "SM Jost", "SM Jost Fallback", system-ui, sans-serif;
-    /* Baseline below the line box's centre, per em, from the WOFF2 (test/v2/glyphs.test.ts) */
+    /* Optical offsets: how far each face's baseline sits below the centre of its line box, as a
+       fraction of the font size: (typoAscender − |typoDescender|) / 2 / unitsPerEm, read from the
+       shipped WOFF2 (test/v2/glyphs.test.ts re-reads them). Rows that centre mixed faces
+       and sizes shift each text by the difference, so they all share one baseline. */
     --optical-offset-jost: 0.3475; /* (1070 − 375) / 2 / 1000 */
     --optical-offset-garamond: 0.3545; /* (1007 − 298) / 2 / 1000 */
     /* sizes: phone → desktop (fluid between 390 and 1440) */
@@ -27,10 +31,10 @@
     --lh-dh: 1.25;
     --t-title: 1.5rem; /* phone h1, 24px */
     --lh-title: 1.05;
-    --t-kicker: 0.625rem;
+    --t-kicker: 0.625rem; /* 10px */
     --lh-kicker: 0.75rem; /* 12px line, the v32 metric */
     --tr-kicker: 0.16em;
-    --t-logo: 1.0625rem;
+    --t-logo: 1.0625rem; /* 17px */
     --tr-logo: 0.32em;
     --t-beat: 1.0625rem; /* half-sheet headline, 17px */
     --lh-beat: 1.3;

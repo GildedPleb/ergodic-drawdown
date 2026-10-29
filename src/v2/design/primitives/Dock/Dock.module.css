@@ -100,10 +100,6 @@
     color: var(--accent);
   }
 
-  .tab[data-selected="false"] {
-    color: var(--text-muted);
-  }
-
   .tab[data-selected="true"]::after {
     content: "";
     position: absolute;
@@ -113,13 +109,6 @@
     background: var(--accent);
   }
 
-  .tab:focus-visible,
-  .mag:focus-visible,
-  .gear:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
-  }
-
   /* Reserved slots: the box stays, the control is out of focus and the accessibility tree. */
   .tab[data-shown="false"],
   .mag[data-shown="false"],
@@ -127,13 +116,9 @@
     visibility: hidden;
   }
 
-  .tab[data-shown="true"],
-  .mag[data-shown="true"],
-  .gear[data-shown="true"] {
-    visibility: visible;
-  }
-
-  /* 🔍: v32's 28px box pulled 8px in; no margins (R6), so a 20px slot, glyph shifted 4px. */
+  /* 🔍: v32's 28×28 box pulled 8px into the padding (margin-left:-8px). Margins are banned
+     (R6), so the layout slot is the 20px that remains and the glyph shifts 4px back to the box
+     centre; 13px glyph, 44px hit area. */
   .mag {
     position: relative;
     display: inline-flex;

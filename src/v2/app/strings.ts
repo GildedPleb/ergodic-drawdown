@@ -170,12 +170,10 @@ export const strings = {
   /** V32-BUILD U1: the Undo chip and what the live region says. */
   undo: {
     label: "Undo",
-    /** The price-model Select's name in a step (the visible group label is a question). */
-    model: "Price model",
     on: "on",
     off: "off",
     available: "Undo available",
-    name: (field: string, value: string): string => `Undo ${field}, back to ${value}`,
+    name: (field: string, value: string): string => `Undo, ${field} back to ${value}`,
     back: (field: string, value: string): string => `${field} back to ${value}`,
   },
   sections: {

@@ -14,10 +14,10 @@ import {
   defaultModelsValues,
   type ModelsValues,
 } from "../../src/v2/app/models/values";
-import { undoKeyOf } from "../../src/v2/app/shell/panes";
+import { focusAfter, undoKeyOf } from "../../src/v2/app/shell/panes";
 import { strings } from "../../src/v2/app/strings";
 import { UndoChip } from "../../src/v2/design/primitives/UndoChip";
-import { variants } from "../../src/v2/design/primitives/UndoChip/UndoChip";
+import { pickFit, variants } from "../../src/v2/design/primitives/UndoChip/UndoChip";
 import { createThrottle } from "../../src/v2/design/primitives/NumberField/throttle";
 import { createLive } from "../../src/v2/design/primitives/Slider/live";
 import { clock } from "./support/clock";
@@ -39,7 +39,7 @@ test("U1: a step names its field and the value it goes to in the field's rest fo
     focus: "#v2-years",
   });
   expect(stepOf(at({ walk: "Sin" }), base)).toEqual({
-    field: "Walk Strategy",
+    field: "How bumpy the ride is",
     value: "Bubble",
     focus: "#v2-walk",
   });
@@ -50,11 +50,15 @@ test("U1: a step names its field and the value it goes to in the field's rest fo
     focus: "#v2-minmax",
   });
   expect(stepOf(base, at({ clampTop: true }))).toEqual({
-    field: "Clamp maximum price",
+    field: "Clamp Price Max",
     value: strings.undo.on,
     focus: '[role="switch"][aria-label="Clamp maximum price"]',
   });
-  expect(stepOf(at({ clampBottom: true }), base)?.value).toBe(strings.undo.off);
+  expect(stepOf(at({ clampBottom: true }), base)).toEqual({
+    field: "Clamp Price Min",
+    value: strings.undo.off,
+    focus: '[role="switch"][aria-label="Clamp minimum price"]',
+  });
   expect(stepOf(base, base)).toBe(null);
 });
 
@@ -62,7 +66,7 @@ test("U1: a model pick and its variable reset are one step, named by the model",
   const cagr = at(choosePatch("CAGR"));
   expect(cagr.variable === base.variable).toBe(false);
   expect(stepOf(cagr, base)).toEqual({
-    field: strings.undo.model,
+    field: "How prices grow",
     value: base.model,
     focus: "#v2-model",
   });
@@ -139,11 +143,13 @@ test("U1: the chip is a button named for the step, reading ↶ Undo · <Field>: 
     }),
   );
   expect(html.startsWith('<button type="button"')).toBe(true);
-  expect(html.includes('aria-label="Undo Years, back to 30"')).toBe(true);
+  expect(html.includes('aria-label="Undo, Years back to 30"')).toBe(true);
+  expect(html.includes('title="Undo, Years back to 30"')).toBe(true);
   expect(html.includes('data-state="in"')).toBe(true);
   expect(html.includes('d="M5 3 L2 6 L5 9 M2 6 H10 A4 4 0 0 1 10 14 H7"')).toBe(true);
-  expect(html.replace(/<[^>]+>/g, "")).toBe("Undo · Years: 30");
-  expect([...variants.state]).toEqual(["in", "out"]);
+  expect(html.replace(/<[^>]+>/g, "")).toBe("Undo\u00a0·\u00a0Years: 30");
+  expect(html.includes("ellipsis") || html.includes("data-fit")).toBe(false);
+  expect([...variants.state, ...variants.fit]).toEqual(["in", "out", "value", "word", "glyph"]);
   expect(
     renderToStaticMarkup(
       createElement(UndoChip, {
@@ -156,11 +162,63 @@ test("U1: the chip is a button named for the step, reading ↶ Undo · <Field>: 
   ).toBe("");
 });
 
+test("U1 :861 (c): the model step reads Undo · How prices grow: <option label>", () => {
+  const step = stepOf(at(choosePatch("CAGR")), base);
+  expect(step?.field).toBe(strings.sections.grow);
+  const html = renderToStaticMarkup(
+    createElement(UndoChip, {
+      step: { field: step?.field ?? "", value: step?.value ?? "" },
+      label: strings.undo.label,
+      name: strings.undo.name,
+      onUndo: () => undefined,
+    }),
+  );
+  expect(html.replace(/<[^>]+>/g, "")).toBe(`Undo\u00a0·\u00a0How prices grow: ${base.model}`);
+  expect(html.includes(`aria-label="Undo, How prices grow back to ${base.model}"`)).toBe(true);
+});
+
+test("U1 :861 (d): focus moves only off a focused chip that leaves, whatever undid", () => {
+  // onChip: the chip had focus (a press, or a key with focus on it); elsewhere focus stays.
+  expect(focusAfter(false, false)).toBe("stay");
+  expect(focusAfter(false, true)).toBe("stay");
+  expect(focusAfter(true, false)).toBe("stay");
+  expect(focusAfter(true, true)).toBe("field");
+});
+
+// :861 (a) widths in px at 390/100%: glyph+padding 40, "Undo" 36, " · " 16, field+colon, value.
+const wide = (field: number, value: number) => ({
+  undefined: 40 + 36 + 16 + field + value,
+  value: 40 + 36 + 16 + value,
+  word: 40 + 36,
+  glyph: 40,
+});
+const fitIn = (room: number, w: ReturnType<typeof wide>) =>
+  pickFit((f) => w[f ?? "undefined"] <= room);
+
+test("U1 :861 (a): too narrow, whole pieces drop (field, value, word) down to the glyph", () => {
+  const model = wide(120, 170); // "How prices grow: ", "Power Law Support Line"
+  expect(fitIn(560, model)).toBe(undefined);
+  expect(fitIn(300, model)).toBe("value"); // "↶ Undo · Power Law Support Line"
+  expect(fitIn(200, model)).toBe("word"); // "↶ Undo"
+  expect(fitIn(60, model)).toBe("glyph");
+  expect(fitIn(0, model)).toBe("glyph");
+  // A field never shows without its value, nor a value in part.
+  const seen: (string | undefined)[] = [];
+  pickFit((f) => {
+    seen.push(f);
+    return false;
+  });
+  expect(seen).toEqual([undefined, "value", "word"]);
+});
+
 test("U1: the live region's words", () => {
   expect(strings.undo.available).toBe("Undo available");
-  expect(strings.undo.back("Walk Strategy", "Bubble")).toBe("Walk Strategy back to Bubble");
-  expect(strings.undo.name("Clamp maximum price", "off")).toBe(
-    "Undo Clamp maximum price, back to off",
+  expect(strings.undo.back(strings.sections.bumpy, "Bubble")).toBe(
+    "How bumpy the ride is back to Bubble",
+  );
+  expect(strings.undo.name("Clamp Price Max", "on")).toBe("Undo, Clamp Price Max back to on");
+  expect(strings.undo.name(strings.sections.bumpy, "Bubble")).toBe(
+    "Undo, How bumpy the ride is back to Bubble",
   );
 });
 

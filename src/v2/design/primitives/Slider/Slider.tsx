@@ -7,7 +7,7 @@ import styles from "./Slider.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
-  disabled: ["true", "false"] as const,
+  disabled: ["true"] as const,
   /** §1O: set only while the thumb is dragged (the grabbing cursor). */
   dragging: ["true"] as const,
 };
@@ -173,7 +173,7 @@ export const Slider = ({
     <div
       ref={track}
       className={root}
-      data-disabled={disabled ? "true" : "false"}
+      data-disabled={disabled ? "true" : undefined}
       data-dragging={drag ? "true" : undefined}
       onPointerDown={(event) => {
         if (disabled) return;

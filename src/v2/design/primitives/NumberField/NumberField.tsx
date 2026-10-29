@@ -23,7 +23,7 @@ import { createThrottle, type Throttle } from "./throttle";
 
 /** R7: variant keys and values. */
 export const variants = {
-  invalid: ["true", "false"] as const,
+  invalid: ["true"] as const,
   disabled: ["true", "false"] as const,
   label: ["visible", "hidden"] as const,
 };
@@ -302,7 +302,7 @@ export const NumberField = ({
   return (
     <div
       className={styles["root"]}
-      data-invalid={invalid ? "true" : "false"}
+      data-invalid={invalid ? "true" : undefined}
       data-disabled={disabled ? "true" : "false"}
       data-label={labelHidden ? "hidden" : "visible"}
     >

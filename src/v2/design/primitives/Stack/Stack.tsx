@@ -6,7 +6,7 @@ import styles from "./Stack.module.css";
 /** R7: variant keys and values, typed from the space scale (R6). */
 export const variants = {
   gap: ["0", "1", "2", "3", "4", "5", "6", "7", "8"] as const satisfies readonly Space[],
-  pad: ["true", "false"] as const,
+  pad: ["true"] as const,
 };
 
 export type StackProps = {
@@ -19,7 +19,7 @@ export type StackProps = {
 export const Stack = ({ children, gap = "3", pad = false }: StackProps): JSX.Element => {
   const root = styles["root"] ?? "stack-root";
   return (
-    <div className={root} data-gap={gap} data-pad={pad ? "true" : "false"}>
+    <div className={root} data-gap={gap} data-pad={pad ? "true" : undefined}>
       {children}
     </div>
   );
