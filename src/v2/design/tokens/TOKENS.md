@@ -441,3 +441,21 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   `--dur-undo: 0s` 3 (`tween.ts` reads it). No single cut closes the 113 B; the motion is
   Form's call, and a lazy chunk would cost a request and a first-show flash.
   Chip removed 2026-10-29 at product owner's request; scoped raise reverted to 7903.
+- **Dead-CSS check before T2 + U1 (Keel ruling 2026-10-29, step 1):** base is tile-u1 merged with
+  origin/redesign b5e32f4: 54,423 B source / 7,897 B gzip. Before = after: **0 deletions**, because nothing
+  in the shipped CSS is provably dead. Retired ledger and tray panes: no ledger or tray selector
+  ships (the dead-style audit above already removed them; `ledger.pw.ts` and `tray.pw.ts` are gone
+  too). DOM proof: all 240 shipped selectors (175 distinct after stripping state pseudo-classes and
+  pseudo-elements) were tested against the live DOM of `/` and all 109 `/design` stories (both
+  themes; 390×844, 1440×900, 844×390, 1024×768 and 320×568 with reduced motion; 200% text at 390
+  and 1024; a 45-step Tab walk, arrow, Escape and Enter keys, and a click on every control from a
+  fresh load). 228 matched. The 12 that never matched are all reachable, so they stay: sheet and
+  Slider drag (`[data-dragging=true]` ×4), the landscape column open, PaneScroll `[data-top]`
+  (scrolled), WorldLayer zoom reset and the engine failure status, message and retry (and the
+  TextButton those use), and NumberField `[data-label=hidden] .hint`. The last one is a prop pair
+  no caller uses today (`labelHidden` callers pass no `hint`), but `.hint` and `data-label` are
+  both referenced in src, so it is an unused combination, not proven dead. Left for Keel.
+  Custom properties: every one declared in the bundle is read by a `var()` there, or by
+  TS or tests (`tokens.ts`, `draw.ts`, the contrast table). `--s-7` and `--usd` are read only by
+  the generated `tokens.ts`, the `space` scale and the contrast table, so they stay, like
+  `--raised`. No unused `@keyframes`.
