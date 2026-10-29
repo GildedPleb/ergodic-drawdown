@@ -21,7 +21,7 @@ test("R7: seeded violations fail", () => {
     {
       name: "undeclared data-* value in CSS",
       path: TICK_CSS,
-      edit: appendInLayer('.root[data-state="maybe"] { opacity: 1; }'),
+      edit: appendInLayer('.root[data-disabled="maybe"] { opacity: 1; }'),
     },
     {
       name: "undeclared data-* key in CSS",
@@ -31,17 +31,17 @@ test("R7: seeded violations fail", () => {
     {
       name: "declared value with no rule",
       path: TICK_TSX,
-      edit: (c) => c.replace('state: ["on"]', 'state: ["on", "mixed"]'),
+      edit: (c) => c.replace('size: ["pair"]', 'size: ["pair", "mixed"]'),
     },
     {
       name: "conditional className",
       path: TICK_TSX,
-      edit: (c) => c.replace("className={root}", "className={checked ? root : box}"),
+      edit: (c) => c.replace("className={root}", "className={checked ? root : body}"),
     },
     {
       name: "template className",
       path: TICK_TSX,
-      edit: (c) => c.replace("className={root}", "className={`${root} ${box}`}"),
+      edit: (c) => c.replace("className={root}", "className={`${root} ${body}`}"),
     },
     {
       name: "class list built outside JSX",

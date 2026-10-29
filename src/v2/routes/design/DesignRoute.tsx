@@ -5,6 +5,7 @@ import { ModelsSheet } from "../../app/models/ModelsSheet";
 import { defaultModelsValues, type ModelsValues } from "../../app/models/values";
 import * as AmountStories from "../../design/primitives/Amount/Amount.stories";
 
+import * as CheckMarkStories from "../../design/primitives/CheckMark/CheckMark.stories";
 import * as ClusterStories from "../../design/primitives/Cluster/Cluster.stories";
 import * as DockStories from "../../design/primitives/Dock/Dock.stories";
 import * as GrabPointStories from "../../design/primitives/GrabPoint/GrabPoint.stories";
@@ -32,6 +33,7 @@ const kebab = (name: string): string => name.replace(/([a-z0-9])([A-Z])/g, "$1-$
 /** The same CSF exports Storybook renders, so /design and the gallery cannot drift. */
 const GROUPS: Record<string, StoryModule> = {
   amount: AmountStories,
+  "check-mark": CheckMarkStories,
 
   cluster: ClusterStories,
   dock: DockStories,

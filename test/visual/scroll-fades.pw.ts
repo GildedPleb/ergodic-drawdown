@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+
 import { expect, test, type Page } from "@playwright/test";
 
 // V32-BUILD §1MP items 11–12 (replaces pane-scroll.pw.ts's §1Y checks): no edge lines; the zone's content fades over 1.5rem at the top only
@@ -13,8 +15,8 @@ test.beforeEach(({ browserName }, info) => {
   );
 });
 
-const openBitcoin = async (page: Page): Promise<void> => {
-  await page.goto("/");
+const openBitcoin = async (page: Page, path = "/"): Promise<void> => {
+  await page.goto(path);
   await page.locator(LOGO).focus();
   await page.keyboard.press("ArrowUp");
   await expect(page.locator("[data-sheet]")).toHaveAttribute("data-sheet", "half");
@@ -86,3 +88,99 @@ test("§1MP 12: every live dock pane zone carries the same fade mask", async ({ 
   expect(masks.length).toBeGreaterThan(0);
   for (const m of masks) expect(m).toMatch(/gradient/);
 });
+
+// Form "Fade at a pinned header's exit" (V32-BUILD, 2026-10-29): the open header counts as pinned
+// only while it is stuck at the zone's top. Pushed out by its asset's foot, it takes the standard
+// top fade at once. Baselines: stuck mid-section, and pushed out with its foot 20px below the top.
+const themed = async (page: Page, theme: "dark" | "linen"): Promise<void> => {
+  await openBitcoin(page, theme === "linen" ? "/?theme=linen" : "/");
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+};
+
+/** Scrolls the zone so Bitcoin's section ends `foot` px below its top; reads the header and cue. */
+const bitcoinFoot = async (page: Page, foot: number) => {
+  await page.locator(ZONE).evaluate((zone, f) => {
+    const asset = zone.querySelector('[data-asset="bitcoin"]');
+    if (asset === null) throw new Error("no bitcoin asset");
+    zone.scrollTop += asset.getBoundingClientRect().bottom - zone.getBoundingClientRect().top - f;
+  }, foot);
+  await page.waitForTimeout(150);
+  return page.locator(ZONE).evaluate((zone) => {
+    const head = zone.querySelector('[data-asset="bitcoin"] > [data-pin]');
+    const name = head?.querySelector('[class*="name"]');
+    if (!head || !name) throw new Error("no pinned bitcoin header");
+    const z = zone.getBoundingClientRect();
+    const h = head.getBoundingClientRect();
+    const n = name.getBoundingClientRect();
+    return {
+      zone: { x: z.left, y: z.top, width: z.width },
+      headTop: h.top,
+      headHeight: h.height,
+      name: { left: n.left, right: n.right },
+      hh: zone.style.getPropertyValue("--dyn-hh"),
+    };
+  });
+};
+
+/** Largest channel step from the row's median colour along the zone's first pixel row of the name. */
+const edgeContrast = async (page: Page, y: number, left: number, right: number) => {
+  const shot = await page.screenshot({ clip: { x: left, y, width: right - left, height: 1 } });
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = 1;
+    const ctx = c.getContext("2d");
+    if (ctx === null) throw new Error("no 2d context");
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, c.width, 1).data;
+    const px: number[][] = [];
+    for (let i = 0; i < d.length; i += 4) px.push([d[i] ?? 0, d[i + 1] ?? 0, d[i + 2] ?? 0]);
+    const med = [0, 1, 2].map(
+      (k) => px.map((p) => p[k] ?? 0).sort((a, b) => a - b)[px.length >> 1] ?? 0,
+    );
+    return Math.max(...px.map((p) => Math.max(...p.map((v, k) => Math.abs(v - (med[k] ?? 0))))));
+  }, shot.toString("base64"));
+};
+
+for (const theme of ["dark", "linen"] as const) {
+  test(`Form pinned-header exit (${theme}): pinned only while stuck; pushed out, it fades like any row`, async ({
+    page,
+  }, info) => {
+    await themed(page, theme);
+    const shoot = async (name: string, zone: { x: number; y: number; width: number }) => {
+      if (!existsSync(info.snapshotPath(name))) {
+        info.annotations.push({
+          type: "baseline-pending",
+          description: `${info.project.name}/${name}`,
+        });
+        if (process.env["VISUAL_UPDATE"] !== "1") return;
+      }
+      await expect(page).toHaveScreenshot(name, {
+        clip: { x: zone.x, y: zone.y - 40, width: Math.min(zone.width, 720), height: 200 },
+      });
+    };
+
+    // Stuck mid-section: the fade starts at the header's foot, the header itself at full strength.
+    const stuck = await bitcoinFoot(page, 200);
+    expect(Math.abs(stuck.headTop - stuck.zone.y)).toBeLessThanOrEqual(0.5);
+    expect(Number.parseFloat(stuck.hh)).toBeCloseTo(stuck.headHeight, 1);
+    await shoot(`models-pane--btc-stuck--${theme}.png`, stuck.zone);
+
+    // Pushed out by its asset's foot: no longer pinned, so no offset.
+    const pushed = await bitcoinFoot(page, 40);
+    expect(pushed.headTop).toBeLessThan(pushed.zone.y - 0.5);
+    expect(pushed.hh).toBe("0.00px");
+
+    // Foot 20px below the top: the name's cut edge sits in the top fade (no full-strength strip).
+    const exit = await bitcoinFoot(page, 20);
+    expect(exit.hh).toBe("0.00px");
+    const edge = await edgeContrast(page, Math.ceil(exit.zone.y), exit.name.left, exit.name.right);
+    expect(edge).toBeLessThan(24);
+    await shoot(`models-pane--btc-pushed--${theme}.png`, exit.zone);
+  });
+}
