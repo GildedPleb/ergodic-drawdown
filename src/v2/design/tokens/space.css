@@ -33,8 +33,8 @@
     --shell-head-row: 1.40625rem; /* logo row, 22.5px */
     --shell-top-pad-phone: 0.375rem var(--shell-pad-phone) 0; /* 6px 16px 0 */
     --shell-top-indent: 2.375rem; /* desktop headline indent beside the reserved 🔍 slot, 38px */
-    --shell-logo-mark: min(1.125rem, 9.95cqi); /* fan-diamond logo, 18px; RF1: ×18/17 */
-    --shell-logo-gap: min(0.625rem, 5.53cqi); /* 10px; RF1: ×10/17 */
+    --shell-logo-mark: 1.0589em; /* fan-diamond logo, 18px at the 17px logo (×18/17) */
+    --shell-logo-gap: 0.5883em; /* 10px at the 17px logo (×10/17) */
     --sheet-gap: 0.375rem; /* chart → sheet, 6px */
     /* §1L.6: content inset + safe area */
     --sheet-pad-phone: 1.625rem calc(0.75rem + env(safe-area-inset-right))
