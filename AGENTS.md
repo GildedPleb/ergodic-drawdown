@@ -172,6 +172,8 @@ In `src/panels/chart.tsx`, `resizeDelay` must stay `0`. Any other delay lets Cha
 
 ## Code shape
 
+Before starting Stack Math work, read the top level: `/workspace/stackmath-v2/MVP-SPEC.md`, `/workspace/stackmath-v2/ADR-002-design-system.md`, and this file. User rules outrank them where they conflict.
+
 Inline a calculation that has one caller. Use one shared function when there are two or more. Do not restore deleted helpers that have no caller. `normalizePrice` and `applyModel` were that kind of leftover.
 
 TypeScript is 7, `strict`, with `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `verbatimModuleSyntax`. Indexed access can be `undefined`. An optional property is omitted, not set to `undefined`.
