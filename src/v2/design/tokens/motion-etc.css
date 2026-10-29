@@ -50,7 +50,6 @@
   @media (prefers-reduced-motion: reduce) {
     :root {
       --dur-fast: 0ms;
-      --dur-out: 0ms;
       --dur-undo: 0ms;
       --ease-out: linear;
     }
