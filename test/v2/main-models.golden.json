@@ -1,0 +1,89 @@
+{
+  "defaults": {
+    "clampBottom": false,
+    "clampTop": false,
+    "loadingPriceData": true,
+    "minMaxMultiple": 3,
+    "model": "Power Law Regression Median",
+    "pinnedWeeks": null,
+    "samples": 1000,
+    "showModel": false,
+    "variable": 0,
+    "volatility": 0.1,
+    "walk": "Bubble",
+    "years": 40
+  },
+  "models": [
+    {
+      "default": 0,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "Power Law Regression Median",
+      "rangeMax": "Infinity",
+      "rangeMin": 0,
+      "varInput": "",
+      "varRange": false
+    },
+    {
+      "default": 0,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "Power Law Support Line",
+      "rangeMax": "Infinity",
+      "rangeMin": 0,
+      "varInput": "",
+      "varRange": false
+    },
+    {
+      "default": 0,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "Rainbow Chart",
+      "rangeMax": "Infinity",
+      "rangeMin": 0,
+      "varInput": "",
+      "varRange": false
+    },
+    {
+      "default": 20,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "CAGR",
+      "rangeMax": 1000,
+      "rangeMin": 0,
+      "varInput": "R (%)",
+      "varRange": true
+    },
+    {
+      "default": 0,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "Stock-To-Flow 2024 Refit",
+      "rangeMax": "Infinity",
+      "rangeMin": 0,
+      "varInput": "",
+      "varRange": false
+    },
+    {
+      "default": 0,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "Stock-To-Flow",
+      "rangeMax": "Infinity",
+      "rangeMin": 0,
+      "varInput": "",
+      "varRange": false
+    },
+    {
+      "default": 2,
+      "maxPrice": "[function]",
+      "minPrice": "[function]",
+      "modelType": "Historic",
+      "rangeMax": 3,
+      "rangeMin": 2,
+      "varInput": "Previous Halvings",
+      "varRange": false
+    }
+  ],
+  "walks": ["Bubble", "Momentum", "Pong", "Random", "Saw", "Shark", "Sin", "Vote Count", "🟢🟢🟢🔴"]
+}
