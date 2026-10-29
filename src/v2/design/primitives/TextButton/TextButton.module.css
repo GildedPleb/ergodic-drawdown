@@ -9,9 +9,4 @@
     text-decoration: underline;
     cursor: var(--cursor-press);
   }
-
-  .root:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
-  }
 }

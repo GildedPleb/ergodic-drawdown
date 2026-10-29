@@ -46,9 +46,15 @@ export const LedgerRow = ({
   const labelCls = styles["label"] ?? "ledger-label";
   const desc = styles["desc"] ?? "ledger-desc";
   const line = styles["line"] ?? "ledger-line";
+  const hit = styles["hit"] ?? "ledger-hit";
   const text = <LabelGlyphs text={label} />;
   return (
     <div className={row} id={id} role={role} aria-labelledby={`${id}-label`} data-kind={kind}>
+      {/* K4: the number row's tap target (tapping the row opens its field, :198), first so the
+          label, value and description sit above it. Empty and hidden: it names nothing. */}
+      {htmlFor === undefined ? null : (
+        <label className={hit} htmlFor={htmlFor} aria-hidden="true" data-target="row" />
+      )}
       {htmlFor === undefined ? (
         <span className={labelCls} id={`${id}-label`}>
           {text}

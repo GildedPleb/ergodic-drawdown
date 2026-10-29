@@ -110,10 +110,6 @@
     color: var(--accent);
   }
 
-  .tab[data-selected="false"] {
-    color: var(--text-muted);
-  }
-
   .tab[data-selected="true"]::after {
     content: "";
     position: absolute;
@@ -123,24 +119,11 @@
     background: var(--accent);
   }
 
-  .tab:focus-visible,
-  .mag:focus-visible,
-  .gear:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
-  }
-
   /* Reserved slots: the box stays, the control is out of focus and the accessibility tree. */
   .tab[data-shown="false"],
   .mag[data-shown="false"],
   .gear[data-shown="false"] {
     visibility: hidden;
-  }
-
-  .tab[data-shown="true"],
-  .mag[data-shown="true"],
-  .gear[data-shown="true"] {
-    visibility: visible;
   }
 
   /* 🔍: v32's 28×28 box pulled 8px into the padding (margin-left:-8px). Margins are banned

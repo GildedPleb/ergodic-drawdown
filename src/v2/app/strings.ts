@@ -167,6 +167,12 @@ export const strings = {
       years: "How far into the future to look, for every model.",
     } as Record<string, string | undefined>,
   },
+  /** V32-BUILD U1: a step's switch values and what the live region says after an undo. */
+  undo: {
+    on: "on",
+    off: "off",
+    back: (field: string, value: string): string => `${field} back to ${value}`,
+  },
   sections: {
     grow: "How prices grow",
     bumpy: "How bumpy the ride is",

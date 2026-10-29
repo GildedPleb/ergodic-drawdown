@@ -23,7 +23,7 @@ import { createThrottle, type Throttle } from "./throttle";
 
 /** R7: variant keys and values. */
 export const variants = {
-  invalid: ["true", "false"] as const,
+  invalid: ["true"] as const,
   disabled: ["true", "false"] as const,
   label: ["visible", "hidden"] as const,
 };
@@ -34,7 +34,8 @@ export type NumberFieldProps = {
   labelHidden?: boolean;
   /** The committed value (app state). Only in-range, finite values ever reach `onCommit`. */
   value: number;
-  onCommit?: (next: number) => void;
+  /** `live` is true for a held key's or the wheel's throttled steps; false for the final commit (U1). */
+  onCommit?: (next: number, live: boolean) => void;
   /** "float" or "int" (whole numbers only). */
   parse?: NumberParse;
   /** The back end's accepted range, read on every commit (a model switch takes effect at once). */
@@ -140,16 +141,20 @@ export const NumberField = ({
   // The value last handed to onCommit, until the parent re-renders with it: throttled commits land
   // faster than `value` catches up, so a repeat of the same value is never sent twice.
   const sent = useRef<number | null>(null);
+  // U1: a live commit went out; the gesture's final commit is sent even when it repeats it.
+  const gesture = useRef(false);
 
   /** Commit `text`; returns the result's kind, so blur can put back the value in use (2i). */
-  const commit = (text: string, stepped = false): EntryResult["kind"] => {
+  const commit = (text: string, stepped = false, liveStep = false): EntryResult["kind"] => {
     const now = live.current;
     const result = resolveEntry(text, now.parse, now.bounds, now.emptyValue, now.whole);
     setStatus(statusOf(result, stepped && atBound.current));
     if (result.kind === "invalid") return result.kind;
-    if (result.value !== (sent.current ?? now.value)) {
+    const repeat = result.value === (sent.current ?? now.value);
+    if (!repeat || (!liveStep && gesture.current)) {
       sent.current = result.value;
-      now.onCommit?.(result.value);
+      gesture.current = liveStep;
+      now.onCommit?.(result.value, liveStep);
     }
     const kept = keptText(text, now.parse, result.value);
     clean.current = kept;
@@ -165,8 +170,8 @@ export const NumberField = ({
   commitRef.current = commit;
 
   const throttle = useRef<Throttle | null>(null);
-  throttle.current ??= createThrottle(() => {
-    commitRef.current(live.current.draft, true);
+  throttle.current ??= createThrottle((final) => {
+    commitRef.current(live.current.draft, true, !final);
   });
   const hold = throttle.current;
   const settle = useRef<Settle | null>(null);
@@ -297,7 +302,7 @@ export const NumberField = ({
   return (
     <div
       className={styles["root"]}
-      data-invalid={invalid ? "true" : "false"}
+      data-invalid={invalid ? "true" : undefined}
       data-disabled={disabled ? "true" : "false"}
       data-label={labelHidden ? "hidden" : "visible"}
     >

@@ -1,5 +1,5 @@
 @layer tokens {
-  /* StackMath P3 · v40 type tokens (LOCKED 2026-10-18). Cormorant ≥21px, EB Garamond ≤17px, Jost for caps/values. ₿ is a PREFIX like $ (₿13.1, −₿0.4); never after the number, never a space between ₿ and digits. See book/BOOK.md. Import after palette tokens. Source of truth: book/BOOK.md */
+  /* StackMath P3 · v40 type tokens (LOCKED 2026-10-18). Import after palette tokens. Source of truth: book/BOOK.md */
   /* v41: all size tokens in rem (16px root) so OS text size and 200% zoom scale them; px comments are the 100% values. */
 
   :root {

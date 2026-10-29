@@ -1,7 +1,7 @@
 /**
  * V32-BUILD K1/K2: one check mark. The AssetRow key and the TickToggle draw the same CheckMark
  * markup (so they are pixel-identical at the same size and colour), no parent module redraws its
- * geometry, and the large size keeps the default's proportions.
+ * geometry. Default 11/1/2/5 and large 20/2/3/10 (K6): box, stroke, gap, core.
  */
 import { file } from "bun";
 import { expect, test } from "bun:test";
@@ -76,9 +76,9 @@ test("K2: only CheckMark draws the mark; parents set colour and their focus ring
     const css = await file(`${PRIMITIVES}/${name}/${name}.module.css`).text();
     for (const m of css.matchAll(/\.mark \{([^}]*)\}/g)) {
       const props = [...(m[1] ?? "").matchAll(/([\w-]+):/g)].map((p) => p[1]);
-      expect(props.every((p) => ["color", "outline", "outline-offset"].includes(p ?? ""))).toBe(
-        true,
-      );
+      expect(
+        props.every((p) => ["color", "outline", "outline-offset", "--_ring"].includes(p ?? "")),
+      ).toBe(true);
     }
     expect(/0\.6875rem|1\.25rem|::after \{[^}]*background-clip/.test(css)).toBe(false);
   }
@@ -91,27 +91,141 @@ const px = (v: string): number =>
 const local = (block: string, name: string): number =>
   px(new RegExp(`${name}: ([\\d.]+(?:rem|px))`).exec(block)?.[1] ?? "");
 
-const geo = (mark: number, line: number, inset: number) => ({
+const geo = (mark: number, line: number, gap: number) => ({
   mark,
   line,
-  inset,
-  core: mark - 2 * (line + inset),
+  gap,
+  core: mark - 2 * (line + gap),
 });
 
-test("K2: a large mark scaled to the default size keeps the default's proportions (±0.6px)", async () => {
+/** The declarations of the first rule whose selector is exactly `selector`. */
+const ruleOf = (css: string, selector: string): string => {
+  const at = css.indexOf(`${selector} {`);
+  return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+};
+
+/**
+ * The px value of a rule's `outline-offset` (through its local --_ring) at a root font size: var(--s-n) and var(--rule-hair)
+ * from the token files, then the calc's `+` and `*` (nothing else is allowed in it).
+ */
+const offsetOf =
+  (rule: string, space: string, etc: string) =>
+  (root: number): number => {
+    const value = (/outline-offset: ([^;]+);/.exec(rule)?.[1] ?? "").replace(
+      "var(--_ring)",
+      /--_ring: ([^;]+);/.exec(rule)?.[1] ?? "",
+    );
+    const len = (v: string): string =>
+      v.endsWith("rem") ? String(Number.parseFloat(v) * root) : String(Number.parseFloat(v));
+    const expr = value
+      .replace(/var\(--s-(\d)\)/g, (_, n: string) =>
+        len(new RegExp(`--s-${n}: ([\\d.]+rem)`).exec(space)?.[1] ?? "NaN"),
+      )
+      .replace(/var\(--rule-hair\)/g, () => len(/--rule-hair: (\d+px)/.exec(etc)?.[1] ?? "NaN"))
+      .replace(/(\d+(?:\.\d+)?)px/g, "$1")
+      .replace(/^calc\((.*)\)$/, "$1");
+    if (!/^[\d.\s+*]+$/.test(expr)) return Number.NaN;
+    return expr
+      .split("+")
+      .map((t) => t.split("*").reduce((a, f) => a * Number(f), 1))
+      .reduce((a, b) => a + b, 0);
+  };
+
+test("K6: default 11/1/2/5 and large 20/2/3/10; hover and focus 2px at a 3px gap, 40px inside 44", async () => {
   const css = await file(`${PRIMITIVES}/CheckMark/CheckMark.module.css`).text();
   const tokens = await file(`${PRIMITIVES}/../tokens/space.css`).text();
   const s = (n: string): number => px(new RegExp(`--s-${n}: ([\\d.]+rem)`).exec(tokens)?.[1] ?? "");
-  const base = /\.root \{[^}]*\}/.exec(css)?.[0] ?? "";
-  const large = /\.root\[data-size="large"\] \{[^}]*\}/.exec(css)?.[0] ?? "";
-  expect(base.includes("padding: var(--s-0);")).toBe(true);
-  expect(large.includes("padding: var(--s-1);")).toBe(true);
-  const d = geo(local(base, "--_mark"), local(base, "--_line"), s("0"));
-  const l = geo(local(large, "--_mark"), local(large, "--_line"), s("1"));
-  expect(d).toEqual({ mark: 11, line: 1, inset: 2, core: 5 });
-  expect(l).toEqual({ mark: 20, line: 2, inset: 4, core: 8 });
-  const k = d.mark / l.mark;
-  for (const part of ["line", "inset", "core"] as const) {
-    expect(Math.abs(l[part] * k - d[part]) < 0.6).toBe(true);
+  const base = ruleOf(css, ".root");
+  const large = ruleOf(css, '.root[data-size="large"]');
+  // One stroke and one gap per size: the padding, the core and the hover ring all use them.
+  for (const decl of ["padding: var(--_gap);", "outline-offset: var(--_gap);"]) {
+    expect(base.includes(decl)).toBe(true);
   }
+  expect(base.includes("--_gap: var(--s-0);")).toBe(true);
+  expect(base.includes("--_line: var(--rule-hair);")).toBe(true);
+  const etc = await file(`${PRIMITIVES}/../tokens/motion-etc.css`).text();
+  const d = geo(local(base, "--_mark"), local(etc, "--rule-hair"), s("0"));
+  const l = geo(local(large, "--_mark"), local(large, "--_line"), local(large, "--_gap"));
+  expect(d).toEqual({ mark: 11, line: 1, gap: 2, core: 5 });
+  expect(l).toEqual({ mark: 20, line: 2, gap: 3, core: 10 });
+});
+
+/** CheckMark large's own stroke and gap (K6), px. */
+const largeMark = async (): Promise<{ mark: number; line: number; gap: number }> => {
+  const large = ruleOf(
+    await file(`${PRIMITIVES}/CheckMark/CheckMark.module.css`).text(),
+    '.root[data-size="large"]',
+  );
+  return {
+    mark: local(large, "--_mark"),
+    line: local(large, "--_line"),
+    gap: local(large, "--_gap"),
+  };
+};
+
+test("K6: Large A's literal 8px focus offset is gap + hover stroke + gap, from CheckMark large", async () => {
+  // K5 amended (:887) and K6 (:889): Swatches focus sits one more gap past the hover ring. The
+  // Swatches literal must equal K6's own gap + stroke + gap at every root size; a drift on either
+  // side fails here.
+  const l = await largeMark();
+  expect([l.gap, l.line]).toEqual([3, 2]);
+  const tokens = await file(`${PRIMITIVES}/../tokens/space.css`).text();
+  const etc = await file(`${PRIMITIVES}/../tokens/motion-etc.css`).text();
+  const sw = await file(`${PRIMITIVES}/Swatches/Swatches.module.css`).text();
+  const focus = ruleOf(sw, ".chip:focus-visible .mark");
+  expect(focus.includes("outline: var(--focus-w) solid var(--focus);")).toBe(true);
+  const off = offsetOf(focus, tokens, etc);
+  const derived = l.gap + l.line + l.gap;
+  expect([off(16), off(32)]).toEqual([derived, derived]);
+  expect(derived).toBe(8);
+  const focusW = px(/--focus-w: (\d+px)/.exec(etc)?.[1] ?? "");
+  const hit = px(/--hit: ([\d.]+rem)/.exec(tokens)?.[1] ?? "");
+  const overall = l.mark + 2 * (off(16) + focusW);
+  expect([overall, overall <= hit]).toEqual([40, true]);
+});
+
+test("K5: hover is a 1px currentColor ring at --s-0, on enabled parents only; focus one gap outside it", async () => {
+  const css = await file(`${PRIMITIVES}/CheckMark/CheckMark.module.css`).text();
+  const hover = ruleOf(css, ":where(:enabled:not([aria-disabled]):hover) .root");
+  // K6: the ring is the size's own stroke at its own gap (default: 1px at --s-0).
+  expect(hover.includes("outline: var(--_line) solid currentColor;")).toBe(true);
+  const base = ruleOf(css, ".root");
+  for (const decl of [
+    "--_line: var(--rule-hair);",
+    "--_gap: var(--s-0);",
+    "outline-offset: var(--_gap);",
+  ]) {
+    expect(base.includes(decl)).toBe(true);
+  }
+  // Disabled parents fall outside :enabled:not([aria-disabled]).
+  const tick = renderToStaticMarkup(
+    createElement(TickToggle, { label: "Max", checked: true, disabled: true }),
+  );
+  expect(/<button[^>]* disabled=""/.test(tick)).toBe(true);
+  const key = renderToStaticMarkup(
+    createElement(AssetRow, {
+      id: "a",
+      asset: "sp",
+      name: "S&P",
+      colour: "var(--path-sp)",
+      open: false,
+      onToggle: () => undefined,
+      summary: "s",
+      square: { on: false, inert: true, label: "Show S&P" },
+    }),
+  );
+  expect(key.includes('aria-disabled="true"')).toBe(true);
+  // K5 amended (:864): focus on the key sits one more gap past the hover ring (gap 2, hover 1,
+  // gap 2 = 5px; 25px overall), from the mark's own tokens at every root size.
+  const asset = await file(`${PRIMITIVES}/AssetRow/AssetRow.module.css`).text();
+  const focus = ruleOf(asset, ".key:focus-visible .mark");
+  expect(focus.includes("outline: var(--focus-w) solid var(--focus);")).toBe(true);
+  const space = await file(`${PRIMITIVES}/../tokens/space.css`).text();
+  const etc = await file(`${PRIMITIVES}/../tokens/motion-etc.css`).text();
+  const off = offsetOf(focus, space, etc);
+  const gap = (root: number): number =>
+    Number.parseFloat(/--s-0: ([\d.]+)rem/.exec(space)?.[1] ?? "") * root;
+  const hair = Number.parseFloat(/--rule-hair: (\d+)px/.exec(etc)?.[1] ?? "");
+  expect([off(16), off(32)]).toEqual([2 * gap(16) + hair, 2 * gap(32) + hair]);
+  expect([off(16), 11 + 2 * (off(16) + 2)]).toEqual([5, 25]);
 });
