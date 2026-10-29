@@ -213,3 +213,32 @@ test("K5: the hover ring is the mark's own colour, at least 3:1 on --surface and
   }
   expect(below).toEqual([]);
 });
+
+/**
+ * K6 (Large A): the Swatches mark is 20/2/3/10 and its hover ring is the 2px stroke again in
+ * currentColor, so every large state is drawn in the swatch's own colour (or --disabled, dashed).
+ * Each of the 8 swatch colours and --disabled is at least 3:1 on --surface and --ground.
+ */
+test("K6: every large state (8 swatches, hover, disabled) is at least 3:1 on --surface and --ground", async () => {
+  const mark = await file(`${dir}/../primitives/CheckMark/CheckMark.module.css`).text();
+  expect(/\.root\[data-size="large"\] \{[^}]*--_line: 2px;/.test(mark)).toBe(true);
+  expect(/:hover\) \.root \{\s*outline: var\(--_line\) solid currentColor;\s*\}/.test(mark)).toBe(
+    true,
+  );
+  const strings = await file(`${import.meta.dir}/../../src/v2/app/strings.ts`).text();
+  const block = /colours: \[([\s\S]*?)\]/.exec(strings)?.[1] ?? "";
+  const swatches = [...block.matchAll(/colour: "var\((--path-[\w-]+)\)"/g)].map((m) => m[1] ?? "");
+  expect(swatches.length).toBe(8);
+  const env = await themes();
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    for (const bg of ["--surface", "--ground"]) {
+      const under = resolve(env[theme], `var(${bg})`);
+      for (const fg of [...swatches, "--disabled"]) {
+        const got = ratio(resolve(env[theme], `var(${fg})`), under);
+        if (got < 3) below.push(`${theme} ${fg} on ${bg}: ${got.toFixed(2)}`);
+      }
+    }
+  }
+  expect(below).toEqual([]);
+});

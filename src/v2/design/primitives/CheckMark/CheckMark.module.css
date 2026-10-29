@@ -1,24 +1,25 @@
 @layer primitives {
-  /* K1/K2: a square in currentColor (its parent sets it): an outline when off, plus a core when on. */
+  /* K1/K2/K6: a square in currentColor (its parent sets it): an outline when off, plus a core when
+     on. One stroke and one gap per size: 11/1/2/5 px (box, stroke, gap, core). */
   .root {
     --_mark: 0.6875rem;
     --_line: 1px;
+    --_gap: var(--s-0);
 
     display: block;
     inline-size: var(--_mark);
     block-size: var(--_mark);
-    padding: var(--s-0);
+    padding: var(--_gap);
     border: var(--_line) solid currentColor;
     background-clip: content-box;
-    outline-offset: var(--s-0);
+    outline-offset: var(--_gap);
   }
 
-  /* K2 large (Swatches): 1.25rem, a 2px outline, the core inset --s-1 (0.5rem at 1×). */
+  /* K6 large (Swatches): 20/2/3/10. */
   .root[data-size="large"] {
     --_mark: 1.25rem;
     --_line: 2px;
-
-    padding: var(--s-1);
+    --_gap: 3px;
   }
 
   .root[data-state="on"] {
@@ -30,10 +31,10 @@
     border-style: dashed;
   }
 
-  /* K5: hover (fine pointer, enabled parent) is a 1px ring in the mark's own colour at --s-0. */
+  /* K5: hover (fine pointer, enabled parent) is the stroke again, in the mark's colour, a gap out. */
   @media (hover: hover) and (pointer: fine) {
     :where(:enabled:not([aria-disabled]):hover) .root {
-      outline: 1px solid currentColor;
+      outline: var(--_line) solid currentColor;
     }
   }
 }
