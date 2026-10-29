@@ -143,24 +143,19 @@ test("1MP 2: no row draws a box, a rule or a divider; the open header pins witho
   const css = await file(`${PRIMITIVES}/AssetRow/AssetRow.module.css`).text();
   expect(css.includes("double")).toBe(false);
   expect(/border-block/.test(css)).toBe(false);
-  // The only border: the colour square's 1px outline.
-  expect(css.match(/border:\s*[^;]*;/g)?.toSorted()).toEqual([
-    "border: 0;",
-    "border: 0;",
-    "border: 1px solid currentColor;",
-  ]);
+  // No border of its own: the colour square is the shared CheckMark (K2).
+  expect(css.match(/border:\s*[^;]*;/g)?.toSorted()).toEqual(["border: 0;", "border: 0;"]);
   expect(/\[data-state="open"\] > \.head \{[^}]*position: sticky;/.test(css)).toBe(true);
 });
 
-test("1MP 7: the tick box is a single 1px line, filled --accent with a --ground ✓ when on", async () => {
+test("K1: the tick is the --accent CheckMark with no --selected fill and no ✓", async () => {
   const css = await file(`${PRIMITIVES}/TickToggle/TickToggle.module.css`).text();
+  const tsx = await file(`${PRIMITIVES}/TickToggle/TickToggle.tsx`).text();
   expect(css.includes("rule-double")).toBe(false);
-  expect(css.includes("border: 1px solid var(--control-line);")).toBe(true);
-  expect(
-    /\[data-state="on"\] \.box \{\s*color: var\(--ground\);\s*background: var\(--accent\);/.test(
-      css,
-    ),
-  ).toBe(true);
+  expect(/--selected|::before|--control-line|--ground/.test(css)).toBe(false);
+  expect(/\.mark \{\s*color: var\(--accent\);\s*\}/.test(css)).toBe(true);
+  expect(tsx.includes("<Icon")).toBe(false);
+  expect(tsx.includes("<CheckMark")).toBe(true);
 });
 
 test("Form ruling 3: Show historic price, the colour and Bitcoin's on/off survive a reload (v2's own key)", () => {

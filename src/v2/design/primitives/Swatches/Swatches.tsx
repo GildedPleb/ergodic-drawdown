@@ -1,7 +1,7 @@
 import type { JSX, KeyboardEvent } from "react";
 import { useRef } from "react";
 
-import { Icon } from "../Icon";
+import { CheckMark } from "../CheckMark";
 import styles from "./Swatches.module.css";
 
 export type Swatch = { name: string; colour: string };
@@ -18,9 +18,9 @@ export type SwatchesProps = {
 const NEXT: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
 /**
- * V32-BUILD §1MP item 8, Colour: 1.25rem square chips, each a radio named with its colour name
- * in a 44px target, spread across at most 22rem; the pick shows a 0.875rem --ground ✓. One tab
- * stop; the arrow keys move the pick (wrapping), Home / End jump.
+ * V32-BUILD §1MP item 8 / K2, Colour: large CheckMarks in each colour, each a radio named with
+ * its colour name in a 44px target, spread across at most 22rem; the pick shows the core, the
+ * rest the outline only. One tab stop; the arrow keys move the pick (wrapping), Home / End jump.
  */
 export const Swatches = ({ labelledBy, options, value, onChange }: SwatchesProps): JSX.Element => {
   const root = useRef<HTMLDivElement>(null);
@@ -45,7 +45,7 @@ export const Swatches = ({ labelledBy, options, value, onChange }: SwatchesProps
   };
   const rootCls = styles["root"] ?? "swatches-root";
   const chip = styles["chip"] ?? "swatches-chip";
-  const face = styles["face"] ?? "swatches-face";
+  const mark = styles["mark"] ?? "swatches-mark";
   return (
     <div
       ref={root}
@@ -63,12 +63,13 @@ export const Swatches = ({ labelledBy, options, value, onChange }: SwatchesProps
           aria-checked={i === at}
           aria-label={o.name}
           tabIndex={i === at ? 0 : -1}
+          style={{ "--dyn-c": o.colour }}
           onClick={() => {
             move(i);
           }}
         >
-          <span className={face} style={{ "--dyn-c": o.colour }} aria-hidden="true">
-            {i === at ? <Icon name="check" /> : null}
+          <span className={mark}>
+            <CheckMark on={i === at} size="large" />
           </span>
         </button>
       ))}

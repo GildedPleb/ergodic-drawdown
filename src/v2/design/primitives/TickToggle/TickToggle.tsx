@@ -1,12 +1,11 @@
 import type { JSX, KeyboardEvent } from "react";
 
-import { Icon } from "../Icon";
+import { CheckMark } from "../CheckMark";
 import styles from "./TickToggle.module.css";
 
 /** R7: variant keys and values. */
 export const variants = {
-  /** Absent = off / enabled / the full-width row. */
-  state: ["on"] as const,
+  /** Absent = enabled / the full-width row; aria-checked carries on/off (K1: no look but the mark). */
   disabled: ["true"] as const,
   size: ["pair"] as const,
 };
@@ -20,11 +19,9 @@ export type TickToggleProps = {
   disabled?: boolean;
   onChange?: (next: boolean) => void;
   /**
-   * §1MP: "row" is a tick-box row with the box on the text column and, when on, a --selected
-   * fill from --tk-pad-x before the box to the scrollbar; "pair" is one compact toggle of a pair
-   * (Clamp Min / Max), box and word one 44px target with --s-2 side padding.
+   * §1MP: "row" is a tick row with the mark on the text column; "pair" is one compact toggle of a
+   * pair (Clamp Min / Max), mark and word one 44px target with --s-2 side padding. K1: no fill.
    */
-  /** "row": the full-width row (default); "pair": the compact Clamp pair. */
   size?: "row" | "pair";
 };
 
@@ -36,7 +33,7 @@ const blockRepeat = (event: KeyboardEvent<HTMLButtonElement>): void => {
   if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
 };
 
-/** A switch: a 1rem tick box (filled --accent with a --ground ✓ when on) and its words; no ON/OFF. */
+/** A switch: the K1 check mark in --accent (a core when on) and its --text words; no ON/OFF. */
 export const TickToggle = ({
   label,
   name,
@@ -46,8 +43,8 @@ export const TickToggle = ({
   size = "row",
 }: TickToggleProps): JSX.Element => {
   const root = styles["root"] ?? "tick-root";
-  const box = styles["box"] ?? "tick-box";
-  const text = styles["label"] ?? "tick-label";
+  const body = styles["body"] ?? "tick-body";
+  const mark = styles["mark"] ?? "tick-mark";
   return (
     <button
       type="button"
@@ -56,7 +53,6 @@ export const TickToggle = ({
       aria-checked={checked}
       aria-label={name}
       disabled={disabled}
-      data-state={checked ? "on" : undefined}
       data-size={size === "pair" ? "pair" : undefined}
       data-disabled={disabled ? "true" : undefined}
       onKeyDown={blockRepeat}
@@ -64,10 +60,12 @@ export const TickToggle = ({
         if (!disabled) onChange?.(!checked);
       }}
     >
-      <span className={box} aria-hidden="true">
-        <Icon name="check" />
+      <span className={body}>
+        <span className={mark}>
+          <CheckMark on={checked} disabled={disabled} />
+        </span>
+        <span>{label}</span>
       </span>
-      <span className={text}>{label}</span>
     </button>
   );
 };
