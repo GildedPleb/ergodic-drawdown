@@ -8,7 +8,7 @@
     "dev": "bun scripts/update-weekly-prices.ts && vite",
     "lint": "oxlint -D correctness -D suspicious -D typescript/no-misused-promises -A unicorn/require-post-message-target-origin --type-aware --type-check src test scripts vite.config.ts && bun scripts/v2/css/stylelint-gate.ts",
     "format": "oxfmt --check",
-    "knip": "knip --treat-config-hints-as-errors && bun run design:absent",
+    "knip": "knip --treat-config-hints-as-errors && bun run design:absent && bun run css:size",
     "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then lefthook install; fi",
     "preview": "vite preview",
     "secrets": "bun scripts/gitleaks.ts protect --staged --redact --no-banner",
