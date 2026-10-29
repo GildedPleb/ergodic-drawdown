@@ -9,12 +9,12 @@ test.beforeEach(({ browserName }, info) => {
   );
 });
 
-const at32 = async (page: Page, theme: "dark" | "linen" = "dark"): Promise<void> => {
-  await page.addInitScript(() => {
+const at32 = async (page: Page, theme: "dark" | "linen" = "dark", root = 32): Promise<void> => {
+  await page.addInitScript((px) => {
     document.addEventListener("DOMContentLoaded", () => {
-      document.documentElement.style.fontSize = "32px";
+      document.documentElement.style.fontSize = `${String(px)}px`;
     });
-  });
+  }, root);
   await page.goto(theme === "linen" ? "/?theme=linen" : "/");
   await page.evaluate(async () => {
     await document.fonts.ready;
@@ -138,3 +138,43 @@ test("RF1.5: 390 with a 32px root: one tab row, no gap row above Bitcoin, ⚙ on
   const m = await box(page, "#tab-models");
   expect(Math.abs(g.y + g.height / 2 - (m.y + m.height / 2))).toBeLessThanOrEqual(1);
 });
+
+// Form, RF1 review of 953cb44: the gap may shrink at large text, but the 44×44 CSS px targets of
+// neighbouring tabs never overlap. A target is the tab's box grown to 44px on each axis about its
+// centre. All three slots are shown as they will ship; wrapped neighbours count too.
+const TARGET = 44;
+for (const [width, root] of [
+  [320, 32],
+  [390, 32],
+  [320, 16],
+  [390, 16],
+] as const) {
+  test(`RF1.5: ${String(width)} with a ${String(root)}px root: neighbouring tabs' 44px targets never overlap`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await at32(page, "dark", root);
+    const targets = await page.evaluate((min) => {
+      const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
+      for (const t of tabs) t.dataset["shown"] = "true";
+      return tabs.map((t) => {
+        const r = t.getBoundingClientRect();
+        const w = Math.max(r.width, min);
+        const h = Math.max(r.height, min);
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        return { id: t.id, l: cx - w / 2, r: cx + w / 2, t: cy - h / 2, b: cy + h / 2 };
+      });
+    }, TARGET);
+    expect(targets.map((t) => t.id)).toEqual(["tab-models", "tab-plans", "tab-stats"]);
+    const overlaps: string[] = [];
+    for (const [i, a] of targets.entries()) {
+      const b = targets[i + 1];
+      if (b === undefined) continue;
+      const x = Math.min(a.r, b.r) - Math.max(a.l, b.l);
+      const y = Math.min(a.b, b.b) - Math.max(a.t, b.t);
+      if (x > 0.5 && y > 0.5) overlaps.push(`${a.id}/${b.id} ${x.toFixed(1)}×${y.toFixed(1)}`);
+    }
+    expect(overlaps).toEqual([]);
+  });
+}
