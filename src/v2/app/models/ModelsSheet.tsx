@@ -242,6 +242,7 @@ export const ModelsSheet = ({
       {meta?.showVariable === true ? (
         <Editor
           key={values.model}
+          data-setting={`${values.model}.variable`}
           id="variable"
           label={meta.varInput}
           value={usedVariable(values)}
@@ -261,6 +262,7 @@ export const ModelsSheet = ({
       ) : null}
       {meta?.showMinMaxMultiple === true ? (
         <Editor
+          data-setting={`${values.model}.minMaxMultiple`}
           id="minmax"
           label="+/-"
           value={values.minMaxMultiple}
@@ -284,6 +286,7 @@ export const ModelsSheet = ({
       <SectionLabel text={strings.sections.grow} id="grp-grow" />
       <div className={list}>
         <Select
+          data-setting={`${values.model}.model`}
           id="v2-model"
           labelledBy="grp-grow"
           options={modelsPaneSchema.modelOrder}
@@ -299,6 +302,7 @@ export const ModelsSheet = ({
       <SectionLabel text={strings.sections.bumpy} />
       <div className={list}>
         <Select
+          data-setting={`${values.model}.walk`}
           id="v2-walk"
           label={controls.walk.label}
           options={modelsPaneSchema.walks}
@@ -317,6 +321,7 @@ export const ModelsSheet = ({
           value={
             <span className={pair}>
               <TickToggle
+                data-setting={`${values.model}.clampBottom`}
                 size="pair"
                 label={controls.clamp.bottomLabel}
                 name={copy.clampMin}
@@ -326,6 +331,7 @@ export const ModelsSheet = ({
                 }}
               />
               <TickToggle
+                data-setting={`${values.model}.clampTop`}
                 size="pair"
                 label={controls.clamp.topLabel}
                 name={copy.clampMax}
@@ -346,6 +352,7 @@ export const ModelsSheet = ({
           ) : null}
         </p>
         <Editor
+          data-setting={`${values.model}.volatility`}
           id="volatility"
           input="vol"
           label={controls.volatility.label}
@@ -363,6 +370,7 @@ export const ModelsSheet = ({
         />
         {/* §1MP 7: samples are per asset; Bitcoin's is the engine's one sample count. */}
         <Editor
+          data-setting={`${values.model}.samples`}
           id="samples"
           label={SAMPLES_LABEL}
           value={values.samples}
@@ -443,6 +451,7 @@ export const ModelsSheet = ({
         <SectionLabel text={strings.sections.simulation} id="grp-sim" />
         <div className={list}>
           <Editor
+            data-setting={`${values.model}.years`}
             id="years"
             label={strings.fields.yearsLabel}
             value={values.years}

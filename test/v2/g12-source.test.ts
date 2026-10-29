@@ -1,7 +1,7 @@
 /**
- * G12: every value v2 copies from the old UI (constants, labels, field limits, defaults, model
- * definitions) is re-read from main's source text, and seeded edits to that source must turn the
- * comparison red. modelsPaneSchema itself deep-equals old-ui-models.snapshot.json.
+ * G12: every value v2 copies from main's old-UI components (constants, labels, field limits,
+ * steps) is re-read from main's source text, and seeded edits to that source must turn the
+ * comparison red. Models, walks and defaults: g12-models.test.ts.
  */
 import { file } from "bun";
 import { expect, test } from "bun:test";
@@ -19,7 +19,7 @@ const read: Read = (p) => {
   return text;
 };
 
-test("G12: every copied value matches main's source (components, contexts, constants, content, models)", async () => {
+test("G12: every copied component value matches main's source (components, constants, content)", async () => {
   expect(await oldUiDiffs(read, modelsPaneSchema)).toEqual([]);
 });
 
@@ -58,30 +58,6 @@ const MUTATIONS: readonly { name: string; path: string; from: string | RegExp; t
     to: "",
   },
   {
-    name: "default volatility",
-    path: "contexts/model.tsx",
-    from: "useState<number>(0.1)",
-    to: "useState<number>(0.2)",
-  },
-  {
-    name: "default walk",
-    path: "contexts/model.tsx",
-    from: 'useState<WalkTypes>("Bubble")',
-    to: 'useState<WalkTypes>("Random")',
-  },
-  {
-    name: "default clamp top",
-    path: "contexts/model.tsx",
-    from: "[clampTop, setClampTop] = useState<boolean>(false)",
-    to: "[clampTop, setClampTop] = useState<boolean>(true)",
-  },
-  {
-    name: "default samples constant",
-    path: "constants.ts",
-    from: "DEFAULT_SIMULATION_COUNT = 1000",
-    to: "DEFAULT_SIMULATION_COUNT = 2000",
-  },
-  {
     name: "samples emptyValue",
     path: "components/input/samples.tsx",
     from: "emptyValue: 1000",
@@ -99,46 +75,8 @@ const MUTATIONS: readonly { name: string; path: string; from: string | RegExp; t
     from: "next >= 1 &&",
     to: "next >= 4 &&",
   },
-  {
-    name: "years default",
-    path: "horizon.ts",
-    from: "DEFAULT_YEAR_COUNT = 40;",
-    to: "DEFAULT_YEAR_COUNT = 30;",
-  },
   { name: "walk label", path: "content.ts", from: 'walk: "Walk Strategy:"', to: 'walk: "Walk:"' },
   { name: "model title", path: "content.ts", from: 'model: "Model",', to: 'model: "Models",' },
-  {
-    name: "Historic rangeMax",
-    path: "data/models/historic.ts",
-    from: "rangeMax: 3,",
-    to: "rangeMax: 4,",
-  },
-  {
-    name: "Historic rangeMin",
-    path: "data/models/historic.ts",
-    from: "rangeMin: 2,",
-    to: "rangeMin: 1,",
-  },
-  {
-    name: "Historic default",
-    path: "data/models/historic.ts",
-    from: "default: 2,",
-    to: "default: 3,",
-  },
-  {
-    name: "Historic label",
-    path: "data/models/historic.ts",
-    from: '"Previous Halvings"',
-    to: '"Halvings"',
-  },
-  { name: "CAGR rangeMin", path: "data/models/cagr.ts", from: "rangeMin: 0,", to: "rangeMin: 1," },
-  {
-    name: "CAGR rangeMax",
-    path: "data/models/cagr.ts",
-    from: "rangeMax: 1000,",
-    to: "rangeMax: 100,",
-  },
-  { name: "CAGR default", path: "data/models/cagr.ts", from: "default: 20,", to: "default: 40," },
 ];
 
 test("G12 seeded mutations: each change to main's source turns the comparison red", async () => {
@@ -157,10 +95,4 @@ test("G12 seeded mutations: each change to main's source turns the comparison re
     if (diffs.length === 0) green.push(m.name);
   }
   expect(green).toEqual([]);
-});
-
-const snapshotPath = `${import.meta.dir}/old-ui-models.snapshot.json`;
-
-test("G12: modelsPaneSchema deep-equals the committed old-UI snapshot", async () => {
-  expect(modelsPaneSchema).toEqual(JSON.parse(await file(snapshotPath).text()) as unknown);
 });
