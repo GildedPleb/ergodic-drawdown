@@ -15,7 +15,7 @@ export const variants = {
 type Fit = (typeof variants.fit)[number] | undefined;
 
 /** :861 (a): whole pieces give way: the field and colon, the value and ·, then the word. */
-export const FITS: readonly Fit[] = [undefined, ...variants.fit];
+const FITS: readonly Fit[] = [undefined, ...variants.fit];
 
 /** The first fit, widest first, whose text fits; the glyph alone always stays. */
 export const pickFit = (fits: (fit: Fit) => boolean): Fit =>
