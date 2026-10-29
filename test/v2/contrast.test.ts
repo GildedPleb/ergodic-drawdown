@@ -169,3 +169,21 @@ test("G1: both themes define the same semantic names, and every one resolves", a
     for (const name of dark) expect(resolve(env[theme], `var(${name})`).length > 0).toBe(true);
   }
 });
+
+/** K1/K2: the check mark (--accent, --disabled when disabled) and every Colour swatch's outline. */
+test("K1/K2: the mark and each swatch outline are at least 3:1 on --surface in both themes", async () => {
+  const env = await themes();
+  const strings = await file(`${import.meta.dir}/../../src/v2/app/strings.ts`).text();
+  const block = /colours: \[([\s\S]*?)\]/.exec(strings)?.[1] ?? "";
+  const swatches = [...block.matchAll(/colour: "var\((--path-[\w-]+)\)"/g)].map((m) => m[1] ?? "");
+  expect(swatches.length).toBe(8);
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    const surface = resolve(env[theme], "var(--surface)");
+    for (const fg of ["--accent", "--disabled", ...swatches]) {
+      const got = ratio(resolve(env[theme], `var(${fg})`), surface);
+      if (got < 3) below.push(`${theme} ${fg}: ${got.toFixed(2)}`);
+    }
+  }
+  expect(below).toEqual([]);
+});

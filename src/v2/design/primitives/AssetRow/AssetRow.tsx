@@ -1,6 +1,7 @@
 import type { JSX, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
+import { CheckMark } from "../CheckMark";
 import { LabelGlyphs } from "../LabelGlyphs";
 import styles from "./AssetRow.module.css";
 
@@ -102,6 +103,7 @@ export const AssetRow = ({
   const rootCls = styles["root"] ?? "asset-root";
   const head = styles["head"] ?? "asset-head";
   const keyCls = styles["key"] ?? "asset-key";
+  const mark = styles["mark"] ?? "asset-mark";
   const toggle = styles["toggle"] ?? "asset-toggle";
   const nameCls = styles["name"] ?? "asset-name";
   const summaryCls = styles["summary"] ?? "asset-summary";
@@ -129,7 +131,11 @@ export const AssetRow = ({
           onClick={() => {
             if (square.inert !== true) square.onChange?.(!on);
           }}
-        />
+        >
+          <span className={mark}>
+            <CheckMark on={on} />
+          </span>
+        </button>
         <button
           ref={header}
           type="button"

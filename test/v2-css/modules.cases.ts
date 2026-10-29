@@ -21,7 +21,7 @@ test("R1: seeded violations fail", () => {
     {
       name: "styles.x missing from the module",
       path: TICK_TSX,
-      edit: (c) => c.replace('styles["box"]', 'styles["nope"]'),
+      edit: (c) => c.replace('styles["mark"]', 'styles["nope"]'),
     },
     {
       name: "foreign importer",
@@ -32,7 +32,7 @@ test("R1: seeded violations fail", () => {
     {
       name: "computed styles[expr]",
       path: TICK_TSX,
-      edit: (c) => c.replace('styles["box"]', "styles[label]"),
+      edit: (c) => c.replace('styles["mark"]', "styles[label]"),
     },
   ];
   expect(greenSeeds(seeds, checkModules, "R1")).toEqual([]);
