@@ -32,9 +32,11 @@
     outline: 0;
   }
 
-  /* K6: a gap past the hover ring, 40px across */
+  /* K5: 3 + 2 + 3; 40px */
   .chip:focus-visible .mark {
+    --_ring: 8px;
+
     outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--s-2);
+    outline-offset: var(--_ring);
   }
 }

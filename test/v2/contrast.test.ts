@@ -242,3 +242,55 @@ test("K6: every large state (8 swatches, hover, disabled) is at least 3:1 on --s
   }
   expect(below).toEqual([]);
 });
+
+/**
+ * K5 amended (:864): the focus ring is drawn one more gap past the hover ring at both sizes
+ * (default 2 + 1 + 2 = 5px, Large A 3 + 2 + 3 = 8px), so a full gap of the ground shows between
+ * the two rings and the 2px --focus ring's neighbours are the ground, never the mark's own colour.
+ * --focus is at least 3:1 on --surface and --ground in both themes (2.4.13).
+ */
+test("K5 amended: focus sits a full gap past the hover ring; --focus is at least 3:1 on its ground", async () => {
+  const prim = `${dir}/../primitives`;
+  const space = await file(`${dir}/space.css`).text();
+  const etc = await file(`${dir}/motion-etc.css`).text();
+  const s0 = Number.parseFloat(/--s-0: ([\d.]+)rem/.exec(space)?.[1] ?? "") * 16;
+  const hair = Number.parseFloat(/--rule-hair: (\d+)px/.exec(etc)?.[1] ?? "");
+  const tok: Record<string, number> = { "--s-0": s0, "--rule-hair": hair };
+  for (const n of ["1", "2"])
+    tok[`--s-${n}`] =
+      Number.parseFloat(new RegExp(`--s-${n}: ([\\d.]+)rem`).exec(space)?.[1] ?? "") * 16;
+  const offset = (css: string, selector: string): number => {
+    const at = css.indexOf(`${selector} {`);
+    const rule = at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+    const expr = (/outline-offset: ([^;]+);/.exec(rule)?.[1] ?? "")
+      .replace("var(--_ring)", /--_ring: ([^;]+);/.exec(rule)?.[1] ?? "")
+      .replace(/var\((--[\w-]+)\)/g, (_, n: string) => String(tok[n] ?? Number.NaN))
+      .replace(/(\d+(?:\.\d+)?)px/g, "$1")
+      .replace(/^calc\((.*)\)$/, "$1");
+    return expr
+      .split("+")
+      .map((t) => t.split("*").reduce((a, f) => a * Number(f), 1))
+      .reduce((a, b) => a + b, 0);
+  };
+  const asset = await file(`${prim}/AssetRow/AssetRow.module.css`).text();
+  const sw = await file(`${prim}/Swatches/Swatches.module.css`).text();
+  // [focus offset, hover offset (the gap), hover width (the stroke)] per size, in px at 16px.
+  const sizes = {
+    default: [offset(asset, ".key:focus-visible .mark"), s0, hair],
+    large: [offset(sw, ".chip:focus-visible .mark"), 3, 2],
+  };
+  const gaps = Object.entries(sizes).map(([k, [f = 0, g = 0, w = 0]]) => [k, f - (g + w), g]);
+  expect(gaps).toEqual([
+    ["default", 2, 2],
+    ["large", 3, 3],
+  ]);
+  const env = await themes();
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    for (const bg of ["--surface", "--ground"]) {
+      const got = ratio(resolve(env[theme], "var(--focus)"), resolve(env[theme], `var(${bg})`));
+      if (got < 3) below.push(`${theme} --focus on ${bg}: ${got.toFixed(2)}`);
+    }
+  }
+  expect(below).toEqual([]);
+});

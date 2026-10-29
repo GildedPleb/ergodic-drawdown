@@ -3,7 +3,7 @@
      on. One stroke and one gap per size: 11/1/2/5 px (box, stroke, gap, core). */
   .root {
     --_mark: 0.6875rem;
-    --_line: 1px;
+    --_line: var(--rule-hair);
     --_gap: var(--s-0);
 
     display: block;

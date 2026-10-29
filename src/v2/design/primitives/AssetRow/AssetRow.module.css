@@ -52,8 +52,10 @@
   }
 
   .key:focus-visible .mark {
+    --_ring: calc(var(--s-1) + var(--rule-hair));
+
     outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--s-1);
+    outline-offset: var(--_ring);
   }
 
   .toggle {

@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 
 import { expect, type Locator, type Page, test, type TestInfo } from "@playwright/test";
 
-import { gotoStory } from "./checks";
+import { focusRule, gotoStory } from "./checks";
 
 // V32-BUILD K6 (:866), Large A: the Swatches mark is a 20px box, 2px stroke, 3px gap, 10px core.
 // Hover is the stroke again (2px, currentColor) a gap out; focus is --focus-w --focus a gap past
@@ -106,8 +106,23 @@ for (const theme of ["dark", "linen"] as const) {
     const across = 20 + 2 * (Number.parseFloat(focus.offset) + Number.parseFloat(focus.width));
     expect(across).toBe(40);
     await shoot(page, info, markOf(on), `k6--swatch-focus-on--${theme}.png`);
+    expect(await focusRule(markOf(on))).toEqual({ focus: 8, rule: 8, overall: 40 });
     await markOf(on).hover();
+    // K5 amended: focus never moves when hover shows.
+    expect(await focusRule(markOf(on))).toEqual({ focus: 8, rule: 8, overall: 40 });
     await shoot(page, info, markOf(on), `k6--swatch-focus-hover--${theme}.png`);
+  });
+
+  test(`K6 large (${theme}): at 200% text (32px root) focus still sits one gap past hover`, async ({
+    page,
+  }) => {
+    await gotoStory(page, "models-sheet/default", { text200: true, theme });
+    const on = page.locator('[role="radiogroup"] [role="radio"][aria-checked="true"]').first();
+    await on.scrollIntoViewIfNeeded();
+    await page.keyboard.press("Tab");
+    await on.focus();
+    // 40px box, 3px gap, 2px stroke: 3 + 2 + 3 = 8px, 40 + 2 * (8 + 2) = 60px.
+    expect(await focusRule(markOf(on))).toEqual({ focus: 8, rule: 8, overall: 60 });
   });
 
   test(`K6 large (${theme}): disabled and disabled-on are dashed, with no hover ring`, async ({

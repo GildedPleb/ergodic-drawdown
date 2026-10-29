@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** G7: axe reports 0 serious or critical issues. */
 export const expectAxeClean = async (page: Page): Promise<void> => {
@@ -152,3 +152,22 @@ export const gotoStory = async (
     await document.fonts.ready;
   });
 };
+
+/**
+ * K5 amended: the focus ring (on the mark's wrapper) sits at gap + hover stroke + gap from the
+ * mark, read from the mark's own computed padding (the gap) and border (the stroke).
+ */
+export const focusRule = async (
+  mark: Locator,
+): Promise<{ focus: number; rule: number; overall: number }> =>
+  mark.evaluate((el) => {
+    const px = (v: string): number => Number.parseFloat(v);
+    const cs = getComputedStyle(el);
+    const ring = getComputedStyle(el.parentElement as Element);
+    const focus = px(ring.outlineOffset);
+    return {
+      focus,
+      rule: 2 * px(cs.paddingTop) + px(cs.borderTopWidth),
+      overall: el.getBoundingClientRect().width + 2 * (focus + px(ring.outlineWidth)),
+    };
+  });

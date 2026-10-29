@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 
 import { expect, type Locator, type Page, test, type TestInfo } from "@playwright/test";
 
-import { gotoStory } from "./checks";
+import { focusRule, gotoStory } from "./checks";
 
 // V32-BUILD K5 (:864): on a fine pointer, hover draws a second outline in the mark's own colour
 // (currentColor) with a gap, and no core change; focus (--focus-w --focus) sits outside it;
@@ -90,7 +90,8 @@ for (const theme of ["dark", "linen"] as const) {
         await shoot(page, info, mark, `k5--${name}-hover${on ? "-on" : ""}--${theme}.png`);
       }
     }
-    // Focus and hover together on the key: the 2px --focus ring at --s-1, outside the hover ring.
+    // Focus and hover together on the key (K5 amended, :864): the 2px --focus ring one more gap past
+    // the hover ring, 2 + 1 + 2 = 5px from the mark, 25px overall; it stays put when hover shows.
     await page.keyboard.press("Tab");
     await key.focus();
     const wrap = markOf(key).locator("xpath=..");
@@ -98,11 +99,25 @@ for (const theme of ["dark", "linen"] as const) {
       const cs = getComputedStyle(el);
       return [cs.outlineStyle, cs.outlineWidth, cs.outlineOffset];
     });
-    expect(focus).toEqual(["solid", "2px", "4px"]);
+    expect(focus).toEqual(["solid", "2px", "5px"]);
+    expect(await focusRule(markOf(key))).toEqual({ focus: 5, rule: 5, overall: 25 });
     await markOf(key).hover();
+    expect(await focusRule(markOf(key))).toEqual({ focus: 5, rule: 5, overall: 25 });
     await shoot(page, info, markOf(key), `k5--key-focus-hover--${theme}.png`);
   });
 }
+
+test("K5 amended: at 200% text (32px root) the key's focus ring still sits one gap past hover", async ({
+  page,
+}) => {
+  await gotoStory(page, "models-sheet/default", { text200: true });
+  const key = page.getByRole("listitem").first().locator("button[aria-pressed]");
+  await key.scrollIntoViewIfNeeded();
+  await page.keyboard.press("Tab");
+  await key.focus();
+  // 22px box, 4px gap, 1px stroke: 4 + 1 + 4 = 9px, 22 + 2 * (9 + 2) = 44px.
+  expect(await focusRule(markOf(key))).toEqual({ focus: 9, rule: 9, overall: 44 });
+});
 
 test("K5: disabled parents get no hover ring (a disabled tick, an inert key)", async ({ page }) => {
   await gotoStory(page, "tick-row/disabled");
