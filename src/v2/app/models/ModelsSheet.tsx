@@ -343,11 +343,12 @@ export const ModelsSheet = ({
   const options = modelList ? null : (
     <>
       {meta?.showVariable === true ? (
+        // U1 Focus (F-A b): no key per model, so a row both models share isn't remounted by an
+        // undo of the pick; focus stays on it and its value tweens to the restored one.
         <Editor
-          key={values.model}
           data-setting={`${values.model}.variable`}
           id="variable"
-          tween={turnOf("variable")}
+          tween={turnOf("variable") ?? turnOf("model")}
           label={meta.varInput}
           value={usedVariable(values)}
           bounds={varBounds}

@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { Dock, type DockTab } from "../../design/primitives/Dock";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
@@ -43,6 +43,12 @@ const sameValues = (a: ModelsValues, b: ModelsValues): boolean => stepOf(a, b) =
 const undoOps = createHistory(sameValues);
 const grabButtonOf = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(`[aria-controls="${SHEET_ID}"]:not([role="tab"])`);
+/** U1 Focus: the restored field's own focus stop; a listbox's is its selected option. */
+const fieldOf = (focus: string): HTMLElement | null => {
+  const at = document.querySelector<HTMLElement>(focus);
+  if (at?.getAttribute("role") !== "listbox") return at;
+  return at.querySelector<HTMLElement>('[aria-selected="true"]') ?? at;
+};
 
 /**
  * Slice 1 shell (V32-BUILD §1a, §1c–§1e): header, headline, the world layer, and the Models
@@ -113,16 +119,30 @@ export const AppShell = (): JSX.Element => {
   // Undo / redo one step: the live region names it and the restored field tweens to it. Focus
   // stays where it is (V32-BUILD:860 (6)).
   const [restored, setRestored] = useState<{ focus: string; turn: number }>();
+  // U1 Focus: where focus was when a step started.
+  const refocus = useRef<Element | null>(null);
   const move = (way: "undo" | "redo"): boolean => {
     const s = latest.current;
     const r = undoOps[way](s.history, s.values);
     const step = stepOf(s.values, r.value);
     if (r.history === s.history || step === null) return false;
+    refocus.current = document.activeElement;
     setSession({ values: r.value, history: r.history });
     setRestored((was) => ({ focus: step.focus, turn: (was?.turn ?? 0) + 1 }));
     setSaid(strings.undo.back(step.field, spokenLabel(step.value)));
     return true;
   };
+  // U1 Focus (F-A c): never dropped to the page. A step that removes the focused control moves
+  // focus to the restored field.
+  useLayoutEffect(() => {
+    const from = refocus.current;
+    refocus.current = null;
+    if (from === null || restored === undefined) return;
+    if (from === document.body || from.isConnected) return;
+    (
+      fieldOf(restored.focus) ?? returnFocus(document.getElementById("tab-models"), grabButtonOf())
+    )?.focus();
+  }, [restored]);
   // §1L.2: the pane last clicked, tapped or tabbed into draws its layer and selects its tab.
   const [pane, setPane] = useState<Pane>("models");
   const world = useWorld(values, now, historic);

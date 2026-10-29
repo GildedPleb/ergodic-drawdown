@@ -121,7 +121,9 @@ export const Select = ({
         const mark: (typeof variants.state)[number] | undefined = open && pick ? "pick" : undefined;
         return (
           <button
-            key={o}
+            // U1 Focus (F-A a): the pick is one node whatever it names, so an undo that changes it
+            // while focused keeps focus there instead of remounting it out from under the user.
+            key={pick ? "pick" : o}
             type="button"
             id={`${id}-opt-${String(i)}`}
             className={opt}
