@@ -1,7 +1,7 @@
 @layer tokens {
   /* StackMath · spacing + component sizing (rem), unchanged from ../system/space.css v41 except:
    --focus-w / --focus-off moved to motion-etc.css (--focus-w, --focus-offset-tight); --thumb-* moved to motion-etc.css;
-   --tk-sel-bg now points at the semantic --selected (same value). No component rules here. */
+   --tk-box deleted 2026-10-29 (unused after K1/K2). No component rules here. */
   :root {
     --s-0: 0.125rem;
     --s-1: 0.25rem;
@@ -14,7 +14,6 @@
     --s-8: 3rem;
     --hit: 2.75rem;
     --tk-pad-x: var(--s-4);
-    --tk-box: 1rem;
     /* v2 repo additions (Form review 2026-10-19; Form to mirror in p3/tokens) */
     --glyph-dot: max(0.5rem, 0.7em); /* walk dot: cap height, never under 8px */
     --glyph-gap: 0.12em; /* walk dots spaced like letters */

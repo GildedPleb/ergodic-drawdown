@@ -14,7 +14,7 @@
 - **Back end:** stays exactly as it is.
   - This covers the engine, the models, the walks and the settings.
   - It also covers their values, ranges and defaults, and the state hooks.
-  - `modelsPaneSchema` must keep deep-equalling `test/v2/old-ui-models.snapshot.json` (G12).
+  - `modelsPaneSchema` must cover every setting main declares: each has a v2 control or a ruled exemption (G12, checked against main's code directly; the old snapshot file is retired).
 - **Front end:** built only from our design. No layout, structure or look comes from the old site.
   - The current `ModelsPane.tsx` and `ModelsPane.module.css` are replaced, not restyled.
   - Keep `schema.ts` and `from-old-ui.ts` as the data source.
@@ -274,7 +274,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
   - 238 and 241–244 (depth)
 
 ### 1k · Definition of done (quick check, not an audit)
-1. G12 snapshot parity passes. No old-UI markup or CSS remains in `src/v2`.
+1. G12 parity against main passes (every main setting has a control or a ruled exemption). No old-UI markup or CSS remains in `src/v2`.
 2. At 390×844, 1440×900 and 844×390 (panel closed and open), the chart box and sheet match the 1a and 1e tables to within 1px.
 3. The dock baseline is within ±1px. The MODELS label's left x-position matches the reference mock `/workspace/stackmath-mocks/p3/v32/` at the same viewport, with the hidden slots present, to within ±2px. The tolerance covers per-engine text rasterisation (Chromium renders the hidden STATS label about 4px wider).
 4. A one-minute manual pass on each number field covers clamp + message, a held ↑ rendering live (~100 ms) and committing on release, the wheel without focus doing nothing, and "abc" giving the invalid state with no orange or red.
@@ -635,7 +635,7 @@ The open S&P or Inflation body is one line: "{Asset} isn't modelled yet. When it
 - **Targets:** every interactive control has a hit target of at least `--hit` (44px), set in rem so it scales with text size. The target may overhang its row, centred on it; rows keep the spacing above (H1).
 
 ### 3 · Section titles
-- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Simulation". Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. Where the column is narrower than 12rem (for example 390 at 200% text), both rules hide and the title wraps alone, so nothing scrolls sideways (WCAG reflow beats the rule minimum). The tracking after the last letter is trimmed, so the text is optically centred.
+- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Time horizon" (the top-level Simulation group; user via Stack Math, 2026-10-29). Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. Where the column is narrower than 12rem (for example 390 at 200% text), both rules hide and the title wraps alone, so nothing scrolls sideways (WCAG reflow beats the rule minimum). The tracking after the last letter is trimmed, so the text is optically centred.
 - Each title has a rule on either side. The rules are 2px tall in `--accent` at 70% opacity, at least `--s-5` long, and equal in length. They taper to a point and fade to transparent at their outer ends. This is the only fade in the pane apart from the scroll fades.
 - The title and its two rules span exactly the text column (from `--col` to the right content edge) and centre within it. They're within 1px in the v54 audits.
 - Each title has `--s-5` above it, `--s-1` below it, and a minimum height of 1.5rem.
@@ -686,7 +686,7 @@ The asset's colour square is its chart switch, like a chart-legend key. There's 
 | Clamp Price: | Min and Max, both off | Min stops a walk going below the floor; Max stops it going above the top. | COPY.md "Settings with a description line" |
 | Volatility (0-1): | the engine's 0–1 · 0.1 | How big each week’s random step is. | COPY.md, same table |
 | Statistical Sample Count (1-10k): | 1–10,000 · 1,000, plain slider | How many separate futures are drawn; each runs its own random walk. | COPY.md "v50 addition" |
-| Years | 1 to the live cap (main's range, Ruling 7) · 40, step 1, plain slider | How many years ahead the simulation runs. | COPY.md "v52 changes" |
+| Years | 1 to the live cap (main's range, Ruling 7) · 40, step 1, plain slider | How far into the future to look, for every model. | COPY.md "v52 changes" |
 
 - **Clamp Price:** the label is on the left. On the right, two compact toggles sit on the same row, Min then Max. Each is a 1rem tick box followed by its word in EB Garamond `--t-row`, with no ON/OFF word. Each toggle, box and word together, is one 44px-tall target with `--s-2` side padding, and the two are `--s-1` apart. When a toggle is on, its box fills `--accent` with a `--ground` check, and the toggle gets a `--selected` fill. The pair never takes a row per toggle. The row is a group labelled "Clamp Price:". Each toggle is a switch with the accessible name "Clamp minimum price" or "Clamp maximum price", and the visible word stays "Min" or "Max".
 - **Ergodic check:** its own short line directly under the Clamp Price row, right-aligned on the text column, `--s-2` closer than a normal row gap. It's quiet italic EB Garamond at `--t-caption` in `--text-muted`.
@@ -854,6 +854,9 @@ These rulings amend the items above. Where one conflicts with an earlier item or
     - Historic Previous Halvings: 2–3, step 1 (2h still applies).
   - **Model text:** the engine's own `summary` is the caption under the selector, verbatim, `--text-muted` `--t-caption`. The full `description` sits behind a "More about <Model>" text disclosure under it, verbatim, with URLs as links. There's no COPY.md rewrite, because the engine text is the source of truth and a paraphrase would drift.
 - **Fade at a pinned header's exit (2026-10-29):** a header counts as pinned only while it is actually stuck at the top edge. Once it starts being pushed out, it takes the standard top fade straight away, with no blend over the scroll (§11: fades switch instantly).
+- **G12 exemptions (2026-10-29):** three main settings have no Models pane control, on purpose. `loadingPriceData` is a state flag, not a setting. `pinnedWeeks` is chart interaction state and out of the pane's scope (v2 sends null). `showModel` is main's model-only chart mode, which hides the walks and volume. The v2 pane has no toggle for it, and v2 sends false; whether v2 ever offers that view is the product owner's call.
+- **Time horizon (2026-10-29):** the top-level group's title is "Time horizon" (`sections.simulation`). The Years description is "How far into the future to look, for every model." (`settingDesc.years`). The field label stays "Years", and the layout doesn't change.
+- **Tokens retired by K1 (2026-10-29):** `--tk-box` and `--selected` are deleted, along with any alias that only points to them (such as `--chip`) if nothing else uses it. Older lines in this spec that name them are superseded by K1 and K2.
 - **Median with 2 futures (R6 Q6), settled:** the engine (`quantile.ts:37`) takes the lower middle value for an even count, and that stays: it's back-end behaviour (Keel, 2026-10-23). The label stays "median". At the default of 1,000 futures the two middle values are neighbours and the gap can't be seen; at tiny counts like 2 the fan means little anyway. Don't compute a different median on the v2 side. This is not a defect.
 
 ---
