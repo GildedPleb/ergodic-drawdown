@@ -237,11 +237,11 @@ export type Step = {
   field: string;
   /** Exactly as the field shows it at rest (a choice's option label; a switch "on" / "off"). */
   value: string;
-  /** A selector for the field's control, for focus once history is empty (it may be collapsed). */
+  /** A selector for the field's control: the restored field that tweens. */
   focus: string;
 };
 
-/** "Clamp Price:" → "Clamp Price" (the chip adds its own colon). */
+/** "Clamp Price:" → "Clamp Price" (the live region reads it without the colon). */
 const bare = (label: string): string => label.replace(/:\s*$/, "");
 /** A clamp switch's name, and its visible label: the row's, then its own ("Clamp Price Max"). */
 const SWITCHES = {

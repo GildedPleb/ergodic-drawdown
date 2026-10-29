@@ -155,18 +155,6 @@
     block-size: 0;
   }
 
-  /* U1: Undo, on the grab row's inline end */
-  .undo {
-    position: absolute;
-    z-index: var(--z-chart);
-    inset-block-start: 0;
-    inset-inline-end: var(--tk-pad-x);
-    display: flex;
-    align-items: flex-start;
-    max-inline-size: var(--undo-w);
-    block-size: 0;
-  }
-
   /* Phone half: the headline beside the reserved 🔍 slot. */
   .beat {
     display: flex;
@@ -386,13 +374,8 @@
     }
 
     .grab,
-    .beat,
-    .root[data-sheet="closed"] .undo {
+    .beat {
       display: none;
-    }
-
-    .undo {
-      max-inline-size: var(--undo-w-panel);
     }
 
     .root[data-sheet="closed"][data-dragging="false"] .dockRow {

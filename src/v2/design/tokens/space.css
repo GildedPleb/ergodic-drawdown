@@ -45,8 +45,6 @@
     --shell-safe: env(safe-area-inset-top) 0 0 env(safe-area-inset-left); /* notch */
     --shell-safe-end: 0 0 env(safe-area-inset-bottom); /* landscape chart: clears the home indicator */
     --edge-grab-offset: calc(var(--hit) / -2); /* half outside the bevel */
-    --undo-w: calc(50% - var(--hit) / 2 - var(--tk-pad-x)); /* U1 */
-    --undo-w-panel: calc(100% - 2 * var(--tk-pad-x));
     --sheet-pad: 0.5rem calc(clamp(1rem, 2.2vw, 2rem) + env(safe-area-inset-right))
       calc(clamp(0.875rem, 1.6vw, 1.375rem) + env(safe-area-inset-bottom))
       calc(clamp(1rem, 2.2vw, 2rem) + env(safe-area-inset-left));

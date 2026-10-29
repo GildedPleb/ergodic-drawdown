@@ -4,7 +4,6 @@
   :root {
     /* durations · all ≤400ms */
     --dur-fast: 180ms; /* INVENTED: hover/tint, tick-box check, chip appear */
-    --dur-out: 160ms; /* U1 */
     --dur-undo: 200ms; /* U1 */
     /* easing */
     --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1); /* INVENTED: panel + general exits */
@@ -30,7 +29,6 @@
     /* rules + focus */
     --rule-hair: 1px;
     --rule-strong: 3px;
-    --rule-double: 4px; /* 1px, 2px gap, 1px */
     --bevel-comp: 1.2; /* §1X */
     --focus-w: 2px;
     --focus-offset: 2px;

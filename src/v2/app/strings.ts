@@ -167,13 +167,10 @@ export const strings = {
       years: "How far into the future to look, for every model.",
     } as Record<string, string | undefined>,
   },
-  /** V32-BUILD U1: the Undo chip and what the live region says. */
+  /** V32-BUILD U1: a step's switch values and what the live region says after an undo. */
   undo: {
-    label: "Undo",
     on: "on",
     off: "off",
-    available: "Undo available",
-    name: (field: string, value: string): string => `Undo, ${field} back to ${value}`,
     back: (field: string, value: string): string => `${field} back to ${value}`,
   },
   sections: {

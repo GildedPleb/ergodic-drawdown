@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Dock, type DockTab } from "../../design/primitives/Dock";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
-import { UndoChip } from "../../design/primitives/UndoChip";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
 import { useWorld } from "../engine/useWorld";
@@ -19,7 +18,7 @@ import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
 import { PaneScroll } from "./PaneScroll";
-import { dockLayout, focusAfter, paneOf, returnFocus, undoKeyOf, type Pane } from "./panes";
+import { dockLayout, paneOf, returnFocus, undoKeyOf, type Pane } from "./panes";
 import { Bevel } from "./Bevel";
 import { attachPressFlash } from "./press";
 import { useSheet } from "./useSheetDrag";
@@ -58,7 +57,7 @@ export const AppShell = (): JSX.Element => {
     values: loadValues(pageStore()),
     history: undoOps.empty,
   }));
-  const { values, history } = session;
+  const { values } = session;
   const latest = useRef(session);
   latest.current = session;
   useEffect(() => {
@@ -111,39 +110,19 @@ export const AppShell = (): JSX.Element => {
       return same && h === s.history ? s : { values: same ? s.values : next, history: h };
     });
   };
-  const chip = useRef<HTMLButtonElement>(null);
-  const moving = useRef(false);
-  const had = useRef(false);
-  useEffect(() => {
-    const has = history.past.length > 0;
-    if (has && !had.current && !moving.current) setSaid(strings.undo.available);
-    had.current = has;
-    moving.current = false;
-  }, [history.past.length]);
   // Undo / redo one step: the live region names it and the restored field tweens to it. Focus
-  // moves only when the history empties under a focused chip (focusAfter).
+  // stays where it is (V32-BUILD:860 (6)).
   const [restored, setRestored] = useState<{ focus: string; turn: number }>();
   const move = (way: "undo" | "redo"): boolean => {
     const s = latest.current;
     const r = undoOps[way](s.history, s.values);
     const step = stepOf(s.values, r.value);
     if (r.history === s.history || step === null) return false;
-    moving.current = true;
     setSession({ values: r.value, history: r.history });
     setRestored((was) => ({ focus: step.focus, turn: (was?.turn ?? 0) + 1 }));
     setSaid(strings.undo.back(step.field, spokenLabel(step.value)));
-    const onChip = chip.current !== null && document.activeElement === chip.current;
-    if (focusAfter(onChip, r.history.past.length === 0) === "field")
-      requestAnimationFrame(() => {
-        const at = document.querySelector<HTMLElement>(step.focus);
-        // A listbox (model, walk) takes no focus itself; its roving option, the restored one, does.
-        const field = at?.querySelector<HTMLElement>('[tabindex="0"]') ?? at;
-        (field ?? returnFocus(document.getElementById("tab-models"), grabButtonOf()))?.focus();
-      });
     return true;
   };
-  const newest = history.past.at(-1);
-  const undoStep = newest === undefined ? null : stepOf(values, newest);
   // §1L.2: the pane last clicked, tapped or tabbed into draws its layer and selects its tab.
   const [pane, setPane] = useState<Pane>("models");
   const world = useWorld(values, now, historic);
@@ -243,7 +222,6 @@ export const AppShell = (): JSX.Element => {
   const sheetCls = styles["sheet"] ?? "shell-sheet";
   const bevel = styles["bevel"] ?? "shell-bevel";
   const grab = styles["grab"] ?? "shell-grab";
-  const undo = styles["undo"] ?? "shell-undo";
   const beat = styles["beat"] ?? "shell-beat";
   const beatText = styles["beatText"] ?? "shell-beat-text";
   const slot = styles["slot"] ?? "shell-slot";
@@ -325,18 +303,6 @@ export const AppShell = (): JSX.Element => {
             controls={SHEET_ID}
             onToggle={tap}
             onKey={key}
-          />
-        </div>
-        {/* U1: the Undo chip, on the same edge row at the inline end (never over the chart). */}
-        <div className={undo}>
-          <UndoChip
-            ref={chip}
-            step={undoStep}
-            label={strings.undo.label}
-            name={strings.undo.name}
-            onUndo={() => {
-              move("undo");
-            }}
           />
         </div>
         <section ref={sheet} id={SHEET_ID} className={sheetCls} aria-label={strings.dock.models}>

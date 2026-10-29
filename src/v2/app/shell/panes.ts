@@ -59,11 +59,3 @@ export const undoKeyOf = (
   if (focus?.closest('input, textarea, [contenteditable="true"]') != null) return null;
   return event.shiftKey ? "redo" : "undo";
 };
-
-/**
- * U1 (V32-BUILD:860 (6), :861 (d)): where focus goes after an undo or redo. It stays put, unless
- * the chip had focus and the history emptied (the chip leaves): then it goes to the restored
- * field, whether a press or a key did it, so focus is never dropped to the page.
- */
-export const focusAfter = (onChip: boolean, empty: boolean): "field" | "stay" =>
-  onChip && empty ? "field" : "stay";
