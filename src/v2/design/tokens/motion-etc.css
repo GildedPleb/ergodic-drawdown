@@ -1,9 +1,10 @@
 @layer tokens {
-  /* StackMath · non-colour primitives that components may use directly: motion, layering, linework, shape.
-   Raw values here are deliberate (no theme variation). Sources: depth/DEPTH.md (v43/v44), dock/DOCK.md (v45), COLOR.md fans, STYLE.md v41. */
+  /* StackMath · motion, layering, linework, shape (raw: no theme variation) */
   :root {
     /* durations · all ≤400ms */
     --dur-fast: 180ms; /* INVENTED: hover/tint, tick-box check, chip appear */
+    --dur-out: 160ms; /* U1 */
+    --dur-undo: 200ms; /* U1 */
     /* easing */
     --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1); /* INVENTED: panel + general exits */
     /* §1O cursors: system shapes only */
@@ -28,6 +29,7 @@
     /* rules + focus */
     --rule-hair: 1px;
     --rule-strong: 3px;
+    --rule-double: 4px; /* 1px, 2px gap, 1px */
     --bevel-comp: 1.2; /* §1X: the bevel's 45° stroke is this × --rule-hair (Form: 1.2) */
     --focus-w: 2px;
     --focus-offset: 2px;
@@ -39,14 +41,15 @@
     --thumb-w: 1px;
     --thumb-h: 0.875rem; /* 14px at 100%; rem so it scales with text */
   }
-  /* Probe m4: recompute the sheet shadow inside every themed subtree, so a nested
-     [data-theme="linen"] uses its own --shadow-ink instead of inheriting the dark value. */
+  /* Probe m4: a nested theme recomputes its own shadow */
   [data-theme] {
     --shadow-sheet: 0 -18px 40px var(--shadow-ink);
   }
   @media (prefers-reduced-motion: reduce) {
     :root {
       --dur-fast: 0ms;
+      --dur-out: 0ms;
+      --dur-undo: 0ms;
       --ease-out: linear;
     }
   }

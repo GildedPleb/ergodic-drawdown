@@ -14,7 +14,7 @@
 - **Back end:** stays exactly as it is.
   - This covers the engine, the models, the walks and the settings.
   - It also covers their values, ranges and defaults, and the state hooks.
-  - `modelsPaneSchema` must keep deep-equalling `test/v2/old-ui-models.snapshot.json` (G12).
+  - `modelsPaneSchema` must cover every setting main declares: each has a v2 control or a ruled exemption (G12, checked against main's code directly; the old snapshot file is retired).
 - **Front end:** built only from our design. No layout, structure or look comes from the old site.
   - The current `ModelsPane.tsx` and `ModelsPane.module.css` are replaced, not restyled.
   - Keep `schema.ts` and `from-old-ui.ts` as the data source.
@@ -274,7 +274,7 @@ The canvas reads tokens through `getComputedStyle` on each draw, so switching th
   - 238 and 241–244 (depth)
 
 ### 1k · Definition of done (quick check, not an audit)
-1. G12 snapshot parity passes. No old-UI markup or CSS remains in `src/v2`.
+1. G12 parity against main passes (every main setting has a control or a ruled exemption). No old-UI markup or CSS remains in `src/v2`.
 2. At 390×844, 1440×900 and 844×390 (panel closed and open), the chart box and sheet match the 1a and 1e tables to within 1px.
 3. The dock baseline is within ±1px. The MODELS label's left x-position matches the reference mock `/workspace/stackmath-mocks/p3/v32/` at the same viewport, with the hidden slots present, to within ±2px. The tolerance covers per-engine text rasterisation (Chromium renders the hidden STATS label about 4px wider).
 4. A one-minute manual pass on each number field covers clamp + message, a held ↑ rendering live (~100 ms) and committing on release, the wheel without focus doing nothing, and "abc" giving the invalid state with no orange or red.
@@ -635,7 +635,7 @@ The open S&P or Inflation body is one line: "{Asset} isn't modelled yet. When it
 - **Targets:** every interactive control has a hit target of at least `--hit` (44px), set in rem so it scales with text size. The target may overhang its row, centred on it; rows keep the spacing above (H1).
 
 ### 3 · Section titles
-- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Simulation". Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. Where the column is narrower than 12rem (for example 390 at 200% text), both rules hide and the title wraps alone, so nothing scrolls sideways (WCAG reflow beats the rule minimum). The tracking after the last letter is trimmed, so the text is optically centred.
+- The four titles are "How prices grow", "How bumpy the ride is", "On the chart" and "Time horizon" (the top-level Simulation group; user via Stack Math, 2026-10-29). Each is Jost 600 at `--t-section`, uppercase, with `--tr-section` (0.2em) tracking, in `--accent`, on one line where it fits. A title too long for the text column wraps to centred lines at line-height 1.3, and each side rule keeps its minimum of `--s-5` (it never shrinks below that); the rules centre vertically on the title block. Where the column is narrower than 12rem (for example 390 at 200% text), both rules hide and the title wraps alone, so nothing scrolls sideways (WCAG reflow beats the rule minimum). The tracking after the last letter is trimmed, so the text is optically centred.
 - Each title has a rule on either side. The rules are 2px tall in `--accent` at 70% opacity, at least `--s-5` long, and equal in length. They taper to a point and fade to transparent at their outer ends. This is the only fade in the pane apart from the scroll fades.
 - The title and its two rules span exactly the text column (from `--col` to the right content edge) and centre within it. They're within 1px in the v54 audits.
 - Each title has `--s-5` above it, `--s-1` below it, and a minimum height of 1.5rem.
@@ -686,7 +686,7 @@ The asset's colour square is its chart switch, like a chart-legend key. There's 
 | Clamp Price: | Min and Max, both off | Min stops a walk going below the floor; Max stops it going above the top. | COPY.md "Settings with a description line" |
 | Volatility (0-1): | the engine's 0–1 · 0.1 | How big each week’s random step is. | COPY.md, same table |
 | Statistical Sample Count (1-10k): | 1–10,000 · 1,000, plain slider | How many separate futures are drawn; each runs its own random walk. | COPY.md "v50 addition" |
-| Years | 1 to the live cap (main's range, Ruling 7) · 40, step 1, plain slider | How many years ahead the simulation runs. | COPY.md "v52 changes" |
+| Years | 1 to the live cap (main's range, Ruling 7) · 40, step 1, plain slider | How far into the future to look, for every model. | COPY.md "v52 changes" |
 
 - **Clamp Price:** the label is on the left. On the right, two compact toggles sit on the same row, Min then Max. Each is a 1rem tick box followed by its word in EB Garamond `--t-row`, with no ON/OFF word. Each toggle, box and word together, is one 44px-tall target with `--s-2` side padding, and the two are `--s-1` apart. When a toggle is on, its box fills `--accent` with a `--ground` check, and the toggle gets a `--selected` fill. The pair never takes a row per toggle. The row is a group labelled "Clamp Price:". Each toggle is a switch with the accessible name "Clamp minimum price" or "Clamp maximum price", and the visible word stays "Min" or "Max".
 - **Ergodic check:** its own short line directly under the Clamp Price row, right-aligned on the text column, `--s-2` closer than a normal row gap. It's quiet italic EB Garamond at `--t-caption` in `--text-muted`.
@@ -816,6 +816,47 @@ These rulings amend the items above. Where one conflicts with an earlier item or
 - **T1 (tick-row focus ring):** the ring has equal inner padding on both sides, at least `--s-2` after the last letter. The ring must never touch the text.
 - **H1 (tap targets at any text size):** every row's target is at least `--hit` (44px), set in rem so it scales with text size. At 1×, value rows keep the §2 spacing (24px between rows). The 200% fix must not make 1× rows about 60px tall.
 - **Bevel test floor:** 0.98. A ratio of 0.9993 is antialiasing noise, not a visible failure.
+- **K1 · Every v2 tick box uses the asset key mark (user via Stack Math, 2026-10-29; supersedes the TickToggle ✓ box, the --accent box fill and the --selected row fill in §1MP 7–8, Clamp and Show historic price):**
+  - **Scope:** every `TickToggle` in v2: Clamp Min, Clamp Max and Show historic price today, plus any later ones. The v1 `src/components` checkboxes are out of scope.
+  - **Mark:** the same geometry as the asset key (§1MP 5): a `0.6875rem` square with a 1px `currentColor` outline. When on, a solid core is inset by `--s-0`; when off, the outline alone. There is no ✓ glyph. Share one implementation with `AssetRow .key::after` so they can't drift apart.
+  - **Colour:** `--accent` (neutral system colour), not the section's asset colour. The asset colour means "this series is on the chart"; Clamp and historic price are settings, so they must not look like legend keys.
+  - **No background change:** remove the `--selected` fill (`.root[data-state="on"]::before`) for both row and pair. The words stay `--text` in both states. On versus off is shown only by the core, a shape cue, not colour alone.
+  - **Hover (fine pointer only):** a 1px `--accent` ring at `--s-0` offset around the square, like the asset key. Nothing else changes.
+  - **Focus-visible:** keep T1, the `--focus-w` `--focus` ring around the box and words with `--s-2` inside. No fill.
+  - **Disabled:** mark and words `--disabled`, the outline dashed (M4), and the core still shown if on. `--cursor-off`, and no hover ring.
+  - **Unchanged:** the 44px target (H1), `role="switch"` with `aria-checked`, the accessible names, the layout and spacing (box on the text column, words `--s-3` after; pair `--s-2` padding and `--s-1` apart).
+  - **Accept:** on and off are the same height with no fill and nothing overlapping the row below; at least 3:1 for the mark against `--surface` in dark and linen; the asset key and the tick mark match pixel for pixel at the same size.
+- **K2 · One check-mark component, two sizes (user via Stack Math, 2026-10-29; extends K1, supersedes the solid Swatches face and its ✓):**
+  - **Component:** one primitive, the check mark, with `size: "default" | "large"` and `on: boolean`. It's aria-hidden and draws only the mark; its parent owns the role, the name and the 44px target. TickToggle and the AssetRow key use `default`; Swatches uses `large`.
+  - **Default:** `0.6875rem` square, 1px outline, core inset `--s-0` (as K1).
+  - **Large:** `1.25rem` square (the current chip size), a 2px outline, and the core inset `--s-1`, so the core is 0.5rem at 1×. Both sizes keep the same off/on rule: outline only when off, outline plus a solid core when on.
+  - **Colour rule:** the mark draws in `currentColor`, which the parent sets. Use `--accent` for settings (K1). Use the colour itself only where the colour is the content: the asset key (`--dyn-asset`) and each swatch (`--dyn-c`). So every swatch shows its own colour as an outline, and the picked one also gets its core.
+  - **Swatches states:** the picked swatch is on (core) and the rest are off (outline). Hover (fine pointer) adds a 1px `--accent` ring at `--s-0` offset; the ring does not scale with size, so it's the same 1px at `--s-0` on both sizes. Focus-visible draws a `--focus-w` `--focus` ring at `--s-1` offset around the mark (roving tabindex unchanged). There's no ✓ glyph and no fill behind the chip.
+  - **Unchanged:** the radiogroup, radio semantics, arrow/Home/End keys, the 44px targets and the 8-or-4-per-row layout.
+  - **Accept:** each swatch outline at least 3:1 on `--surface` in dark and linen (Forge lists any that fail; the palette fix is mine); a large mark scaled to default size matches the default mark's proportions; the picked swatch can be told apart without colour (core versus none).
+- **U1 · Undo (MVP-SPEC Phase 4; stories 152, 173, 194; 2026-10-29):**
+  - **Where:** in the sheet's edge (grab) row, at the inline end, `--tk-pad-x` in from the edge, centred on the row. This holds on the phone sheet, the landscape side panel (its top edge row) and desktop alike. Never over the chart (173). The grab point stays centred; on narrow widths the chip's label truncates before it can touch the grab point's 44px target.
+  - **Look:** STYLE.md v38 is final: a square chip with a `--rule-double` `--accent` frame, no fill, EB Garamond `--t-row`, and "Undo" underlined (194). Never rounded. The target is at least `--hit`.
+  - **Glyph ↶:** Icon `undo`, 16 grid, stroke 1.5, `currentColor`, square caps and joins, no fill: `M5 3 L2 6 L5 9 M2 6 H10 A4 4 0 0 1 10 14 H7`.
+  - **Text:** `↶ Undo · <Field>: <old value>`, e.g. `↶ Undo · Years: 30`. The old value is in that field's resting format (grouping, decimals, ₿ prefix, × 10ⁿ) and is the same string the field showed before. A choice shows its option label ("Plan C"); a switch shows "on"/"off". The field name truncates with an ellipsis first; the value never truncates.
+  - **History:** multi-step (152). Each committed change pushes one step. The chip always describes the newest step. Undo restores that value (a 200ms tween, or instant with reduced motion) and the chip moves to the next older step. It leaves (160ms, or instant) when history is empty. A new commit while the chip is showing updates its text in place with no re-slide. There's no timeout and no auto-dismiss (WCAG 2.2.1). No Redo chip. Redo is keyboard only: Shift+Cmd/Ctrl+Z re-applies the most recently undone step (PO ruling, Stack Math, 2026-10-29). The live region announces "<Field> back to <value>". Any new commit clears the redo steps. History lasts for the session; the cap is an engineering call, at least 20 steps.
+  - **Keyboard:** Cmd/Ctrl+Z triggers Undo when focus isn't in a text field.
+  - **Accessibility:** a `<button>` named "Undo <Field>, back to <old value>". On its first appearance a polite live region says "Undo available". After an undo it says "<Field> back to <value>". A commit never moves focus to the chip. After activation focus stays on the chip; if history is now empty, focus moves to the restored field.
+- **P1 · Per-model params (only if PR #11 merges; the back end is the user's. Until then the pane shows main's settings as today):**
+  - **Shown:** exactly the selected model's `params`, in `params` order, under the price-model selector, labels verbatim from the engine (`label`). The old varInput/varRange "show only when" rules are replaced by "show the model's params". A model with none shows no param rows. Switching models swaps the rows, and each model keeps its own values (the engine's `declaredSettings`).
+  - **Choice params** (Quantile Source, Rainbow Refit, Stock-to-Flow Formula): a radio list, one row per option, all visible (3 options, so no popover). Each row's mark is the K2 default check mark in `--accent`, on for the picked option, inside a `radiogroup` named by the param label. Option labels are verbatim. Arrow keys move and select, with roving tabindex. A pick commits immediately and pushes an Undo step.
+  - **Number params:** the existing NumberField gate (§1g) and live-field rules. A slider appears only where both bounds are finite. The full range is the slider range; there's no separate focus range. The value rests at the step's decimals:
+    - CAGR R (%): 0–1000, step 1, rests "20".
+    - +/−: min 1.01, no max, so no slider; step 0.1, rests "3.0" (2k overflow rule).
+    - Offset: 0–1, step 0.1, rests "0.5".
+    - Power Law Shift (years): 0–30, step 0.1, rests "6.0".
+    - Stock-to-Flow Band: 0–0.99, step 0.01, rests "0.68".
+    - Historic Previous Halvings: 2–3, step 1 (2h still applies).
+  - **Model text:** the engine's own `summary` is the caption under the selector, verbatim, `--text-muted` `--t-caption`. The full `description` sits behind a "More about <Model>" text disclosure under it, verbatim, with URLs as links. There's no COPY.md rewrite, because the engine text is the source of truth and a paraphrase would drift.
+- **Fade at a pinned header's exit (2026-10-29):** a header counts as pinned only while it is actually stuck at the top edge. Once it starts being pushed out, it takes the standard top fade straight away, with no blend over the scroll (§11: fades switch instantly).
+- **G12 exemptions (2026-10-29):** three main settings have no Models pane control, on purpose. `loadingPriceData` is a state flag, not a setting. `pinnedWeeks` is chart interaction state and out of the pane's scope (v2 sends null). `showModel` is main's model-only chart mode, which hides the walks and volume. The v2 pane has no toggle for it, and v2 sends false; whether v2 ever offers that view is the product owner's call.
+- **Time horizon (2026-10-29):** the top-level group's title is "Time horizon" (`sections.simulation`). The Years description is "How far into the future to look, for every model." (`settingDesc.years`). The field label stays "Years", and the layout doesn't change.
+- **Tokens retired by K1 (2026-10-29):** `--tk-box` and `--selected` are deleted, along with any alias that only points to them (such as `--chip`) if nothing else uses it. Older lines in this spec that name them are superseded by K1 and K2.
 - **Median with 2 futures (R6 Q6), settled:** the engine (`quantile.ts:37`) takes the lower middle value for an even count, and that stays: it's back-end behaviour (Keel, 2026-10-23). The label stays "median". At the default of 1,000 futures the two middle values are neighbours and the gap can't be seen; at tiny counts like 2 the fan means little anyway. Don't compute a different median on the v2 side. This is not a defect.
 
 ---

@@ -20,7 +20,8 @@ export type SliderProps = {
   max: number;
   step: number;
   /** Commits live while dragged or a key is held (at most every 100 ms), and once on release. */
-  onCommit?: (next: number) => void;
+  /** `live` is true during a drag or held key; the release's commit has it false (U1). */
+  onCommit?: (next: number, live: boolean) => void;
   /** Spoken value (aria-valuetext). */
   valueText?: ((value: number) => string) | undefined;
   disabled?: boolean;
@@ -106,7 +107,7 @@ export const Slider = ({
   props.current = { onCommit, value };
   const live = useRef<Live | null>(null);
   live.current ??= createLive(
-    (n) => props.current.onCommit?.(n),
+    (n, now) => props.current.onCommit?.(n, now),
     () => props.current.value,
   );
   const hold = live.current;

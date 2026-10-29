@@ -1,6 +1,5 @@
 @layer tokens {
-  /* StackMath · tier 2 · SEMANTIC tokens. Only var() references to palette.css (no raw values).
-   Components use ONLY these (plus motion-etc.css, type.css sizes, space.css). Dark is the default theme. v2.1: --selected gold-wash; --walk-up/--walk-down. */
+  /* StackMath · tier 2 · SEMANTIC tokens: var() into palette.css only. Dark is the default. */
   :root,
   [data-theme="dark"] {
     --ground: var(--ink-950);

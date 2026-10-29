@@ -1,0 +1,60 @@
+@layer primitives {
+  .root {
+    display: inline-flex;
+    gap: var(--s-1);
+    align-items: center;
+    max-inline-size: 100%;
+    min-block-size: var(--hit);
+    padding: 0 var(--s-2);
+    border: var(--rule-double) double var(--accent);
+    background: none;
+    color: var(--accent);
+    font-family: var(--f-text);
+    font-size: var(--t-row);
+    white-space: pre;
+    cursor: var(--cursor-press);
+  }
+
+  .text {
+    display: flex;
+    min-inline-size: 0;
+    color: var(--text);
+  }
+
+  .word {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  .field {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .value {
+    flex: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .root[data-state="in"],
+    .text {
+      animation: in var(--dur-undo);
+    }
+
+    .root[data-state="out"] {
+      animation: out var(--dur-out) forwards;
+    }
+  }
+
+  @keyframes in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes out {
+    to {
+      opacity: 0;
+    }
+  }
+}

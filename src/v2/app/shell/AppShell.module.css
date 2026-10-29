@@ -1,6 +1,5 @@
 @layer app {
-  /* Phone (one column, bottom sheet) is the base; dock mode (NC ≥ 2, W ≥ 636px) and the
-     phone-landscape right panel are the two @media blocks below (viewport media live only here). */
+  /* Phone is the base; dock mode and phone landscape are the @media blocks below. */
   .root {
     display: flex;
     flex-direction: column;
@@ -152,6 +151,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    block-size: 0;
+  }
+
+  /* U1: Undo, on the grab row's inline end */
+  .undo {
+    position: absolute;
+    z-index: var(--z-chart);
+    inset-block-start: 0;
+    inset-inline-end: var(--tk-pad-x);
+    display: flex;
+    align-items: flex-start;
+    max-inline-size: var(--undo-w);
     block-size: 0;
   }
 
@@ -374,8 +385,14 @@
     }
 
     .grab,
-    .beat {
+    .beat,
+    .root[data-sheet="closed"] .undo {
       display: none;
+    }
+
+    .undo {
+      inset-block-start: 0;
+      max-inline-size: var(--undo-w-panel);
     }
 
     .root[data-sheet="closed"][data-dragging="false"] .dockRow {

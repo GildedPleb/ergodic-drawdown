@@ -133,9 +133,7 @@
     visibility: visible;
   }
 
-  /* 🔍: v32's 28×28 box pulled 8px into the padding (margin-left:-8px). Margins are banned
-     (R6), so the layout slot is the 20px that remains and the glyph shifts 4px back to the box
-     centre; 13px glyph, 44px hit area. */
+  /* 🔍: v32's 28px box pulled 8px in; no margins (R6), so a 20px slot, glyph shifted 4px. */
   .mag {
     position: relative;
     display: inline-flex;

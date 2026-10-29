@@ -64,7 +64,8 @@ type EditorProps = {
   description?: string | undefined;
   /** §1Q: the soft top for a field in the focus-range table (the model's rangeMax). */
   softTop?: number | undefined;
-  onCommit: (n: number) => void;
+  /** `live`: a drag or held-key step, not yet one Undo step (U1). */
+  onCommit: (n: number, live: boolean) => void;
 };
 
 /**
@@ -128,7 +129,8 @@ const Editor = (p: EditorProps): JSX.Element => {
 
 export type ModelsSheetProps = {
   values: ModelsValues;
-  onChange: (patch: Partial<ModelsValues>) => void;
+  /** `live` is true while a drag or held key is still going (U1: only the final one is a step). */
+  onChange: (patch: Partial<ModelsValues>, live?: boolean) => void;
   /** §1MP 5: Bitcoin's colour square (shown on the chart); starts ON. */
   on?: boolean;
   onOn?: (next: boolean) => void;
@@ -180,6 +182,50 @@ export const summaryOf = (values: ModelsValues): string => {
         ? copy.replays(used)
         : values.model;
   return copy.summary(part, values.walk, restOf(controls.volatility.label)(values.volatility));
+};
+
+/** U1: one Undo step, named by its field, with the value it goes to in that field's rest format. */
+export type Step = {
+  field: string;
+  /** Exactly as the field shows it at rest (a choice's option label; a switch "on" / "off"). */
+  value: string;
+  /** A selector for the field's control, for focus once history is empty (it may be collapsed). */
+  focus: string;
+};
+
+/** "Walk Strategy:" → "Walk Strategy" (the chip adds its own colon). */
+const bare = (label: string): string => label.replace(/:\s*$/, "");
+const SWITCHES = { clampBottom: copy.clampMin, clampTop: copy.clampMax } as const;
+const NUMBERS = [
+  ["minMaxMultiple", "+/-", "minmax"],
+  ["volatility", controls.volatility.label, "vol"],
+  ["samples", SAMPLES_LABEL, "samples"],
+  ["years", strings.fields.yearsLabel, "years"],
+] as const;
+
+/**
+ * U1: the step from `now` back (or forward) to `to`, named by the field that differs (a commit
+ * changes one). A model pick with its variable reset is one step, named by the model.
+ */
+export const stepOf = (now: ModelsValues, to: ModelsValues): Step | null => {
+  if (now.model !== to.model)
+    return { field: strings.undo.model, value: to.model, focus: "#v2-model" };
+  const label = modelsPaneSchema.models.find((m) => m.name === to.model)?.varInput ?? "";
+  if (now.variable !== to.variable)
+    return { field: label, value: restOf(label)(usedVariable(to)), focus: "#v2-variable" };
+  if (now.walk !== to.walk)
+    return { field: bare(controls.walk.label), value: to.walk, focus: "#v2-walk" };
+  for (const key of ["clampBottom", "clampTop"] as const) {
+    if (now[key] === to[key]) continue;
+    const field = SWITCHES[key];
+    const value = to[key] ? strings.undo.on : strings.undo.off;
+    return { field, value, focus: `[role="switch"][aria-label="${field}"]` };
+  }
+  for (const [key, name, id] of NUMBERS) {
+    if (now[key] !== to[key])
+      return { field: bare(name), value: restOf(name)(to[key]), focus: `#v2-${id}` };
+  }
+  return null;
 };
 
 /**
@@ -254,8 +300,8 @@ export const ModelsSheet = ({
           softTop={softTop}
           slider
           description={copy.settingDesc[meta.varInput]}
-          onCommit={(variable) => {
-            onChange({ variable });
+          onCommit={(variable, live) => {
+            onChange({ variable }, live);
           }}
         />
       ) : null}
@@ -271,8 +317,8 @@ export const ModelsSheet = ({
           places={placesOf("+/-")}
           slider={false}
           description={copy.settingDesc["+/-"]}
-          onCommit={(minMaxMultiple) => {
-            onChange({ minMaxMultiple });
+          onCommit={(minMaxMultiple, live) => {
+            onChange({ minMaxMultiple }, live);
           }}
         />
       ) : null}
@@ -357,8 +403,8 @@ export const ModelsSheet = ({
           places={placesOf(controls.volatility.label)}
           slider
           description={copy.settingDesc[controls.volatility.label]}
-          onCommit={(volatility) => {
-            onChange({ volatility });
+          onCommit={(volatility, live) => {
+            onChange({ volatility }, live);
           }}
         />
         {/* §1MP 7: samples are per asset; Bitcoin's is the engine's one sample count. */}
@@ -372,8 +418,8 @@ export const ModelsSheet = ({
           emptyValue={controls.samples.emptyValue}
           slider
           description={copy.settingDesc["samples"]}
-          onCommit={(samples) => {
-            onChange({ samples });
+          onCommit={(samples, live) => {
+            onChange({ samples }, live);
           }}
         />
       </div>
@@ -452,8 +498,8 @@ export const ModelsSheet = ({
             emptyValue={controls.years.emptyValue}
             slider
             description={copy.settingDesc["years"]}
-            onCommit={(years) => {
-              onChange({ years });
+            onCommit={(years, live) => {
+              onChange({ years }, live);
             }}
           />
         </div>
