@@ -160,7 +160,7 @@ These are for the SVG circles that replace the emoji 🟢🟢🟢🔴 in the eng
 | space.css | `--tk-box`               | deleted 2026-10-29 (unused after K1/K2)                |                                            |
 | space.css | `--tk-sel-bg`            | `--tk-sel-bg` (unchanged, tokens/space.css)            |                                            |
 | space.css | `--focus-w`              | `--focus-w` (moved to motion-etc.css)                  |                                            |
-| space.css | `--focus-off`            | `--focus-offset-tight` (motion-etc.css)                |                                            |
+| space.css | `--focus-off`            | deleted (K4: no rule used it)                          |                                            |
 | space.css | `--seg-pad`              | `--seg-pad` (unchanged, tokens/space.css)              |                                            |
 | space.css | `--row-pad`              | `--row-pad` (unchanged, tokens/space.css)              |                                            |
 | space.css | `--card-pad`             | `--card-pad` (unchanged, tokens/space.css)             |                                            |

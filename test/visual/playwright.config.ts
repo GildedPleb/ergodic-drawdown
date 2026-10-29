@@ -4,8 +4,8 @@ import { defineConfig, devices, type Project } from "@playwright/test";
  * MVP-SPEC §4 / G7 matrix on /design/<group>/<story> (the app route, never Storybook).
  * 5 viewports × 2 engines, plus Chromium at 200% zoom, 200% OS text and reduced motion.
  * Themes are part of the story id (…/linen sets data-theme on <html>).
- * Baselines: test/visual/__screenshots__, generated in mcr.microsoft.com/playwright:v1.64.1-noble
- * (`bun run visual:update` inside it); Form reviews, the user applies `design-approved`.
+ * Baselines: test/visual/__screenshots__, generated only in the box Chromium pinned by
+ * @playwright/test 1.64.1, no containers (README); Form reviews, the user applies `design-approved`.
  */
 const VIEWPORTS = {
   "390x844": { width: 390, height: 844 },

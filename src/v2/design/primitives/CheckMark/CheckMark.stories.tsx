@@ -10,6 +10,9 @@ export const Off = (): ReactElement => <CheckMark on={false} />;
 export const Disabled = (): ReactElement => <CheckMark on disabled />;
 export const Large = (): ReactElement => <CheckMark on size="large" />;
 export const LargeOff = (): ReactElement => <CheckMark on={false} size="large" />;
+/** K6: the sheet's disabled states at the large size (Swatches never disable a chip). */
+export const LargeDisabled = (): ReactElement => <CheckMark on={false} size="large" disabled />;
+export const LargeDisabledOn = (): ReactElement => <CheckMark on size="large" disabled />;
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
     <CheckMark on />

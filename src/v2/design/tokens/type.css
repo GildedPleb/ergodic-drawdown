@@ -34,7 +34,8 @@
     --t-kicker: 0.625rem; /* 10px */
     --lh-kicker: 0.75rem; /* 12px line, the v32 metric */
     --tr-kicker: 0.16em;
-    --t-logo: 1.0625rem; /* 17px */
+    /* 17px; RF1 logo fit (1.4.4-exempt): 179px wide at 17px, so ≤100cqi needs ≤9.5cqi. */
+    --t-logo: min(1.0625rem, 9.4cqi);
     --tr-logo: 0.32em;
     --t-beat: 1.0625rem; /* half-sheet headline, 17px */
     --lh-beat: 1.3;

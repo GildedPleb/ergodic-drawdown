@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** G7: axe reports 0 serious or critical issues. */
 export const expectAxeClean = async (page: Page): Promise<void> => {
@@ -12,18 +12,62 @@ export const expectAxeClean = async (page: Page): Promise<void> => {
   expect(bad).toEqual([]);
 };
 
-/** G7: no hit target under 44×44 CSS px. */
+export type Target = {
+  what: string;
+  /** The tap target: the element, its absolutely placed ::before or ::after, and a K4 row target for it. */
+  box: { top: number; bottom: number; left: number; right: number };
+  /** K4 (4): a number row's target is the row band, a recorded exception to H1 (≥24px). */
+  row: boolean;
+};
+
+/** Every control's tap target, as hit-testing sees it (K3/K4). */
+export const targetsOf = async (page: Page, selector: string): Promise<Target[]> =>
+  page.locator(selector).evaluateAll((els) =>
+    els.flatMap((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0) return [];
+      const box = { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+      const grow = (o: { top: number; bottom: number; left: number; right: number }): void => {
+        box.top = Math.min(box.top, o.top);
+        box.bottom = Math.max(box.bottom, o.bottom);
+        box.left = Math.min(box.left, o.left);
+        box.right = Math.max(box.right, o.right);
+      };
+      for (const pseudo of ["::before", "::after"]) {
+        const p = getComputedStyle(el, pseudo);
+        if (p.content === "none" || p.position !== "absolute") continue;
+        const top = r.top + Number.parseFloat(p.top);
+        const left = r.left + Number.parseFloat(p.left);
+        grow({
+          top,
+          left,
+          bottom: top + Number.parseFloat(p.height),
+          right: left + Number.parseFloat(p.width),
+        });
+      }
+      const band =
+        el.id === "" ? null : document.querySelector(`label[data-target="row"][for="${el.id}"]`);
+      if (band !== null) grow(band.getBoundingClientRect());
+      const name = el.getAttribute("aria-label") ?? el.id;
+      return [{ what: `${el.tagName.toLowerCase()} ${name}`, box, row: band !== null }];
+    }),
+  );
+
+/** G7: no hit target under 44×44 CSS px; K4 (4): a number row's band is at least 24px tall. */
 export const expectTapTargets = async (page: Page): Promise<void> => {
-  const small = await page
-    .locator('button, [role="switch"], [role="button"], a[href], input, select, textarea')
-    .evaluateAll((els) =>
-      els
-        .map((el) => ({ el, r: el.getBoundingClientRect() }))
-        .filter(({ r }) => r.width > 0 && (r.width < 44 || r.height < 44))
-        .map(
-          ({ el, r }) =>
-            `${el.tagName.toLowerCase()} ${Math.round(r.width)}×${Math.round(r.height)}`,
-        ),
+  const targets = await targetsOf(
+    page,
+    'button, [role="switch"], [role="button"], a[href], input, select, textarea',
+  );
+  const small = targets
+    .filter(({ box, row }) => {
+      const w = box.right - box.left;
+      const h = box.bottom - box.top;
+      return row ? w < 44 || h < 24 : w < 44 || h < 44;
+    })
+    .map(
+      ({ what, box }) =>
+        `${what} ${Math.round(box.right - box.left)}×${Math.round(box.bottom - box.top)}`,
     );
   expect(small).toEqual([]);
 };
@@ -108,3 +152,22 @@ export const gotoStory = async (
     await document.fonts.ready;
   });
 };
+
+/**
+ * K5 amended: the focus ring (on the mark's wrapper) sits at gap + hover stroke + gap from the
+ * mark, read from the mark's own computed padding (the gap) and border (the stroke).
+ */
+export const focusRule = async (
+  mark: Locator,
+): Promise<{ focus: number; rule: number; overall: number }> =>
+  mark.evaluate((el) => {
+    const px = (v: string): number => Number.parseFloat(v);
+    const cs = getComputedStyle(el);
+    const ring = getComputedStyle(el.parentElement as Element);
+    const focus = px(ring.outlineOffset);
+    return {
+      focus,
+      rule: 2 * px(cs.paddingTop) + px(cs.borderTopWidth),
+      overall: el.getBoundingClientRect().width + 2 * (focus + px(ring.outlineWidth)),
+    };
+  });

@@ -187,3 +187,110 @@ test("K1/K2: the mark and each swatch outline are at least 3:1 on --surface in b
   }
   expect(below).toEqual([]);
 });
+
+/**
+ * K5: on a fine pointer the hover ring is a second outline in the mark's own colour (currentColor),
+ * so it is exactly as legible as the mark: --accent on settings, each asset's colour on its key,
+ * each swatch's colour. Disabled marks get no ring. At least 3:1 on --surface (the pane) and on
+ * --ground, both themes.
+ */
+test("K5: the hover ring is the mark's own colour, at least 3:1 on --surface and --ground", async () => {
+  const mark = await file(`${dir}/../primitives/CheckMark/CheckMark.module.css`).text();
+  expect(/:hover\) \.root \{\s*outline: [^;]+ solid currentColor;\s*\}/.test(mark)).toBe(true);
+  const strings = await file(`${import.meta.dir}/../../src/v2/app/strings.ts`).text();
+  const colours = [...strings.matchAll(/colour: "var\((--path-[\w-]+)\)"/g)].map((m) => m[1] ?? "");
+  expect(colours.length).toBe(11); // 3 asset keys + 8 swatches
+  const env = await themes();
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    for (const bg of ["--surface", "--ground"]) {
+      const under = resolve(env[theme], `var(${bg})`);
+      for (const fg of new Set(["--accent", ...colours])) {
+        const got = ratio(resolve(env[theme], `var(${fg})`), under);
+        if (got < 3) below.push(`${theme} ${fg} on ${bg}: ${got.toFixed(2)}`);
+      }
+    }
+  }
+  expect(below).toEqual([]);
+});
+
+/**
+ * K6 (Large A): the Swatches mark is 20/2/3/10 and its hover ring is the 2px stroke again in
+ * currentColor, so every large state is drawn in the swatch's own colour (or --disabled, dashed).
+ * Each of the 8 swatch colours and --disabled is at least 3:1 on --surface and --ground.
+ */
+test("K6: every large state (8 swatches, hover, disabled) is at least 3:1 on --surface and --ground", async () => {
+  const mark = await file(`${dir}/../primitives/CheckMark/CheckMark.module.css`).text();
+  expect(/\.root\[data-size="large"\] \{[^}]*--_line: 2px;/.test(mark)).toBe(true);
+  expect(/:hover\) \.root \{\s*outline: var\(--_line\) solid currentColor;\s*\}/.test(mark)).toBe(
+    true,
+  );
+  const strings = await file(`${import.meta.dir}/../../src/v2/app/strings.ts`).text();
+  const block = /colours: \[([\s\S]*?)\]/.exec(strings)?.[1] ?? "";
+  const swatches = [...block.matchAll(/colour: "var\((--path-[\w-]+)\)"/g)].map((m) => m[1] ?? "");
+  expect(swatches.length).toBe(8);
+  const env = await themes();
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    for (const bg of ["--surface", "--ground"]) {
+      const under = resolve(env[theme], `var(${bg})`);
+      for (const fg of [...swatches, "--disabled"]) {
+        const got = ratio(resolve(env[theme], `var(${fg})`), under);
+        if (got < 3) below.push(`${theme} ${fg} on ${bg}: ${got.toFixed(2)}`);
+      }
+    }
+  }
+  expect(below).toEqual([]);
+});
+
+/**
+ * K5 amended (:864): the focus ring is drawn one more gap past the hover ring at both sizes
+ * (default 2 + 1 + 2 = 5px, Large A 3 + 2 + 3 = 8px), so a full gap of the ground shows between
+ * the two rings and the 2px --focus ring's neighbours are the ground, never the mark's own colour.
+ * --focus is at least 3:1 on --surface and --ground in both themes (2.4.13).
+ */
+test("K5 amended: focus sits a full gap past the hover ring; --focus is at least 3:1 on its ground", async () => {
+  const prim = `${dir}/../primitives`;
+  const space = await file(`${dir}/space.css`).text();
+  const etc = await file(`${dir}/motion-etc.css`).text();
+  const s0 = Number.parseFloat(/--s-0: ([\d.]+)rem/.exec(space)?.[1] ?? "") * 16;
+  const hair = Number.parseFloat(/--rule-hair: (\d+)px/.exec(etc)?.[1] ?? "");
+  const tok: Record<string, number> = { "--s-0": s0, "--rule-hair": hair };
+  for (const n of ["1", "2"])
+    tok[`--s-${n}`] =
+      Number.parseFloat(new RegExp(`--s-${n}: ([\\d.]+)rem`).exec(space)?.[1] ?? "") * 16;
+  const offset = (css: string, selector: string): number => {
+    const at = css.indexOf(`${selector} {`);
+    const rule = at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+    const expr = (/outline-offset: ([^;]+);/.exec(rule)?.[1] ?? "")
+      .replace("var(--_ring)", /--_ring: ([^;]+);/.exec(rule)?.[1] ?? "")
+      .replace(/var\((--[\w-]+)\)/g, (_, n: string) => String(tok[n] ?? Number.NaN))
+      .replace(/(\d+(?:\.\d+)?)px/g, "$1")
+      .replace(/^calc\((.*)\)$/, "$1");
+    return expr
+      .split("+")
+      .map((t) => t.split("*").reduce((a, f) => a * Number(f), 1))
+      .reduce((a, b) => a + b, 0);
+  };
+  const asset = await file(`${prim}/AssetRow/AssetRow.module.css`).text();
+  const sw = await file(`${prim}/Swatches/Swatches.module.css`).text();
+  // [focus offset, hover offset (the gap), hover width (the stroke)] per size, in px at 16px.
+  const sizes = {
+    default: [offset(asset, ".key:focus-visible .mark"), s0, hair],
+    large: [offset(sw, ".chip:focus-visible .mark"), 3, 2],
+  };
+  const gaps = Object.entries(sizes).map(([k, [f = 0, g = 0, w = 0]]) => [k, f - (g + w), g]);
+  expect(gaps).toEqual([
+    ["default", 2, 2],
+    ["large", 3, 3],
+  ]);
+  const env = await themes();
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    for (const bg of ["--surface", "--ground"]) {
+      const got = ratio(resolve(env[theme], "var(--focus)"), resolve(env[theme], `var(${bg})`));
+      if (got < 3) below.push(`${theme} --focus on ${bg}: ${got.toFixed(2)}`);
+    }
+  }
+  expect(below).toEqual([]);
+});

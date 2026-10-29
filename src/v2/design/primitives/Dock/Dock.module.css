@@ -5,7 +5,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s-2);
-    block-size: var(--dock-row);
+    /* RF1: min, so wrapped tabs grow it. */
+    min-block-size: var(--dock-row);
     padding-block-end: var(--dock-row-pad-end);
   }
 
@@ -55,11 +56,20 @@
     justify-self: end;
   }
 
+  /* RF1: tabs that don't fit wrap, in order; ⚙ (flex: none) stays at the end. */
   .tabs {
     display: flex;
     flex: 1;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: var(--dock-tabs-gap);
+    gap: 0 var(--dock-tabs-gap);
+  }
+
+  /* RF1.5: hidden slots never make a row. */
+  .root[data-orientation="row"] .tab[data-shown="false"] {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    max-inline-size: var(--dock-slot-max);
   }
 
   /* Rail: the tab column grows (content at its top) so ⚙ lands at the bottom without margin. */
