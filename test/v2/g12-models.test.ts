@@ -21,12 +21,15 @@ test("G12 (b): every golden setting has a data-setting control with main's min, 
   expect(settingDiffs(golden)).toEqual([]);
 });
 
-test("G12 (b): every setting the pane hides cites a Form ruling (open ones are questions for Form)", () => {
+test("G12 (b): every setting the pane hides cites Form's ruling G12 exemptions (V32-BUILD:857)", () => {
   expect(Object.keys(NOT_SHOWN).toSorted()).toEqual([
     "loadingPriceData",
     "pinnedWeeks",
     "showModel",
   ]);
+  for (const { ruling } of Object.values(NOT_SHOWN)) {
+    expect(ruling.startsWith("V32-BUILD:857 G12 exemptions:")).toBe(true);
+  }
 });
 
 test("G12 (c): v2's engine scenario equals main's declared settings for every model", () => {

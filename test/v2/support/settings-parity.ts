@@ -26,20 +26,20 @@ import { choosePatch, defaultModelsValues } from "../../../src/v2/app/models/val
 import { dumpMainModels, plain, type Json } from "./main-models";
 
 /**
- * Provider values the pane has no control for. Each entry cites the Form ruling that hides it;
- * an entry without a ruling yet carries the question put to Form instead (never an invented one).
+ * Provider values the pane has no control for. Each entry cites the Form ruling that hides it
+ * ("G12 exemptions", docs/design/v32-ref/V32-BUILD.md:857).
  */
-export const NOT_SHOWN: Readonly<Record<string, { ruling: string } | { question: string }>> = {
+export const NOT_SHOWN: Readonly<Record<string, { ruling: string }>> = {
   loadingPriceData: {
-    question: "Form: main's price-data loading flag is state, not a setting. Confirm no control.",
+    ruling: "V32-BUILD:857 G12 exemptions: a state flag, not a setting, so no control.",
   },
   pinnedWeeks: {
-    question:
-      "Form: main's chart pin (pinSpan, cleared by any Years edit) has no Models control. Confirm it stays off the pane (engineConfig sends null).",
+    ruling:
+      "V32-BUILD:857 G12 exemptions: chart interaction state, out of the pane's scope (v2 sends null).",
   },
   showModel: {
-    question:
-      "Form: main's 'show model line' chart toggle has no Models control and engineConfig sends false. Confirm it is hidden, or rule where it goes.",
+    ruling:
+      "V32-BUILD:857 G12 exemptions: main's model-only chart mode; the v2 pane has no toggle (v2 sends false). Whether v2 offers it is the PO's call.",
   },
 };
 

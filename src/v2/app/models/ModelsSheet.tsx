@@ -26,7 +26,7 @@ const count = (n: number): string => n.toLocaleString("en-US");
 /** "Previous Halvings" → plural, "R (%)" → singular (for "goes" / "go"). */
 /**
  * Gap 10 (Form, m2): samples clamp to a minimum of 1 (zero futures draws nothing, so it is never a
- * valid result). 1 is main's own samples input `min` (G12 snapshot); the max is its accept max.
+ * valid result). 1 is main's own samples input `min` (from-old-ui.ts); the max is its accept max.
  */
 /** §1MP 6: desktop, where the open walk list takes two columns (read here, inside the pane). */
 const DESKTOP = "(min-width: 64rem)";

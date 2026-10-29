@@ -1,5 +1,6 @@
 /**
- * v2 Models pane schema. Must deep-equal test/v2/old-ui-models.snapshot.json (G12).
+ * v2 Models pane schema. G12 (test/v2/g12-models.test.ts) checks the pane it drives against
+ * main's model code via test/v2/main-models.golden.json.
  */
 import { buildOldUiModelsSnapshot, type ModelsPaneSnapshot } from "./from-old-ui";
 
