@@ -1,7 +1,5 @@
 @layer tokens {
-  /* StackMath · spacing + component sizing (rem), unchanged from ../system/space.css v41 except:
-   --focus-w / --focus-off moved to motion-etc.css (--focus-w, --focus-offset-tight); --thumb-* moved to motion-etc.css;
-   --tk-box deleted 2026-10-29 (unused after K1/K2). No component rules here. */
+  /* StackMath · spacing + component sizing (rem), from ../system/space.css v41. No component rules here. */
   :root {
     --s-0: 0.125rem;
     --s-1: 0.25rem;

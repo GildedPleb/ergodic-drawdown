@@ -420,3 +420,78 @@ test("Form 4d-4f / 2e / 2g: every sheet field gets the grouped limit note and bo
     false,
   );
 });
+
+/** The declarations of one rule, by its exact selector, from a CSS module's text. */
+const rule = (css: string, selector: string): string => {
+  const at = css.indexOf(`${selector} {`);
+  return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+};
+
+const primitive = async (name: string): Promise<string> =>
+  file(`${import.meta.dir}/../../src/v2/design/primitives/${name}/${name}.module.css`).text();
+
+/** Each [css, selector, declaration] that is missing. */
+const missing = (want: [string, string, string][]): string[] =>
+  want
+    .filter(([css, sel, d]) => !rule(css, sel).includes(d))
+    .map(([, sel, d]) => `${sel} { ${d} }`);
+
+test("K4 (V32-BUILD:863): a number row's target is its label track plus 16px above, full width, under the text (H1's recorded ≥24px exception)", async () => {
+  for (const [field, input] of [
+    ["volatility", "vol"],
+    ["samples", "samples"],
+    ["years", "years"],
+  ] as const) {
+    const html = editor(field);
+    const band = html.search(
+      new RegExp(
+        `<label class="[^"]+" for="v2-${input}" aria-hidden="true" data-target="row"></label>`,
+      ),
+    );
+    // First in the row, so the label, value and description all paint over it.
+    expect([field, band > -1 && band < html.indexOf(`id="row-${field}-label"`)]).toEqual([
+      field,
+      true,
+    ]);
+  }
+  const row = await primitive("LedgerRow");
+  const nf = await primitive("NumberField");
+  const value = '.root[data-label="hidden"] .control';
+  expect(
+    missing([
+      [row, ".hit", "position: absolute"],
+      [row, ".hit", "grid-row: 1 / 2"],
+      [row, ".row", "--_up: calc(0px - var(--s-5))"],
+      [row, ".hit", "inset: var(--_up) 0 0;"],
+      [row, ".desc", "position: relative"],
+      [row, ".label", "position: relative"],
+      // The value cell is exactly its track; its ring sits inside it.
+      [nf, value, "min-block-size: 100%"],
+      [nf, value, "--_in: calc(0px - var(--focus-w))"],
+      [nf, `${value}:focus-visible`, "outline-offset: var(--_in)"],
+    ]),
+  ).toEqual([]);
+});
+
+test("K4 (V32-BUILD:863): Clamp's toggles end on the label track; each 44px target rises 16px out of it, the ring inside", async () => {
+  const tick = await primitive("TickToggle");
+  const row = await primitive("LedgerRow");
+  const sheet = await file(
+    `${import.meta.dir}/../../src/v2/app/models/ModelsSheet.module.css`,
+  ).text();
+  const pair = '.root[data-size="pair"]';
+  expect(
+    missing([
+      [tick, pair, "--_h: calc(var(--hit) - var(--s-5))"],
+      [tick, pair, "min-block-size: var(--_h)"],
+      [tick, pair, "--_up: calc(0px - var(--s-5))"],
+      [tick, `${pair}::after`, "inset: var(--_up) 0 0"],
+      [tick, pair, "--_in: calc(0px - var(--focus-w))"],
+      [tick, ".root[data-size]:focus-visible", "outline-offset: var(--_in)"],
+      [row, ".row", "--_pair-h: calc(var(--hit) - var(--s-5))"],
+      [row, '.row[data-kind="pair"]', "grid-template-rows: var(--_pair-h)"],
+      // Wrapped (200%), each line keeps its --s-5 rise clear of the line above.
+      [sheet, ".pair", "gap: var(--s-5) var(--s-1)"],
+    ]),
+  ).toEqual([]);
+});

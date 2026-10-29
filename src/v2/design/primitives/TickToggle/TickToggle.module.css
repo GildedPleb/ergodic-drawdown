@@ -27,9 +27,22 @@
     color: var(--accent);
   }
 
+  /* K4: track-tall; the 44px target rises 16px above it, never below */
   .root[data-size="pair"] {
+    --_h: calc(var(--hit) - var(--s-5));
+    --_up: calc(0px - var(--s-5));
+    --_in: calc(0px - var(--focus-w));
+
+    position: relative;
+    min-block-size: var(--_h);
     padding-inline: var(--s-2);
     line-height: 1;
+  }
+
+  .root[data-size="pair"]::after {
+    position: absolute;
+    inset: var(--_up) 0 0;
+    content: "";
   }
 
   .root[data-size="pair"] .body {
@@ -52,7 +65,7 @@
 
   .root[data-size]:focus-visible {
     outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset-tight);
+    outline-offset: var(--_in); /* K4: inside */
   }
 
   .root:not([data-size]):focus-visible .body::after {

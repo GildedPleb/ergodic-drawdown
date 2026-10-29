@@ -88,7 +88,7 @@
     display: none;
   }
 
-  /* §1MP 7: the row's value cell, no frame. H1: its --hit target overhangs the line. */
+  /* §1MP 7: the row's value cell, no frame; K4: the row is its target, the ring inside. */
   .root[data-label="hidden"],
   .root[data-label="hidden"] .field {
     display: contents;
@@ -96,15 +96,19 @@
 
   .root[data-label="hidden"] .control {
     --_value-w: 4.5rem;
-    --_h: max(var(--hit), 100%);
+    --_in: calc(0px - var(--focus-w));
 
+    position: relative;
     inline-size: var(--_value-w);
-    min-block-size: 0;
-    block-size: var(--_h);
+    min-block-size: 100%;
     padding: 0;
     border: 0;
     background: transparent;
     line-height: var(--lh-row);
+  }
+
+  .root[data-label="hidden"] .control:focus-visible {
+    outline-offset: var(--_in);
   }
 
   .root[data-label="hidden"] .hint {

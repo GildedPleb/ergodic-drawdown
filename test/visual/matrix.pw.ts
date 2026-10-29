@@ -62,7 +62,7 @@ for (const id of ZOOM_STORIES) {
     await expectNoOverflow(page);
     // Stacked: each label is as wide as its field, so no label is a one-letter column.
     for (const id of ["v2-vol", "v2-samples", "v2-years"]) {
-      const box = await page.locator(`label[for="${id}"]`).boundingBox();
+      const box = await page.locator(`label[for="${id}"]:not([data-target])`).boundingBox();
       expect(box?.width ?? 0, id).toBeGreaterThanOrEqual(100);
     }
   });
