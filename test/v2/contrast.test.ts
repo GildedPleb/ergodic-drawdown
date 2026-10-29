@@ -187,3 +187,29 @@ test("K1/K2: the mark and each swatch outline are at least 3:1 on --surface in b
   }
   expect(below).toEqual([]);
 });
+
+/**
+ * K5: on a fine pointer the hover ring is a second outline in the mark's own colour (currentColor),
+ * so it is exactly as legible as the mark: --accent on settings, each asset's colour on its key,
+ * each swatch's colour. Disabled marks get no ring. At least 3:1 on --surface (the pane) and on
+ * --ground, both themes.
+ */
+test("K5: the hover ring is the mark's own colour, at least 3:1 on --surface and --ground", async () => {
+  const mark = await file(`${dir}/../primitives/CheckMark/CheckMark.module.css`).text();
+  expect(/:hover\) \.root \{\s*outline: [^;]+ solid currentColor;\s*\}/.test(mark)).toBe(true);
+  const strings = await file(`${import.meta.dir}/../../src/v2/app/strings.ts`).text();
+  const colours = [...strings.matchAll(/colour: "var\((--path-[\w-]+)\)"/g)].map((m) => m[1] ?? "");
+  expect(colours.length).toBe(11); // 3 asset keys + 8 swatches
+  const env = await themes();
+  const below: string[] = [];
+  for (const theme of ["dark", "linen"] as const) {
+    for (const bg of ["--surface", "--ground"]) {
+      const under = resolve(env[theme], `var(${bg})`);
+      for (const fg of new Set(["--accent", ...colours])) {
+        const got = ratio(resolve(env[theme], `var(${fg})`), under);
+        if (got < 3) below.push(`${theme} ${fg} on ${bg}: ${got.toFixed(2)}`);
+      }
+    }
+  }
+  expect(below).toEqual([]);
+});

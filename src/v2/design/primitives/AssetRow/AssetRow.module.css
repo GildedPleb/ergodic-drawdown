@@ -52,7 +52,8 @@
   }
 
   .key:focus-visible .mark {
-    outline: 1px solid var(--accent);
+    outline: var(--focus-w) solid var(--focus);
+    outline-offset: var(--s-1);
   }
 
   .toggle {

@@ -30,10 +30,10 @@
     border-style: dashed;
   }
 
-  /* Hover (fine pointer) on an enabled parent: 1px --accent at --s-0, the same on both sizes. */
+  /* K5: hover (fine pointer, enabled parent) is a 1px ring in the mark's own colour at --s-0. */
   @media (hover: hover) and (pointer: fine) {
     :where(:enabled:not([aria-disabled]):hover) .root {
-      outline: 1px solid var(--accent);
+      outline: 1px solid currentColor;
     }
   }
 }

@@ -115,3 +115,39 @@ test("K2: a large mark scaled to the default size keeps the default's proportion
     expect(Math.abs(l[part] * k - d[part]) < 0.6).toBe(true);
   }
 });
+
+/** The declarations of the first rule whose selector is exactly `selector`. */
+const ruleOf = (css: string, selector: string): string => {
+  const at = css.indexOf(`${selector} {`);
+  return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+};
+
+test("K5: hover is a 1px currentColor ring at --s-0, on enabled parents only; focus --s-1 outside it", async () => {
+  const css = await file(`${PRIMITIVES}/CheckMark/CheckMark.module.css`).text();
+  const hover = ruleOf(css, ":where(:enabled:not([aria-disabled]):hover) .root");
+  expect(hover.includes("outline: 1px solid currentColor;")).toBe(true);
+  expect(ruleOf(css, ".root").includes("outline-offset: var(--s-0);")).toBe(true);
+  // Disabled parents fall outside :enabled:not([aria-disabled]).
+  const tick = renderToStaticMarkup(
+    createElement(TickToggle, { label: "Max", checked: true, disabled: true }),
+  );
+  expect(/<button[^>]* disabled=""/.test(tick)).toBe(true);
+  const key = renderToStaticMarkup(
+    createElement(AssetRow, {
+      id: "a",
+      asset: "sp",
+      name: "S&P",
+      colour: "var(--path-sp)",
+      open: false,
+      onToggle: () => undefined,
+      summary: "s",
+      square: { on: false, inert: true, label: "Show S&P" },
+    }),
+  );
+  expect(key.includes('aria-disabled="true"')).toBe(true);
+  // Focus on the key: --focus-w --focus at --s-1, past the hover ring (--s-0 + 1px).
+  const asset = await file(`${PRIMITIVES}/AssetRow/AssetRow.module.css`).text();
+  const focus = ruleOf(asset, ".key:focus-visible .mark");
+  expect(focus.includes("outline: var(--focus-w) solid var(--focus);")).toBe(true);
+  expect(focus.includes("outline-offset: var(--s-1);")).toBe(true);
+});
