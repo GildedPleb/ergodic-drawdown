@@ -126,7 +126,7 @@ const USAGE_EXCEPTIONS = new Set(["linen btc raised"]);
 test("G1: every pair in Form's v2.1 contrast table matches the repo tokens (±0.005)", async () => {
   const env = await themes();
   const rows = await table();
-  expect(rows.length).toBe(160); // 168 less the 8 retired text-faint rows (§13)
+  expect(rows.length).toBe(122); // 168 less the 8 retired text-faint rows (§13) and the 38 --selected rows (V32-BUILD:859, K1)
   const drift: string[] = [];
   for (const r of rows) {
     const got = ratio(
