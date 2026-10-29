@@ -176,7 +176,7 @@ test("§1MP 8: Colour is one radiogroup of eight named chips, ₿ orange picked"
   expect(chips.filter((m) => m[1] === "true").map((m) => m[2])).toEqual(["\u20BF orange"]);
 });
 
-test("Models sheet imports only design primitives, its module, schema, values, its press helper, strings and main's constants", async () => {
+test("Models sheet imports only design primitives, its module, schema, values, its press helper, its tween, strings and main's constants", async () => {
   const src = await file(`${import.meta.dir}/../../src/v2/app/models/ModelsSheet.tsx`).text();
   const imports = [...src.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1] ?? "");
   const bad = imports.filter(
@@ -187,6 +187,7 @@ test("Models sheet imports only design primitives, its module, schema, values, i
         "./ModelsSheet.module.css",
         "./schema",
         "./values",
+        "./tween", // U1: the restored field's display tween
         "../shell/useMedia", // §1MP 6: the pane reads the desktop query itself
         "../strings",
         "../../../constants",

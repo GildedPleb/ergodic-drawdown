@@ -43,11 +43,6 @@
     text-align: end;
   }
 
-  .control:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--focus-offset);
-  }
-
   .hint {
     color: var(--text-muted);
     font: 500 var(--t-small) var(--f-sans);
@@ -58,10 +53,6 @@
   .root[data-invalid="true"] .control {
     border: var(--rule-strong) solid var(--invalid);
     color: var(--invalid);
-  }
-
-  .root[data-invalid="false"] .control {
-    border-color: var(--control-line);
   }
 
   /* M4: disabled is dashed, not colour alone. */

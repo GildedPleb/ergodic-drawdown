@@ -30,7 +30,7 @@ test("R7: exported variants are the data-* values the components render", () => 
   expect([...glyphs.tone]).toEqual(["up", "down"]);
   expect([...grid.columns]).toEqual(["1", "2", "3", "4"]);
   expect([...cluster.align, ...cluster.justify].length).toBe(7);
-  expect([...numberField.invalid]).toEqual(["true", "false"]);
+  expect([...numberField.invalid]).toEqual(["true"]);
   expect([...numberField.disabled]).toEqual(["true", "false"]);
   // §1MP: SectionLabel has one look (no levels); AssetRow is open or not (C1a: OFF has no look of
   // its own on the name; aria-pressed carries it).
@@ -41,10 +41,8 @@ test("R7: exported variants are the data-* values the components render", () => 
     "row",
     "rail",
     "columns",
-    "true",
     "false",
     "true",
-    "false",
   ]);
   expect([...shell.sheet, ...shell.dragging, ...shell.column]).toEqual([
     "closed",
@@ -55,6 +53,6 @@ test("R7: exported variants are the data-* values the components render", () => 
     "open",
     "closed",
   ]);
-  expect([...slider.disabled]).toEqual(["true", "false"]);
+  expect([...slider.disabled]).toEqual(["true"]);
   expect([...select.cols, ...select.state]).toEqual(["2", "pick"]);
 });

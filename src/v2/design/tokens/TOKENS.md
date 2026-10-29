@@ -429,3 +429,15 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   measurement and both limits set to it + 2%: `builtGzipCeiling` 8,787 → 7,903 (7,749 × 1.02),
   `sourceCeiling` 62,040 → 55,121 (54,041 × 1.02); `builtGzipBytes` 7,917 → 7,749,
   `sourceBytes` 56,901 → 54,041.
+- **U1 Undo chip (V32-BUILD; approved by Keel, 2026-10-29), scoped to U1:** 54,730 B source /
+  8,016 B gzip, +214 gzip on origin/redesign's 7,802. `builtGzipCeiling` 7,903 → 8,020 (4 B
+  headroom on purpose: the next CSS addition comes back for review); `sourceCeiling` and both
+  baselines unchanged. The dead reduced-motion `--dur-out` override is already deleted. Per
+  rule (gzip B): chip `.root` 59, chip no-preference in/out animations 53, chip `data-fit`
+  (V32:861a) 37, `@keyframes` in + out 28, shell `.undo` 23, `--undo-w` / `--undo-w-panel` 20,
+  `.word` 14, `.text` 9, landscape `.undo` `max-inline-size` 9, chip `max-inline-size: 100%` 8
+  (a no-op in 36 cases, not provably dead), `--dur-out` / `--dur-undo` 5, landscape
+  `.root[data-sheet=closed] .undo` selector 5, `--rule-double` 4, reduced-motion
+  `--dur-undo: 0s` 3 (`tween.ts` reads it). No single cut closes the 113 B; the motion is
+  Form's call, and a lazy chunk would cost a request and a first-show flash.
+  Chip removed 2026-10-29 at product owner's request; scoped raise reverted to 7903.

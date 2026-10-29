@@ -2,10 +2,12 @@ import type { JSX } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Dock, type DockTab } from "../../design/primitives/Dock";
+import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
 import { useWorld } from "../engine/useWorld";
-import { ModelsSheet } from "../models/ModelsSheet";
+import { createHistory } from "../models/history";
+import { ModelsSheet, stepOf } from "../models/ModelsSheet";
 import { loadValues, loadView, pageStore, saveValues, saveView } from "../models/store";
 import type { ModelsValues } from "../models/values";
 import { colourOf, strings } from "../strings";
@@ -16,7 +18,7 @@ import { WorldLayer } from "../world/WorldLayer";
 import styles from "./AppShell.module.css";
 import { toggleStop } from "./drag";
 import { PaneScroll } from "./PaneScroll";
-import { dockLayout, paneOf, returnFocus, type Pane } from "./panes";
+import { dockLayout, paneOf, returnFocus, undoKeyOf, type Pane } from "./panes";
 import { Bevel } from "./Bevel";
 import { attachPressFlash } from "./press";
 import { useSheet } from "./useSheetDrag";
@@ -36,6 +38,11 @@ const TABS: DockTab[] = [
   { id: "stats", label: strings.dock.stats, shown: false },
 ];
 const HIDDEN = { shown: false } as const;
+/** U1: the session's Undo history over the committed settings (a field-by-field equality). */
+const sameValues = (a: ModelsValues, b: ModelsValues): boolean => stepOf(a, b) === null;
+const undoOps = createHistory(sameValues);
+const grabButtonOf = (): HTMLElement | null =>
+  document.querySelector<HTMLElement>(`[aria-controls="${SHEET_ID}"]:not([role="tab"])`);
 
 /**
  * Slice 1 shell (V32-BUILD §1a, §1c–§1e): header, headline, the world layer, and the Models
@@ -45,7 +52,14 @@ const HIDDEN = { shown: false } as const;
 export const AppShell = (): JSX.Element => {
   const [now] = useState(() => Date.now());
   // §1V: the settings come back after a reload (the one store, models/store.ts).
-  const [values, setValues] = useState<ModelsValues>(() => loadValues(pageStore()));
+  // U1: the settings and their Undo history move together (session only; never saved).
+  const [session, setSession] = useState(() => ({
+    values: loadValues(pageStore()),
+    history: undoOps.empty,
+  }));
+  const { values } = session;
+  const latest = useRef(session);
+  latest.current = session;
   useEffect(() => {
     saveValues(pageStore(), values);
   }, [values]);
@@ -83,6 +97,32 @@ export const AppShell = (): JSX.Element => {
     }
     setSaid(strings.dock.sheet[stop]);
   }, [stop]);
+  // U1: a release, Enter or blur commits one step; a live drag or held key only previews.
+  const change = (patch: Partial<ModelsValues>, live = false): void => {
+    setSession((s) => {
+      const next = { ...s.values, ...patch };
+      const same = sameValues(next, s.values);
+      const h = live
+        ? same
+          ? s.history
+          : undoOps.preview(s.history, s.values)
+        : undoOps.commit(s.history, s.values, next);
+      return same && h === s.history ? s : { values: same ? s.values : next, history: h };
+    });
+  };
+  // Undo / redo one step: the live region names it and the restored field tweens to it. Focus
+  // stays where it is (V32-BUILD:860 (6)).
+  const [restored, setRestored] = useState<{ focus: string; turn: number }>();
+  const move = (way: "undo" | "redo"): boolean => {
+    const s = latest.current;
+    const r = undoOps[way](s.history, s.values);
+    const step = stepOf(s.values, r.value);
+    if (r.history === s.history || step === null) return false;
+    setSession({ values: r.value, history: r.history });
+    setRestored((was) => ({ focus: step.focus, turn: (was?.turn ?? 0) + 1 }));
+    setSaid(strings.undo.back(step.field, spokenLabel(step.value)));
+    return true;
+  };
   // §1L.2: the pane last clicked, tapped or tabbed into draws its layer and selects its tab.
   const [pane, setPane] = useState<Pane>("models");
   const world = useWorld(values, now, historic);
@@ -132,6 +172,21 @@ export const AppShell = (): JSX.Element => {
     };
   }, []);
 
+  // U1: Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z (not in a text field), from anywhere on the page.
+  const moveRef = useRef(move);
+  moveRef.current = move;
+  useEffect(() => {
+    const onKey = (event: globalThis.KeyboardEvent): void => {
+      const target = event.target instanceof Element ? event.target : null;
+      const way = event.defaultPrevented ? null : undoKeyOf(event, target);
+      if (way !== null && moveRef.current(way)) event.preventDefault();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
   // Esc closes the sheet or panel (a row editor stops its own Esc first) and returns focus to
   // the tab (§1i). A document listener: feature code puts no key handlers on plain elements (G4).
   useEffect(() => {
@@ -142,10 +197,7 @@ export const AppShell = (): JSX.Element => {
       // Probe m9: on a phone the closed sheet hides the dock row, so focus goes to the grab
       // button there; measured after the close renders.
       requestAnimationFrame(() => {
-        const grabButton = document.querySelector<HTMLElement>(
-          `[aria-controls="${SHEET_ID}"]:not([role="tab"])`,
-        );
-        returnFocus(document.getElementById("tab-models"), grabButton)?.focus();
+        returnFocus(document.getElementById("tab-models"), grabButtonOf())?.focus();
       });
     };
     document.addEventListener("keydown", onKey);
@@ -293,9 +345,8 @@ export const AppShell = (): JSX.Element => {
                   }}
                   yearsMax={world.yearsMax}
                   values={values}
-                  onChange={(patch) => {
-                    setValues((v) => ({ ...v, ...patch }));
-                  }}
+                  onChange={change}
+                  restored={restored}
                 />
               </PaneScroll>
               <div className={reserved} data-pane="plans" aria-hidden="true" />

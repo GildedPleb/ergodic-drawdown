@@ -37,3 +37,25 @@ export const dockLayout = (
   if (side) return shut ? "rail" : "row";
   return wide ? "columns" : "row";
 };
+
+type Keyed = {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+};
+
+/**
+ * U1: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z redoes (keyboard only), except while focus is in a
+ * text field, where the field keeps its own undo.
+ */
+export const undoKeyOf = (
+  event: Keyed,
+  focus: { closest: (sel: string) => unknown } | null,
+): "undo" | "redo" | null => {
+  if (event.key.toLowerCase() !== "z" || event.altKey || !(event.metaKey || event.ctrlKey))
+    return null;
+  if (focus?.closest('input, textarea, [contenteditable="true"]') != null) return null;
+  return event.shiftKey ? "redo" : "undo";
+};

@@ -14,11 +14,7 @@ import {
   resolveEntry,
   stepValue,
 } from "../../src/v2/design/primitives/NumberField/entry";
-import {
-  createSettle,
-  type Timers,
-  WHEEL_SETTLE_MS,
-} from "../../src/v2/design/primitives/NumberField/settle";
+import { createSettle, WHEEL_SETTLE_MS } from "../../src/v2/design/primitives/NumberField/settle";
 import {
   createThrottle,
   HELD_COMMIT_MS,
@@ -27,6 +23,7 @@ import { coalesce } from "../../src/v2/app/engine/coalesce";
 import { engineConfig } from "../../src/v2/app/engine/config";
 import type { EngineConfig } from "../../src/engine/keys";
 import { defaultModelsValues } from "../../src/v2/app/models/values";
+import { clock } from "./support/clock";
 
 const VOL = { min: 0, max: 1 };
 const FLOOR = { min: 1.01, max: Number.POSITIVE_INFINITY };
@@ -81,33 +78,6 @@ test("the message slot is always mounted as a polite live region and is undescri
   expect(html.includes("aria-describedby")).toBe(false);
   expect(html.includes('aria-valuemin="0" aria-valuemax="1"')).toBe(true);
 });
-
-/** A manual clock: timers fire only when the test advances time. */
-const clock = (): { timers: Timers; advance: (ms: number) => void; live: () => number } => {
-  let now = 0;
-  let next = 1;
-  const due = new Map<number, { at: number; run: () => void }>();
-  return {
-    timers: {
-      set: (run, ms) => {
-        due.set(next, { at: now + ms, run });
-        return next++;
-      },
-      clear: (id) => {
-        due.delete(id);
-      },
-    },
-    advance: (ms) => {
-      now += ms;
-      for (const [id, t] of due) {
-        if (t.at > now) continue;
-        due.delete(id);
-        t.run();
-      }
-    },
-    live: () => due.size,
-  };
-};
 
 test("B1: 300 wheel notches 30 ms apart commit exactly once, WHEEL_SETTLE_MS after the last", () => {
   const { timers, advance, live } = clock();

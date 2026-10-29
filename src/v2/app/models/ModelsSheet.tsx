@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { AssetRow } from "../../design/primitives/AssetRow";
 import { Icon } from "../../design/primitives/Icon";
@@ -18,6 +18,7 @@ import { useMedia } from "../shell/useMedia";
 import { colourOf, strings } from "../strings";
 import styles from "./ModelsSheet.module.css";
 import { modelsPaneSchema } from "./schema";
+import { onScreen, tween, undoMs, type Frames } from "./tween";
 import { choosePatch, type ModelsValues } from "./values";
 
 const { controls } = modelsPaneSchema;
@@ -64,7 +65,49 @@ type EditorProps = {
   description?: string | undefined;
   /** §1Q: the soft top for a field in the focus-range table (the model's rangeMax). */
   softTop?: number | undefined;
-  onCommit: (n: number) => void;
+  /** `live`: a drag or held-key step, not yet one Undo step (U1). */
+  onCommit: (n: number, live: boolean) => void;
+  /** U1: bumped when an undo or redo restores this field; its number and thumb tween to it. */
+  tween?: number | undefined;
+};
+
+const FRAMES: Frames = {
+  now: () => performance.now(),
+  next: (run) => requestAnimationFrame(run),
+  stop: (id) => {
+    cancelAnimationFrame(id);
+  },
+};
+
+/**
+ * U1 (V32-BUILD:860 (3)): the value this field shows. After an undo or redo restores it (a new
+ * `turn`), the shown number and thumb tween from the old value over --dur-undo; the value itself
+ * is already committed, so nothing recomputes per frame. None when off-screen or reduced motion.
+ */
+const useTween = (value: number, turn: number | undefined, row: string, step: number): number => {
+  const [shown, setShown] = useState<number | null>(null);
+  const was = useRef({ value, turn });
+  useLayoutEffect(() => {
+    const from = was.current;
+    was.current = { value, turn };
+    if (turn === undefined || turn === from.turn || from.value === value) return undefined;
+    const ms = undoMs(document.documentElement);
+    if (ms <= 0 || !onScreen(document.getElementById(row))) return undefined;
+    const stop = tween(
+      from.value,
+      value,
+      ms,
+      (n) => {
+        setShown(n === value ? null : Math.round(n / step) * step);
+      },
+      FRAMES,
+    );
+    return () => {
+      stop();
+      setShown(null);
+    };
+  }, [value, turn, row, step]);
+  return shown ?? value;
 };
 
 /**
@@ -79,6 +122,7 @@ const Editor = (p: EditorProps): JSX.Element => {
       ? undefined
       : focusScale(p.bounds.min, { ...focus, softTop: p.softTop });
   const finite = Number.isFinite(p.bounds.min) && Number.isFinite(p.bounds.max);
+  const shown = useTween(p.value, p.tween, `row-${p.id}`, p.step);
   return (
     <LedgerRow
       id={`row-${p.id}`}
@@ -90,7 +134,7 @@ const Editor = (p: EditorProps): JSX.Element => {
           id={`v2-${p.input ?? p.id}`}
           label={p.label}
           labelHidden
-          value={p.value}
+          value={shown}
           bounds={p.bounds}
           parse={p.parse}
           step={p.step}
@@ -110,7 +154,7 @@ const Editor = (p: EditorProps): JSX.Element => {
       {p.slider && (finite || scale !== undefined) ? (
         <Slider
           label={p.label}
-          value={p.value}
+          value={shown}
           min={p.bounds.min}
           max={p.bounds.max}
           step={focus?.step ?? p.step}
@@ -128,7 +172,8 @@ const Editor = (p: EditorProps): JSX.Element => {
 
 export type ModelsSheetProps = {
   values: ModelsValues;
-  onChange: (patch: Partial<ModelsValues>) => void;
+  /** `live` is true while a drag or held key is still going (U1: only the final one is a step). */
+  onChange: (patch: Partial<ModelsValues>, live?: boolean) => void;
   /** §1MP 5: Bitcoin's colour square (shown on the chart); starts ON. */
   on?: boolean;
   onOn?: (next: boolean) => void;
@@ -144,6 +189,8 @@ export type ModelsSheetProps = {
   wide?: boolean;
   /** Stories and tests: the assets open on first render. */
   initialOpen?: readonly string[];
+  /** U1: the field an undo or redo just restored (its Step focus) and that move's turn. */
+  restored?: { focus: string; turn: number } | undefined;
 };
 
 type AssetId = (typeof copy.assets)[number]["id"];
@@ -183,6 +230,59 @@ export const summaryOf = (values: ModelsValues): string => {
 };
 
 /**
+ * U1: one Undo step, named by its field's visible label (V32-BUILD:860 (4); a selector with none,
+ * by its section heading, :861 (c)), with the value it goes to in that field's rest format.
+ */
+export type Step = {
+  field: string;
+  /** Exactly as the field shows it at rest (a choice's option label; a switch "on" / "off"). */
+  value: string;
+  /** A selector for the field's control: the restored field that tweens. */
+  focus: string;
+};
+
+/** "Clamp Price:" → "Clamp Price" (the live region reads it without the colon). */
+const bare = (label: string): string => label.replace(/:\s*$/, "");
+/** A clamp switch's name, and its visible label: the row's, then its own ("Clamp Price Max"). */
+const SWITCHES = {
+  clampBottom: [copy.clampMin, controls.clamp.bottomLabel],
+  clampTop: [copy.clampMax, controls.clamp.topLabel],
+} as const;
+const NUMBERS = [
+  ["minMaxMultiple", "+/-", "minmax"],
+  ["volatility", controls.volatility.label, "vol"],
+  ["samples", SAMPLES_LABEL, "samples"],
+  ["years", strings.fields.yearsLabel, "years"],
+] as const;
+
+/**
+ * U1: the step from `now` back (or forward) to `to`, named by the field that differs (a commit
+ * changes one). A model pick with its variable reset is one step, named by the model. :861 (c): a
+ * selector with no field label is named by its section heading.
+ */
+export const stepOf = (now: ModelsValues, to: ModelsValues): Step | null => {
+  if (now.model !== to.model)
+    return { field: strings.sections.grow, value: to.model, focus: "#v2-model" };
+  const label = modelsPaneSchema.models.find((m) => m.name === to.model)?.varInput ?? "";
+  if (now.variable !== to.variable)
+    return { field: label, value: restOf(label)(usedVariable(to)), focus: "#v2-variable" };
+  if (now.walk !== to.walk)
+    return { field: strings.sections.bumpy, value: to.walk, focus: "#v2-walk" };
+  for (const key of ["clampBottom", "clampTop"] as const) {
+    if (now[key] === to[key]) continue;
+    const [name, shown] = SWITCHES[key];
+    const value = to[key] ? strings.undo.on : strings.undo.off;
+    const field = `${bare(controls.clamp.label)} ${shown}`;
+    return { field, value, focus: `[role="switch"][aria-label="${name}"]` };
+  }
+  for (const [key, name, id] of NUMBERS) {
+    if (now[key] !== to[key])
+      return { field: bare(name), value: restOf(name)(to[key]), focus: `#v2-${id}` };
+  }
+  return null;
+};
+
+/**
  * §1MP 7: "ergodic" when Volatility > 0; both clamps are on or the walk is neither Random nor
  * Sin; and the walk isn't Random or Volatility ≥ 0.05.
  */
@@ -210,7 +310,10 @@ export const ModelsSheet = ({
   yearsMax = controls.years.max,
   wide,
   initialOpen = [],
+  restored,
 }: ModelsSheetProps): JSX.Element => {
+  const turnOf = (input: string): number | undefined =>
+    restored?.focus === `#v2-${input}` ? restored.turn : undefined;
   const desktop = useMedia(DESKTOP);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(initialOpen));
   const [modelList, setModelList] = useState(false);
@@ -244,6 +347,7 @@ export const ModelsSheet = ({
           key={values.model}
           data-setting={`${values.model}.variable`}
           id="variable"
+          tween={turnOf("variable")}
           label={meta.varInput}
           value={usedVariable(values)}
           bounds={varBounds}
@@ -255,8 +359,8 @@ export const ModelsSheet = ({
           softTop={softTop}
           slider
           description={copy.settingDesc[meta.varInput]}
-          onCommit={(variable) => {
-            onChange({ variable });
+          onCommit={(variable, live) => {
+            onChange({ variable }, live);
           }}
         />
       ) : null}
@@ -264,6 +368,7 @@ export const ModelsSheet = ({
         <Editor
           data-setting={`${values.model}.minMaxMultiple`}
           id="minmax"
+          tween={turnOf("minmax")}
           label="+/-"
           value={values.minMaxMultiple}
           bounds={{ min: controls.minMaxMultiple.floor, max: Infinity }}
@@ -273,8 +378,8 @@ export const ModelsSheet = ({
           places={placesOf("+/-")}
           slider={false}
           description={copy.settingDesc["+/-"]}
-          onCommit={(minMaxMultiple) => {
-            onChange({ minMaxMultiple });
+          onCommit={(minMaxMultiple, live) => {
+            onChange({ minMaxMultiple }, live);
           }}
         />
       ) : null}
@@ -354,6 +459,7 @@ export const ModelsSheet = ({
         <Editor
           data-setting={`${values.model}.volatility`}
           id="volatility"
+          tween={turnOf("vol")}
           input="vol"
           label={controls.volatility.label}
           value={values.volatility}
@@ -364,14 +470,15 @@ export const ModelsSheet = ({
           places={placesOf(controls.volatility.label)}
           slider
           description={copy.settingDesc[controls.volatility.label]}
-          onCommit={(volatility) => {
-            onChange({ volatility });
+          onCommit={(volatility, live) => {
+            onChange({ volatility }, live);
           }}
         />
         {/* §1MP 7: samples are per asset; Bitcoin's is the engine's one sample count. */}
         <Editor
           data-setting={`${values.model}.samples`}
           id="samples"
+          tween={turnOf("samples")}
           label={SAMPLES_LABEL}
           value={values.samples}
           bounds={SAMPLE_BOUNDS}
@@ -380,8 +487,8 @@ export const ModelsSheet = ({
           emptyValue={controls.samples.emptyValue}
           slider
           description={copy.settingDesc["samples"]}
-          onCommit={(samples) => {
-            onChange({ samples });
+          onCommit={(samples, live) => {
+            onChange({ samples }, live);
           }}
         />
       </div>
@@ -453,6 +560,7 @@ export const ModelsSheet = ({
           <Editor
             data-setting={`${values.model}.years`}
             id="years"
+            tween={turnOf("years")}
             label={strings.fields.yearsLabel}
             value={values.years}
             bounds={{ min: controls.years.min, max: yearsMax }}
@@ -461,8 +569,8 @@ export const ModelsSheet = ({
             emptyValue={controls.years.emptyValue}
             slider
             description={copy.settingDesc["years"]}
-            onCommit={(years) => {
-              onChange({ years });
+            onCommit={(years, live) => {
+              onChange({ years }, live);
             }}
           />
         </div>

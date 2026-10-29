@@ -35,7 +35,11 @@ test("shell: before the engine returns, the chart is named by the number-free he
 
 test("shell: the dock renders five slots, only MODELS shown and selected", () => {
   expect((html.match(/data-shown="false"/g) ?? []).length).toBe(4);
-  expect(/aria-selected="true"[^>]*data-shown="true"[^>]*>Models</.test(html)).toBe(true);
+  // Shown and selected carry no "false"/"true" pair: shown is the default (no attribute).
+  const models = /<[a-z]+ [^>]*>Models</.exec(html)?.[0] ?? "";
+  expect(models.includes('aria-selected="true"')).toBe(true);
+  expect(models.includes('data-selected="true"')).toBe(true);
+  expect(models.includes("data-shown")).toBe(false);
 });
 
 test("shell: the Models sheet is a region named Models that the tab and grab point control", () => {

@@ -6,8 +6,8 @@ import styles from "./Dock.module.css";
 /** R7: variant keys and values. */
 export const variants = {
   orientation: ["row", "rail", "columns"] as const,
-  shown: ["true", "false"] as const,
-  selected: ["true", "false"] as const,
+  shown: ["false"] as const,
+  selected: ["true"] as const,
 };
 
 export type DockTab = {
@@ -65,7 +65,7 @@ export const Dock = ({
         type="button"
         className={mag}
         aria-label={search.label}
-        data-shown={search.shown ? "true" : "false"}
+        data-shown={search.shown ? undefined : "false"}
         tabIndex={search.shown ? 0 : -1}
       >
         <Icon name="search" />
@@ -89,8 +89,8 @@ export const Dock = ({
               aria-controls={t.controls}
               aria-expanded={on ? expanded : undefined}
               tabIndex={on && t.shown ? 0 : -1}
-              data-shown={t.shown ? "true" : "false"}
-              data-selected={on ? "true" : "false"}
+              data-shown={t.shown ? undefined : "false"}
+              data-selected={on ? "true" : undefined}
               onKeyDown={blockRepeat}
               onClick={() => {
                 onTab?.(t.id);
@@ -105,7 +105,7 @@ export const Dock = ({
         type="button"
         className={gear}
         aria-label={settings.label}
-        data-shown={settings.shown ? "true" : "false"}
+        data-shown={settings.shown ? undefined : "false"}
         tabIndex={settings.shown ? 0 : -1}
       >
         <Icon name="gear" />

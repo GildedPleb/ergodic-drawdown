@@ -30,7 +30,8 @@ const browserTimers: Timers = {
 };
 
 export const createThrottle = (
-  commit: () => void,
+  /** `final` is true only for the release's commit (U1: it closes one undo step). */
+  commit: (final: boolean) => void,
   ms: number = HELD_COMMIT_MS,
   timers: Timers = browserTimers,
 ): Throttle => {
@@ -40,7 +41,7 @@ export const createThrottle = (
     timer = null;
     if (!due) return;
     due = false;
-    commit();
+    commit(false);
     timer = timers.set(tick, ms);
   };
   const stop = (): void => {
@@ -54,12 +55,12 @@ export const createThrottle = (
         due = true;
         return;
       }
-      commit();
+      commit(false);
       timer = timers.set(tick, ms);
     },
     release: () => {
       stop();
-      commit();
+      commit(true);
     },
     cancel: stop,
     live: () => timer !== null,

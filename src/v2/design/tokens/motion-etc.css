@@ -4,6 +4,7 @@
   :root {
     /* durations · all ≤400ms */
     --dur-fast: 180ms; /* INVENTED: hover/tint, tick-box check, chip appear */
+    --dur-undo: 200ms; /* U1 */
     /* easing */
     --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1); /* INVENTED: panel + general exits */
     /* §1O cursors: system shapes only */
@@ -17,7 +18,7 @@
     --cursor-rest: default; /* static text in a pane (Probe 1MP m2) */
     /* z-index scale */
     --z-chart: 2;
-    --z-sticky: 3; /* §1Y: a sticky open-row header */
+    --z-sticky: 3; /* §1Y */
     --z-dock: 10;
     --z-panel: 20;
     --z-overlay: 30;
@@ -28,7 +29,7 @@
     /* rules + focus */
     --rule-hair: 1px;
     --rule-strong: 3px;
-    --bevel-comp: 1.2; /* §1X: the bevel's 45° stroke is this × --rule-hair (Form: 1.2) */
+    --bevel-comp: 1.2; /* §1X */
     --focus-w: 2px;
     --focus-offset: 2px;
     /* chart linework */
@@ -46,6 +47,7 @@
   @media (prefers-reduced-motion: reduce) {
     :root {
       --dur-fast: 0ms;
+      --dur-undo: 0ms;
       --ease-out: linear;
     }
   }
