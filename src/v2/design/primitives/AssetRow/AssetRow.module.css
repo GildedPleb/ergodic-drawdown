@@ -26,9 +26,8 @@
     background: var(--surface);
   }
 
-  /* §1MP 5: 11px square, 1px outline, 5px core when ON; an invisible 44×44 target on line 1. */
+  /* §1MP 5 / K2: the default CheckMark in --dyn-asset; an invisible 44×44 target on line 1. */
   .key {
-    --_key: 0.6875rem;
     --_key-y: calc(var(--s-2) + var(--t-pane) * 0.575 - var(--hit) / 2);
 
     position: relative;
@@ -48,33 +47,12 @@
     cursor: var(--cursor-press);
   }
 
-  .key::after {
-    inline-size: var(--_key);
-    block-size: var(--_key);
-    padding: var(--s-0);
-    content: "";
-    border: 1px solid currentColor;
-    background-color: currentColor;
-    background-clip: content-box;
-    outline-offset: var(--s-0);
-  }
-
-  .key[aria-pressed="false"]::after {
-    background: none;
-  }
-
   .key:focus-visible {
     outline: 0;
   }
 
-  .key:focus-visible::after {
+  .key:focus-visible .mark {
     outline: 1px solid var(--accent);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .key:not([aria-disabled]):hover::after {
-      outline: 1px solid var(--accent);
-    }
   }
 
   .toggle {

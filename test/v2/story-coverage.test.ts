@@ -10,6 +10,8 @@ const required = ["Default", "Focus", "LongText", "Linen"] as const;
  */
 const SKIP: Record<string, readonly string[]> = {
   "Icon.stories.tsx": ["Focus", "LongText"],
+  // K2: aria-hidden and wordless; its parent owns focus and the name.
+  "CheckMark.stories.tsx": ["Focus", "LongText"],
   "Amount.stories.tsx": ["Focus", "LongText"],
   "VisuallyHidden.stories.tsx": ["Focus", "LongText"],
   // §1MP 8: a fixed set of eight unlabelled chips; there is no text to lengthen.

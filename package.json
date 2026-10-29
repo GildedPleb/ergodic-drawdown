@@ -24,7 +24,7 @@
     "design:absent": "bun scripts/v2/check-design-route-absent.ts",
     "visual": "playwright test -c test/visual/playwright.config.ts",
     "visual:update": "VISUAL_UPDATE=1 playwright test -c test/visual/playwright.config.ts --update-snapshots",
-    "models:snapshot": "bun scripts/v2/snapshot-old-ui.ts"
+    "models:golden": "bun scripts/v2/main-models-golden.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.4",

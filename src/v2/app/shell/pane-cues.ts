@@ -38,7 +38,7 @@ export const cuesOf = <E>(zone: Zone<E>): Cues => {
   if (top) {
     for (const pin of zone.querySelectorAll(PIN)) {
       const r = pin.getBoundingClientRect();
-      if (r.top <= z + 0.5 && r.bottom > z) hh = Math.max(hh, r.bottom - z);
+      if (Math.abs(r.top - z) <= 0.5 && r.bottom > z) hh = Math.max(hh, r.bottom - z);
     }
   }
   return {

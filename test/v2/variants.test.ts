@@ -7,6 +7,7 @@ import { variants as assetRow } from "../../src/v2/design/primitives/AssetRow/As
 import { variants as dock } from "../../src/v2/design/primitives/Dock/Dock";
 import { variants as select } from "../../src/v2/design/primitives/Select/Select";
 import { variants as slider } from "../../src/v2/design/primitives/Slider/Slider";
+import { variants as mark } from "../../src/v2/design/primitives/CheckMark/CheckMark";
 import { variants as cluster } from "../../src/v2/design/primitives/Cluster/Cluster";
 import { variants as grid } from "../../src/v2/design/primitives/Grid/Grid";
 import { variants as ledger } from "../../src/v2/design/primitives/LedgerRow/LedgerRow";
@@ -21,7 +22,9 @@ test("R6: Stack, Cluster and Grid gap props cover exactly the --s-* scale", () =
 });
 
 test("R7: exported variants are the data-* values the components render", () => {
-  expect([...tick.state, ...tick.disabled, ...tick.size]).toEqual(["on", "true", "pair"]);
+  expect([...tick.disabled, ...tick.size]).toEqual(["true", "pair"]);
+  expect(Object.keys(tick)).toEqual(["disabled", "size"]);
+  expect([...mark.state, ...mark.size, ...mark.disabled]).toEqual(["on", "large", "true"]);
   expect([...ledger.kind]).toEqual(["pair"]);
   expect([...amount.unit]).toEqual(["btc", "usd"]);
   expect([...glyphs.tone]).toEqual(["up", "down"]);

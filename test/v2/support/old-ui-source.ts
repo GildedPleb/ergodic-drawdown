@@ -1,23 +1,14 @@
 /**
- * Probe M1 / Form B3: G12 must see drift in main. Every value the Models pane copies from main is
- * re-read here from main's SOURCE TEXT (component attributes, useSettledNumber calls, ModelProvider
- * useState defaults, constants, content labels and every model definition) and compared with the
- * v2 schema. `oldUiDiffs` is pure over a `read` function, so tests can feed it mutated sources and
+ * Probe M1 / Form B3: G12 must see drift in main. The values the Models pane copies from main's
+ * old-UI components (attributes, useSettledNumber calls, steps, floors, constants and content
+ * labels) are re-read here from main's SOURCE TEXT and compared with the v2 schema. Models, walks
+ * and ModelProvider defaults are main's own code, dumped by main-models.ts and checked by
+ * g12-models.test.ts. `oldUiDiffs` is pure over a `read` function, so tests can feed it mutated sources and
  * prove that a change in main turns G12 red.
  */
 import type { ModelsPaneSnapshot } from "../../../src/v2/app/models/from-old-ui";
 
 export type Read = (path: string) => Promise<string>;
-
-const MODEL_FILES = [
-  "cagr.ts",
-  "historic.ts",
-  "power-law.ts",
-  "power-law-support.ts",
-  "rainbow.ts",
-  "stock-to-flow.ts",
-  "stock-to-flow-2024-refit.ts",
-] as const;
 
 class Missing extends Error {}
 
@@ -121,11 +112,6 @@ export const oldUiDiffs = async (read: Read, schema: ModelsPaneSnapshot): Promis
     );
     eq("years max (MAX_YEAR_COUNT)", c.years.max, (constants["MAX_EPOCH_COUNT"] ?? 0) * 4);
     eq("years accept max", c.years.accept.max, c.years.max);
-    const yDefault = one(
-      horizon,
-      /export const DEFAULT_YEAR_COUNT = ([\d_]+);/,
-      "horizon.ts default",
-    )[1];
     const step = one(vol, /walk === "(\w+)" \? ([\d.]+) : ([\d.]+)/, "volatility.tsx step");
     eq("volatility step walk", "Bubble", step[1]);
     eq("volatility step (Bubble)", c.volatility.stepBubble, n(step[2]));
@@ -157,42 +143,6 @@ export const oldUiDiffs = async (read: Read, schema: ModelsPaneSnapshot): Promis
     eq("+/- min", c.minMaxMultiple.min, inputAttr("minMaxMultiple", "min"));
     eq("+/- step", c.minMaxMultiple.step, inputAttr("minMaxMultiple", "step"));
     eq("variable step", c.variable.step, inputAttr("modelVariable", "step"));
-
-    // ModelProvider defaults
-    const ctx = await read("contexts/model.tsx");
-    const state = (name: string): string =>
-      one(
-        ctx,
-        new RegExp(`\\[${name}, set\\w+\\] = useState<\\w+>\\(([^)]+)\\)`),
-        `contexts ${name}`,
-      )[1] ?? "";
-    eq("default walk", schema.defaultWalk, JSON.parse(state("walk")));
-    eq("default +/-", c.minMaxMultiple.default, n(state("minMaxMultiple")));
-    eq("default volatility", c.volatility.default, n(state("volatility")));
-    eq("default variable", c.variable.default, n(state("variable")));
-    eq("default samples", c.samples.default, n(state("samples")));
-    eq("default years", c.years.default, n(yDefault));
-    one(ctx, /useState<number>\(DEFAULT_YEAR_COUNT\)/, "contexts years default");
-    eq("default clamp top", c.clamp.topDefault, state("clampTop") === "true");
-    eq("default clamp bottom", c.clamp.bottomDefault, state("clampBottom") === "true");
-
-    // Every model definition: name, variable default, range, label (Form ruling 1).
-    for (const fileName of MODEL_FILES) {
-      const text = await read(`data/models/${fileName}`);
-      const field = (key: string) =>
-        one(text, new RegExp(`^\\s+${key}: ([^,\\n]+),`, "m"), `${fileName} ${key}`)[1] ?? "";
-      const name = /"([^"]+)"/.exec(field("modelType"))?.[1] ?? "";
-      const row = schema.models.find((m) => m.name === name);
-      if (row === undefined) {
-        diffs.push(`${fileName}: model "${name}" missing from v2`);
-        continue;
-      }
-      eq(`${name} default`, row.default, n(field("default")));
-      eq(`${name} rangeMin`, row.rangeMin, n(field("rangeMin")));
-      eq(`${name} rangeMax`, row.rangeMax, n(field("rangeMax")));
-      eq(`${name} varInput`, row.varInput, JSON.parse(field("varInput")));
-      eq(`${name} varRange`, row.varRange, field("varRange") === "true");
-    }
   } catch (error) {
     if (error instanceof Missing) diffs.push(error.message);
     else throw error;

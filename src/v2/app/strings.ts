@@ -164,7 +164,7 @@ export const strings = {
       "Clamp Price:": "Min stops a walk going below the floor; Max stops it going above the top.",
       "Volatility (0-1):": "How big each week\u2019s random step is.",
       samples: "How many separate futures are drawn; each runs its own random walk.",
-      years: "How many years ahead the simulation runs.",
+      years: "How far into the future to look, for every model.",
     } as Record<string, string | undefined>,
   },
   /** V32-BUILD U1: the Undo chip and what the live region says. */
@@ -182,7 +182,7 @@ export const strings = {
     grow: "How prices grow",
     bumpy: "How bumpy the ride is",
     chart: "On the chart",
-    simulation: "Simulation",
+    simulation: "Time horizon",
   },
   dock: {
     models: "Models",
