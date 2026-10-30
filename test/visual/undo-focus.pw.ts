@@ -223,3 +223,27 @@ test("U1 Hidden (Form call 2): a drag hides the Tile only when the live size cro
   await page.waitForTimeout(350);
   await expect(wrap).not.toHaveAttribute("data-undo", "hidden");
 });
+
+test("U1 Where (Form call 3, defect A): the Tile sits at the bottom centre of the Models pane, a sibling of its scroller", async ({
+  page,
+}) => {
+  await openSheet(page, "half");
+  await pick(page, "v2-walk", "Saw");
+  const geo = await page.evaluate((sel) => {
+    const tile = document.querySelector(sel);
+    const scroller = document.querySelector('[data-pane="models"]');
+    const t = tile?.getBoundingClientRect();
+    const pane = scroller?.parentElement?.getBoundingClientRect();
+    const wrap = tile?.parentElement;
+    return {
+      sibling: wrap?.parentElement === scroller?.parentElement && !scroller?.contains(tile ?? null),
+      dx: t && pane ? Math.abs(t.x + t.width / 2 - (pane.x + pane.width / 2)) : 99,
+      gap: t && pane ? pane.bottom - t.bottom : -1,
+      rem: Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+    };
+  }, UNDO);
+  expect(geo.sibling).toBe(true);
+  expect(geo.dx).toBeLessThanOrEqual(1);
+  // V32 U1 Where: the target's bottom is 0.625rem above the pane's foot.
+  expect(Math.abs(geo.gap - 0.625 * geo.rem)).toBeLessThanOrEqual(1);
+});

@@ -186,11 +186,11 @@
   }
 
   .body {
-    position: relative;
     display: none;
   }
 
-  /* U1 Where: the undo Tile at the sheet's bottom centre, over the pane's last rows. */
+  /* U1 Where: bottom centre of the Models pane (on desktop its column, not the window), pinned
+     in the pane's positioned box beside the scroller, over its last rows. */
   .undo {
     --_ub: 0.625rem;
 
