@@ -29,6 +29,9 @@ export type Sheet = {
   /** §1P: the grab point's ↑/↓/Home/End; false when the key isn't one of them. */
   key: (key: string) => boolean;
   dragging: boolean;
+  /** U1 Hidden: mid-drag, the live size is under the half stop (the open panel when sideways).
+   *  Set only when the size crosses that stop, never on every move. */
+  below: boolean;
   /** The size at the drag's start (the JSX value of --dyn-*; live moves write it directly). */
   dyn: number;
   /** The full stop in px: from the header's lower edge to the bottom (--dyn-full). */
@@ -50,6 +53,9 @@ const reduced = (): boolean => window.matchMedia("(prefers-reduced-motion: reduc
 export const ownsTap = (el: { closest: (sel: string) => unknown }): boolean =>
   el.closest('button, [role="tab"], a') !== null;
 
+/** Under the half stop by more than a pixel's rounding. */
+const under = (size: number, cap: number): boolean => size + 1 < cap;
+
 const sizeOf = (refs: SheetRefs, side: boolean): number =>
   (side ? refs.area.current?.offsetWidth : refs.sheet.current?.offsetHeight) ?? 0;
 
@@ -64,6 +70,8 @@ const sizeOf = (refs: SheetRefs, side: boolean): number =>
 export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
   const [stop, setStop] = useState<Stop>("closed");
   const [dragging, setDragging] = useState(false);
+  const [below, setBelow] = useState(false);
+  const half = useRef({ cap: 0, below: false });
   const [dyn, setDyn] = useState(0);
   const [tick, setTick] = useState(0);
   const [full, setFull] = useState(0);
@@ -132,6 +140,7 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
         if (at === "closed" && !horizontal) closed.current = size;
         const probe = refs.cap.current;
         const cap = (horizontal ? probe?.offsetWidth : probe?.offsetHeight) ?? size;
+        half.current = { cap, below: under(size, cap) };
         return {
           at,
           horizontal,
@@ -146,9 +155,15 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
         flushSync(() => {
           setDyn(size);
           setDragging(true);
+          setBelow(half.current.below);
         });
       },
       track: (size, horizontal) => {
+        const now = under(size, half.current.cap);
+        if (now !== half.current.below) {
+          half.current.below = now;
+          setBelow(now);
+        }
         refs.root.current?.style.setProperty(
           horizontal ? "--dyn-panel" : "--dyn-sheet",
           `${String(size)}px`,
@@ -168,5 +183,5 @@ export const useSheet = (refs: SheetRefs, side: boolean): Sheet => {
     };
   }, [refs]);
 
-  return { stop, go, tap, key: press, dragging, dyn, full };
+  return { stop, go, tap, key: press, dragging, below, dyn, full };
 };

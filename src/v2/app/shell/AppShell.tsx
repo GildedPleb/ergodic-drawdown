@@ -95,11 +95,11 @@ export const AppShell = (): JSX.Element => {
     [],
   );
   // §1L.5: closed / half / full, dragged, tapped or keyed; every change is announced.
-  const { stop, go, tap, key, dragging, dyn, full } = useSheet(refs, side);
+  const { stop, go, tap, key, dragging, below, dyn, full } = useSheet(refs, side);
   const open = stop !== "closed";
-  // U1 Hidden: below half open (closed, or mid-drag: the live size isn't in state), and on the
-  // closed landscape panel. The history and the keys keep working.
-  const low = !open || dragging;
+  // U1 Hidden: below the half stop (closed, the closed landscape panel, or a drag whose live size
+  // has crossed under half; it changes only on the crossing). The history and the keys keep working.
+  const low = dragging ? below : !open;
   const shown = session.history.past.length > 0 && !low;
   const tileHad = useRef(false);
   // U1 Focus: the Tile leaving with the sheet hands focus to the grab point first.

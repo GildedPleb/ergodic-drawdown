@@ -3,7 +3,8 @@ import { expect, type Page, test } from "@playwright/test";
 // V32-BUILD U1 Focus (:854; Probe F-A): an undo or redo never drops focus to the page. The closed
 // Select keeps one node for its pick (a); a row both models share is not remounted (b); when the
 // focused row leaves with its model, focus goes to the Model Select's pick (c). The undo Tile keeps
-// focus when pressed, and hands it on before it hides (d, e).
+// focus when pressed, and hands it on before it hides (d, e). A drag changes it only when the live
+// size crosses the half stop (Form call 2); it sits at the Models pane's bottom centre (call 3).
 const SIZES = ["390x844", "1440x900"] as const;
 const LOGO = '[aria-controls="models-sheet"]:not([role="tab"])';
 const UNDO = '#models-sheet button[data-variant="soft"]';
@@ -163,4 +164,62 @@ test("U1 Focus (e): the sheet dropping below half moves focus off the undo Tile 
       document.activeElement?.matches('[aria-controls="models-sheet"]:not([role="tab"])') ?? false,
   );
   expect(focused).toBe(true);
+});
+
+const sheetTop = async (page: Page): Promise<number> =>
+  page.evaluate(() => document.querySelector("#models-sheet")?.getBoundingClientRect().y ?? 0);
+
+test("U1 Hidden (Form call 2): a drag hides the Tile only when the live size crosses under half, and shows it when it crosses back", async ({
+  page,
+}) => {
+  await openSheet(page, "half");
+  const half = await sheetTop(page);
+  await page.locator(LOGO).focus();
+  await page.keyboard.press("Home");
+  await expect.poll(async () => stop(page)).toBe("full");
+  await page.waitForTimeout(350);
+  await pick(page, "v2-walk", "Saw");
+  const wrap = page.locator(UNDO).locator("xpath=..");
+  await expect(wrap).not.toHaveAttribute("data-undo", "hidden");
+  // Count every data-undo change: it may only flip on a crossing.
+  await page.evaluate(() => {
+    const el = document.querySelector('#models-sheet button[data-variant="soft"]')?.parentElement;
+    const seen: (string | null)[] = [];
+    Object.assign(window, { undoFlips: seen });
+    if (el === null || el === undefined) return;
+    new MutationObserver(() => {
+      seen.push(el.getAttribute("data-undo"));
+    }).observe(el, { attributes: true, attributeFilter: ["data-undo"] });
+  });
+  const flips = async (): Promise<unknown> => page.evaluate(() => Reflect.get(window, "undoFlips"));
+  const box = await page.locator(LOGO).boundingBox();
+  if (box === null) throw new Error("no grab point");
+  const x = box.x + box.width / 2;
+  const y0 = box.y + box.height / 2;
+  const top0 = await sheetTop(page);
+  const to = async (top: number): Promise<void> => {
+    await page.mouse.move(x, y0 + (top - top0), { steps: 8 });
+    await page.waitForTimeout(50);
+  };
+  await page.mouse.move(x, y0);
+  await page.mouse.down();
+  // Dragging, but still above half: shown, nothing changed.
+  await to(top0 + 20);
+  await to(half - 30);
+  expect(await flips()).toEqual([]);
+  await expect(wrap).not.toHaveAttribute("data-undo", "hidden");
+  // Under half: hidden once, however many moves follow.
+  await to(half + 40);
+  await to(half + 80);
+  await to(half + 60);
+  await expect(wrap).toHaveAttribute("data-undo", "hidden");
+  expect(await flips()).toEqual(["hidden"]);
+  // Back over half: shown again, once.
+  await to(half - 40);
+  await to(half - 60);
+  await expect(wrap).not.toHaveAttribute("data-undo", "hidden");
+  expect(await flips()).toEqual(["hidden", null]);
+  await page.mouse.up();
+  await page.waitForTimeout(350);
+  await expect(wrap).not.toHaveAttribute("data-undo", "hidden");
 });
