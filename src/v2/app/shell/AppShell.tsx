@@ -5,6 +5,7 @@ import { Dock, type DockTab } from "../../design/primitives/Dock";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
+import { Tile } from "../../design/primitives/Tile";
 import { useWorld } from "../engine/useWorld";
 import { createHistory } from "../models/history";
 import { ModelsSheet, stepOf } from "../models/ModelsSheet";
@@ -29,6 +30,7 @@ export const variants = {
   sheet: ["closed", "half", "full"] as const,
   dragging: ["true", "false"] as const,
   column: ["open", "closed"] as const,
+  undo: ["hidden"] as const,
 };
 
 const SHEET_ID = "models-sheet";
@@ -85,6 +87,7 @@ export const AppShell = (): JSX.Element => {
   const sheet = useRef<HTMLElement>(null);
   const area = useRef<HTMLDivElement>(null);
   const capProbe = useRef<HTMLSpanElement>(null);
+  const undoTile = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const railProbe = useRef<HTMLSpanElement>(null);
   const refs = useMemo(
@@ -94,6 +97,17 @@ export const AppShell = (): JSX.Element => {
   // §1L.5: closed / half / full, dragged, tapped or keyed; every change is announced.
   const { stop, go, tap, key, dragging, dyn, full } = useSheet(refs, side);
   const open = stop !== "closed";
+  // U1 Hidden: below half open (closed, or mid-drag: the live size isn't in state), and on the
+  // closed landscape panel. The history and the keys keep working.
+  const low = !open || dragging;
+  const shown = session.history.past.length > 0 && !low;
+  const tileHad = useRef(false);
+  // U1 Focus: the Tile leaving with the sheet hands focus to the grab point first.
+  useLayoutEffect(() => {
+    if (!low || !tileHad.current) return;
+    const at = document.activeElement;
+    if (at === undoTile.current || at === document.body) grabButtonOf()?.focus();
+  }, [low]);
   const moved = useRef(false);
   const [said, setSaid] = useState("");
   useEffect(() => {
@@ -119,26 +133,31 @@ export const AppShell = (): JSX.Element => {
   // Undo / redo one step: the live region names it and the restored field tweens to it. Focus
   // stays where it is (V32-BUILD:860 (6)).
   const [restored, setRestored] = useState<{ focus: string; turn: number }>();
-  // U1 Focus: where focus was when a step started.
-  const refocus = useRef<Element | null>(null);
+  // U1 Focus: where focus was when a step started, and whether it was on the Tile as it empties.
+  const refocus = useRef<{ from: Element | null; emptied: boolean } | null>(null);
   const move = (way: "undo" | "redo"): boolean => {
     const s = latest.current;
     const r = undoOps[way](s.history, s.values);
     const step = stepOf(s.values, r.value);
     if (r.history === s.history || step === null) return false;
-    refocus.current = document.activeElement;
+    const from = document.activeElement;
+    refocus.current = {
+      from,
+      emptied: from !== null && from === undoTile.current && r.history.past.length === 0,
+    };
     setSession({ values: r.value, history: r.history });
     setRestored((was) => ({ focus: step.focus, turn: (was?.turn ?? 0) + 1 }));
     setSaid(strings.undo.back(step.field, spokenLabel(step.value)));
     return true;
   };
-  // U1 Focus (F-A c): never dropped to the page. A step that removes the focused control moves
-  // focus to the restored field.
+  // U1 Focus: never dropped to the page. A step that removes the focused control (F-A c), or
+  // empties history under the focused Tile, moves focus to the restored field.
   useLayoutEffect(() => {
-    const from = refocus.current;
+    const plan = refocus.current;
     refocus.current = null;
-    if (from === null || restored === undefined) return;
-    if (from === document.body || from.isConnected) return;
+    if (plan === null || restored === undefined) return;
+    const lost = plan.from !== null && plan.from !== document.body && !plan.from.isConnected;
+    if (!plan.emptied && !lost) return;
     (
       fieldOf(restored.focus) ?? returnFocus(document.getElementById("tab-models"), grabButtonOf())
     )?.focus();
@@ -177,6 +196,7 @@ export const AppShell = (): JSX.Element => {
   useEffect(() => {
     const onEnter = (event: Event): void => {
       const { target } = event;
+      if (event.type === "focusin") tileHad.current = target === undoTile.current;
       if (target instanceof Element) setPane((p) => paneOf(target, p));
     };
     // §1O: a touch press fills the control from the first frame, for 100ms at least.
@@ -253,6 +273,14 @@ export const AppShell = (): JSX.Element => {
   const edge = styles["edge"] ?? "shell-edge";
   const probe = styles["probe"] ?? "shell-probe";
   const railProbeCls = styles["railProbe"] ?? "shell-rail-probe";
+  const undoCls = styles["undo"] ?? "shell-undo";
+  const undoState: (typeof variants.undo)[number] | undefined = shown ? undefined : "hidden";
+  const newest = session.history.past.at(-1);
+  const undoStep = newest === undefined ? null : stepOf(values, newest);
+  const undoName =
+    undoStep === null
+      ? strings.undo.label
+      : strings.undo.name(undoStep.field, spokenLabel(undoStep.value));
 
   const sheetState: (typeof variants.sheet)[number] = stop;
   const dragState: (typeof variants.dragging)[number] = dragging ? "true" : "false";
@@ -371,6 +399,19 @@ export const AppShell = (): JSX.Element => {
               </PaneScroll>
               <div className={reserved} data-pane="plans" aria-hidden="true" />
               <div className={reserved} data-pane="stats" aria-hidden="true" />
+            </div>
+            {/* U1: the undo Tile, pinned at the sheet's bottom centre; inert while hidden. */}
+            <div className={undoCls} data-undo={undoState} inert={!shown}>
+              <Tile
+                ref={undoTile}
+                variant="soft"
+                glyph="undo"
+                label={strings.undo.label}
+                aria-label={undoName}
+                onClick={() => {
+                  move("undo");
+                }}
+              />
             </div>
           </div>
         </section>

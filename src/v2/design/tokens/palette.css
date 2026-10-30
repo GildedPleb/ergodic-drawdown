@@ -55,5 +55,9 @@
     --red-775: #6e1219;
     /* mix percentages for state tints */
     --mix-5: 5%;
+    --mix-70: 70%;
+    /* T2 soft Tile feather stops (U1 undo) */
+    --feather-solid: 58%;
+    --feather-mid: 76%;
   }
 }

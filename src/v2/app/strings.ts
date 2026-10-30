@@ -172,6 +172,9 @@ export const strings = {
     on: "on",
     off: "off",
     back: (field: string, value: string): string => `${field} back to ${value}`,
+    /** The Tile's visible word; its accessible name starts with it (WCAG 2.5.3). */
+    label: "Undo",
+    name: (field: string, value: string): string => `Undo, ${field} back to ${value}`,
   },
   sections: {
     grow: "How prices grow",

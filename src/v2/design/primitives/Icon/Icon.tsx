@@ -2,7 +2,7 @@ import type { JSX } from "react";
 
 import styles from "./Icon.module.css";
 
-type IconName = "check" | "square" | "chevron" | "warning" | "search" | "gear";
+export type IconName = "check" | "square" | "chevron" | "warning" | "search" | "gear" | "undo";
 
 export type IconProps = {
   name: IconName;
@@ -18,6 +18,8 @@ const PATHS: Record<IconName, JSX.Element> = {
   gear: (
     <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5ZM8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.4 1.4M11.55 11.55l1.4 1.4M3.05 12.95l1.4-1.4M11.55 4.45l1.4-1.4" />
   ),
+  // U1: ↶ at stroke 1.5, square caps and joins (never the ↶ character, R5).
+  undo: <path d="M5 3 L2 6 L5 9 M2 6 H10 A4 4 0 0 1 10 14 H7" strokeWidth="1.5" />,
 };
 
 /** SVG icon primitive — currentColor, text-sized (1em). Never font glyphs. */

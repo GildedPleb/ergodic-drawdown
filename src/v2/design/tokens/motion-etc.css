@@ -22,6 +22,7 @@
     --z-dock: 10;
     --z-panel: 20;
     --z-overlay: 30;
+    --z-under: -1; /* T2: a feather behind its own content, inside an isolated box */
     /* shadow · Deco linework over fills: none by default */
     --shadow-sheet: 0 -18px 40px var(--shadow-ink); /* the one allowed: the locked v32 bottom dock lift */
     /* radius · everything square */

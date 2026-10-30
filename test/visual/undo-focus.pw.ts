@@ -2,9 +2,11 @@ import { expect, type Page, test } from "@playwright/test";
 
 // V32-BUILD U1 Focus (:854; Probe F-A): an undo or redo never drops focus to the page. The closed
 // Select keeps one node for its pick (a); a row both models share is not remounted (b); when the
-// focused row leaves with its model, focus goes to the Model Select's pick (c).
+// focused row leaves with its model, focus goes to the Model Select's pick (c). The undo Tile keeps
+// focus when pressed, and hands it on before it hides (d, e).
 const SIZES = ["390x844", "1440x900"] as const;
 const LOGO = '[aria-controls="models-sheet"]:not([role="tab"])';
+const UNDO = '#models-sheet button[data-variant="soft"]';
 
 test.beforeEach(({ browserName }, info) => {
   test.skip(
@@ -116,4 +118,49 @@ test("F-A (c): undo removing the focused row moves focus to the Model Select's p
   await tag(page);
   await press(page, "ControlOrMeta+Shift+z");
   expect(await where(page)).toMatchObject({ same: true, body: false });
+});
+
+test("U1 Focus (d): pressing the undo Tile keeps focus on it; when history empties it goes to the restored field", async ({
+  page,
+}) => {
+  await openSheet(page, "full");
+  await pick(page, "v2-walk", "Saw");
+  await pick(page, "v2-walk", "Sin");
+  const undo = page.locator(UNDO);
+  await expect(undo).toHaveAccessibleName("Undo, How bumpy the ride is back to Saw");
+  await undo.focus();
+  await tag(page);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  expect(await where(page)).toMatchObject({ same: true, body: false });
+  await expect(undo).toHaveAccessibleName(/^Undo, How bumpy the ride is back to /);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  const at = await where(page);
+  expect(at.body).toBe(false);
+  expect(at.sel).toMatch(/^v2-walk-opt-\d+\|option\|true$/);
+  // It fades out inert: no longer a Tab stop or a target.
+  expect(await undo.evaluate((e) => e.closest("[inert]") !== null)).toBe(true);
+});
+
+test("U1 Focus (e): the sheet dropping below half moves focus off the undo Tile to the grab point", async ({
+  page,
+}) => {
+  await openSheet(page, "full");
+  await pick(page, "v2-walk", "Saw");
+  await page.locator(UNDO).focus();
+  // A press-free route below half: the grab point's End key closes the sheet (§1R).
+  await page.evaluate(() => {
+    const g = document.querySelector<HTMLElement>(
+      '[aria-controls="models-sheet"]:not([role="tab"])',
+    );
+    g?.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+  });
+  await expect.poll(async () => stop(page)).toBe("closed");
+  await page.waitForTimeout(300);
+  const focused = await page.evaluate(
+    () =>
+      document.activeElement?.matches('[aria-controls="models-sheet"]:not([role="tab"])') ?? false,
+  );
+  expect(focused).toBe(true);
 });

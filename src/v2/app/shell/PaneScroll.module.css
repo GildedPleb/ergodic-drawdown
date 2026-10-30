@@ -77,7 +77,15 @@
     }
   }
 
+  /* U1 Space: room under the last row for the undo Tile, shown or not (nothing shifts). */
   .content {
-    padding: 0 var(--tk-pad-x) var(--s-6);
+    padding: 0 var(--tk-pad-x) var(--_pb);
+    --_pb: calc(var(--s-6) + var(--hit) + 0.625rem);
+  }
+
+  @media (orientation: landscape) and (max-height: 500px) {
+    .content {
+      --_pb: calc(var(--s-6) + var(--hit) + 0.375rem);
+    }
   }
 }

@@ -186,7 +186,34 @@
   }
 
   .body {
+    position: relative;
     display: none;
+  }
+
+  /* U1 Where: the undo Tile at the sheet's bottom centre, over the pane's last rows. */
+  .undo {
+    --_ub: 0.625rem;
+
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: var(--_ub);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .undo > * {
+    pointer-events: auto;
+  }
+
+  .undo[data-undo="hidden"] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .undo {
+      transition: opacity var(--dur-fast);
+    }
   }
 
   .cols {
@@ -306,6 +333,10 @@
 
   /* Phone landscape (V32-BUILD §1e): the sheet becomes a right panel, a 64px rail when closed. */
   @media (orientation: landscape) and (max-height: 500px) {
+    .undo {
+      --_ub: 0.375rem;
+    }
+
     .root {
       flex-direction: row;
     }

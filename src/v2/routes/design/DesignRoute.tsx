@@ -19,6 +19,7 @@ import * as SectionLabelStories from "../../design/primitives/SectionLabel/Secti
 import * as SliderStories from "../../design/primitives/Slider/Slider.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
 import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
+import * as TileStories from "../../design/primitives/Tile/Tile.stories";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import * as VisuallyHiddenStories from "../../design/primitives/VisuallyHidden/VisuallyHidden.stories";
 import styles from "./DesignRoute.module.css";
@@ -48,6 +49,7 @@ const GROUPS: Record<string, StoryModule> = {
   slider: SliderStories,
   stack: StackStories,
   "tick-toggle": TickToggleStories,
+  tile: TileStories,
   "visually-hidden": VisuallyHiddenStories,
 };
 

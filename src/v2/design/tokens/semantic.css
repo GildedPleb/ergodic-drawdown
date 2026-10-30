@@ -38,6 +38,13 @@
     /* engine walk label dots */
     --shadow-ink: var(--shadow-ink-dark); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--linen-75) var(--mix-5), var(--ink-900));
+    /* T2 soft Tile: the feather behind the floating word, in this theme's --surface */
+    --feather-tile: radial-gradient(
+      closest-side,
+      var(--surface) var(--feather-solid),
+      color-mix(in srgb, var(--surface) var(--mix-70), transparent) var(--feather-mid),
+      transparent
+    );
   }
   [data-theme="linen"] {
     --ground: var(--linen-125);
@@ -76,5 +83,12 @@
     /* engine walk label dots */
     --shadow-ink: var(--shadow-ink-linen); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--umber-800) var(--mix-5), var(--linen-150));
+    /* T2 soft Tile: the feather behind the floating word, in this theme's --surface */
+    --feather-tile: radial-gradient(
+      closest-side,
+      var(--surface) var(--feather-solid),
+      color-mix(in srgb, var(--surface) var(--mix-70), transparent) var(--feather-mid),
+      transparent
+    );
   }
 }

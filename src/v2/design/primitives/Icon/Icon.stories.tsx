@@ -9,6 +9,7 @@ export const Warning = (): ReactElement => <Icon name="warning" />;
 export const Search = (): ReactElement => <Icon name="search" />;
 export const Gear = (): ReactElement => <Icon name="gear" />;
 export const Chevron = (): ReactElement => <Icon name="chevron" />;
+export const Undo = (): ReactElement => <Icon name="undo" />;
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
     <Icon name="check" />
