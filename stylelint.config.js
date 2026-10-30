@@ -58,7 +58,9 @@ export default {
       "/^border-(block|inline)(-start|-end)?-color$/": [COLOR],
       "/^border(-block|-inline)?(-start|-end)?$/": [LINE],
       outline: [LINE],
-      "z-index": [/^var\(--z-[a-z0-9-]+\)$/],
+      // A --z-* token, or a local --_z* declared in the same file (a stacking step inside one
+      // isolated component, e.g. T2's feather behind its own content).
+      "z-index": [/^var\(--(?:z-[a-z0-9-]+|_z[a-z0-9-]*)\)$/],
       "/^(transition|animation)-(duration|delay)$/": [/^(?:var\(--dur-[a-z0-9-]+\)|0s|0ms)$/],
       // R9
       "transition-property": [/^(?:transform|opacity)(?:\s*,\s*(?:transform|opacity))*$/],

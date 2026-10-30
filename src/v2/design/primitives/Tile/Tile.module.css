@@ -6,6 +6,7 @@
     --_fw: calc(var(--hit) * -1);
     --_fb: -1.125rem -0.875rem;
     --_fo: calc(var(--focus-w) * -1);
+    --_z: -1; /* the feather sits behind this button's own content (the root isolates) */
 
     position: relative;
     isolation: isolate;
@@ -28,7 +29,7 @@
   .root::before {
     content: "";
     position: absolute;
-    z-index: var(--z-under);
+    z-index: var(--_z);
     inset-inline: var(--_fw);
     inset-block: var(--_fb);
     background: var(--feather-tile);

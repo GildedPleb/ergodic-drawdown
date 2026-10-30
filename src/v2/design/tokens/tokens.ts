@@ -215,7 +215,6 @@ export const tokenNames = [
   "z-overlay",
   "z-panel",
   "z-sticky",
-  "z-under",
 ] as const;
 
 export type TokenName = (typeof tokenNames)[number];
@@ -442,5 +441,4 @@ export const tokens = {
   "z-overlay": "var(--z-overlay)",
   "z-panel": "var(--z-panel)",
   "z-sticky": "var(--z-sticky)",
-  "z-under": "var(--z-under)",
 } as const;
