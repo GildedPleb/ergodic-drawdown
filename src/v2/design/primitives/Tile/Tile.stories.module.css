@@ -1,0 +1,23 @@
+@layer primitives {
+  /* Stories only (defect C): the Tile on --surface over text rows, as it sits in the sheet. */
+  .frame {
+    --_w: 22rem;
+
+    display: grid;
+    align-items: end;
+    justify-items: center;
+    max-inline-size: var(--_w);
+    padding: var(--s-5);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--f-text);
+  }
+
+  .frame > * {
+    grid-area: 1 / 1;
+  }
+
+  .rows {
+    justify-self: stretch;
+  }
+}
