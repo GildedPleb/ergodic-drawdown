@@ -7,11 +7,14 @@ const TOKEN = String.raw`var\(--_?[a-z0-9-]+\)`;
 const LEN_ATOM = String.raw`(?:${TOKEN}|0|1px|100%|auto)`;
 /** R4 lengths: tokens or the 0 / 1px / 100% / auto allowlist, no calc(), no var() fallback. */
 const LENGTH = new RegExp(String.raw`^${LEN_ATOM}(?:\s+${LEN_ATOM})*$`);
+/** CSS system colours (the user's own palette), for @media (forced-colors: active) (T2). */
+const SYSTEM =
+  "ButtonText|ButtonFace|ButtonBorder|Canvas|CanvasText|GrayText|Highlight|HighlightText|LinkText|Field|FieldText";
 const COLOR = new RegExp(
-  String.raw`^(?:${TOKEN}|currentColor|currentcolor|transparent|inherit|none)$`,
+  String.raw`^(?:${TOKEN}|currentColor|currentcolor|transparent|inherit|none|${SYSTEM})$`,
 );
 const LINE = new RegExp(
-  String.raw`^(?:0|none|(?:${TOKEN}|1px)\s+(?:solid|double|dashed|dotted)\s+(?:${TOKEN}|currentColor|transparent))$`,
+  String.raw`^(?:0|none|(?:${TOKEN}|1px)\s+(?:solid|double|dashed|dotted)\s+(?:${TOKEN}|currentColor|transparent|${SYSTEM}))$`,
 );
 const MOTION_ITEM = String.raw`(?:transform|opacity)\s+var\(--dur-[a-z0-9-]+\)(?:\s+var\(--(?:ease|dur)-[a-z0-9-]+\))*`;
 const TRANSITION = new RegExp(String.raw`^(?:none|${MOTION_ITEM}(?:\s*,\s*${MOTION_ITEM})*)$`);
@@ -67,8 +70,16 @@ export default {
       transition: [TRANSITION],
       animation: [ANIMATION],
       "/^border(-[a-z]+)*-radius$/": ["var(--radius-0)", "0"],
-      // R4 shadows (amended 2026-10-29, ADR-002 D2): exactly the two named tokens, never raw.
-      "box-shadow": ["var(--shadow-sheet)", "var(--shadow-tile)"],
+      // R4 shadows (ADR-002 D2): exactly two named tokens, never raw. --shadow-sheet is a
+      // box-shadow; --shadow-tile is a drop-shadow() filter, gated just below.
+      "box-shadow": ["var(--shadow-sheet)"],
+    },
+    // R4 shadows: no raw drop-shadow() outside the token files (in filter, or parked in a custom
+    // property), and --shadow-tile only ever as a filter.
+    "declaration-property-value-disallowed-list": {
+      filter: ["/drop-shadow\\(/"],
+      "/^--/": ["/drop-shadow\\(/"],
+      "/^(?!filter$)/": ["/var\\(--shadow-tile\\)/"],
     },
     // R4 text-shadow, R6 margin, R8 logical properties (box-shadow is value-gated above)
     "property-disallowed-list": ["/^margin/", "text-shadow", ...PHYSICAL],
@@ -86,7 +97,10 @@ export default {
     {
       // Token files define the raw values (@font-face names, palette); R5 tiers are checked by script.
       files: ["**/src/v2/design/tokens/**/*.css", "**/src/v2/design/fonts/fonts.css"],
-      rules: { "declaration-property-value-allowed-list": null },
+      rules: {
+        "declaration-property-value-allowed-list": null,
+        "declaration-property-value-disallowed-list": null,
+      },
     },
     {
       // R3: no element selectors in modules

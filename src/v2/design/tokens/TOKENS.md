@@ -17,7 +17,7 @@
 - Components use **semantic** tokens, plus motion-etc, type and space. They never use `--gold-225`-style palette names.
 - No raw colour, alpha or mix value appears outside `palette.css`. Raw values in `motion-etc.css` are non-colour primitives with no theme variation.
 - **Theme switch:** `data-theme="linen"` on `<html>` (or any subtree) replaces the old `.linen` class.
-- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with `--shadow-sheet` as the single allowed shadow (the locked v32 bottom dock).
+- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly two shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock) and `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate). No raw shadows outside the token files.
 
 ## Contrast check result (v2.1)
 
@@ -459,3 +459,33 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   TS or tests (`tokens.ts`, `draw.ts`, the contrast table). `--s-7` and `--usd` are read only by
   the generated `tokens.ts`, the `space` scale and the contrast table, so they stay, like
   `--raised`. No unused `@keyframes`.
+- **Drift before T2, recorded late (Keel, 2026-11-02):** the K batch and the soft Tile + U1 undo
+  work moved v2 CSS from 54,041 B source / 7,749 B gzip (`css-budget.json`, 2026-10-21) to
+  58,091 B / 8,283 B at 70427b0 (+4,050 source, +534 gzip) with no budget record at the time.
+  Split: K batch 54,041 / 7,749 → 54,423 / 7,897 (+382, +148); soft Tile + U1 54,423 / 7,897 →
+  58,091 / 8,283 (+3,668, +386). Soft per rule (gzip B, each measured by removing it from the
+  built CSS; they sum to the 386): Tile `.root` 76, Tile hover 49, Tile `::before` feather 34,
+  Tile `:focus-visible` 10, Tile disabled 8, rest of Tile 8; shell `.undo` 88; `--feather-tile`
+  in both themes 53; PaneScroll `.content` bottom room 37; `--mix-70`, `--feather-solid`,
+  `--feather-mid` 19; `--t-tile` 4. Source only (0 B shipped): `Tile.stories.module.css` 448.
+  Tokens added then: `--mix-70`, `--feather-solid`, `--feather-mid` (palette, V32:910),
+  `--feather-tile` (semantic, per theme), `--t-tile` (type). The feather's `z-index: -1` is the
+  component-private `--_z`, and the z-index allow-list accepts `var(--_z*)` as well as
+  `var(--z-*)`. Approver: Keel 2026-11-02.
+- **T2 Tile loud + shared focus ring (V32-BUILD T2; Keel, 2026-11-02):** 70427b0 58,091 B source /
+  8,283 B gzip → 64,257 B / 9,057 B (+6,166 source, +774 gzip), measured with `bun run css:size`
+  (vite build). Covers the loud plaque (hairline, face, inner rule under one lifted wrapper),
+  the shared octagon focus ring, forced colours (plain 1px box, Highlight outline and hover)
+  and wrapping long text. `css-budget.json` re-baselined: `builtGzipCeiling` 7,903 → 9,067
+  (9,057 + 10), `sourceCeiling` 55,121 → 64,307 (64,257 + 50). Source by file: Tile.module.css
+  1,542 → 6,769; palette.css +76 (`--mix-14/42/45/80`); semantic.css +638 (`--tile-line`,
+  `--tile-rule`, `--tile-glyph`, both themes); motion-etc.css +138 (`--shadow-tile`, both
+  themes); type.css +87 (`--t-tile-loud`, `--tr-tile`). Exactly two shadow tokens
+  (`--shadow-sheet`, `--shadow-tile`), no `--halo-*`. stylelint: `box-shadow` allows only
+  `var(--shadow-sheet)`; raw `drop-shadow()` is banned in `filter` and in custom properties
+  outside the token files; `var(--shadow-tile)` is allowed only as a `filter` value; CSS system
+  colours are allowed in colour and line values (forced colours). The repeated octagon outline is
+  defined once as `--_o` (−158 B source, +6 B gzip, pixel-identical). Approver: Keel 2026-11-02.
+  - **Deletion owed by the soft batch:** `--mix-70`, `--feather-solid`, `--feather-mid` and
+    `--feather-tile` are retired by Form (V32:910–911) but still painted by the shipping soft
+    feather. Delete them with the soft batch and re-measure both limits then.

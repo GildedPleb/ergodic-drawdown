@@ -13,7 +13,7 @@
     --_h: 2.125rem;
     --_ch: 0.4375rem;
     --_fo: var(--s-1);
-    --_pb: calc((100% - var(--_h)) / 2);
+    --_pb: calc((var(--hit) - var(--_h)) / 2); /* constant, so the plate grows with wrapped text */
 
     position: relative;
     isolation: isolate;
@@ -55,12 +55,14 @@
     --icon-size: 0.8125rem;
     --_mw: calc(7.375rem + 2 * var(--_fo));
     --_pi: calc(1.125rem + var(--_fo));
+    --_py: calc(var(--_pb) + var(--_ch)); /* wrapped lines clear the bevel; one line stays --hit */
     --_lc: var(--tile-line);
     --_rc: var(--tile-rule);
     --_gc: var(--tile-glyph);
-    --_sh: var(--shadow-tile);
 
     min-inline-size: var(--_mw);
+    max-inline-size: 100%;
+    padding-block: var(--_py);
     padding-inline: var(--_pi);
     font-family: var(--f-sans);
     font-size: var(--t-tile-loud);
@@ -68,6 +70,7 @@
     font-weight: 500;
     letter-spacing: var(--tr-tile);
     text-transform: uppercase;
+    text-align: center;
   }
 
   .root[data-variant="loud"]:focus-visible {
@@ -93,30 +96,27 @@
     pointer-events: none;
   }
 
+  /* The wrapper takes the lift, so it follows the bevel; its children take the clips. */
   .plate {
-    filter: var(--_sh); /* the wrapper takes the lift, so it follows the bevel; children take the clips */
+    filter: var(--shadow-tile);
   }
 
+  /* --_o: the octagon on the layer's own box, chamfer leg --_l; each layer resolves its own --_l. */
   .line,
   .face,
   .rule,
   .ring {
+    --_o:
+      var(--_l) 0, calc(100% - var(--_l)) 0, 100% var(--_l), 100% calc(100% - var(--_l)),
+      calc(100% - var(--_l)) 100%, var(--_l) 100%, 0 calc(100% - var(--_l)), 0 var(--_l);
+
     position: absolute;
   }
 
-  /* Solid octagon on the layer's own box, chamfer leg --_l. */
+  /* Solid octagon. */
   .line,
   .face {
-    clip-path: polygon(
-      var(--_l) 0,
-      calc(100% - var(--_l)) 0,
-      100% var(--_l),
-      100% calc(100% - var(--_l)),
-      calc(100% - var(--_l)) 100%,
-      var(--_l) 100%,
-      0 calc(100% - var(--_l)),
-      0 var(--_l)
-    );
+    clip-path: polygon(var(--_o));
   }
 
   /* Octagon ring --_w wide on the layer's own box (evenodd): outer leg --_l, inner leg --_l − k·--_w. */
@@ -127,14 +127,7 @@
 
     clip-path: polygon(
       evenodd,
-      var(--_l) 0,
-      calc(100% - var(--_l)) 0,
-      100% var(--_l),
-      100% calc(100% - var(--_l)),
-      calc(100% - var(--_l)) 100%,
-      var(--_l) 100%,
-      0 calc(100% - var(--_l)),
-      0 var(--_l),
+      var(--_o),
       var(--_l) 0,
       var(--_m) var(--_w),
       calc(100% - var(--_m)) var(--_w),
@@ -193,10 +186,14 @@
     --_lc: var(--disabled);
     --_rc: transparent;
     --_gc: var(--disabled);
-    --_sh: none;
 
     color: var(--disabled);
     cursor: var(--cursor-off);
+  }
+
+  .root:disabled .plate,
+  .root[aria-disabled="true"] .plate {
+    filter: none;
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -212,6 +209,49 @@
     .root[data-variant="soft"]:enabled:not([aria-disabled]):hover .label {
       text-decoration: underline 1px;
       text-underline-offset: var(--s-1);
+    }
+  }
+
+  /* T2 forced colours: the clip-path fills are forced away, so drop them; loud keeps a plain box. */
+  @media (forced-colors: active) {
+    .root[data-variant] {
+      --_fx: 2px;
+
+      color: ButtonText;
+    }
+
+    .root[data-variant]:disabled,
+    .root[data-variant][aria-disabled="true"] {
+      color: GrayText;
+    }
+
+    .root[data-variant]:focus-visible {
+      outline: var(--focus-w) solid Highlight;
+      outline-offset: var(--_fx);
+    }
+
+    .glyph {
+      color: currentColor;
+    }
+
+    .plate {
+      border: 1px solid currentColor; /* ButtonText, or GrayText when disabled */
+      filter: none;
+    }
+
+    .line,
+    .face,
+    .rule,
+    .focus {
+      display: none;
+    }
+    /* Hover (Form ruling, 2026-11-02): loud's border and soft's label go to Highlight; focus is unchanged. */
+    .root[data-variant="loud"]:enabled:not([aria-disabled]):hover .plate {
+      border-color: Highlight;
+    }
+
+    .root[data-variant="soft"]:enabled:not([aria-disabled]):hover .label {
+      color: Highlight;
     }
   }
 }

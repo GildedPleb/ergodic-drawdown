@@ -1,8 +1,8 @@
 {
-  "sourceBytes": 54041,
-  "builtGzipBytes": 7749,
+  "sourceBytes": 64257,
+  "builtGzipBytes": 9057,
   "ratchet": 1.05,
-  "measuredAt": "2026-10-21",
-  "builtGzipCeiling": 7903,
-  "sourceCeiling": 55121
+  "measuredAt": "2026-11-02",
+  "builtGzipCeiling": 9067,
+  "sourceCeiling": 64307
 }

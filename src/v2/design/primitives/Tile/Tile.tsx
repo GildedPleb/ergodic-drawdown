@@ -27,24 +27,34 @@ export type TileProps = {
 };
 
 /** Loud's plate: hairline, face and inner rule, clipped to parallel octagons under one lifted wrapper. */
-const Plate = (): JSX.Element => (
-  <span className={styles["plate"] ?? "tile-plate"} aria-hidden="true">
-    <span className={styles["line"] ?? "tile-line"} />
-    <span className={styles["face"] ?? "tile-face"} />
-    <span className={styles["rule"] ?? "tile-rule"} />
-  </span>
-);
+const Plate = (): JSX.Element => {
+  const plate = styles["plate"] ?? "tile-plate";
+  const line = styles["line"] ?? "tile-line";
+  const face = styles["face"] ?? "tile-face";
+  const rule = styles["rule"] ?? "tile-rule";
+  return (
+    <span className={plate} aria-hidden="true">
+      <span className={line} />
+      <span className={face} />
+      <span className={rule} />
+    </span>
+  );
+};
 
 /**
  * T2 focus ring, one piece for every variant: a frame placed exactly like the plate, holding a
  * --focus-w octagon ring that is a parallel offset of the plate's bevel, --_fo out. It shows on
  * :focus-visible and never changes the box. The variant supplies --_h, --_ch and --_fo.
  */
-const FocusRing = (): JSX.Element => (
-  <span className={styles["focus"] ?? "tile-focus"} aria-hidden="true">
-    <span className={styles["ring"] ?? "tile-ring"} />
-  </span>
-);
+const FocusRing = (): JSX.Element => {
+  const focus = styles["focus"] ?? "tile-focus";
+  const ring = styles["ring"] ?? "tile-ring";
+  return (
+    <span className={focus} aria-hidden="true">
+      <span className={ring} />
+    </span>
+  );
+};
 
 /**
  * T2 Tile: one `<button>` at least --hit tall, square, sized by its content. Soft is the r3
