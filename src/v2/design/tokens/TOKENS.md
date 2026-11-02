@@ -473,12 +473,12 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   component-private `--_z`, and the z-index allow-list accepts `var(--_z*)` as well as
   `var(--z-*)`. Approver: Keel 2026-11-02.
 - **T2 Tile loud + shared focus ring (V32-BUILD T2; Keel, 2026-11-02):** 70427b0 58,091 B source /
-  8,283 B gzip → 64,257 B / 9,057 B (+6,166 source, +774 gzip), measured with `bun run css:size`
+  8,283 B gzip → 64,356 B / 9,062 B (+6,265 source, +779 gzip), measured with `bun run css:size`
   (vite build). Covers the loud plaque (hairline, face, inner rule under one lifted wrapper),
   the shared octagon focus ring, forced colours (plain 1px box, Highlight outline and hover)
-  and wrapping long text. `css-budget.json` re-baselined: `builtGzipCeiling` 7,903 → 9,067
-  (9,057 + 10), `sourceCeiling` 55,121 → 64,307 (64,257 + 50). Source by file: Tile.module.css
-  1,542 → 6,769; palette.css +76 (`--mix-14/42/45/80`); semantic.css +638 (`--tile-line`,
+  and wrapping long text. `css-budget.json` re-baselined: `builtGzipCeiling` 7,903 → 9,072
+  (9,062 + 10), `sourceCeiling` 55,121 → 64,406 (64,356 + 50). Source by file: Tile.module.css
+  1,542 → 6,868; palette.css +76 (`--mix-14/42/45/80`); semantic.css +638 (`--tile-line`,
   `--tile-rule`, `--tile-glyph`, both themes); motion-etc.css +138 (`--shadow-tile`, both
   themes); type.css +87 (`--t-tile-loud`, `--tr-tile`). Exactly two shadow tokens
   (`--shadow-sheet`, `--shadow-tile`), no `--halo-*`. stylelint: `box-shadow` allows only

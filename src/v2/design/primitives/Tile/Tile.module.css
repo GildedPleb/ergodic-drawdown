@@ -245,13 +245,15 @@
     .focus {
       display: none;
     }
-    /* Hover (Form ruling, 2026-11-02): loud's border and soft's label go to Highlight; focus is unchanged. */
-    .root[data-variant="loud"]:enabled:not([aria-disabled]):hover .plate {
-      border-color: Highlight;
-    }
+    /* Hover (Form ruling, 2026-11-02): loud's border and soft's label go to Highlight; focus is unchanged. Pointer-gated like normal hover. */
+    @media (hover: hover) and (pointer: fine) {
+      .root[data-variant="loud"]:enabled:not([aria-disabled]):hover .plate {
+        border-color: Highlight;
+      }
 
-    .root[data-variant="soft"]:enabled:not([aria-disabled]):hover .label {
-      color: Highlight;
+      .root[data-variant="soft"]:enabled:not([aria-disabled]):hover .label {
+        color: Highlight;
+      }
     }
   }
 }
