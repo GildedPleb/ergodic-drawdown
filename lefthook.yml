@@ -1,4 +1,6 @@
 # The suite wall budget is the test process clock. Run that clock after the other checks.
+# A missing lefthook binary fails the commit instead of skipping every check (R11 gate root cause, 2026-11-02).
+assert_lefthook_installed: true
 pre-commit:
   jobs:
     - name: static
