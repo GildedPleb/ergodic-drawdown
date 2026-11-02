@@ -461,7 +461,7 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   `--raised`. No unused `@keyframes`.
 - **Drift before T2, recorded late (Keel, 2026-11-02):** the K batch and the soft Tile + U1 undo
   work moved v2 CSS from 54,041 B source / 7,749 B gzip (`css-budget.json`, 2026-10-21) to
-  58,091 B / 8,283 B at 70427b0 (+4,050 source, +534 gzip) with no budget record at the time.
+  58,091 B / 8,283 B at 70427b0 (+4,050 source, +534 gzip) with no budget record at the time. The K batch landed on redesign within its limits; the soft Tile + U1 part came from unpushed local commits that skipped the hook.
   Split: K batch 54,041 / 7,749 → 54,423 / 7,897 (+382, +148); soft Tile + U1 54,423 / 7,897 →
   58,091 / 8,283 (+3,668, +386). Soft per rule (gzip B, each measured by removing it from the
   built CSS; they sum to the 386): Tile `.root` 76, Tile hover 49, Tile `::before` feather 34,
