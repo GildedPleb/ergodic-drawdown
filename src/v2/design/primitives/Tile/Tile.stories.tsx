@@ -1,10 +1,10 @@
 import type { ReactElement, ReactNode } from "react";
 import { useLayoutEffect } from "react";
 
-import { Tile } from "./Tile";
+import { Tile, variants } from "./Tile";
 import styles from "./Tile.stories.module.css";
 
-/** Plain CSF 3. T2: soft only (loud is queued); hover is shot by the visual matrix with :hover. */
+/** Plain CSF 3 (V32:916). Hover is shot by the visual matrix with :hover, not by a story. */
 export default { title: "Primitives/Tile" };
 
 const noop = (): void => undefined;
@@ -33,6 +33,19 @@ const Frame = ({ children }: { children: ReactNode }): ReactElement => {
   );
 };
 
+type Look = { label?: string; disabled?: boolean };
+
+/** One framed Tile per variant, soft first, for the stories that show both. */
+const Both = ({ label = "Undo", disabled = false }: Look): ReactElement => (
+  <>
+    {variants.variant.map((variant) => (
+      <Frame key={variant}>
+        <Tile variant={variant} glyph="undo" label={label} onClick={noop} disabled={disabled} />
+      </Frame>
+    ))}
+  </>
+);
+
 export const Default = (): ReactElement => (
   <Frame>
     <Tile label="Undo" onClick={noop} />
@@ -43,32 +56,19 @@ export const Soft = (): ReactElement => (
     <Tile variant="soft" label="Undo" onClick={noop} />
   </Frame>
 );
-export const WithGlyph = (): ReactElement => (
+export const Loud = (): ReactElement => (
   <Frame>
-    <Tile variant="soft" glyph="undo" label="Undo" onClick={noop} />
+    <Tile variant="loud" label="Undo" onClick={noop} />
   </Frame>
 );
-/** The visual matrix focuses it with the keyboard before the screenshot. */
-export const Focus = (): ReactElement => (
-  <Frame>
-    <Tile variant="soft" glyph="undo" label="Undo" onClick={noop} />
-  </Frame>
-);
-export const Disabled = (): ReactElement => (
-  <Frame>
-    <Tile variant="soft" glyph="undo" label="Undo" onClick={noop} disabled />
-  </Frame>
-);
-export const LongText = (): ReactElement => (
-  <Frame>
-    <Tile variant="soft" glyph="undo" label="Restore the original settings" onClick={noop} />
-  </Frame>
-);
+export const WithGlyph = (): ReactElement => <Both />;
+/** The visual matrix focuses each with the keyboard before the screenshot. */
+export const Focus = (): ReactElement => <Both />;
+export const Disabled = (): ReactElement => <Both disabled />;
+export const LongText = (): ReactElement => <Both label="Restore the original settings" />;
 export const Linen = (): ReactElement => (
   <div data-theme="linen">
-    <Frame>
-      <Tile variant="soft" glyph="undo" label="Undo" onClick={noop} />
-    </Frame>
+    <Both />
   </div>
 );
 /** 200% OS text: a 32px root, restored when the story unmounts. */
@@ -81,9 +81,5 @@ export const LargeText200 = (): ReactElement => {
       html.style.fontSize = was;
     };
   }, []);
-  return (
-    <Frame>
-      <Tile variant="soft" glyph="undo" label="Undo" onClick={noop} />
-    </Frame>
-  );
+  return <Both />;
 };

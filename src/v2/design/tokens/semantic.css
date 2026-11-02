@@ -38,6 +38,10 @@
     /* engine walk label dots */
     --shadow-ink: var(--shadow-ink-dark); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--linen-75) var(--mix-5), var(--ink-900));
+    /* T2 loud Tile: hairline, inner rule and glyph, in this theme's --accent */
+    --tile-line: color-mix(in srgb, var(--accent) var(--mix-42), transparent);
+    --tile-rule: color-mix(in srgb, var(--accent) var(--mix-14), transparent);
+    --tile-glyph: color-mix(in srgb, var(--accent) var(--mix-80), transparent);
     /* T2 soft Tile: the feather behind the floating word, in this theme's --surface */
     --feather-tile: radial-gradient(
       closest-side,
@@ -83,6 +87,10 @@
     /* engine walk label dots */
     --shadow-ink: var(--shadow-ink-linen); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--umber-800) var(--mix-5), var(--linen-150));
+    /* T2 loud Tile: hairline, inner rule and glyph, in this theme's --accent */
+    --tile-line: color-mix(in srgb, var(--accent) var(--mix-45), transparent);
+    --tile-rule: color-mix(in srgb, var(--accent) var(--mix-14), transparent);
+    --tile-glyph: color-mix(in srgb, var(--accent) var(--mix-80), transparent);
     /* T2 soft Tile: the feather behind the floating word, in this theme's --surface */
     --feather-tile: radial-gradient(
       closest-side,

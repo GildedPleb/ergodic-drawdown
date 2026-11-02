@@ -23,7 +23,8 @@
     --z-panel: 20;
     --z-overlay: 30;
     /* shadow · Deco linework over fills: none by default */
-    --shadow-sheet: 0 -18px 40px var(--shadow-ink); /* the one allowed: the locked v32 bottom dock lift */
+    --shadow-sheet: 0 -18px 40px var(--shadow-ink); /* the locked v32 bottom dock lift */
+    --shadow-tile: drop-shadow(0 6px 10px var(--shadow-ink)); /* T2 loud Tile lift (a filter) */
     /* radius · everything square */
     --radius-0: 0;
     /* rules + focus */
@@ -39,10 +40,11 @@
     --thumb-w: 1px;
     --thumb-h: 0.875rem; /* 14px at 100%; rem so it scales with text */
   }
-  /* Probe m4: recompute the sheet shadow inside every themed subtree, so a nested
+  /* Probe m4: recompute both shadows inside every themed subtree, so a nested
      [data-theme="linen"] uses its own --shadow-ink instead of inheriting the dark value. */
   [data-theme] {
     --shadow-sheet: 0 -18px 40px var(--shadow-ink);
+    --shadow-tile: drop-shadow(0 6px 10px var(--shadow-ink));
   }
   @media (prefers-reduced-motion: reduce) {
     :root {

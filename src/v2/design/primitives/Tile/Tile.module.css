@@ -1,12 +1,19 @@
 @layer primitives {
-  /* T2 soft (r3 floating word): no box; a --surface feather behind keeps it off text-over-text. */
+  /* T2: one button, two voices. The base is soft's; loud overrides it. */
   .root {
     --_gap: 0.375rem;
     --icon-size: 0.875rem; /* the glyph (Icon draws at --icon-size) */
     --_fw: calc(var(--hit) * -1);
     --_fb: -1.125rem -0.875rem;
-    --_fo: calc(var(--focus-w) * -1);
-    --_z: -1; /* the feather sits behind this button's own content (the root isolates) */
+    --_oo: calc(var(--focus-w) * -1);
+    --_z: -1; /* the feather, plate and ring sit behind this button's own content (the root isolates) */
+    --_k: 0.5858; /* 2 − √2: a 45° chamfer leg grows this much per unit of outward offset */
+    --_gc: currentColor;
+    /* the shared focus ring (V32:897): a --_h plate, chamfer --_ch, inset --_fo inside each end */
+    --_h: 2.125rem;
+    --_ch: 0.4375rem;
+    --_fo: var(--s-1);
+    --_pb: calc((100% - var(--_h)) / 2);
 
     position: relative;
     isolation: isolate;
@@ -26,7 +33,8 @@
     cursor: var(--cursor-press);
   }
 
-  .root::before {
+  /* T2 soft (r3 floating word): no box; a --surface feather behind keeps it off text-over-text. */
+  .root[data-variant="soft"]::before {
     content: "";
     position: absolute;
     z-index: var(--_z);
@@ -36,13 +44,157 @@
     pointer-events: none;
   }
 
-  .root:focus-visible {
+  .root[data-variant="soft"]:focus-visible {
     outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--_fo);
+    outline-offset: var(--_oo);
+  }
+
+  /* T2 loud (r3 plaque): a chamfered octagon --_h tall in the --hit target, --_fo inside each end. */
+  .root[data-variant="loud"] {
+    --_gap: 0.4375rem;
+    --icon-size: 0.8125rem;
+    --_mw: calc(7.375rem + 2 * var(--_fo));
+    --_pi: calc(1.125rem + var(--_fo));
+    --_lc: var(--tile-line);
+    --_rc: var(--tile-rule);
+    --_gc: var(--tile-glyph);
+    --_sh: var(--shadow-tile);
+
+    min-inline-size: var(--_mw);
+    padding-inline: var(--_pi);
+    font-family: var(--f-sans);
+    font-size: var(--t-tile-loud);
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: var(--tr-tile);
+    text-transform: uppercase;
+  }
+
+  .root[data-variant="loud"]:focus-visible {
+    outline: none;
+  }
+
+  .root[data-variant="loud"] .label {
+    padding-inline-start: var(--tr-tile); /* the trailing tracking, matched in front: centred */
+  }
+
+  .glyph {
+    display: contents;
+    color: var(--_gc);
+  }
+
+  /* The plate and the focus ring's frame share one box, so the ring is concentric with the plate. */
+  .plate,
+  .focus {
+    position: absolute;
+    z-index: var(--_z);
+    inset-inline: var(--_fo);
+    inset-block: var(--_pb);
+    pointer-events: none;
+  }
+
+  .plate {
+    filter: var(--_sh); /* the wrapper takes the lift, so it follows the bevel; children take the clips */
+  }
+
+  .line,
+  .face,
+  .rule,
+  .ring {
+    position: absolute;
+  }
+
+  /* Solid octagon on the layer's own box, chamfer leg --_l. */
+  .line,
+  .face {
+    clip-path: polygon(
+      var(--_l) 0,
+      calc(100% - var(--_l)) 0,
+      100% var(--_l),
+      100% calc(100% - var(--_l)),
+      calc(100% - var(--_l)) 100%,
+      var(--_l) 100%,
+      0 calc(100% - var(--_l)),
+      0 var(--_l)
+    );
+  }
+
+  /* Octagon ring --_w wide on the layer's own box (evenodd): outer leg --_l, inner leg --_l − k·--_w. */
+  .rule,
+  .ring {
+    --_m: calc(var(--_w) + var(--_l) - var(--_k) * var(--_w));
+    --_n: calc(100% - var(--_w));
+
+    clip-path: polygon(
+      evenodd,
+      var(--_l) 0,
+      calc(100% - var(--_l)) 0,
+      100% var(--_l),
+      100% calc(100% - var(--_l)),
+      calc(100% - var(--_l)) 100%,
+      var(--_l) 100%,
+      0 calc(100% - var(--_l)),
+      0 var(--_l),
+      var(--_l) 0,
+      var(--_m) var(--_w),
+      calc(100% - var(--_m)) var(--_w),
+      var(--_n) var(--_m),
+      var(--_n) calc(100% - var(--_m)),
+      calc(100% - var(--_m)) var(--_n),
+      var(--_m) var(--_n),
+      var(--_w) calc(100% - var(--_m)),
+      var(--_w) var(--_m),
+      var(--_m) var(--_w),
+      var(--_l) 0
+    );
+  }
+
+  .line {
+    --_l: var(--_ch);
+
+    inset: 0;
+    background: var(--_lc);
+  }
+
+  .face {
+    --_l: calc(var(--_ch) - var(--_k) * var(--rule-hair));
+
+    inset: var(--rule-hair);
+    background: var(--surface);
+  }
+
+  .rule {
+    --_ri: 0.1875rem;
+    --_l: calc(var(--_ch) - var(--_k) * var(--_ri));
+    --_w: var(--rule-hair);
+
+    inset: var(--_ri);
+    background: var(--_rc);
+  }
+
+  /* The focus ring, one piece for every variant: --focus-w wide, its outer edge --_fo outside the
+     plate, every edge parallel to the bevel. The variant sets --_h, --_ch and --_fo. */
+  .ring {
+    --_ro: calc(var(--_fo) * -1);
+    --_l: calc(var(--_ch) + var(--_k) * var(--_fo));
+    --_w: var(--focus-w);
+
+    display: none;
+    inset: var(--_ro);
+    background: var(--focus);
+  }
+
+  .root:focus-visible .ring {
+    display: block;
   }
 
   .root:disabled,
   .root[aria-disabled="true"] {
+    --_lc: var(--disabled);
+    --_rc: transparent;
+    --_gc: var(--disabled);
+    --_sh: none;
+
     color: var(--disabled);
     cursor: var(--cursor-off);
   }
@@ -52,7 +204,12 @@
       color: var(--text);
     }
 
-    .root:enabled:not([aria-disabled]):hover .label {
+    .root[data-variant="loud"]:enabled:not([aria-disabled]):hover {
+      --_lc: var(--accent);
+      --_gc: var(--accent);
+    }
+
+    .root[data-variant="soft"]:enabled:not([aria-disabled]):hover .label {
       text-decoration: underline 1px;
       text-underline-offset: var(--s-1);
     }

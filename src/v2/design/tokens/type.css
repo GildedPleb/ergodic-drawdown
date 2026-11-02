@@ -40,6 +40,8 @@
     --t-beat: 1.0625rem; /* half-sheet headline, 17px */
     --lh-beat: 1.3;
     --t-tile: 1.0625rem; /* T2 soft Tile label, 17px */
+    --t-tile-loud: 0.65625rem; /* T2 loud Tile label, 10.5px */
+    --tr-tile: 0.24em;
     --t-dock-tab: 0.6875rem; /* measured 11px (58–59px MODELS box); --t-tab is 12px */
     --t-rail-tab: 0.59375rem; /* closed rail, 9.5px */
     --tr-rail-tab: 0.1em;

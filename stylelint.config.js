@@ -67,9 +67,11 @@ export default {
       transition: [TRANSITION],
       animation: [ANIMATION],
       "/^border(-[a-z]+)*-radius$/": ["var(--radius-0)", "0"],
+      // R4 shadows (amended 2026-10-29, ADR-002 D2): exactly the two named tokens, never raw.
+      "box-shadow": ["var(--shadow-sheet)", "var(--shadow-tile)"],
     },
-    // R4 shadows, R6 margin, R8 logical properties
-    "property-disallowed-list": ["/^margin/", ...SHADOWS, ...PHYSICAL],
+    // R4 text-shadow, R6 margin, R8 logical properties (box-shadow is value-gated above)
+    "property-disallowed-list": ["/^margin/", "text-shadow", ...PHYSICAL],
     // R8: viewport media only in app/shell; the preference features are allowed everywhere, and
     // so are the input ones (§1O: hover styles live inside (hover: hover) and (pointer: fine)).
     "media-feature-name-allowed-list": [
