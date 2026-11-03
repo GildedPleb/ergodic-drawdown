@@ -74,7 +74,11 @@ export const holdDrag = (root: Styled, on: boolean): void => {
   }
 };
 
+/** r46 U1 (call4): true while a pointer is down on any slider; Cmd/Ctrl+Z is ignored then. */
+export const sliderHeld = { on: false };
+
 const dragHold = (on: boolean): void => {
+  sliderHeld.on = on;
   if (typeof document !== "undefined") holdDrag(document.documentElement, on);
 };
 

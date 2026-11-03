@@ -5,6 +5,7 @@ import { Dock, type DockTab } from "../../design/primitives/Dock";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
+import { sliderHeld } from "../../design/primitives/Slider/Slider";
 import { Tile, TileHalo } from "../../design/primitives/Tile";
 import { useWorld } from "../engine/useWorld";
 import { createHistory } from "../models/history";
@@ -235,6 +236,11 @@ export const AppShell = (): JSX.Element => {
       const target = event.target instanceof Element ? event.target : null;
       const way = event.defaultPrevented ? null : undoKeyOf(event, target);
       if (way === null) return;
+      // r46 U1: a slider drag is one step, committed on release; undo keys mid-drag do nothing.
+      if (sliderHeld.on) {
+        event.preventDefault();
+        return;
+      }
       // In a clean box with no step to take, native undo would put back old text the store doesn't
       // hold (call4 m3), so it never runs there.
       if (moveRef.current(way) || target instanceof HTMLInputElement) event.preventDefault();
