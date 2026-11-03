@@ -171,7 +171,8 @@ export const strings = {
   undo: {
     on: "on",
     off: "off",
-    back: (field: string, value: string): string => `${field} back to ${value}`,
+    /** U1 Accessibility (r49, Form): after a redo; no hint, the user has found Redo. */
+    redone: (field: string, value: string): string => `Redone: ${field} set to ${value}.`,
     /** U1 Accessibility (r46, call4 m2): after an undo; the keyboard-only Redo is named. */
     undone: (field: string, value: string, mac: boolean): string =>
       `Undone: ${field} back to ${value}. Redo with Shift+${mac ? "Command" : "Ctrl"}+Z`,

@@ -120,9 +120,11 @@ test("U1 redo: Shift+Cmd+Z re-applies the step undone most recently; a commit cl
   expect(value).toEqual(base);
   press(true);
   expect(value).toEqual(years);
-  // Announced like an undo: "<Field> back to <value>".
+  // Announced "Redone: <Field> set to <value>." (r49).
   const step = stepOf(base, value);
-  expect(strings.undo.back(step?.field ?? "", step?.value ?? "")).toBe("Years back to 30");
+  expect(strings.undo.redone(step?.field ?? "", step?.value ?? "")).toBe(
+    "Redone: Years set to 30.",
+  );
   h = ops.commit(h, value, at({ years: 30, samples: 10 }));
   value = at({ years: 30, samples: 10 });
   press(true);
@@ -131,8 +133,8 @@ test("U1 redo: Shift+Cmd+Z re-applies the step undone most recently; a commit cl
 });
 
 test("U1: the live region's words", () => {
-  expect(strings.undo.back(strings.sections.bumpy, "Bubble")).toBe(
-    "How bumpy the ride is back to Bubble",
+  expect(strings.undo.redone(strings.sections.bumpy, "Bubble")).toBe(
+    "Redone: How bumpy the ride is set to Bubble.",
   );
 });
 

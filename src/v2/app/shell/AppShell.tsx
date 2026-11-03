@@ -162,7 +162,7 @@ export const AppShell = (): JSX.Element => {
     say(
       way === "undo"
         ? strings.undo.undone(step.field, value, /Mac|iP(hone|ad|od)/.test(navigator.platform))
-        : strings.undo.back(step.field, value),
+        : strings.undo.redone(step.field, value),
     );
     return true;
   };
