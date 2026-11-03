@@ -19,6 +19,18 @@ export const collectNames = (cssTexts: readonly string[]): string[] => {
   return [...names].toSorted();
 };
 
+/** Every token whose value is a literal hex colour (palette.css), by name. */
+export const collectHex = (cssTexts: readonly string[]): [string, string][] => {
+  const found = new Map<string, string>();
+  for (const text of cssTexts) {
+    const bare = text.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const match of bare.matchAll(/--([a-z0-9-]+)\s*:\s*(#[0-9a-f]{3,8})\s*;/gi)) {
+      if (match[1] !== undefined && match[2] !== undefined) found.set(match[1], match[2]);
+    }
+  }
+  return [...found].toSorted(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0));
+};
+
 export const renderTokens = (cssTexts: readonly string[]): string => {
   const sorted = collectNames(cssTexts);
   const space = sorted
@@ -43,6 +55,11 @@ export const renderTokens = (cssTexts: readonly string[]): string => {
     "",
     "export const tokens = {",
     ...sorted.map((n) => `  ${/^[a-z]\w*$/.test(n) ? n : JSON.stringify(n)}: "var(--${n})",`),
+    "} as const;",
+    "",
+    "/** Literal palette colours, for the few places a var() can't reach (the TileHalo floods). */",
+    "export const hex = {",
+    ...collectHex(cssTexts).map(([n, v]) => `  ${JSON.stringify(n)}: ${JSON.stringify(v)},`),
     "} as const;",
     "",
   ].join("\n");

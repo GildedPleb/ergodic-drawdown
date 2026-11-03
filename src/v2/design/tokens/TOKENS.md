@@ -17,7 +17,7 @@
 - Components use **semantic** tokens, plus motion-etc, type and space. They never use `--gold-225`-style palette names.
 - No raw colour, alpha or mix value appears outside `palette.css`. Raw values in `motion-etc.css` are non-colour primitives with no theme variation.
 - **Theme switch:** `data-theme="linen"` on `<html>` (or any subtree) replaces the old `.linen` class.
-- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly three shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock), `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate) and `--shadow-tile-soft` (`url(#tile-halo-dark)` or `url(#tile-halo-linen)`, set per `[data-theme]`, used only as `filter: var(--shadow-tile-soft)` on the soft Tile's glyph+label wrapper; the two `<filter>`s are `TileHalo`, inline once, each in a `<g>` carrying its own `data-theme` so it floods from that theme's `--surface`). No raw shadows, and no `url()` but that one, outside the token files.
+- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly three shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock), `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate) and `--shadow-tile-soft` (`url(#tile-halo-dark)` or `url(#tile-halo-linen)`, set per `[data-theme]`, used only as `filter: var(--shadow-tile-soft)` on the soft Tile's glyph+label wrapper; the two `<filter>`s are `TileHalo`, inline once; each floods its theme's literal `--surface`, `#1e1b16` dark / `#dfd3bf` linen, taken from the generated `hex` map in `tokens.ts` (V32 r45:912), since a `var()` in a filter resolves where the `<svg>` sits). No raw shadows, and no `url()` but that one, outside the token files.
 
 ## Contrast check result (v2.1)
 
@@ -500,8 +500,15 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   `--mix-70`, `--feather-solid`, `--feather-mid`, `--feather-tile` (`--mask-tile` and
   `--feather-alpha` were already absent). R4 now has exactly three shadow tokens: `--shadow-sheet`
   (box-shadow), `--shadow-tile` (filter, drop-shadow), `--shadow-tile-soft` (filter,
-  same-document `url(#tile-halo)`, flood `var(--surface)` set in CSS). No `--halo-*`, no
+  same-document `url(#tile-halo)`, flood `var(--surface)` set in CSS; since r45 each per-theme filter floods its theme's literal `--surface` from `tokens.ts`, and the `.flood` rule is gone). No `--halo-*`, no
   `text-shadow`. stylelint: `url()` fails everywhere but `--shadow-tile-soft` in motion-etc.css,
   whose value must be `url(#id)` (fonts.css and tokens.css keep their file `url()`s);
   `var(--shadow-tile-soft)` only in `filter`. Limits re-measured at + 50 / + 10: source 64,094 →
   64,144, gzip 9,042 → 9,052. Approver: Keel 2026-11-02.
+- **U1/T2 r45 (Undo page-level, soft tone `--tile-soft-ink`, literal halo floods; interim):**
+  redesign 2985349 sits at 9,050 B gzip; M-5 and M-6 bring it to 9,041 (d2a7df6); r45 brings it
+  to 9,062. So the batch is +12 B gzip over the live head and r45 alone is +21. The cause is the
+  user's R1 tone pick: `--mix-91` and `--tile-soft-ink` in both themes. Ceilings, measured on
+  top of d2a7df6 at 64,057 B source / 9,062 B gzip: gzip 9,072 and source 64,107 (a tightening
+  from 64,144). Interim, pending Keel's whole-MVP CSS budget re-derivation; no more per-feature
+  raises before it. Approver: Keel 2026-11-03.

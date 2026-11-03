@@ -379,24 +379,7 @@ export const AppShell = (): JSX.Element => {
             {/* §1L.2: three equal columns, Models | Plans | Stats; only Models is built yet,
                 the other two keep their geometry, hidden. */}
             <div className={cols}>
-              <PaneScroll
-                id="models"
-                pinned={
-                  // U1: the undo Tile at the Models pane's bottom centre; inert while hidden.
-                  <div className={undoCls} data-undo={undoState} inert={!shown}>
-                    <Tile
-                      ref={undoTile}
-                      variant="soft"
-                      glyph="undo"
-                      label={strings.undo.label}
-                      aria-label={undoName}
-                      onClick={() => {
-                        move("undo");
-                      }}
-                    />
-                  </div>
-                }
-              >
+              <PaneScroll id="models">
                 <ModelsSheet
                   on={on}
                   onOn={(bitcoin) => {
@@ -418,6 +401,20 @@ export const AppShell = (): JSX.Element => {
               </PaneScroll>
               <div className={reserved} data-pane="plans" aria-hidden="true" />
               <div className={reserved} data-pane="stats" aria-hidden="true" />
+            </div>
+            {/* U1: the one undo Tile, page-level over the sheet's foot and outside every scroller
+                (after the panes, so the Tab order is unchanged); inert while hidden. */}
+            <div className={undoCls} data-undo={undoState} inert={!shown}>
+              <Tile
+                ref={undoTile}
+                variant="soft"
+                glyph="undo"
+                label={strings.undo.label}
+                aria-label={undoName}
+                onClick={() => {
+                  move("undo");
+                }}
+              />
             </div>
           </div>
         </section>

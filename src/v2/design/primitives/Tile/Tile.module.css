@@ -27,7 +27,7 @@
     padding-inline: var(--_pi);
     border: 0;
     background: none;
-    color: var(--text-muted);
+    color: var(--tile-soft-ink);
     font-family: var(--f-text);
     font-size: var(--t-tile);
     font-style: italic;
@@ -69,6 +69,7 @@
     --_gc: var(--tile-glyph);
 
     min-inline-size: var(--_mw);
+    color: var(--text-muted);
     font-family: var(--f-sans);
     font-size: var(--t-tile-loud);
     font-style: normal;
@@ -200,7 +201,7 @@
     filter: none;
   }
 
-  /* TileHalo: no box; each flood is its own <g>'s theme --surface. */
+  /* TileHalo: no box. */
   .defs {
     position: absolute;
     inline-size: 0;
@@ -208,18 +209,16 @@
     overflow: hidden;
   }
 
-  .flood {
-    flood-color: var(--surface);
-  }
-
   @media (hover: hover) and (pointer: fine) {
     .root:enabled:not([aria-disabled]):hover {
-      color: var(--text);
+      color: var(--text-muted);
     }
 
     .root[data-variant="loud"]:enabled:not([aria-disabled]):hover {
       --_lc: var(--accent);
       --_gc: var(--accent);
+
+      color: var(--text);
     }
 
     .root[data-variant="soft"]:enabled:not([aria-disabled]):hover .label {

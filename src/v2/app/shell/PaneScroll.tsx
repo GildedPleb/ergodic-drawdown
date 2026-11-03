@@ -18,9 +18,6 @@ export const variants = {
 type PaneScrollProps = {
   id: Pane;
   children: ReactNode;
-  /** U1 Where: pinned over the pane's foot as a sibling of the scroller, so rows scroll under
-   *  it and it never scrolls with them. The root is its positioned box. */
-  pinned?: ReactNode;
 };
 
 /**
@@ -32,7 +29,7 @@ type PaneScrollProps = {
  * scroller one; its ring would sit outside its own mask); a click still focuses it for the keys.
  * On touch the bar shows while scrolling.
  */
-export const PaneScroll = ({ id, children, pinned }: PaneScrollProps): JSX.Element => {
+export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
   const zone = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const thumb = useRef<HTMLDivElement>(null);
@@ -80,7 +77,6 @@ export const PaneScroll = ({ id, children, pinned }: PaneScrollProps): JSX.Eleme
       >
         <div ref={thumb} className={grip} />
       </div>
-      {pinned}
     </div>
   );
 };
