@@ -20,6 +20,7 @@ import * as SliderStories from "../../design/primitives/Slider/Slider.stories";
 import * as StackStories from "../../design/primitives/Stack/Stack.stories";
 import * as TickToggleStories from "../../design/primitives/TickToggle/TickToggle.stories";
 import * as TileStories from "../../design/primitives/Tile/Tile.stories";
+import { TileHalo } from "../../design/primitives/Tile";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import * as VisuallyHiddenStories from "../../design/primitives/VisuallyHidden/VisuallyHidden.stories";
 import styles from "./DesignRoute.module.css";
@@ -157,10 +158,15 @@ export const DesignRoute = ({ story }: { story: string }): JSX.Element => {
   }
   const Render = render;
   return (
-    <main className={main} data-story={story}>
-      {/* Form nit: every story page has one h1 (screen-reader only). */}
-      <VisuallyHidden as="h1">{`Design story: ${story}`}</VisuallyHidden>
-      <Render />
-    </main>
+    <>
+      {/* T2 soft: the --shadow-tile-soft filter, once per story page, under the themed <html>
+          and outside <main>, so story content stays the page's first aria-hidden node. */}
+      <TileHalo />
+      <main className={main} data-story={story}>
+        {/* Form nit: every story page has one h1 (screen-reader only). */}
+        <VisuallyHidden as="h1">{`Design story: ${story}`}</VisuallyHidden>
+        <Render />
+      </main>
+    </>
   );
 };

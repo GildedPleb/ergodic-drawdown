@@ -1,1 +1,1 @@
-export { Tile, type TileProps, variants } from "./Tile";
+export { Tile, TileHalo, type TileProps, variants } from "./Tile";

@@ -9,7 +9,7 @@ export const variants = {
 };
 
 export type TileProps = {
-  /** T2: "soft" is the floating word over its feather; "loud" is the bevelled plaque. */
+  /** T2: "soft" is the floating word over its halo; "loud" is the bevelled plaque. */
   variant?: (typeof variants.variant)[number];
   /** The visible text. It never truncates. */
   label: string;
@@ -57,8 +57,48 @@ const FocusRing = (): JSX.Element => {
 };
 
 /**
- * T2 Tile: one `<button>` at least --hit tall, square, sized by its content. Soft is the r3
- * floating word: italic --text-muted over a --surface feather, no box and no shadow. Loud is the
+ * T2 soft halo (V32 r42, 3px): the SVG filter behind --shadow-tile-soft (url(#tile-halo)). Render it
+ * once, inside the themed root: its flood is --surface where these defs sit, so it follows a theme
+ * switch on that root, not a nested [data-theme] around one Tile.
+ */
+export const TileHalo = (): JSX.Element => {
+  const defs = styles["defs"] ?? "tile-defs";
+  const flood = styles["flood"] ?? "tile-flood";
+  return (
+    <svg className={defs} width="0" height="0" aria-hidden="true" focusable="false">
+      <filter
+        id="tile-halo"
+        x="-50%"
+        y="-100%"
+        width="200%"
+        height="300%"
+        colorInterpolationFilters="sRGB"
+      >
+        <feComponentTransfer in="SourceAlpha" result="a">
+          <feFuncA type="linear" slope="20" />
+        </feComponentTransfer>
+        <feMorphology in="a" operator="dilate" radius="3" result="solid" />
+        <feMorphology in="a" operator="dilate" radius="7" result="big" />
+        <feGaussianBlur in="big" stdDeviation="2" result="fade" />
+        <feMerge result="m">
+          <feMergeNode in="fade" />
+          <feMergeNode in="solid" />
+        </feMerge>
+        <feFlood className={flood} />
+        <feComposite in2="m" operator="in" result="halo" />
+        <feMerge>
+          <feMergeNode in="halo" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </svg>
+  );
+};
+
+/**
+ * T2 Tile: one `<button>` at least --hit tall, square, sized by its content. Soft is the r42
+ * floating word: italic --text-muted with a 3px glyph-shaped --surface halo (--shadow-tile-soft,
+ * drawn by TileHalo, which the themed root renders once), no box. Loud is the
  * r3 plaque: a chamfered octagon with a hairline, an inner rule and the --shadow-tile lift. No
  * state changes the box, and nothing inside animates; any fade belongs to the parent that places it.
  */
@@ -76,6 +116,7 @@ export const Tile = ({
   const root = styles["root"] ?? "tile-root";
   const text = styles["label"] ?? "tile-label";
   const mark = styles["glyph"] ?? "tile-glyph";
+  const ink = styles["ink"] ?? "tile-ink";
   const onPress = (event: MouseEvent<HTMLButtonElement>): void => {
     if (ariaDisabled === "true") {
       event.preventDefault();
@@ -95,13 +136,15 @@ export const Tile = ({
       onClick={onPress}
     >
       {variant === "loud" ? <Plate /> : null}
-      {variant === "loud" ? <FocusRing /> : null}
-      {glyph === undefined ? null : (
-        <span className={mark}>
-          <Icon name={glyph} />
-        </span>
-      )}
-      <span className={text}>{label}</span>
+      <FocusRing />
+      <span className={ink}>
+        {glyph === undefined ? null : (
+          <span className={mark}>
+            <Icon name={glyph} />
+          </span>
+        )}
+        <span className={text}>{label}</span>
+      </span>
     </button>
   );
 };

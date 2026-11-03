@@ -42,13 +42,6 @@
     --tile-line: color-mix(in srgb, var(--accent) var(--mix-42), transparent);
     --tile-rule: color-mix(in srgb, var(--accent) var(--mix-14), transparent);
     --tile-glyph: color-mix(in srgb, var(--accent) var(--mix-80), transparent);
-    /* T2 soft Tile: the feather behind the floating word, in this theme's --surface */
-    --feather-tile: radial-gradient(
-      closest-side,
-      var(--surface) var(--feather-solid),
-      color-mix(in srgb, var(--surface) var(--mix-70), transparent) var(--feather-mid),
-      transparent
-    );
   }
   [data-theme="linen"] {
     --ground: var(--linen-125);
@@ -91,12 +84,5 @@
     --tile-line: color-mix(in srgb, var(--accent) var(--mix-45), transparent);
     --tile-rule: color-mix(in srgb, var(--accent) var(--mix-14), transparent);
     --tile-glyph: color-mix(in srgb, var(--accent) var(--mix-80), transparent);
-    /* T2 soft Tile: the feather behind the floating word, in this theme's --surface */
-    --feather-tile: radial-gradient(
-      closest-side,
-      var(--surface) var(--feather-solid),
-      color-mix(in srgb, var(--surface) var(--mix-70), transparent) var(--feather-mid),
-      transparent
-    );
   }
 }

@@ -5,7 +5,7 @@ import { Dock, type DockTab } from "../../design/primitives/Dock";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
-import { Tile } from "../../design/primitives/Tile";
+import { Tile, TileHalo } from "../../design/primitives/Tile";
 import { useWorld } from "../engine/useWorld";
 import { createHistory } from "../models/history";
 import { ModelsSheet, stepOf } from "../models/ModelsSheet";
@@ -297,6 +297,8 @@ export const AppShell = (): JSX.Element => {
       data-active-pane={pane}
       style={{ "--dyn-sheet": px, "--dyn-panel": px, "--dyn-full": `${String(full)}px` }}
     >
+      {/* T2 soft: the undo Tile's --shadow-tile-soft filter, once, under the themed <html>. */}
+      <TileHalo />
       <main className={columnCls}>
         <header ref={headerRef} className={header}>
           <div className={headerRow}>

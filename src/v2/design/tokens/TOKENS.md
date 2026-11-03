@@ -17,7 +17,7 @@
 - Components use **semantic** tokens, plus motion-etc, type and space. They never use `--gold-225`-style palette names.
 - No raw colour, alpha or mix value appears outside `palette.css`. Raw values in `motion-etc.css` are non-colour primitives with no theme variation.
 - **Theme switch:** `data-theme="linen"` on `<html>` (or any subtree) replaces the old `.linen` class.
-- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly two shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock) and `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate). No raw shadows outside the token files.
+- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly three shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock), `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate) and `--shadow-tile-soft` (`url(#tile-halo)`, used only as `filter: var(--shadow-tile-soft)` on the soft Tile's glyph+label wrapper; the `<filter>` is `TileHalo`, inline once in the themed root). No raw shadows, and no `url()` but that one, outside the token files.
 
 ## Contrast check result (v2.1)
 
@@ -488,4 +488,20 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   defined once as `--_o` (−158 B source, +6 B gzip, pixel-identical). Approver: Keel 2026-11-02.
   - **Deletion owed by the soft batch:** `--mix-70`, `--feather-solid`, `--feather-mid` and
     `--feather-tile` are retired by Form (V32:910–911) but still painted by the shipping soft
-    feather. Delete them with the soft batch and re-measure both limits then.
+    feather. Delete them with the soft batch and re-measure both limits then. (Done: next entry.)
+- **T2 Tile soft (V32 r42 T2, 3px glyph-shaped halo; user t348u/t350u):** 2c6e228 64,356 B
+  source / 9,062 B gzip → 64,094 B / 9,042 B (−262 / −20). Deleting first: 63,241 / 8,942
+  (−1,115 / −120); then adding the halo: +853 / +100. Per file (source): palette.css −116
+  (`--mix-70`, `--feather-solid`, `--feather-mid`); semantic.css −602 (`--feather-tile`, both
+  themes); motion-etc.css +139 (`--shadow-tile-soft: url(#tile-halo)`, base and every
+  `[data-theme]`); Tile.module.css +317 (−`::before` feather, −soft outline focus, −`--_fw`/
+  `--_fb`/`--_oo`; +`.ink` wrapper and its filter, soft ring `z-index: var(--_zr)` 1, shared
+  `--_pad`/`--_pi`/`--_py`, forced `filter: none`, TileHalo `.defs`/`.flood`). Retired tokens:
+  `--mix-70`, `--feather-solid`, `--feather-mid`, `--feather-tile` (`--mask-tile` and
+  `--feather-alpha` were already absent). R4 now has exactly three shadow tokens: `--shadow-sheet`
+  (box-shadow), `--shadow-tile` (filter, drop-shadow), `--shadow-tile-soft` (filter,
+  same-document `url(#tile-halo)`, flood `var(--surface)` set in CSS). No `--halo-*`, no
+  `text-shadow`. stylelint: `url()` fails everywhere but `--shadow-tile-soft` in motion-etc.css,
+  whose value must be `url(#id)` (fonts.css and tokens.css keep their file `url()`s);
+  `var(--shadow-tile-soft)` only in `filter`. Limits re-measured at + 50 / + 10: source 64,094 →
+  64,144, gzip 9,042 → 9,052. Approver: Keel (pending).

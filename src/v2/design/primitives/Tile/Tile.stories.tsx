@@ -1,11 +1,22 @@
 import type { ReactElement, ReactNode } from "react";
 import { useLayoutEffect } from "react";
 
-import { Tile, variants } from "./Tile";
+import { Tile, TileHalo, variants } from "./Tile";
 import styles from "./Tile.stories.module.css";
 
 /** Plain CSF 3 (V32:916). Hover is shot by the visual matrix with :hover, not by a story. */
-export default { title: "Primitives/Tile" };
+export default {
+  title: "Primitives/Tile",
+  // Storybook only (the design route renders TileHalo itself): soft's filter, once per story.
+  decorators: [
+    (Story: () => ReactElement): ReactElement => (
+      <>
+        <TileHalo />
+        <Story />
+      </>
+    ),
+  ],
+};
 
 const noop = (): void => undefined;
 
@@ -17,7 +28,7 @@ const ROWS = [
   "Volatility 80%",
 ];
 
-/** On --surface with text rows behind, as in the sheet, so the feather is judged where it lives. */
+/** On --surface with text rows behind, as in the sheet, so the halo is judged where it lives. */
 const Frame = ({ children }: { children: ReactNode }): ReactElement => {
   const frame = styles["frame"] ?? "tile-story-frame";
   const rows = styles["rows"] ?? "tile-story-rows";

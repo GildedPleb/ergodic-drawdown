@@ -70,16 +70,17 @@ export default {
       transition: [TRANSITION],
       animation: [ANIMATION],
       "/^border(-[a-z]+)*-radius$/": ["var(--radius-0)", "0"],
-      // R4 shadows (ADR-002 D2): exactly two named tokens, never raw. --shadow-sheet is a
-      // box-shadow; --shadow-tile is a drop-shadow() filter, gated just below.
+      // R4 shadows (ADR-002 D2): exactly three named tokens, never raw. --shadow-sheet is a
+      // box-shadow; --shadow-tile (drop-shadow()) and --shadow-tile-soft (url(#tile-halo)) are
+      // filters, gated just below.
       "box-shadow": ["var(--shadow-sheet)"],
     },
-    // R4 shadows: no raw drop-shadow() outside the token files (in filter, or parked in a custom
-    // property), and --shadow-tile only ever as a filter.
+    // R4 shadows: no raw drop-shadow() or url() outside the token files (in filter, in any other
+    // property, or parked in a custom property), and the two filter tokens only ever as a filter.
     "declaration-property-value-disallowed-list": {
-      filter: ["/drop-shadow\\(/"],
+      "/^(?!filter$)/": ["/url\\(/", "/var\\(--shadow-tile\\)/", "/var\\(--shadow-tile-soft\\)/"],
+      filter: ["/drop-shadow\\(/", "/url\\(/"],
       "/^--/": ["/drop-shadow\\(/"],
-      "/^(?!filter$)/": ["/var\\(--shadow-tile\\)/"],
     },
     // R4 text-shadow, R6 margin, R8 logical properties (box-shadow is value-gated above)
     "property-disallowed-list": ["/^margin/", "text-shadow", ...PHYSICAL],
@@ -99,8 +100,28 @@ export default {
       files: ["**/src/v2/design/tokens/**/*.css", "**/src/v2/design/fonts/fonts.css"],
       rules: {
         "declaration-property-value-allowed-list": null,
-        "declaration-property-value-disallowed-list": null,
+        // R4: url() only as --shadow-tile-soft's value, and that token only in motion-etc.css.
+        "declaration-property-value-disallowed-list": {
+          "/^(?!--shadow-tile-soft$)/": ["/url\\(/"],
+          "--shadow-tile-soft": ["/./"],
+        },
       },
+    },
+    {
+      // R4: --shadow-tile-soft is a same-document fragment, url(#id), and nothing else.
+      files: ["**/src/v2/design/tokens/motion-etc.css"],
+      rules: {
+        "declaration-property-value-allowed-list": null,
+        "declaration-property-value-disallowed-list": {
+          "/^(?!--shadow-tile-soft$)/": ["/url\\(/"],
+          "--shadow-tile-soft": ["/^(?!url\\(#[a-z][a-z0-9-]*\\)$)/"],
+        },
+      },
+    },
+    {
+      // @font-face src and the token entry's @import take file url()s.
+      files: ["**/src/v2/design/fonts/fonts.css", "**/src/v2/design/tokens/tokens.css"],
+      rules: { "declaration-property-value-disallowed-list": null },
     },
     {
       // R3: no element selectors in modules

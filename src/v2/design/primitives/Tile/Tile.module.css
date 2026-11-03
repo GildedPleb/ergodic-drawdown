@@ -3,10 +3,7 @@
   .root {
     --_gap: 0.375rem;
     --icon-size: 0.875rem; /* the glyph (Icon draws at --icon-size) */
-    --_fw: calc(var(--hit) * -1);
-    --_fb: -1.125rem -0.875rem;
-    --_oo: calc(var(--focus-w) * -1);
-    --_z: -1; /* the feather, plate and ring sit behind this button's own content (the root isolates) */
+    --_z: -1; /* the plate and ring sit behind this button's own content (the root isolates) */
     --_k: 0.5858; /* 2 − √2: a 45° chamfer leg grows this much per unit of outward offset */
     --_gc: currentColor;
     /* the shared focus ring (V32:897): a --_h plate, chamfer --_ch, inset --_fo inside each end */
@@ -14,6 +11,9 @@
     --_ch: 0.4375rem;
     --_fo: var(--s-1);
     --_pb: calc((var(--hit) - var(--_h)) / 2); /* constant, so the plate grows with wrapped text */
+    --_pad: var(--s-3);
+    --_pi: calc(var(--_pad) + var(--_fo)); /* soft: 88 × 44 for "↶ Undo" */
+    --_py: var(--_pb);
 
     position: relative;
     isolation: isolate;
@@ -22,7 +22,9 @@
     justify-content: center;
     gap: var(--_gap);
     min-block-size: var(--hit);
-    padding: 0 var(--s-5);
+    max-inline-size: 100%;
+    padding-block: var(--_py);
+    padding-inline: var(--_pi);
     border: 0;
     background: none;
     color: var(--text-muted);
@@ -30,23 +32,29 @@
     font-size: var(--t-tile);
     font-style: italic;
     line-height: 1;
+    text-align: center;
     cursor: var(--cursor-press);
   }
 
-  /* T2 soft (r3 floating word): no box; a --surface feather behind keeps it off text-over-text. */
-  .root[data-variant="soft"]::before {
-    content: "";
-    position: absolute;
-    z-index: var(--_z);
-    inset-inline: var(--_fw);
-    inset-block: var(--_fb);
-    background: var(--feather-tile);
-    pointer-events: none;
+  /* T2 soft (r42 floating word): no box. The glyph and label share one wrapper whose filter draws a
+     glyph-shaped --surface halo (TileHalo) under them; the ring sits above it, outside the filter. */
+  .root[data-variant="soft"] {
+    --_zr: 1;
   }
 
-  .root[data-variant="soft"]:focus-visible {
-    outline: var(--focus-w) solid var(--focus);
-    outline-offset: var(--_oo);
+  .root[data-variant="soft"] .ink {
+    filter: var(--shadow-tile-soft);
+  }
+
+  .root[data-variant="soft"] .focus {
+    z-index: var(--_zr);
+  }
+
+  .ink {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_gap);
+    max-inline-size: 100%;
   }
 
   /* T2 loud (r3 plaque): a chamfered octagon --_h tall in the --hit target, --_fo inside each end. */
@@ -61,19 +69,15 @@
     --_gc: var(--tile-glyph);
 
     min-inline-size: var(--_mw);
-    max-inline-size: 100%;
-    padding-block: var(--_py);
-    padding-inline: var(--_pi);
     font-family: var(--f-sans);
     font-size: var(--t-tile-loud);
     font-style: normal;
     font-weight: 500;
     letter-spacing: var(--tr-tile);
     text-transform: uppercase;
-    text-align: center;
   }
 
-  .root[data-variant="loud"]:focus-visible {
+  .root:focus-visible {
     outline: none;
   }
 
@@ -196,6 +200,18 @@
     filter: none;
   }
 
+  /* TileHalo's defs: no box, and the flood follows the theme where the defs sit. */
+  .defs {
+    position: absolute;
+    inline-size: 0;
+    block-size: 0;
+    overflow: hidden;
+  }
+
+  .flood {
+    flood-color: var(--surface);
+  }
+
   @media (hover: hover) and (pointer: fine) {
     .root:enabled:not([aria-disabled]):hover {
       color: var(--text);
@@ -236,6 +252,10 @@
 
     .plate {
       border: 1px solid currentColor; /* ButtonText, or GrayText when disabled */
+      filter: none;
+    }
+
+    .root[data-variant="soft"] .ink {
       filter: none;
     }
 
