@@ -169,13 +169,10 @@
     flex: 1;
     min-inline-size: 0;
     padding-block: var(--beat-space);
-    overflow: hidden;
     font-family: var(--f-text);
     font-size: var(--t-beat);
     font-weight: 400;
     line-height: var(--lh-beat);
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .slot {
@@ -351,14 +348,6 @@
 
     .chart {
       padding: var(--shell-safe-end);
-    }
-
-    /* 390px tall: the headline keeps to one line (the full sentence is the chart's name). */
-    .kicker,
-    .dh {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .dockArea {
