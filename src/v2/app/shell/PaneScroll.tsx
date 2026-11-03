@@ -1,10 +1,20 @@
-import type { JSX, ReactNode } from "react";
-import { useLayoutEffect, useRef } from "react";
+import type { JSX, ReactNode, RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { holdDrag } from "../../design/primitives/Slider/Slider";
 import styles from "./PaneScroll.module.css";
 import { dragThumb, THUMB_MIN_REM, watchBar } from "./pane-bar";
-import { FADE_REM, keepFocusClear, realFrames, resizeWith, watchCues } from "./pane-cues";
+import {
+  COVER,
+  coverOf,
+  FADE_REM,
+  keepFocusClear,
+  LIFT_REM,
+  realFrames,
+  resizeWith,
+  ringOf,
+  watchCues,
+} from "./pane-cues";
 import type { Pane } from "./panes";
 
 /** R7: the scroll listener's flags (absent = false). */
@@ -18,6 +28,10 @@ export const variants = {
 type PaneScrollProps = {
   id: Pane;
   children: ReactNode;
+  /** U1: the page-level undo Tile, which can lie over the zone's foot (call4 M1). */
+  cover?: RefObject<HTMLElement | null>;
+  /** Whether it is shown: on showing, a focused control under it moves clear. */
+  covered?: boolean;
 };
 
 /**
@@ -29,7 +43,7 @@ type PaneScrollProps = {
  * scroller one; its ring would sit outside its own mask); a click still focuses it for the keys.
  * On touch the bar shows while scrolling.
  */
-export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
+export const PaneScroll = ({ id, children, cover, covered }: PaneScrollProps): JSX.Element => {
   const zone = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const thumb = useRef<HTMLDivElement>(null);
@@ -42,7 +56,13 @@ export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
     const min = (): number => THUMB_MIN_REM * rem();
     const stops = [
       watchCues<Element>(zone.current, observe),
-      keepFocusClear(zone.current, () => FADE_REM * rem()),
+      keepFocusClear(
+        zone.current,
+        () => FADE_REM * rem(),
+        realFrames,
+        ringOf,
+        () => coverOf(cover?.current ?? null, LIFT_REM * rem()),
+      ),
       watchBar<Element>(zone.current, bar.current, min, realFrames, observe),
       dragThumb(thumb.current, zone.current, min, (on) => {
         holdDrag(document.documentElement, on);
@@ -51,7 +71,16 @@ export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
     return () => {
       for (const stop of stops) stop();
     };
-  }, []);
+  }, [cover]);
+  useEffect(() => {
+    const z = zone.current;
+    const lift = LIFT_REM * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    if (z !== null) z.style.setProperty("--dyn-spb", `${coverOf(cover?.current ?? null, lift)}px`);
+    const at = document.activeElement;
+    if (covered === true && at !== null && zone.current?.contains(at) === true) {
+      at.dispatchEvent(new Event(COVER, { bubbles: true }));
+    }
+  }, [cover, covered]);
   const root = styles["root"] ?? "pane-root";
   const zoneCls = styles["zone"] ?? "pane-zone";
   const content = styles["content"] ?? "pane-content";
@@ -64,7 +93,7 @@ export const PaneScroll = ({ id, children }: PaneScrollProps): JSX.Element => {
         className={zoneCls}
         data-pane={id}
         tabIndex={-1}
-        style={{ "--dyn-hh": "0px" }}
+        style={{ "--dyn-hh": "0px", "--dyn-spb": "0px" }}
       >
         <div className={content}>{children}</div>
       </div>

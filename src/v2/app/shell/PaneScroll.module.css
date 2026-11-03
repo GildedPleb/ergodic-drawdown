@@ -17,7 +17,7 @@
     overflow-y: auto;
     cursor: var(--cursor-rest); /* §1O: the arrow; controls set their own */
     overscroll-behavior: contain;
-    scroll-padding-block-start: var(--hit);
+    scroll-padding-block: var(--hit) var(--dyn-spb);
     scrollbar-width: none;
     mask: linear-gradient(
       black var(--dyn-hh),

@@ -379,7 +379,7 @@ export const AppShell = (): JSX.Element => {
             {/* §1L.2: three equal columns, Models | Plans | Stats; only Models is built yet,
                 the other two keep their geometry, hidden. */}
             <div className={cols}>
-              <PaneScroll id="models">
+              <PaneScroll id="models" cover={undoTile} covered={shown}>
                 <ModelsSheet
                   on={on}
                   onOn={(bitcoin) => {

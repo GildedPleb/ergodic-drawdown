@@ -145,10 +145,15 @@ type Focused = {
   getBoundingClientRect: () => Box & { height: number };
   querySelector?: (sel: string) => Focused | null;
 };
-type Listen = "focusin" | "scroll" | typeof REVEAL;
+/** Sent to the focused control when the undo Tile appears, so it is corrected out from under it. */
+export const COVER = "pane-cover";
+/** U1 Where: Undo's 44px target sits 0.625rem above the sheet's content-box foot. */
+export const LIFT_REM = 0.625;
+type Listen = "focusin" | "scroll" | typeof REVEAL | typeof COVER;
 export type FocusZone = {
   scrollTop: number;
   getBoundingClientRect: () => Box;
+  style?: { setProperty: (name: string, value: string) => void };
   addEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
   removeEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
 };
@@ -176,6 +181,22 @@ export const revealShift = (list: Box, focused: Box | null, clear: Box): number 
 };
 
 /**
+ * V32 r46 A11Y pinned elements (2), call4 M1: while the page-level undo Tile shows, the pane's
+ * scroll-padding-block-end is its full rendered height plus `lift` (0.625rem: 54px at a 16px root,
+ * 108px at 32px); 0 while it's hidden (inert).
+ */
+export const coverOf = (
+  tile: {
+    getBoundingClientRect: () => { height: number };
+    closest: (sel: string) => unknown;
+  } | null,
+  lift: number,
+): number =>
+  tile === null || tile.closest("[inert]") !== null
+    ? 0
+    : tile.getBoundingClientRect().height + lift;
+
+/**
  * Keyboard focus lands clear of the pinned header and both fades. The header that can cover a
  * control is its own asset's (sticky only inside that asset), measured live. The header itself is
  * measured at its own place in the asset (pinned, no shift moves it, and its ring's foot reaches
@@ -185,16 +206,25 @@ export const revealShift = (list: Box, focused: Box | null, clear: Box): number 
  * Form 9c: the browser centres a focused control ("if needed"), before focusin (Chromium, Firefox)
  * or just after (WebKit), so the correction starts from the zone's resting scrollTop (its last
  * scroll event, which comes after the focus scroll, or its own write) and moves the minimum.
+ * V32 r46 A11Y pinned elements (2), call4 M1: while the undo Tile shows, `cover` (its reach over
+ * the zone's foot, coverOf) is the band's foot when it reaches past the fade, and --dyn-spb
+ * carries it to scroll-padding-block-end (0 while hidden).
  */
 export const keepFocusClear = (
   zone: FocusZone | null,
   fade: () => number,
   frames: Frames = realFrames,
   ring: (el: unknown) => number = ringOf,
+  cover: () => number = () => 0,
 ): (() => void) => {
   if (zone === null) return () => undefined;
   let frame = 0;
   let rest = zone.scrollTop;
+  const foot = (f: number): number => {
+    const c = cover();
+    zone.style?.setProperty("--dyn-spb", `${c.toFixed(2)}px`);
+    return Math.max(f, c);
+  };
   const onScroll = (): void => {
     rest = zone.scrollTop;
   };
@@ -214,7 +244,7 @@ export const keepFocusClear = (
       const b = el.getBoundingClientRect();
       const shift = shiftOf(
         { top: b.top - stuck, bottom: b.bottom - stuck },
-        { top: z.top + hh + f, bottom: z.bottom - f },
+        { top: z.top + hh + f, bottom: z.bottom - foot(f) },
       );
       if (shift !== 0) zone.scrollTop += shift;
       rest = zone.scrollTop;
@@ -230,17 +260,22 @@ export const keepFocusClear = (
     const el = event.target;
     if (!isFocused(el)) return;
     correct(el, (box, clear) => {
-      const inner = el.querySelector?.(":focus")?.getBoundingClientRect() ?? null;
-      return revealShift(box, inner, clear);
+      const pick = el.querySelector?.(":focus") ?? null;
+      const r = pick === null ? 0 : ring(pick);
+      const inner = pick?.getBoundingClientRect() ?? null;
+      // Form 9a: the pick's ring counts as part of it (call4 M1: 390/32 left it 5.6px under Undo).
+      return revealShift(box, inner && { top: inner.top - r, bottom: inner.bottom + r }, clear);
     });
   };
   zone.addEventListener("scroll", onScroll);
   zone.addEventListener("focusin", onFocus);
+  zone.addEventListener(COVER, onFocus);
   zone.addEventListener(REVEAL, onReveal);
   return () => {
     frames.cancel(frame);
     zone.removeEventListener("scroll", onScroll);
     zone.removeEventListener("focusin", onFocus);
+    zone.removeEventListener(COVER, onFocus);
     zone.removeEventListener(REVEAL, onReveal);
   };
 };
