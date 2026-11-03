@@ -45,7 +45,6 @@
     align-self: center;
     grid-row: 1;
     grid-column: 2;
-    font-size: var(--s-2);
   }
 
   /* ▾: a 0.5rem muted triangle, drawn here. */

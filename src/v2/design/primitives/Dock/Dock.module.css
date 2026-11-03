@@ -15,11 +15,6 @@
     justify-content: flex-start;
     gap: var(--rail-gap);
     block-size: 100%;
-    padding-block-end: var(--dock-row-pad-end);
-  }
-
-  .root[data-orientation="row"] {
-    flex-direction: row;
   }
 
   /* §1S: the sheet's own column grid (same tracks, same gap); tab n heads column n. */

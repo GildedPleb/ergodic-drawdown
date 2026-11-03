@@ -14,7 +14,6 @@
     --control-line: var(--gold-525);
     --accent: var(--gold-225);
     --accent-strong: var(--gold-150);
-    --logo-stroke: var(--accent);
     --focus: var(--gold-150);
     --btc: var(--orange-300);
     --usd: var(--green-425);
@@ -22,7 +21,6 @@
     --danger-floor: var(--orange-300);
     --disabled: var(--stone-525);
     --path-btc-price: var(--orange-300);
-    --asset-btc: var(--path-btc-price);
     --band-gain: 1;
     --path-usd: var(--green-425);
     --path-sp: var(--pewter-200);
@@ -34,14 +32,10 @@
     --path-plan-5: var(--orchid-200);
     --path-plan-6: var(--coral-350);
     --walk-up: var(--leaf-175);
-    --walk-down: var(--red-500);
-    /* engine walk label dots */
+    --walk-down: var(--red-500); /* engine walk label dots */
     --shadow-ink: var(--shadow-ink-dark); /* v2.2: the only shadow colour */
     --hover: color-mix(in srgb, var(--linen-75) var(--mix-5), var(--ink-900));
-    /* T2 loud Tile: hairline, inner rule and glyph, in this theme's --accent */
     --tile-line: color-mix(in srgb, var(--accent) var(--mix-42), transparent);
-    --tile-rule: color-mix(in srgb, var(--accent) var(--mix-14), transparent);
-    --tile-glyph: color-mix(in srgb, var(--accent) var(--mix-80), transparent);
     --tile-soft-ink: color-mix(in srgb, var(--text-muted) var(--mix-80), var(--surface));
   }
   [data-theme="linen"] {
@@ -49,14 +43,13 @@
     --surface: var(--linen-150);
     --raised: var(--linen-200);
     --text: var(--umber-800);
-    --invalid: var(--umber-800); /* = --text: invalid is full contrast, never a colour signal */
+    --invalid: var(--umber-800);
     --text-muted: var(--umber-675);
     --hairline: var(--linen-225);
     --rule: var(--gold-325);
     --control-line: var(--gold-550);
     --accent: var(--gold-650);
     --accent-strong: var(--gold-725);
-    --logo-stroke: var(--accent);
     --focus: var(--gold-725);
     --btc: var(--orange-600);
     --usd: var(--green-725);
@@ -64,7 +57,6 @@
     --danger-floor: var(--orange-600);
     --disabled: var(--umber-550);
     --path-btc-price: var(--orange-600);
-    --asset-btc: var(--path-btc-price);
     /* §1L.4 */
     --band-gain: 1.6;
     --path-usd: var(--green-725);
@@ -78,13 +70,18 @@
     --path-plan-6: var(--coral-575);
     --walk-up: var(--leaf-525);
     --walk-down: var(--red-775);
-    /* engine walk label dots */
-    --shadow-ink: var(--shadow-ink-linen); /* v2.2: the only shadow colour */
+    --shadow-ink: var(--shadow-ink-linen);
     --hover: color-mix(in srgb, var(--umber-800) var(--mix-5), var(--linen-150));
-    /* T2 loud Tile: hairline, inner rule and glyph, in this theme's --accent */
     --tile-line: color-mix(in srgb, var(--accent) var(--mix-45), transparent);
+    --tile-soft-ink: color-mix(in srgb, var(--text-muted) var(--mix-91), var(--surface));
+  }
+  /* The same in every theme, recomputed in each themed subtree. T2 loud Tile: hairline (above),
+     inner rule and glyph, in this theme's --accent. */
+  :root,
+  [data-theme] {
+    --logo-stroke: var(--accent);
+    --asset-btc: var(--path-btc-price);
     --tile-rule: color-mix(in srgb, var(--accent) var(--mix-14), transparent);
     --tile-glyph: color-mix(in srgb, var(--accent) var(--mix-80), transparent);
-    --tile-soft-ink: color-mix(in srgb, var(--text-muted) var(--mix-91), var(--surface));
   }
 }

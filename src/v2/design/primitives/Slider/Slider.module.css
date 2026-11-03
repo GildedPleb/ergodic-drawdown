@@ -76,7 +76,6 @@
     translate: -50% 0;
     background: var(--accent);
     border: var(--line-median) solid var(--surface);
-    border-radius: var(--radius-0);
   }
 
   .root[data-disabled="true"] .thumb {
