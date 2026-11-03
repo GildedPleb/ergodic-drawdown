@@ -4,7 +4,8 @@ import { expect, type Page, test } from "@playwright/test";
 // Select keeps one node for its pick (a); a row both models share is not remounted (b); when the
 // focused row leaves with its model, focus goes to the Model Select's pick (c). The undo Tile keeps
 // focus when pressed, and hands it on before it hides (d, e). A drag changes it only when the live
-// size crosses the half stop (Form call 2); it sits at the Models pane's bottom centre (call 3).
+// size crosses the half stop (Form call 2). Where (r45, t58u "Undo is global"): one page-level element,
+// outside every scroller, centred on the viewport, 0.625rem above the sheet's content box.
 const SIZES = ["390x844", "1440x900"] as const;
 const LOGO = '[aria-controls="models-sheet"]:not([role="tab"])';
 const UNDO = '#models-sheet button[data-variant="soft"]';
@@ -224,26 +225,37 @@ test("U1 Hidden (Form call 2): a drag hides the Tile only when the live size cro
   await expect(wrap).not.toHaveAttribute("data-undo", "hidden");
 });
 
-test("U1 Where (Form call 3, defect A): the Tile sits at the bottom centre of the Models pane, a sibling of its scroller", async ({
+test("U1 Where (r45, t58u): the Tile is page-level, outside every scroller, centred on the viewport", async ({
   page,
 }) => {
   await openSheet(page, "half");
   await pick(page, "v2-walk", "Saw");
   const geo = await page.evaluate((sel) => {
     const tile = document.querySelector(sel);
-    const scroller = document.querySelector('[data-pane="models"]');
+    const sheet = document.querySelector("#models-sheet");
     const t = tile?.getBoundingClientRect();
-    const pane = scroller?.parentElement?.getBoundingClientRect();
-    const wrap = tile?.parentElement;
+    const r = sheet?.getBoundingClientRect();
+    const cs = sheet ? getComputedStyle(sheet) : null;
+    let scrolled = false;
+    for (let a = tile?.parentElement ?? null; a; a = a.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(a).overflowY)) scrolled = true;
+    }
+    const foot =
+      r && cs
+        ? r.bottom - Number.parseFloat(cs.paddingBottom) - Number.parseFloat(cs.borderBottomWidth)
+        : 0;
     return {
-      sibling: wrap?.parentElement === scroller?.parentElement && !scroller?.contains(tile ?? null),
-      dx: t && pane ? Math.abs(t.x + t.width / 2 - (pane.x + pane.width / 2)) : 99,
-      gap: t && pane ? pane.bottom - t.bottom : -1,
+      pageLevel:
+        tile !== null &&
+        !scrolled &&
+        !document.querySelector('[data-pane="models"]')?.contains(tile),
+      dx: t ? Math.abs(t.x + t.width / 2 - document.documentElement.clientWidth / 2) : 99,
+      gap: t ? foot - t.bottom : -1,
       rem: Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
     };
   }, UNDO);
-  expect(geo.sibling).toBe(true);
+  expect(geo.pageLevel).toBe(true);
   expect(geo.dx).toBeLessThanOrEqual(1);
-  // V32 U1 Where: the target's bottom is 0.625rem above the pane's foot.
+  // V32 U1 Where: the target's bottom is 0.625rem above the sheet's content box.
   expect(Math.abs(geo.gap - 0.625 * geo.rem)).toBeLessThanOrEqual(1);
 });
