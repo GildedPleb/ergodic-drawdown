@@ -5,7 +5,7 @@ import { Dock, type DockTab } from "../../design/primitives/Dock";
 import { spokenLabel } from "../../design/primitives/LabelGlyphs";
 import { VisuallyHidden } from "../../design/primitives/VisuallyHidden";
 import { FanDiamond, GrabPoint } from "../../design/primitives/GrabPoint";
-import { sliderHeld } from "../../design/primitives/Slider/Slider";
+import { sliderHeld } from "../../design/primitives/Slider/held";
 import { Tile, TileHalo } from "../../design/primitives/Tile";
 import { useWorld } from "../engine/useWorld";
 import { createHistory } from "../models/history";

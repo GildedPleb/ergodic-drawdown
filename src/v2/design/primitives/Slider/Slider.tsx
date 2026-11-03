@@ -2,6 +2,7 @@ import type { JSX, KeyboardEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { createLive, type Live } from "./live";
+import { sliderHeld } from "./held";
 import { linearScale, type Scale, snapTo } from "./scale";
 import styles from "./Slider.module.css";
 
@@ -73,9 +74,6 @@ export const holdDrag = (root: Styled, on: boolean): void => {
     else root.style.removeProperty(k);
   }
 };
-
-/** r46 U1 (call4): true while a pointer is down on any slider; Cmd/Ctrl+Z is ignored then. */
-export const sliderHeld = { on: false };
 
 const dragHold = (on: boolean): void => {
   sliderHeld.on = on;
