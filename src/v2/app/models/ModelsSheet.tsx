@@ -400,6 +400,7 @@ export const ModelsSheet = ({
           labelledBy="grp-grow"
           options={modelsPaneSchema.modelOrder}
           value={values.model}
+          shown={copy.modelShown}
           describe={(m) => copy.modelDesc[m] ?? ""}
           onOpenChange={setModelList}
           onChange={(choice) => {

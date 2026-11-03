@@ -87,7 +87,10 @@ test("§1MP 6: price model and walk are in-place listboxes; closed, only the pic
   const html = render();
   expect((html.match(/role="listbox"/g) ?? []).length).toBe(2);
   expect(html.includes('role="combobox"')).toBe(false);
-  expect(optionsOf(html, "v2-model")).toEqual([modelsPaneSchema.defaultModel]);
+  // call4 m6 (r49): the name is displayed with soft hyphens; the value stays the engine's.
+  expect(optionsOf(html, "v2-model")).toEqual([
+    strings.models.modelShown(modelsPaneSchema.defaultModel),
+  ]);
   expect(optionsOf(html, "v2-walk")).toEqual([modelsPaneSchema.defaultWalk]);
   expect(tagWith(html, 'id="v2-model"').includes('aria-labelledby="grp-grow"')).toBe(true);
   expect(tagWith(html, 'id="v2-walk"').includes('aria-label="Walk Strategy:"')).toBe(true);
@@ -208,7 +211,9 @@ test("Form m2: every string the sheet and shell copy render is in the SM cmaps",
   const out: string[] = [];
   for (const model of modelsPaneSchema.modelOrder) {
     const html = render({ model });
-    for (const m of html.matchAll(/>([^<]+)</g)) out.push(decode(m[1] ?? ""));
+    // call4 m6 (r49): U+00AD is a default-ignorable break hint, never a glyph of its own.
+    for (const m of html.matchAll(/>([^<]+)</g))
+      out.push(decode(m[1] ?? "").replaceAll("\u00AD", ""));
     for (const m of html.matchAll(/aria-label="([^"]*)"/g)) out.push(decode(m[1] ?? ""));
   }
   const f = strings.fields;

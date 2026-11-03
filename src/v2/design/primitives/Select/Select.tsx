@@ -23,6 +23,8 @@ export type SelectProps = {
   /** The back end's names, unchanged (Rule 0), in engine order. */
   options: readonly string[];
   value: string;
+  /** How an option's name is displayed (e.g. with soft hyphens); its value stays as given. */
+  shown?: (option: string) => string;
   /** Each option's one-line description. */
   describe: (option: string) => string;
   onChange?: (next: string) => void;
@@ -45,6 +47,7 @@ export const Select = ({
   label,
   options,
   value,
+  shown,
   describe,
   onChange,
   onOpenChange,
@@ -141,7 +144,7 @@ export const Select = ({
             }}
           >
             <span className={name}>
-              <LabelGlyphs text={o} />
+              <LabelGlyphs text={shown?.(o) ?? o} />
             </span>
             {open && !pick ? null : open ? (
               <span className={check} aria-hidden="true">
