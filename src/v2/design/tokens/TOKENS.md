@@ -504,4 +504,4 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   `text-shadow`. stylelint: `url()` fails everywhere but `--shadow-tile-soft` in motion-etc.css,
   whose value must be `url(#id)` (fonts.css and tokens.css keep their file `url()`s);
   `var(--shadow-tile-soft)` only in `filter`. Limits re-measured at + 50 / + 10: source 64,094 →
-  64,144, gzip 9,042 → 9,052. Approver: Keel (pending).
+  64,144, gzip 9,042 → 9,052. Approver: Keel 2026-11-02.
