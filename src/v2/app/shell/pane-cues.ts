@@ -9,6 +9,11 @@ import { REVEAL } from "../../design/primitives/Select/logic";
 export type Cues = { top: boolean; more: boolean; hh: number };
 
 type Box = { top: number; bottom: number };
+/**
+ * The clear band, plus (call4 M1) its hard edges while the undo Tile covers the foot: the pinned
+ * header's foot and the Tile's top. Only the fades lie between them and the band.
+ */
+type Clear = Box & { hard?: Box };
 type Pin = { getBoundingClientRect: () => Box };
 export type Zone<E> = {
   scrollTop: number;
@@ -119,8 +124,18 @@ export const FADE_REM = 1.5;
  * pinned header and the top fade, above the bottom fade). 0 leaves it. A box taller than the band
  * aligns its top. Form 9a: `ring` (the focus outline's reach past the box) counts as part of it.
  */
-export const focusShift = (b: Box, clear: Box, ring = 0): number => {
+export const focusShift = (b: Box, clear: Clear, ring = 0): number => {
   const box = { top: b.top - ring, bottom: b.bottom + ring };
+  // call4 M1 (390/32: 380.9px against a 376.2px band): a box too tall for the band but short
+  // enough for the hard edges gives up top fade, never Undo: its foot sits on the Tile's top.
+  const h = clear.hard;
+  if (
+    h &&
+    box.bottom - box.top > clear.bottom - clear.top &&
+    box.bottom - box.top <= h.bottom - h.top
+  ) {
+    return Math.ceil(box.bottom - h.bottom);
+  }
   // Whole pixels (WebKit keeps scrollTop integral), rounded so the aligned edge lands inside the
   // band: down to align a top, up to align a foot. A truncated 0.9px left a foot in the fade.
   if (box.top < clear.top || box.bottom - box.top > clear.bottom - clear.top) {
@@ -172,12 +187,16 @@ const isFocused = (t: unknown): t is Focused =>
  * band. A list taller than the band shows its top, unless that would hide its focused option; then
  * as much of the pick as fits, its top first.
  */
-export const revealShift = (list: Box, focused: Box | null, clear: Box): number => {
+export const revealShift = (list: Box, focused: Box | null, clear: Clear): number => {
   const s = focusShift(list, clear);
   if (focused === null || focused.bottom - s <= clear.bottom) return s;
   // Up to show the pick's foot, but never past its own top (Probe N2: at 320 the band is 77px and
   // every row 80–124px, so uncapped this ran the list top under the pinned header).
-  return Math.min(Math.ceil(focused.bottom - clear.bottom), Math.floor(focused.top - clear.top));
+  // call4 M1: the pick goes where focus would put it, so a pick that fits the hard edges isn't
+  // top-aligned into Undo.
+  return clear.hard
+    ? focusShift(focused, clear)
+    : Math.min(Math.ceil(focused.bottom - clear.bottom), Math.floor(focused.top - clear.top));
 };
 
 /**
@@ -242,9 +261,14 @@ export const keepFocusClear = (
       const stuck =
         own && pin && asset ? Math.max(0, pin.top - asset.getBoundingClientRect().top) : 0;
       const b = el.getBoundingClientRect();
+      const c = foot(f);
       const shift = shiftOf(
         { top: b.top - stuck, bottom: b.bottom - stuck },
-        { top: z.top + hh + f, bottom: z.bottom - foot(f) },
+        {
+          top: z.top + hh + f,
+          bottom: z.bottom - c,
+          ...(c > f && { hard: { top: z.top + hh, bottom: z.bottom - c } }),
+        },
       );
       if (shift !== 0) zone.scrollTop += shift;
       rest = zone.scrollTop;
