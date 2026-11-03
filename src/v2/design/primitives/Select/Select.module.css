@@ -13,7 +13,7 @@
   /* One row: the name on the text column, ▾ or ✓ at the right edge, the description beneath
      across the full row. */
   .opt {
-    --_col: calc(var(--s-5) + var(--s-3));
+    --_col: max(0px, min(1.75rem, 100% - 8rem));
 
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
