@@ -23,6 +23,8 @@ export const variants = {
   more: ["true"] as const,
   /** Set by pane-cues while scrolling (touch shows the scrollbar). */
   scrolling: ["true"] as const,
+  /** §1MP 10 Short panes: the open header is over a quarter of the area, so it unpins. */
+  pin: ["off"] as const,
 };
 
 type PaneScrollProps = {
@@ -93,7 +95,7 @@ export const PaneScroll = ({ id, children, cover, covered }: PaneScrollProps): J
         className={zoneCls}
         data-pane={id}
         tabIndex={-1}
-        style={{ "--dyn-hh": "0px", "--dyn-spb": "0px" }}
+        style={{ "--dyn-hh": "0px", "--dyn-spt": "0px", "--dyn-spb": "0px" }}
       >
         <div className={content}>{children}</div>
       </div>

@@ -53,8 +53,26 @@ export const cuesOf = <E>(zone: Zone<E>): Cues => {
   };
 };
 
+/**
+ * V32 r46 §1MP item 10 Short panes, A11Y pinned elements (1), call4 M2: an open header taller than
+ * a quarter of the area unpins (data-pin="off"), and scroll-padding-block-start (--dyn-spt) is the
+ * pinned header's measured height, 0 while unpinned. Static or sticky, its height is the same.
+ */
+export const pinOf = <E>(zone: Zone<E>): number => {
+  let h = 0;
+  for (const pin of zone.querySelectorAll(PIN)) {
+    const r = pin.getBoundingClientRect();
+    h = Math.max(h, r.bottom - r.top);
+  }
+  return h > zone.clientHeight / 4 ? -1 : h;
+};
+
 export const paintCues = <E>(zone: Zone<E>): Cues => {
   const c = cuesOf(zone);
+  const pin = pinOf(zone);
+  if (pin < 0) zone.dataset["pin"] = "off";
+  else delete zone.dataset["pin"];
+  zone.style.setProperty("--dyn-spt", `${Math.max(0, pin).toFixed(2)}px`);
   zone.dataset["top"] = String(c.top);
   zone.dataset["more"] = String(c.more);
   zone.style.setProperty("--dyn-hh", `${c.hh.toFixed(2)}px`);
@@ -169,6 +187,7 @@ export type FocusZone = {
   scrollTop: number;
   getBoundingClientRect: () => Box;
   style?: { setProperty: (name: string, value: string) => void };
+  dataset?: Record<string, string | undefined>;
   addEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
   removeEventListener: (type: Listen, fn: (event: { target: unknown }) => void) => void;
 };
@@ -257,7 +276,7 @@ export const keepFocusClear = (
       const z = zone.getBoundingClientRect();
       const f = fade();
       const pin = head?.getBoundingClientRect();
-      const hh = own ? 0 : (pin?.height ?? 0);
+      const hh = own || zone.dataset?.["pin"] === "off" ? 0 : (pin?.height ?? 0);
       const stuck =
         own && pin && asset ? Math.max(0, pin.top - asset.getBoundingClientRect().top) : 0;
       const b = el.getBoundingClientRect();

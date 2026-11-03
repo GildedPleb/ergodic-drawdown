@@ -173,7 +173,9 @@ test("1MP: resizeWith wraps a ResizeObserver over every element; none without on
 
 test("1MP 11 / B2-r: the zone, then its drawn bar (aria-hidden, hidden until it scrolls); no edge lines", () => {
   const html = renderToStaticMarkup(createElement(PaneScroll, { id: "models", children: "x" }));
-  expect(/data-pane="models"[^>]*style="--dyn-hh:0px;--dyn-spb:0px"/.test(html)).toBe(true);
+  expect(/data-pane="models"[^>]*style="--dyn-hh:0px;--dyn-spt:0px;--dyn-spb:0px"/.test(html)).toBe(
+    true,
+  );
   expect(
     /<\/div><\/div><div[^>]*aria-hidden="true" hidden=""[^>]*--dyn-th:0px;--dyn-ty:0px/.test(html),
   ).toBe(true);
@@ -205,7 +207,8 @@ test("1MP 11–12 / B2-r: one linear mask layer over the full width (no bar colu
   expect(/:hover/.test(pane)).toBe(false); // no hover change
   expect(pane.includes("overflow-y: auto;")).toBe(true);
   expect(pane.includes("overscroll-behavior: contain;")).toBe(true);
-  expect(pane.includes("scroll-padding-block: var(--hit) var(--dyn-spb);")).toBe(true);
+  // call4 M2 (r46 §1MP 10): the start padding is the pinned header's height, 0 while unpinned.
+  expect(pane.includes("scroll-padding-block: var(--dyn-spt) var(--dyn-spb);")).toBe(true);
   expect(/transition|animation/.test(pane)).toBe(false);
   const row = await file(`${v2}/design/primitives/AssetRow/AssetRow.module.css`).text();
   expect(row.includes("position: sticky;")).toBe(true);
