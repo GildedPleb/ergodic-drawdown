@@ -227,14 +227,17 @@ export const AppShell = (): JSX.Element => {
     };
   }, []);
 
-  // U1: Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z (not in a text field), from anywhere on the page.
+  // U1: Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z from anywhere on the page, number boxes included (r46).
   const moveRef = useRef(move);
   moveRef.current = move;
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       const target = event.target instanceof Element ? event.target : null;
       const way = event.defaultPrevented ? null : undoKeyOf(event, target);
-      if (way !== null && moveRef.current(way)) event.preventDefault();
+      if (way === null) return;
+      // In a clean box with no step to take, native undo would put back old text the store doesn't
+      // hold (call4 m3), so it never runs there.
+      if (moveRef.current(way) || target instanceof HTMLInputElement) event.preventDefault();
     };
     document.addEventListener("keydown", onKey);
     return () => {

@@ -63,6 +63,11 @@ export type NumberFieldProps = {
   largeMessage?: string | undefined;
   /** Form 2l: the note for an empty field where empty isn't allowed: "Enter a number". */
   emptyMessage?: string | undefined;
+  /**
+   * r48 U1 (call4 m3): the box's live value while its text is an uncommitted edit (typed, or put
+   * back by native undo), parsed and clamped as a commit would be; null once it isn't (or invalid).
+   */
+  onDraft?: (live: number | null) => void;
   /** Caption under the field (e.g. "(~40 years)"). */
   hint?: string | undefined;
   id?: string | undefined;
@@ -113,6 +118,7 @@ export const NumberField = ({
   largeMessage,
   emptyMessage,
   hint,
+  onDraft,
   id,
   disabled = false,
   initialText,
@@ -253,7 +259,31 @@ export const NumberField = ({
     };
   });
 
+  const editing = draft !== clean.current;
+  const drafted = useRef(onDraft);
+  drafted.current = onDraft;
+  useEffect(() => {
+    const r = editing
+      ? resolveEntry(
+          draft,
+          live.current.parse,
+          live.current.bounds,
+          live.current.emptyValue,
+          live.current.whole,
+        )
+      : null;
+    drafted.current?.(r === null || r.kind === "invalid" ? null : r.value);
+  }, [draft, editing]);
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    // r46 U1 Keyboard (call4 m3): an uncommitted edit takes Cmd/Ctrl+Z (and Shift) natively first;
+    // otherwise the key goes on to the app's history.
+    if (event.key.toLowerCase() === "z" && (event.metaKey || event.ctrlKey) && !event.altKey) {
+      if (live.current.draft !== clean.current || held.current || wheel.pending()) {
+        event.stopPropagation();
+      }
+      return;
+    }
     if (event.key === "Enter") {
       const stepped = wheel.pending() || held.current;
       wheel.cancel();

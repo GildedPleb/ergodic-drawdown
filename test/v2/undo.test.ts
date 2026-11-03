@@ -90,13 +90,14 @@ const key = (
 });
 const at$ = (inText: boolean) => ({ closest: () => (inText ? {} : null) });
 
-test("U1: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z redoes, except in a text field", () => {
+test("U1: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z redoes, number boxes included (r46)", () => {
   expect(undoKeyOf(key("z", { metaKey: true }), at$(false))).toBe("undo");
   expect(undoKeyOf(key("z", { ctrlKey: true }), null)).toBe("undo");
   expect(undoKeyOf(key("Z", { metaKey: true, shiftKey: true }), at$(false))).toBe("redo");
   expect(undoKeyOf(key("z", { ctrlKey: true, shiftKey: true }), at$(false))).toBe("redo");
-  expect(undoKeyOf(key("z", { metaKey: true }), at$(true))).toBe(null);
-  expect(undoKeyOf(key("Z", { metaKey: true, shiftKey: true }), at$(true))).toBe(null);
+  const box = { closest: (sel: string) => (/\binput\b/.test(sel) ? {} : null) };
+  expect(undoKeyOf(key("z", { metaKey: true }), box)).toBe("undo");
+  expect(undoKeyOf(key("Z", { metaKey: true, shiftKey: true }), box)).toBe("redo");
   expect(undoKeyOf(key("z", {}), at$(false))).toBe(null);
   expect(undoKeyOf(key("z", { metaKey: true, altKey: true }), at$(false))).toBe(null);
   expect(undoKeyOf(key("y", { metaKey: true }), at$(false))).toBe(null);

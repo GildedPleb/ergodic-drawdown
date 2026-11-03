@@ -123,6 +123,8 @@ const Editor = (p: EditorProps): JSX.Element => {
       : focusScale(p.bounds.min, { ...focus, softTop: p.softTop });
   const finite = Number.isFinite(p.bounds.min) && Number.isFinite(p.bounds.max);
   const shown = useTween(p.value, p.tween, `row-${p.id}`, p.step);
+  // r48 U1 (call4 m3): the slider shows its box's live value while that is an uncommitted edit.
+  const [typed, setTyped] = useState<number | null>(null);
   return (
     <LedgerRow
       id={`row-${p.id}`}
@@ -148,13 +150,14 @@ const Editor = (p: EditorProps): JSX.Element => {
           largeMessage={strings.fields.tooLarge}
           emptyMessage={strings.fields.enterNumber}
           onCommit={p.onCommit}
+          onDraft={setTyped}
         />
       }
     >
       {p.slider && (finite || scale !== undefined) ? (
         <Slider
           label={p.label}
-          value={shown}
+          value={typed ?? shown}
           min={p.bounds.min}
           max={p.bounds.max}
           step={focus?.step ?? p.step}

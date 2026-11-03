@@ -56,6 +56,8 @@ export const undoKeyOf = (
 ): "undo" | "redo" | null => {
   if (event.key.toLowerCase() !== "z" || event.altKey || !(event.metaKey || event.ctrlKey))
     return null;
-  if (focus?.closest('input, textarea, [contenteditable="true"]') != null) return null;
+  // r46 U1 Keyboard (call4 m3): NumberFields too; one holding an uncommitted typed edit stops the
+  // key itself so its native undo goes first. No textarea or editable text exists in the sheet.
+  if (focus?.closest('textarea, [contenteditable="true"]') != null) return null;
   return event.shiftKey ? "redo" : "undo";
 };
