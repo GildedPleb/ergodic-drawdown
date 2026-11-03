@@ -17,7 +17,7 @@
 - Components use **semantic** tokens, plus motion-etc, type and space. They never use `--gold-225`-style palette names.
 - No raw colour, alpha or mix value appears outside `palette.css`. Raw values in `motion-etc.css` are non-colour primitives with no theme variation.
 - **Theme switch:** `data-theme="linen"` on `<html>` (or any subtree) replaces the old `.linen` class.
-- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly three shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock), `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate) and `--shadow-tile-soft` (`url(#tile-halo)`, used only as `filter: var(--shadow-tile-soft)` on the soft Tile's glyph+label wrapper; the `<filter>` is `TileHalo`, inline once in the themed root). No raw shadows, and no `url()` but that one, outside the token files.
+- **Shape:** `--radius-0` everywhere. **Shadow:** `--shadow-none` by default, with exactly three shadow tokens: `--shadow-sheet` (`box-shadow`, the locked v32 bottom dock), `--shadow-tile` (a `drop-shadow()` used only as `filter: var(--shadow-tile)` on the loud Tile plate) and `--shadow-tile-soft` (`url(#tile-halo-dark)` or `url(#tile-halo-linen)`, set per `[data-theme]`, used only as `filter: var(--shadow-tile-soft)` on the soft Tile's glyph+label wrapper; the two `<filter>`s are `TileHalo`, inline once, each in a `<g>` carrying its own `data-theme` so it floods from that theme's `--surface`). No raw shadows, and no `url()` but that one, outside the token files.
 
 ## Contrast check result (v2.1)
 

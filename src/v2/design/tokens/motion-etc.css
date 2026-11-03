@@ -25,7 +25,7 @@
     /* shadow · Deco linework over fills: none by default */
     --shadow-sheet: 0 -18px 40px var(--shadow-ink); /* the locked v32 bottom dock lift */
     --shadow-tile: drop-shadow(0 6px 10px var(--shadow-ink)); /* T2 loud Tile lift (a filter) */
-    --shadow-tile-soft: url(#tile-halo); /* T2 soft Tile halo (a filter; TileHalo, inline once) */
+    --shadow-tile-soft: url(#tile-halo-dark); /* T2 soft halo, per theme */
     /* radius · everything square */
     --radius-0: 0;
     /* rules + focus */
@@ -46,7 +46,10 @@
   [data-theme] {
     --shadow-sheet: 0 -18px 40px var(--shadow-ink);
     --shadow-tile: drop-shadow(0 6px 10px var(--shadow-ink));
-    --shadow-tile-soft: url(#tile-halo);
+    --shadow-tile-soft: url(#tile-halo-dark);
+  }
+  [data-theme="linen"] {
+    --shadow-tile-soft: url(#tile-halo-linen);
   }
   @media (prefers-reduced-motion: reduce) {
     :root {

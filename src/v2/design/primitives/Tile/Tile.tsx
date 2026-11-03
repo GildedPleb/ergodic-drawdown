@@ -56,41 +56,51 @@ const FocusRing = (): JSX.Element => {
   );
 };
 
+/** One theme's copy of the r42 3px halo filter: --surface fill, flooded from the `<g>` it sits in. */
+const HaloFilter = ({ theme, flood }: { theme: "dark" | "linen"; flood: string }): JSX.Element => (
+  <g data-theme={theme}>
+    <filter
+      id={`tile-halo-${theme}`}
+      x="-50%"
+      y="-100%"
+      width="200%"
+      height="300%"
+      colorInterpolationFilters="sRGB"
+    >
+      <feComponentTransfer in="SourceAlpha" result="a">
+        <feFuncA type="linear" slope="20" />
+      </feComponentTransfer>
+      <feMorphology in="a" operator="dilate" radius="3" result="solid" />
+      <feMorphology in="a" operator="dilate" radius="7" result="big" />
+      <feGaussianBlur in="big" stdDeviation="2" result="fade" />
+      <feMerge result="m">
+        <feMergeNode in="fade" />
+        <feMergeNode in="solid" />
+      </feMerge>
+      <feFlood className={flood} />
+      <feComposite in2="m" operator="in" result="halo" />
+      <feMerge>
+        <feMergeNode in="halo" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </g>
+);
+
 /**
- * T2 soft halo (V32 r42, 3px): the SVG filter behind --shadow-tile-soft (url(#tile-halo)). Render it
- * once, inside the themed root: its flood is --surface where these defs sit, so it follows a theme
- * switch on that root, not a nested [data-theme] around one Tile.
+ * T2 soft halo (V32 r42, 3px; ADR-002 D2 amended 2026-11-03): the SVG filters behind
+ * --shadow-tile-soft, one per theme (#tile-halo-dark, #tile-halo-linen). A var() inside a filter
+ * resolves where the filter sits, not where the Tile sits, so each filter sits in a `<g>` carrying
+ * its own data-theme and floods from that theme's --surface; --shadow-tile-soft picks the filter per
+ * [data-theme], so a nested linen (or dark) subtree gets its own halo. Render it once per page.
  */
 export const TileHalo = (): JSX.Element => {
   const defs = styles["defs"] ?? "tile-defs";
   const flood = styles["flood"] ?? "tile-flood";
   return (
     <svg className={defs} width="0" height="0" aria-hidden="true" focusable="false">
-      <filter
-        id="tile-halo"
-        x="-50%"
-        y="-100%"
-        width="200%"
-        height="300%"
-        colorInterpolationFilters="sRGB"
-      >
-        <feComponentTransfer in="SourceAlpha" result="a">
-          <feFuncA type="linear" slope="20" />
-        </feComponentTransfer>
-        <feMorphology in="a" operator="dilate" radius="3" result="solid" />
-        <feMorphology in="a" operator="dilate" radius="7" result="big" />
-        <feGaussianBlur in="big" stdDeviation="2" result="fade" />
-        <feMerge result="m">
-          <feMergeNode in="fade" />
-          <feMergeNode in="solid" />
-        </feMerge>
-        <feFlood className={flood} />
-        <feComposite in2="m" operator="in" result="halo" />
-        <feMerge>
-          <feMergeNode in="halo" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
+      <HaloFilter theme="dark" flood={flood} />
+      <HaloFilter theme="linen" flood={flood} />
     </svg>
   );
 };

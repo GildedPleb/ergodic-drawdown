@@ -297,7 +297,7 @@ export const AppShell = (): JSX.Element => {
       data-active-pane={pane}
       style={{ "--dyn-sheet": px, "--dyn-panel": px, "--dyn-full": `${String(full)}px` }}
     >
-      {/* T2 soft: the undo Tile's --shadow-tile-soft filter, once, under the themed <html>. */}
+      {/* T2 soft: the undo Tile's --shadow-tile-soft filters (one per theme), once. */}
       <TileHalo />
       <main className={columnCls}>
         <header ref={headerRef} className={header}>

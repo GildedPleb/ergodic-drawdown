@@ -200,7 +200,7 @@
     filter: none;
   }
 
-  /* TileHalo's defs: no box, and the flood follows the theme where the defs sit. */
+  /* TileHalo: no box; each flood is its own <g>'s theme --surface. */
   .defs {
     position: absolute;
     inline-size: 0;
