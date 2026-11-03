@@ -110,6 +110,16 @@ export const AppShell = (): JSX.Element => {
   }, [low]);
   const moved = useRef(false);
   const [said, setSaid] = useState("");
+  // U1 Accessibility (r48, call4 m1): the live region is cleared, then set on the next frame, so a
+  // repeated identical message is announced again (screen readers skip a same-text update).
+  const sayFrame = useRef(0);
+  const say = (text: string): void => {
+    cancelAnimationFrame(sayFrame.current);
+    setSaid("");
+    sayFrame.current = requestAnimationFrame(() => {
+      setSaid(text);
+    });
+  };
   useEffect(() => {
     if (!moved.current) {
       moved.current = true;
@@ -147,7 +157,12 @@ export const AppShell = (): JSX.Element => {
     };
     setSession({ values: r.value, history: r.history });
     setRestored((was) => ({ focus: step.focus, turn: (was?.turn ?? 0) + 1 }));
-    setSaid(strings.undo.back(step.field, spokenLabel(step.value)));
+    const value = spokenLabel(step.value);
+    say(
+      way === "undo"
+        ? strings.undo.undone(step.field, value, /Mac|iP(hone|ad|od)/.test(navigator.platform))
+        : strings.undo.back(step.field, value),
+    );
     return true;
   };
   // U1 Focus: never dropped to the page. A step that removes the focused control (F-A c), or

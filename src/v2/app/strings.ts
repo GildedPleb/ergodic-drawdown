@@ -172,6 +172,9 @@ export const strings = {
     on: "on",
     off: "off",
     back: (field: string, value: string): string => `${field} back to ${value}`,
+    /** U1 Accessibility (r46, call4 m2): after an undo; the keyboard-only Redo is named. */
+    undone: (field: string, value: string, mac: boolean): string =>
+      `Undone: ${field} back to ${value}. Redo with Shift+${mac ? "Command" : "Ctrl"}+Z`,
     /** The Tile's visible word; its accessible name starts with it (WCAG 2.5.3). */
     label: "Undo",
     name: (field: string, value: string): string => `Undo, ${field} back to ${value}`,
