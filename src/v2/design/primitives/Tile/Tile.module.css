@@ -258,6 +258,15 @@
       filter: none;
     }
 
+    /* V32:952 m4: a Canvas plate, 3px past the word, stands in for the removed halo. An outline,
+       not padding with margin -3px (R6 bans margin), so nothing moves. */
+    .root[data-variant="soft"] .label {
+      --_halo: 3px;
+
+      background-color: Canvas;
+      outline: var(--_halo) solid Canvas;
+    }
+
     .line,
     .face,
     .rule,
