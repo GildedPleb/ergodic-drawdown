@@ -44,6 +44,8 @@ const SHY: Record<string, string> = {
   Momentum: "Mo\u00ADmen\u00ADtum",
   Bubble: "Bub\u00ADble",
   Random: "Ran\u00ADdom",
+  Inflation: "In\u00ADfla\u00ADtion",
+  historic: "his\u00ADtor\u00ADic",
 };
 const shy = (name: string): string => name.replace(/\p{L}+/gu, (w) => SHY[w] ?? w);
 
@@ -149,6 +151,8 @@ export const strings = {
     modelShown: shy,
     /** V32 r53 :713: a walk name as displayed, soft hyphens as for models. Display only. */
     walkShown: shy,
+    /** call5 (768/32): an asset name or tick label as displayed, soft hyphens as for models. Display only. */
+    assetShown: shy,
     /** COPY.md "Price models": one line per engine name, written from the source. */
     modelDesc: {
       "Power Law Regression Median":

@@ -16,11 +16,13 @@
     cursor: var(--cursor-press);
   }
 
+  /* call5 (768/32): the words may shrink and wrap at spaces; no change at 16px. */
   .body {
     position: relative;
     display: flex;
     align-items: center;
     gap: var(--s-3);
+    min-inline-size: 0;
   }
 
   .mark {

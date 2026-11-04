@@ -505,7 +505,8 @@ export const ModelsSheet = ({
       <SectionLabel text={strings.sections.chart} />
       <div className={list}>
         <TickToggle
-          label={copy.showHistoric}
+          label={copy.assetShown(copy.showHistoric)}
+          name={copy.showHistoric}
           checked={historic}
           onChange={(next) => onHistoric?.(next)}
         />
@@ -534,6 +535,7 @@ export const ModelsSheet = ({
           id={`asset-${id}`}
           asset={id}
           name={name}
+          shown={copy.assetShown(name)}
           summary={btc ? summaryOf(values) : copy.notYet}
           colour={btc ? btcColour : c}
           open={open.has(id)}

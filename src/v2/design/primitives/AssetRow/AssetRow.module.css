@@ -75,6 +75,10 @@
     font: 500 var(--t-pane)/1.15 var(--f-serif);
   }
 
+  .face {
+    user-select: none;
+  }
+
   /* ▾ (0.5rem, muted, 0.375rem after the name); ▴ while open. */
   .chev {
     display: inline-block;

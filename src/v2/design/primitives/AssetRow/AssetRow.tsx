@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { CheckMark } from "../CheckMark";
 import { LabelGlyphs } from "../LabelGlyphs";
+import { VisuallyHidden } from "../VisuallyHidden";
 import styles from "./AssetRow.module.css";
 
 /** R7: variant keys and values. */
@@ -26,6 +27,8 @@ export type AssetRowProps = {
   /** `data-asset` on the list item. */
   asset: string;
   name: string;
+  /** The name as drawn (soft hyphens); `name` stays the accessible name and the copied text. */
+  shown?: string;
   /** Collapsed only: one italic line under the name; wraps, never truncated. */
   summary: string;
   /** The asset's colour (a `var(--path-…)` token): its square. */
@@ -69,6 +72,7 @@ export const AssetRow = ({
   id,
   asset,
   name,
+  shown = name,
   summary,
   colour,
   open,
@@ -107,6 +111,7 @@ export const AssetRow = ({
   const toggle = styles["toggle"] ?? "asset-toggle";
   const nameCls = styles["name"] ?? "asset-name";
   const summaryCls = styles["summary"] ?? "asset-summary";
+  const drawn = styles["face"] ?? "asset-face";
   const chev = styles["chev"] ?? "asset-chev";
   const on = square.inert === true ? false : square.on;
   const state: (typeof variants.state)[number] | undefined = open ? "open" : undefined;
@@ -149,7 +154,18 @@ export const AssetRow = ({
           }}
         >
           <span className={nameCls}>
-            {name}
+            {shown === name ? (
+              name
+            ) : (
+              // call5 (768/32), as Select R6: the soft-hyphened face is drawn only (aria-hidden,
+              // not selectable); the plain name is the accessible name and the copied text.
+              <>
+                <span className={drawn} aria-hidden="true">
+                  {shown}
+                </span>
+                <VisuallyHidden>{name}</VisuallyHidden>
+              </>
+            )}
             <span className={chev} aria-hidden="true" />
           </span>
           {open ? null : (
