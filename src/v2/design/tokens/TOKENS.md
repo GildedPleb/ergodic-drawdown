@@ -512,3 +512,4 @@ Built gzip is what's gated: the limit is `builtGzipBytes × 1.05` (`ratchet`); s
   top of d2a7df6 at 64,057 B source / 9,062 B gzip: gzip 9,072 and source 64,107 (a tightening
   from 64,144). Interim, pending Keel's whole-MVP CSS budget re-derivation; no more per-feature
   raises before it. Approver: Keel 2026-11-03.
+- 2026-11-04: CSS gzip ceiling raised 9,072 → 9,100 (Keel). Covers R1 (control rows drop the --col indent at @container max-width:10rem, per Form's rule) and the 768/32 overflows on Inflation and Show historic price. Ceiling, not a target. To be re-derived for the whole MVP after tile-u1.

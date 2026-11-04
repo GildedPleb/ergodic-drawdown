@@ -12,15 +12,16 @@ test("R11: v2 CSS source bytes stay within the +5% ratchet in css-budget.json", 
 
 // U1/T2 r45 (Keel, 2026-11-03, interim): measured on d2a7df6 + r45 at 64,057 / 9,062, so
 // gzip 9,062 B + 10 → 9,072 and source 64,057 B + 50 → 64,107. See TOKENS.md, "U1/T2 r45".
-test("R11 r45: limits are the measured size + 10 B gzip / + 50 B source (Keel, 2026-11-03)", () => {
+// 2026-11-04 (Keel, spec change): the gzip ceiling is raised to a hard 9,100 for call5 R1 and the
+// 768/32 overflows; the source ceiling is unchanged. See TOKENS.md, 2026-11-04.
+test("R11 r45: source limit is the measured size + 50 B; gzip ceiling 9,100 (Keel, 2026-11-04)", () => {
   const raw: unknown = JSON.parse(
     readFileSync(new URL("../../src/v2/design/css-budget.json", import.meta.url), "utf8"),
   );
   const pick = (k: string): unknown =>
     typeof raw === "object" && raw !== null && k in raw ? Reflect.get(raw, k) : undefined;
-  expect([pick("builtGzipBytes"), pick("builtGzipCeiling")]).toEqual([9062, 9072]);
+  expect([pick("builtGzipBytes"), pick("builtGzipCeiling")]).toEqual([9062, 9100]);
   expect([budget.sourceBytes, budget.sourceCeiling]).toEqual([64057, 64107]);
-  expect(9072 - 9062).toBe(10);
   expect(64107 - 64057).toBe(50);
 });
 
