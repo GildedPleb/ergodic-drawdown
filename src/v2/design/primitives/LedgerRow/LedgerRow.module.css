@@ -52,4 +52,12 @@
       grid-row: 1 / 3;
     }
   }
+
+  /* V32 r53 R1 (call #5, Form ruling): only control rows drop the --_col indent, and only when the
+     column is under 10rem (rem scales with text: fires at 768, 390 and 320 at 32px, never at 16px). */
+  @container (max-width: 10rem) {
+    .row {
+      padding-inline-start: 0;
+    }
+  }
 }
