@@ -32,7 +32,6 @@
   .name {
     min-inline-size: 0;
     font: 500 var(--t-pane)/1.15 var(--f-serif);
-    overflow-wrap: break-word;
   }
 
   .opt[data-state="pick"] .name {

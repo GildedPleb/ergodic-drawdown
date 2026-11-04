@@ -91,7 +91,10 @@ test("§1MP 6: price model and walk are in-place listboxes; closed, only the pic
   expect(optionsOf(html, "v2-model")).toEqual([
     strings.models.modelShown(modelsPaneSchema.defaultModel),
   ]);
-  expect(optionsOf(html, "v2-walk")).toEqual([modelsPaneSchema.defaultWalk]);
+  // call5 m6 (r53 :713): walk names are hyphenated the same way.
+  expect(optionsOf(html, "v2-walk")).toEqual([
+    strings.models.walkShown(modelsPaneSchema.defaultWalk),
+  ]);
   expect(tagWith(html, 'id="v2-model"').includes('aria-labelledby="grp-grow"')).toBe(true);
   expect(tagWith(html, 'id="v2-walk"').includes('aria-label="Walk Strategy:"')).toBe(true);
   // The pick carries its engine description beneath it.

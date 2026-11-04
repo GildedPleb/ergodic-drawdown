@@ -421,6 +421,7 @@ export const ModelsSheet = ({
           label={controls.walk.label}
           options={modelsPaneSchema.walks}
           value={values.walk}
+          shown={copy.walkShown}
           describe={(w) => copy.walkDesc[w] ?? ""}
           columns={wide ?? desktop}
           onChange={(walk) => {

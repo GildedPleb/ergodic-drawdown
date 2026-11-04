@@ -30,7 +30,6 @@
     position: relative;
     min-inline-size: 0;
     font: 400 var(--t-row)/var(--lh-row) var(--f-text);
-    overflow-wrap: break-word;
   }
 
   .desc,

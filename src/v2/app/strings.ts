@@ -29,14 +29,23 @@ const headline = (spread: Spread, year: number, usd: (v: number) => string): str
     : `${reach}9 in 10 futures end ${between}`;
 };
 
-/** call4 m6: soft hyphens (U+00AD) at each model-name word's real break points (§1MP item 6). */
+/**
+ * call4 m6, V32 r53 :713: soft hyphens (U+00AD) at the real break points of each displayed option
+ * word that can be wider than its column at a 32px root (models and walks; §1MP item 6).
+ */
 const SHY: Record<string, string> = {
   Regression: "Re\u00ADgres\u00ADsion",
   Median: "Me\u00ADdian",
   Power: "Pow\u00ADer",
   Support: "Sup\u00ADport",
   Rainbow: "Rain\u00ADbow",
+  Refit: "Re\u00ADfit",
+  Historic: "His\u00ADtor\u00ADic",
+  Momentum: "Mo\u00ADmen\u00ADtum",
+  Bubble: "Bub\u00ADble",
+  Random: "Ran\u00ADdom",
 };
+const shy = (name: string): string => name.replace(/\p{L}+/gu, (w) => SHY[w] ?? w);
 
 export const strings = {
   brand: { stack: "STACK", math: "MATH", name: "StackMath" },
@@ -137,8 +146,9 @@ export const strings = {
      * §1MP item 6 (r46, call4 m6 option B): a model name as displayed, with soft hyphens (U+00AD)
      * at its real break points. Display only: schema names, accessible names and stored values stay.
      */
-    modelShown: (name: string): string =>
-      name.replace(/\b(?:Regression|Median|Power|Support|Rainbow)\b/g, (w) => SHY[w] ?? w),
+    modelShown: shy,
+    /** V32 r53 :713: a walk name as displayed, soft hyphens as for models. Display only. */
+    walkShown: shy,
     /** COPY.md "Price models": one line per engine name, written from the source. */
     modelDesc: {
       "Power Law Regression Median":
