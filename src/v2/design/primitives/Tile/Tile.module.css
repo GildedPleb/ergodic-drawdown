@@ -254,15 +254,13 @@
       filter: none;
     }
 
+    /* V32 r53 m4: the halo is removed, and a Canvas plate 3px past the whole label group (the
+       wrapper holding the glyph and the word) stands in for it. An outline, not padding with
+       margin -3px (R6 bans margin), so nothing moves. */
     .root[data-variant="soft"] .ink {
-      filter: none;
-    }
-
-    /* V32:952 m4: a Canvas plate, 3px past the word, stands in for the removed halo. An outline,
-       not padding with margin -3px (R6 bans margin), so nothing moves. */
-    .root[data-variant="soft"] .label {
       --_halo: 3px;
 
+      filter: none;
       background-color: Canvas;
       outline: var(--_halo) solid Canvas;
     }
