@@ -38,4 +38,11 @@
       display: none;
     }
   }
+
+  /* R1, as LedgerRow */
+  @container (max-width: 10rem) {
+    .root {
+      padding-inline-start: 0;
+    }
+  }
 }

@@ -16,7 +16,6 @@
     cursor: var(--cursor-press);
   }
 
-  /* call5 (768/32): the words may shrink and wrap at spaces; no change at 16px. */
   .body {
     position: relative;
     display: flex;

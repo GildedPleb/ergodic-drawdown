@@ -15,6 +15,11 @@
     row-gap: var(--s-5);
   }
 
+  /* R1: SectionLabel's container */
+  .root {
+    container-type: inline-size;
+  }
+
   .list {
     row-gap: var(--s-2);
     container-type: inline-size;
