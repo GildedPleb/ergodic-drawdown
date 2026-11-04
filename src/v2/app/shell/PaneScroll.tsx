@@ -6,15 +6,17 @@ import styles from "./PaneScroll.module.css";
 import { dragThumb, THUMB_MIN_REM, watchBar } from "./pane-bar";
 import {
   COVER,
-  coverOf,
   FADE_REM,
+  HIT_REM,
   keepFocusClear,
-  LIFT_REM,
+  paintCues,
+  reachOf,
   realFrames,
   resizeWith,
   ringOf,
   watchCues,
 } from "./pane-cues";
+import type { Edge } from "./pane-cues";
 import type { Pane } from "./panes";
 
 /** R7: the scroll listener's flags (absent = false). */
@@ -23,18 +25,29 @@ export const variants = {
   more: ["true"] as const,
   /** Set by pane-cues while scrolling (touch shows the scrollbar). */
   scrolling: ["true"] as const,
-  /** §1MP 10 Short panes: the open header is over a quarter of the area, so it unpins. */
+  /** §1MP 10 Short panes (r53): pinned, the header would leave under one row clear, so it unpins. */
   pin: ["off"] as const,
 };
 
 type PaneScrollProps = {
   id: Pane;
   children: ReactNode;
-  /** U1: the page-level undo Tile, which can lie over the zone's foot (call4 M1). */
+  /** U1: the page-level undo Tile, which can lie over the zone's foot (r53 clear area). */
   cover?: RefObject<HTMLElement | null>;
   /** Whether it is shown: on showing, a focused control under it moves clear. */
   covered?: boolean;
 };
+
+const rem = (): number =>
+  Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+
+/**
+ * V32 r53 clear area: the fade, one row and Undo's reach, measured now. The Tile is read at each
+ * call: it can remount, and a detached one (under its old inert wrapper) reads as hidden.
+ */
+const edgeOf =
+  (zone: HTMLElement | null, tile: RefObject<HTMLElement | null> | undefined): (() => Edge) =>
+  () => ({ fade: FADE_REM * rem(), hit: HIT_REM * rem(), ...reachOf(tile?.current ?? null, zone) });
 
 /**
  * V32-BUILD §1MP items 11–12, every dock pane: the zone under the tab bar is the only thing that
@@ -53,17 +66,20 @@ export const PaneScroll = ({ id, children, cover, covered }: PaneScrollProps): J
     const observe = resizeWith<Element>(
       typeof ResizeObserver === "undefined" ? undefined : ResizeObserver,
     );
-    const rem = (): number =>
-      Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     const min = (): number => THUMB_MIN_REM * rem();
+    const tile = cover?.current ?? null;
+    const edge = edgeOf(zone.current, cover);
     const stops = [
-      watchCues<Element>(zone.current, observe),
+      watchCues<Element>(zone.current, observe, undefined, edge, tile ? [tile] : []),
       keepFocusClear(
         zone.current,
         () => FADE_REM * rem(),
         realFrames,
         ringOf,
-        () => coverOf(cover?.current ?? null, LIFT_REM * rem()),
+        () => {
+          const e = edge();
+          return e.shown ? e.reach : 0;
+        },
       ),
       watchBar<Element>(zone.current, bar.current, min, realFrames, observe),
       dragThumb(thumb.current, zone.current, min, (on) => {
@@ -76,8 +92,8 @@ export const PaneScroll = ({ id, children, cover, covered }: PaneScrollProps): J
   }, [cover]);
   useEffect(() => {
     const z = zone.current;
-    const lift = LIFT_REM * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
-    if (z !== null) z.style.setProperty("--dyn-spb", `${coverOf(cover?.current ?? null, lift)}px`);
+    // r53: Undo showing or hiding moves the bottom inset (and so scroll-padding-block-end).
+    if (z !== null) paintCues(z, edgeOf(z, cover)());
     const at = document.activeElement;
     if (covered === true && at !== null && zone.current?.contains(at) === true) {
       at.dispatchEvent(new Event(COVER, { bubbles: true }));

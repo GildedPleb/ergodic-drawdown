@@ -9,11 +9,6 @@ import { REVEAL } from "../../design/primitives/Select/logic";
 export type Cues = { top: boolean; more: boolean; hh: number };
 
 type Box = { top: number; bottom: number };
-/**
- * The clear band, plus (call4 M1) its hard edges while the undo Tile covers the foot: the pinned
- * header's foot and the Tile's top. Only the fades lie between them and the band.
- */
-type Clear = Box & { hard?: Box };
 type Pin = { getBoundingClientRect: () => Box };
 export type Zone<E> = {
   scrollTop: number;
@@ -54,25 +49,42 @@ export const cuesOf = <E>(zone: Zone<E>): Cues => {
 };
 
 /**
- * V32 r46 §1MP item 10 Short panes, A11Y pinned elements (1), call4 M2: an open header taller than
- * a quarter of the area unpins (data-pin="off"), and scroll-padding-block-start (--dyn-spt) is the
- * pinned header's measured height, 0 while unpinned. Static or sticky, its height is the same.
+ * V32 r53 A11Y "Pinned elements and the clear area", measured in px: `fade` is one fade
+ * (`--s-6`), `hit` one row (`--hit`), `reach` the distance from the zone's foot up to the top
+ * of Undo's halo (Undo keeps its place while hidden, so it is measured either way), `shown`
+ * whether Undo shows.
  */
-export const pinOf = <E>(zone: Zone<E>): number => {
+export type Edge = { fade: number; hit: number; reach: number; shown: boolean };
+const NO_EDGE: Edge = { fade: 0, hit: 0, reach: 0, shown: false };
+export type Insets = { top: number; bottom: number; off: boolean };
+
+/**
+ * V32 r53 clear-area rule: clear area = clientHeight − top inset − bottom inset. Top: the pinned
+ * header's measured height (0 unpinned) + the top fade. Bottom: Undo's reach, never under a fade,
+ * while it shows; one fade while hidden. The fades count whether drawn or not, so scrolling never
+ * changes them. Form's sub-rule: the header unpins (`off`) only when, pinned and with Undo's
+ * inset (so Undo showing or not never flips it), less than one row would stay clear. Static or
+ * sticky, its height is the same.
+ */
+export const insetsOf = <E>(zone: Zone<E>, edge: Edge = NO_EDGE): Insets => {
   let h = 0;
   for (const pin of zone.querySelectorAll(PIN)) {
     const r = pin.getBoundingClientRect();
     h = Math.max(h, r.bottom - r.top);
   }
-  return h > zone.clientHeight / 4 ? -1 : h;
+  const under = Math.max(edge.fade, edge.reach);
+  const off = h > 0 && zone.clientHeight - h - edge.fade - under < edge.hit;
+  return { top: (off ? 0 : h) + edge.fade, bottom: edge.shown ? under : edge.fade, off };
 };
 
-export const paintCues = <E>(zone: Zone<E>): Cues => {
+/** Paints the cues and (r53) the clear-area insets as scroll padding (--dyn-spt, --dyn-spb). */
+export const paintCues = <E>(zone: Zone<E>, edge: Edge = NO_EDGE): Cues => {
   const c = cuesOf(zone);
-  const pin = pinOf(zone);
-  if (pin < 0) zone.dataset["pin"] = "off";
+  const ins = insetsOf(zone, edge);
+  if (ins.off) zone.dataset["pin"] = "off";
   else delete zone.dataset["pin"];
-  zone.style.setProperty("--dyn-spt", `${Math.max(0, pin).toFixed(2)}px`);
+  zone.style.setProperty("--dyn-spt", `${ins.top.toFixed(2)}px`);
+  zone.style.setProperty("--dyn-spb", `${ins.bottom.toFixed(2)}px`);
   zone.dataset["top"] = String(c.top);
   zone.dataset["more"] = String(c.more);
   zone.style.setProperty("--dyn-hh", `${c.hh.toFixed(2)}px`);
@@ -90,16 +102,21 @@ const realTimers: Timers = {
   },
 };
 
-/** Paints now, on every scroll, and whenever the zone or its content resizes. Returns the detach. */
+/**
+ * Paints now, on every scroll, and whenever the zone, its content or `also` (r53: Undo) resizes.
+ * Returns the detach.
+ */
 export const watchCues = <E>(
   zone: (Zone<E> & E) | null,
   observe?: Observe<E>,
   timers: Timers = realTimers,
+  edge?: () => Edge,
+  also: E[] = [],
 ): (() => void) => {
   if (zone === null) return () => undefined;
   let idle: unknown;
   const paint = (): void => {
-    paintCues(zone);
+    paintCues(zone, edge?.());
   };
   const onScroll = (): void => {
     paint();
@@ -111,7 +128,7 @@ export const watchCues = <E>(
   };
   paint();
   zone.addEventListener("scroll", onScroll, { passive: true });
-  const els: E[] = [zone];
+  const els: E[] = [zone, ...also];
   if (zone.firstElementChild !== null) els.push(zone.firstElementChild);
   const unobserve = observe?.(els, paint);
   return () => {
@@ -138,22 +155,13 @@ export const resizeWith = <E>(Ctor: RO<E> | undefined): Observe<E> | undefined =
 export const FADE_REM = 1.5;
 
 /**
- * §1MP 10, Probe M1: how far to scroll the zone so a focused box sits in the clear band (below the
- * pinned header and the top fade, above the bottom fade). 0 leaves it. A box taller than the band
- * aligns its top. Form 9a: `ring` (the focus outline's reach past the box) counts as part of it.
+ * §1MP 10, V32 r53 clear-area rule: how far to scroll the zone so a focused box sits in the clear
+ * area (below the pinned header and the top fade, above Undo's halo or the bottom fade). 0 leaves
+ * it. Only a box taller than the area overflows; it aligns its top. Form 9a: `ring` (the focus
+ * outline's reach past the box) counts as part of it.
  */
-export const focusShift = (b: Box, clear: Clear, ring = 0): number => {
+export const focusShift = (b: Box, clear: Box, ring = 0): number => {
   const box = { top: b.top - ring, bottom: b.bottom + ring };
-  // call4 M1 (390/32: 380.9px against a 376.2px band): a box too tall for the band but short
-  // enough for the hard edges gives up top fade, never Undo: its foot sits on the Tile's top.
-  const h = clear.hard;
-  if (
-    h &&
-    box.bottom - box.top > clear.bottom - clear.top &&
-    box.bottom - box.top <= h.bottom - h.top
-  ) {
-    return Math.ceil(box.bottom - h.bottom);
-  }
   // Whole pixels (WebKit keeps scrollTop integral), rounded so the aligned edge lands inside the
   // band: down to align a top, up to align a foot. A truncated 0.9px left a foot in the fade.
   if (box.top < clear.top || box.bottom - box.top > clear.bottom - clear.top) {
@@ -180,8 +188,8 @@ type Focused = {
 };
 /** Sent to the focused control when the undo Tile appears, so it is corrected out from under it. */
 export const COVER = "pane-cover";
-/** U1 Where: Undo's 44px target sits 0.625rem above the sheet's content-box foot. */
-export const LIFT_REM = 0.625;
+/** One row, `--hit` (V32 r53: the least clear area that keeps the header pinned). */
+export const HIT_REM = 2.75;
 type Listen = "focusin" | "scroll" | typeof REVEAL | typeof COVER;
 export type FocusZone = {
   scrollTop: number;
@@ -206,33 +214,36 @@ const isFocused = (t: unknown): t is Focused =>
  * band. A list taller than the band shows its top, unless that would hide its focused option; then
  * as much of the pick as fits, its top first.
  */
-export const revealShift = (list: Box, focused: Box | null, clear: Clear): number => {
+export const revealShift = (list: Box, focused: Box | null, clear: Box): number => {
   const s = focusShift(list, clear);
   if (focused === null || focused.bottom - s <= clear.bottom) return s;
-  // Up to show the pick's foot, but never past its own top (Probe N2: at 320 the band is 77px and
-  // every row 80–124px, so uncapped this ran the list top under the pinned header).
-  // call4 M1: the pick goes where focus would put it, so a pick that fits the hard edges isn't
-  // top-aligned into Undo.
-  return clear.hard
-    ? focusShift(focused, clear)
-    : Math.min(Math.ceil(focused.bottom - clear.bottom), Math.floor(focused.top - clear.top));
+  // The pick goes where focus puts it: its foot up to the area's foot, or, taller than the area,
+  // its top at the area's top (Probe N2: never past its own top, under the pinned header).
+  return focusShift(focused, clear);
 };
 
+/** V32 r53: the halo past Undo's box (the soft Tile's `--_halo`). */
+export const HALO_PX = 3;
+
 /**
- * V32 r46 A11Y pinned elements (2), call4 M1: while the page-level undo Tile shows, the pane's
- * scroll-padding-block-end is its full rendered height plus `lift` (0.625rem: 54px at a 16px root,
- * 108px at 32px); 0 while it's hidden (inert).
+ * V32 r53 bottom inset, Undo showing: from the zone's foot up to the top of Undo's halo (its
+ * offset, its measured height and the halo), measured, as the offset differs on the
+ * phone-landscape panel. Hidden (inert, opacity 0), Undo keeps its place, so this still holds
+ * for the unpin check; `shown` says whether it counts for focus.
  */
-export const coverOf = (
-  tile: {
-    getBoundingClientRect: () => { height: number };
-    closest: (sel: string) => unknown;
-  } | null,
-  lift: number,
-): number =>
-  tile === null || tile.closest("[inert]") !== null
-    ? 0
-    : tile.getBoundingClientRect().height + lift;
+export const reachOf = (
+  tile: { getBoundingClientRect: () => Box; closest: (sel: string) => unknown } | null,
+  zone: { getBoundingClientRect: () => Box } | null,
+): { reach: number; shown: boolean } =>
+  tile === null || zone === null
+    ? { reach: 0, shown: false }
+    : {
+        reach: Math.max(
+          0,
+          zone.getBoundingClientRect().bottom - tile.getBoundingClientRect().top + HALO_PX,
+        ),
+        shown: tile.closest("[inert]") === null,
+      };
 
 /**
  * Keyboard focus lands clear of the pinned header and both fades. The header that can cover a
@@ -244,9 +255,8 @@ export const coverOf = (
  * Form 9c: the browser centres a focused control ("if needed"), before focusin (Chromium, Firefox)
  * or just after (WebKit), so the correction starts from the zone's resting scrollTop (its last
  * scroll event, which comes after the focus scroll, or its own write) and moves the minimum.
- * V32 r46 A11Y pinned elements (2), call4 M1: while the undo Tile shows, `cover` (its reach over
- * the zone's foot, coverOf) is the band's foot when it reaches past the fade, and --dyn-spb
- * carries it to scroll-padding-block-end (0 while hidden).
+ * V32 r53 clear-area rule: while the undo Tile shows, `cover` (its halo's reach over the zone's
+ * foot, reachOf; 0 while hidden) is the band's foot when it reaches past the fade.
  */
 export const keepFocusClear = (
   zone: FocusZone | null,
@@ -258,11 +268,6 @@ export const keepFocusClear = (
   if (zone === null) return () => undefined;
   let frame = 0;
   let rest = zone.scrollTop;
-  const foot = (f: number): number => {
-    const c = cover();
-    zone.style?.setProperty("--dyn-spb", `${c.toFixed(2)}px`);
-    return Math.max(f, c);
-  };
   const onScroll = (): void => {
     rest = zone.scrollTop;
   };
@@ -280,14 +285,9 @@ export const keepFocusClear = (
       const stuck =
         own && pin && asset ? Math.max(0, pin.top - asset.getBoundingClientRect().top) : 0;
       const b = el.getBoundingClientRect();
-      const c = foot(f);
       const shift = shiftOf(
         { top: b.top - stuck, bottom: b.bottom - stuck },
-        {
-          top: z.top + hh + f,
-          bottom: z.bottom - c,
-          ...(c > f && { hard: { top: z.top + hh, bottom: z.bottom - c } }),
-        },
+        { top: z.top + hh + f, bottom: z.bottom - Math.max(f, cover()) },
       );
       if (shift !== 0) zone.scrollTop += shift;
       rest = zone.scrollTop;
@@ -306,8 +306,13 @@ export const keepFocusClear = (
       const pick = el.querySelector?.(":focus") ?? null;
       const r = pick === null ? 0 : ring(pick);
       const inner = pick?.getBoundingClientRect() ?? null;
-      // Form 9a: the pick's ring counts as part of it (call4 M1: 390/32 left it 5.6px under Undo).
-      return revealShift(box, inner && { top: inner.top - r, bottom: inner.bottom + r }, clear);
+      // Form 9a: the pick's ring counts as part of it, and so as part of the list it ends or
+      // starts (call4 M1: 390/32 left it 5.6px under Undo; call5 R4: the first ring 3–5px in the fade).
+      return revealShift(
+        { top: box.top - r, bottom: box.bottom + r },
+        inner && { top: inner.top - r, bottom: inner.bottom + r },
+        clear,
+      );
     });
   };
   zone.addEventListener("scroll", onScroll);
