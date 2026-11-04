@@ -1,5 +1,5 @@
 import type { JSX, KeyboardEvent } from "react";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
@@ -205,10 +205,11 @@ export const NumberField = ({
   // The engine value changed elsewhere (a model switch resets the variable, U1 undo or redo
   // restores it): show it unless the person is mid-edit in this field. Focus alone isn't mid-edit:
   // U1 Focus moves focus onto the restored field in the same commit, so a focused field with no
-  // pending text, no held step and no wheel settle shows the new value too, whole text selected
-  // again (§1P). Its own commit keeps the text as typed (4c).
+  // pending text, no held step and no wheel settle shows the new value too, with (V32 r53 :900,
+  // PO ruling call #4 N4) the caret at the end and nothing selected, on every path: focus kept,
+  // or moved here by U1 Focus (whose focus() selected all first). Its own commit keeps the text as
+  // typed (4c).
   // Form 4h: a value from anywhere else clears a clamp note; this field's own commit keeps it.
-  const reselect = useRef(false);
   useEffect(() => {
     const own = sent.current;
     sent.current = null;
@@ -217,17 +218,13 @@ export const NumberField = ({
     if (element !== null && document.activeElement === element) {
       const editing = live.current.draft !== clean.current || held.current || wheel.pending();
       if (editing || value === own) return;
-      reselect.current =
-        element.selectionStart === 0 && element.selectionEnd === element.value.length;
+      // Written before the re-render (as onFocus does), so React's same value keeps the caret.
+      element.value = editNumber(value);
+      element.setSelectionRange(element.value.length, element.value.length);
     }
     clean.current = editNumber(value);
     setDraft(clean.current);
   }, [value, wheel]);
-  useLayoutEffect(() => {
-    if (!reselect.current) return;
-    reselect.current = false;
-    input.current?.select();
-  });
 
   useEffect(() => {
     if (initialText !== undefined) commitRef.current(initialText);
