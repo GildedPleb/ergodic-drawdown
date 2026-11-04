@@ -74,13 +74,18 @@ test("Models sheet: Years is main's years input, 1 to the live cap (120 before h
   expect(live.includes('aria-valuemax="117"')).toBe(true);
 });
 
-/** Option names per listbox (plain names, or the LabelGlyphs data-text of an SVG label). */
+/**
+ * Option names per listbox as drawn (plain names, or the LabelGlyphs data-text of an SVG label).
+ * call5 R6 (V32 r53 :713): a hyphenated face sits in its own aria-hidden span; that is what is read.
+ */
 const optionsOf = (html: string, id: string): string[] => {
   const at = html.indexOf(`id="${id}"`);
   const list = html.slice(at, html.indexOf("</div>", at));
-  return [...list.matchAll(/role="option"[^>]*><span[^>]*>(.*?)<\/span>/g)].map(
-    (m) => /data-text="([^"]+)"/.exec(m[1] ?? "")?.[1] ?? m[1] ?? "",
-  );
+  return [
+    ...list.matchAll(
+      /role="option"[^>]*><span[^>]*>(?:<span class="select-face"[^>]*>)?(.*?)<\/span>/g,
+    ),
+  ].map((m) => /data-text="([^"]+)"/.exec(m[1] ?? "")?.[1] ?? m[1] ?? "");
 };
 
 test("§1MP 6: price model and walk are in-place listboxes; closed, only the pick shows", () => {

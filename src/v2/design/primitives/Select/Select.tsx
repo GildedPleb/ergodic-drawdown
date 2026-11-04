@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "../Icon";
 import { LabelGlyphs } from "../LabelGlyphs";
+import { VisuallyHidden } from "../VisuallyHidden";
 import { listKey, REVEAL } from "./logic";
 import styles from "./Select.module.css";
 
@@ -104,6 +105,7 @@ export const Select = ({
   const end = styles["end"] ?? "select-end";
   const check = styles["check"] ?? "select-check";
   const desc = styles["desc"] ?? "select-desc";
+  const drawn = styles["face"] ?? "select-face";
   const cols: (typeof variants.cols)[number] | undefined = open && columns ? "2" : undefined;
 
   return (
@@ -121,6 +123,7 @@ export const Select = ({
       {options.map((o, i) => {
         const pick = i === selected;
         if (!open && !pick) return null;
+        const face = shown?.(o) ?? o;
         const mark: (typeof variants.state)[number] | undefined = open && pick ? "pick" : undefined;
         return (
           <button
@@ -144,7 +147,19 @@ export const Select = ({
             }}
           >
             <span className={name}>
-              <LabelGlyphs text={shown?.(o) ?? o} />
+              {face === o ? (
+                <LabelGlyphs text={o} />
+              ) : (
+                // V32 r53 :713 (call5 R6): the soft-hyphened face is drawn only (aria-hidden and
+                // not selectable); the name itself is the plain text, so accessible names,
+                // selections and copies carry no U+00AD.
+                <>
+                  <span className={drawn} aria-hidden="true">
+                    <LabelGlyphs text={face} decorative />
+                  </span>
+                  <VisuallyHidden>{o}</VisuallyHidden>
+                </>
+              )}
             </span>
             {open && !pick ? null : open ? (
               <span className={check} aria-hidden="true">

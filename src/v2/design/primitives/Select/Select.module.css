@@ -34,6 +34,10 @@
     font: 500 var(--t-pane)/1.15 var(--f-serif);
   }
 
+  .face {
+    user-select: none;
+  }
+
   .opt[data-state="pick"] .name {
     color: var(--accent);
   }
