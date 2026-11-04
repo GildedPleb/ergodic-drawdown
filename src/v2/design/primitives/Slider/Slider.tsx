@@ -23,6 +23,11 @@ export type SliderProps = {
   /** Commits live while dragged or a key is held (at most every 100 ms), and once on release. */
   /** `live` is true during a drag or held key; the release's commit has it false (U1). */
   onCommit?: (next: number, live: boolean) => void;
+  /**
+   * V32 r53 :898 (call #5 drag): the thumb's live value on every input event, uncommitted, so a
+   * paired box shows the same value on every frame; null once the gesture ends.
+   */
+  onInput?: ((live: number | null) => void) | undefined;
   /** Spoken value (aria-valuetext). */
   valueText?: ((value: number) => string) | undefined;
   disabled?: boolean;
@@ -92,6 +97,7 @@ export const Slider = ({
   max,
   step,
   onCommit,
+  onInput,
   valueText,
   disabled = false,
   scale: given,
@@ -107,6 +113,8 @@ export const Slider = ({
   const [drag, setDrag] = useState(false);
   const props = useRef({ onCommit, value });
   props.current = { onCommit, value };
+  const heard = useRef(onInput);
+  heard.current = onInput;
   const live = useRef<Live | null>(null);
   live.current ??= createLive(
     (n, now) => props.current.onCommit?.(n, now),
@@ -130,11 +138,13 @@ export const Slider = ({
   const move = (n: number): void => {
     active.current = true;
     setDraft(n);
+    heard.current?.(n);
     hold.move(n);
   };
   const release = (n: number): void => {
     active.current = false;
     hold.release(n);
+    heard.current?.(null);
   };
   const grab = (on: boolean): void => {
     dragging.current = on;
@@ -195,6 +205,7 @@ export const Slider = ({
         grab(false);
         active.current = false;
         hold.cancel();
+        heard.current?.(null);
         setDraft(value);
       }}
     >

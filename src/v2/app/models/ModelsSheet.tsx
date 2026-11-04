@@ -125,6 +125,9 @@ const Editor = (p: EditorProps): JSX.Element => {
   const shown = useTween(p.value, p.tween, `row-${p.id}`, p.step);
   // r48 U1 (call4 m3): the slider shows its box's live value while that is an uncommitted edit.
   const [typed, setTyped] = useState<number | null>(null);
+  // V32 r53 :898 (call #5): while the slider moves, the box shows its live value, not the last
+  // (throttled, tweened) commit, which left it one value behind.
+  const [slid, setSlid] = useState<number | null>(null);
   return (
     <LedgerRow
       id={`row-${p.id}`}
@@ -136,7 +139,7 @@ const Editor = (p: EditorProps): JSX.Element => {
           id={`v2-${p.input ?? p.id}`}
           label={p.label}
           labelHidden
-          value={shown}
+          value={slid ?? shown}
           bounds={p.bounds}
           parse={p.parse}
           step={p.step}
@@ -167,6 +170,7 @@ const Editor = (p: EditorProps): JSX.Element => {
           )}
           valueText={focus?.spoken}
           onCommit={p.onCommit}
+          onInput={setSlid}
         />
       ) : undefined}
     </LedgerRow>
